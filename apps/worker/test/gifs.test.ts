@@ -100,6 +100,62 @@ describe("KLIPY response parsing", () => {
     expect(result.gifs[0]?.height).toBe(360);
   });
 
+  it("parses a VERBATIM KLIPY response captured from the live API", async () => {
+    // Not a guess at the shape — this is a real search response, trimmed only
+    // by dropping the format variants we never read (jpg/mp4/webm/webp). It is
+    // the ground truth that settled two open questions: the envelope nests
+    // results at data.data, and media is two levels deep at file.<size>.gif.
+    // Media is served from static.klipy.com, which the stored-URL host check
+    // accepts via the klipy.com suffix — so no config change was needed.
+    const result = await withResponse(
+      200,
+      {
+        result: true,
+        data: {
+          data: [
+            {
+              id: 5940975571411984,
+              slug: "squid-game-squid-game-3-4--k75iFSU8X",
+              title: "Squid Game 3: Gi-hun and Player 001 Celebrate",
+              type: "gif",
+              file: {
+                hd: {
+                  gif: {
+                    url: "https://static.klipy.com/ii/4e7bea9f7a3371424e6c16ebc93252fe/fb/c9/z1iVOI1PiTomzs4Eb.gif",
+                    width: 498,
+                    height: 308,
+                    size: 2487287,
+                  },
+                },
+                sm: {
+                  gif: {
+                    url: "https://static.klipy.com/ii/4e7bea9f7a3371424e6c16ebc93252fe/fb/c9/DfMCA7IOm3LsBSL7RHGo.gif",
+                    width: 220,
+                    height: 137,
+                    size: 440918,
+                  },
+                },
+              },
+            },
+          ],
+          current_page: 1,
+          per_page: 24,
+          has_next: true,
+        },
+      },
+      () => searchGifs(env, "celebrate", "en"),
+    );
+    expect(result.failed).toBeFalsy();
+    expect(result.gifs).toHaveLength(1);
+    const gif = result.gifs[0];
+    expect(gif?.url).toContain("static.klipy.com");
+    expect(gif?.url.endsWith(".gif")).toBe(true);
+    // The preview is a genuinely smaller asset, not the same URL twice.
+    expect(gif?.previewUrl).not.toBe(gif?.url);
+    expect(gif?.width).toBe(498);
+    expect(gif?.height).toBe(308);
+  });
+
   it("reads KLIPY's real v1 shape: envelope + file.<size>.<format>", async () => {
     // Confirmed against a working KLIPY v1 client (Activepieces): the envelope
     // is { result, data: { data: [...] } } and each item nests a size bucket
