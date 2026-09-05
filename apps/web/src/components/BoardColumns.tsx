@@ -663,10 +663,11 @@ function NoteComposer({
     // Matches the server's per-author ordering rule.
     const own = notes.filter((note) => note.authorId === you.id);
     const order = Math.max(0, ...own.map((note) => note.order)) + 1;
+    const opId = generateHexId();
     mutate(
       {
         type: "note.create",
-        opId: generateHexId(),
+        opId,
         noteId,
         columnId,
         text: trimmed,
@@ -687,6 +688,12 @@ function NoteComposer({
           groupId: null,
           reactions: {},
         },
+      },
+      // Refused (wrong phase, a board that moved on): hand the text back rather
+      // than let the composer's own optimism destroy it.
+      () => {
+        setText((current) => (current === "" ? trimmed : current));
+        setGifUrl((current) => current ?? gifUrl);
       },
     );
     setText("");

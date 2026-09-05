@@ -24,6 +24,7 @@ import { KudosWall } from "../components/KudosWall.js";
 import { RotiPoll } from "../components/RotiPoll.js";
 import { LanguageToggle } from "../components/LanguageToggle.js";
 import { LegalFooter } from "../components/LegalFooter.js";
+import { NoticeRail } from "../components/NoticeRail.js";
 import { PhaseStepper } from "../components/PhaseStepper.js";
 import { PresenceRail } from "../components/PresenceRail.js";
 import { ReadyBar } from "../components/ReadyBar.js";
@@ -48,6 +49,7 @@ import { useBoardStore } from "../store/boardStore.js";
 type Gate =
   | { step: "loading" }
   | { step: "missing" }
+  | { step: "error" }
   | { step: "join"; board: BoardInfo }
   | { step: "room"; board: BoardInfo; displayName: string };
 
@@ -55,22 +57,22 @@ export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>();
   const [gate, setGate] = useState<Gate>({ step: "loading" });
 
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!boardId) return;
     let cancelled = false;
-    void fetchBoardInfo(boardId).then(
-      (board) => {
-        if (cancelled) return;
-        setGate(board === null ? { step: "missing" } : { step: "join", board });
-      },
-      () => {
-        if (!cancelled) setGate({ step: "missing" });
-      },
-    );
+    void fetchBoardInfo(boardId).then((result) => {
+      if (cancelled) return;
+      setGate(
+        result.status === "ok"
+          ? { step: "join", board: result.board }
+          : { step: result.status },
+      );
+    });
     return () => {
       cancelled = true;
     };
-  }, [boardId]);
+  }, [boardId, attempt]);
 
   if (!boardId) return <NotFound />;
   switch (gate.step) {
@@ -78,6 +80,17 @@ export function BoardPage() {
       return null;
     case "missing":
       return <NotFound />;
+    case "error":
+      return (
+        <LookupFailed
+          onRetry={() => {
+            // Reset the gate from the event handler rather than the effect —
+            // an effect that sets state on entry costs an extra render pass.
+            setGate({ step: "loading" });
+            setAttempt((n) => n + 1);
+          }}
+        />
+      );
     case "join":
       return (
         <JoinGate
@@ -175,13 +188,21 @@ function Room({
   // Stable connection facade over whichever socket is currently alive. User
   // interactions can only happen after the effect below has run, so the ref
   // is always populated by then.
+  // opId -> what to restore if the server refuses that command. Lives in a ref
+  // rather than state: nothing renders from it, and a re-render must not lose
+  // an entry that is waiting on a round trip.
+  const rejectHandlers = useRef(new Map<string, () => void>());
+
   const connection = useMemo<BoardConnection>(
     () => ({
       boardId,
       send: (command: ClientCommand) => socketRef.current?.send(command),
-      mutate: (command, optimistic) => {
+      mutate: (command, optimistic, onReject) => {
         const events = Array.isArray(optimistic) ? optimistic : [optimistic];
         for (const event of events) useBoardStore.getState().dispatch(event);
+        if (onReject && "opId" in command) {
+          rejectHandlers.current.set(command.opId, onReject);
+        }
         socketRef.current?.send(command);
       },
     }),
@@ -189,7 +210,8 @@ function Room({
   );
 
   useEffect(() => {
-    const { dispatch, setStatus, setClockOffset } = useBoardStore.getState();
+    const { dispatch, setStatus, setClockOffset, notify } =
+      useBoardStore.getState();
     const socket = new BoardSocket({
       boardId,
       join: () => ({
@@ -217,6 +239,20 @@ function Room({
           dispatch(event);
           socket.close();
           return;
+        }
+        // A refusal must reach the user in words. Without this the command
+        // vanished, the board silently resynced, and whatever had just been
+        // typed disappeared with no explanation at all.
+        if (event.type === "reject") {
+          notify(`reject.${event.code}`);
+          if (event.opId !== undefined) {
+            rejectHandlers.current.get(event.opId)?.();
+            rejectHandlers.current.delete(event.opId);
+          }
+        }
+        if (event.type === "ack") rejectHandlers.current.delete(event.opId);
+        if (event.type === "error" && event.code === "RATE_LIMIT") {
+          notify("reject.RATE_LIMIT", "warning");
         }
         if (
           event.type === "reject" ||
@@ -305,6 +341,7 @@ function Room({
   return (
     <ConnectionProvider value={connection}>
       <WheelOverlay />
+      <NoticeRail />
       {staleBuild ? (
         <div
           role="status"
@@ -534,6 +571,28 @@ function Room({
         <LegalFooter />
       </div>
     </ConnectionProvider>
+  );
+}
+
+function LookupFailed({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div
+      data-testid="lookup-failed"
+      className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-zinc-50 px-6 text-center"
+    >
+      <h1 className="text-2xl font-semibold text-zinc-900">
+        {t("lookupFailed.title")}
+      </h1>
+      <p className="max-w-prose text-zinc-500">{t("lookupFailed.body")}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {t("lookupFailed.retry")}
+      </button>
+    </div>
   );
 }
 

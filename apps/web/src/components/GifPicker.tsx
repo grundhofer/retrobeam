@@ -20,7 +20,7 @@ export function GifPicker({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GifResult[]>([]);
   const [state, setState] = useState<
-    "idle" | "loading" | "empty" | "unavailable"
+    "idle" | "loading" | "empty" | "unavailable" | "failed"
   >("idle");
   const { boardId } = useConnection();
   const locale = i18n.language.startsWith("de") ? "de" : "en";
@@ -29,6 +29,10 @@ export function GifPicker({
   useEffect(() => {
     const term = query.trim();
     const id = ++reqId.current;
+    // An in-flight search is aborted when the term changes, so a slow earlier
+    // response cannot land on top of a newer one, and the request itself stops
+    // rather than merely being ignored.
+    const controller = new AbortController();
     // All state updates happen inside the (async) timeout callback, never
     // synchronously in the effect body.
     const timeout = setTimeout(
@@ -40,17 +44,28 @@ export function GifPicker({
           return;
         }
         setState("loading");
-        void searchGifs(boardId, term, locale).then((res) => {
-          if (id !== reqId.current) return; // superseded by a newer search
-          if (!res.configured) setState("unavailable");
-          else if (res.gifs.length === 0) setState("empty");
-          else setState("idle");
-          setResults(res.gifs);
-        });
+        searchGifs(boardId, term, locale, controller.signal).then(
+          (res) => {
+            if (id !== reqId.current) return; // superseded by a newer search
+            if (res.failed) setState("failed");
+            else if (!res.configured) setState("unavailable");
+            else if (res.gifs.length === 0) setState("empty");
+            else setState("idle");
+            setResults(res.failed ? [] : res.gifs);
+          },
+          () => {
+            // Aborted, or a rejection nothing else caught: the picker must
+            // never be left spinning on "Searching…".
+            if (id === reqId.current) setState("failed");
+          },
+        );
       },
       term === "" ? 0 : 350,
     );
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, [boardId, query, locale]);
 
   return (
@@ -73,7 +88,14 @@ export function GifPicker({
           ✕
         </button>
       </div>
-      {state === "unavailable" ? (
+      {state === "failed" ? (
+        <p
+          data-testid="gif-failed"
+          className="px-1 py-4 text-center text-xs text-zinc-400"
+        >
+          {t("gif.failed")}
+        </p>
+      ) : state === "unavailable" ? (
         <p className="px-1 py-4 text-center text-xs text-zinc-400">
           {t("gif.unavailable")}
         </p>
