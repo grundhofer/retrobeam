@@ -16,10 +16,10 @@ Retropolis is a **guided, playful, genuinely free** retrospective tool for teams
 
 ## 2. Users & roles
 
-| Role                    | How they get it                                                                                                                 | Capabilities                                                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Facilitator (admin)** | Creates the board; receives a private admin link (capability URL). Can promote any participant to co-facilitator; can hand off. | Advance/rewind phases, start/pause/extend timer, configure voting, spin the picker, reveal notes/columns, manage participants, delete board. |
-| **Participant**         | Opens the share link (or scans the QR code shown next to it), types a display name. No account, no e-mail.                      | Write/edit/delete own notes, react, vote, mark "I'm done", present when picked.                                                              |
+| Role                    | How they get it                                                                                                                                                                     | Capabilities                                                                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Facilitator (admin)** | Creates the board; the admin token is kept in that browser's `localStorage` (there is no admin link — see docs/02 §9). Can promote any participant to co-facilitator; can hand off. | Advance/rewind phases, start/pause/extend timer, configure voting, spin the picker, reveal notes/columns, manage participants, delete board. |
+| **Participant**         | Opens the share link (or scans the QR code shown next to it), types a display name. No account, no e-mail.                                                                          | Write/edit/delete own notes, react, vote, mark "I'm done", present when picked.                                                              |
 
 No user accounts in v1 (decided). Identity per board = self-chosen display name + server-assigned color + a session token in localStorage so a refresh keeps your notes yours. **Facilitator handoff is MVP** — the session must survive the admin's dropped connection (Retrium's lack of this dominated its negative reviews).
 
@@ -85,7 +85,7 @@ Rules: winner is drawn **server-side with `crypto.getRandomValues()` before the 
 ## 9. GIFs & emoji
 
 - **GIF search: KLIPY** (the post-Tenor industry default — Discord, WhatsApp, Figma migrated to it; free lifetime production key). Tenor's API was shut down June 30, 2026; GIPHY's free production tier no longer exists. All searches go **through our Worker proxy** (key secrecy, employee IPs/search terms never reach the US operator, `rating=g|pg` enforced server-side, cached). Required KLIPY attribution shown in the picker. **Per-board GIF toggle** for privacy-strict teams. Provider isolated behind one module — GIFs are a degradable feature.
-- **Emoji: native Unicode** (zero bytes, zero third-party requests). Picker: `emoji-picker-element` (~12.5 kB, framework-agnostic, built-in German i18n, IndexedDB-cached) with **self-hosted emoji data** (default CDN would be a GDPR leak). _Note: this deviates from the stack panel's emoji-mart suggestion — the dedicated emoji/GDPR research showed emoji-picker-element is smaller, self-hostable, and ships German search data; emoji-mart stays the fallback if the web-component wrapper fights React._
+- **Emoji: native Unicode** (zero bytes, zero third-party requests). _Shipped: a fixed row of five reactions, hand-rolled — no picker dependency at all. `emoji-picker-element` (~12.5 kB, self-hosted data) remains the choice if free-choice emoji ever ship; the GDPR constraint (never the default CDN) applies to any such library._
 
 ## 10. Persistence, retention & export
 
@@ -109,7 +109,7 @@ German + English from day one. All strings externalized; language auto-detected,
 
 ## 13. Feature cut lines
 
-**MVP (v1.0):** board create/join via link + QR · 6 templates + custom columns · phase machine with timer (pause/+1 min/sound) · private write with ghost cards + roster presence · ready-check · reveal (all/per-column) · presenting via wheel + rotation tracking + synced presenter focus · drag grouping with unmerge · blind voting + top-N crowning · action items (per board) · appreciation wall · emoji reactions + picker · GIFs via KLIPY proxy + per-board toggle · anonymity toggle · facilitator handoff · Markdown/CSV/JSON export · DE+EN · 90-day auto-delete · reduced-motion + aria-live a11y.
+**MVP (v1.0):** board create/join via link + QR · 6 templates + custom columns · phase machine with timer (pause/+1 min/sound) · private write with ghost cards + roster presence · ready-check · reveal (all/per-column) · presenting via wheel + rotation tracking + synced presenter focus · drag grouping with unmerge · blind voting + top-N crowning · action items (per board) · appreciation wall · emoji reactions + picker · GIFs via KLIPY proxy + per-board toggle · facilitator handoff · Markdown/CSV/JSON export · DE+EN · 90-day auto-delete · reduced-motion + aria-live a11y.
 
 **v1.x:** slot machine skin · icebreaker question bank (~100 questions DE/EN) + weather-report check-in · hidden/staged columns as a general feature · working-agreements pinned card · board duplication.
 

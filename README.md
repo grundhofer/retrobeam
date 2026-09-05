@@ -27,7 +27,7 @@ Retropolis is guided **and** playful **and** free. One facilitator steps the who
 
 ### 1. Share a link
 
-No accounts, no invites, no seat licences. Create a board, drop the URL into your team chat, everyone types a display name and they're in. The facilitator keeps a separate admin link.
+No accounts, no invites, no seat licences. Create a board, drop the URL into your team chat, everyone types a display name and they're in. Whoever created the board keeps the facilitator controls in that browser, and can hand them to anyone else in the room.
 
 ### 2. Everyone writes in private
 

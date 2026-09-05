@@ -13,18 +13,18 @@ Retropolis is an employee-feedback tool for a German company. Two legal frames a
 
 These aren't bolt-ons; they're why the works-council conversation should be easy:
 
-| Design decision                                                                       | Privacy effect                                                   |
-| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| No accounts; join via link + self-chosen display name (pseudonyms fine)               | Minimal personal data; no e-mail addresses, no directory         |
-| Private write phase enforced **server-side** (others' notes never sent over the wire) | Anti-surveillance by design — a selling point, frame it that way |
-| No admin superpowers over content: the facilitator sees exactly what the team sees    | No hidden "who wrote what" view                                  |
-| Ghost cards carry no content and no true length signal                                | Activity visible, behavior not measurable                        |
-| Blind voting; admin sees only an anonymous progress count                             | No vote attribution                                              |
-| Per-board anonymity toggle (strips `authorId` from all payloads permanently)          | Optional full anonymity for sensitive retros                     |
-| No per-user analytics, no tracking SDKs, no IP logging in the app                     | Nothing to co-determine about evaluation                         |
-| Exports exclude author names by default                                               | The keepable artifact is depersonalized                          |
-| EU jurisdiction Durable Objects (decided)                                             | Board data stored & processed in EU data centers                 |
-| 90-day auto-delete + facilitator delete-now + export-then-purge flow (decided)        | Short-lived data; the Löschkonzept writes itself                 |
+| Design decision                                                                       | Privacy effect                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No accounts; join via link + self-chosen display name (pseudonyms fine)               | Minimal personal data; no e-mail addresses, no directory                                                                                                                                                                                       |
+| Private write phase enforced **server-side** (others' notes never sent over the wire) | Anti-surveillance by design — a selling point, frame it that way                                                                                                                                                                               |
+| No admin superpowers over content: the facilitator sees exactly what the team sees    | No hidden "who wrote what" view                                                                                                                                                                                                                |
+| Ghost cards carry no content and no true length signal                                | Activity visible, behavior not measurable                                                                                                                                                                                                      |
+| Blind voting; admin sees only an anonymous progress count                             | No vote attribution                                                                                                                                                                                                                            |
+| Per-board anonymity toggle (strips `authorId` from all payloads permanently)          | **NOT SHIPPED.** The filter exists and is enforced everywhere (including the export), but nothing can switch it on: the create request has no field for it and no command sets it. Do not promise it to a works council until it is reachable. |
+| No per-user analytics, no tracking SDKs, no IP logging in the app                     | Nothing to co-determine about evaluation                                                                                                                                                                                                       |
+| Exports exclude author names by default                                               | The keepable artifact is depersonalized                                                                                                                                                                                                        |
+| EU jurisdiction Durable Objects (decided)                                             | Board data stored & processed in EU data centers                                                                                                                                                                                               |
+| 90-day auto-delete + facilitator delete-now + export-then-purge flow (decided)        | Short-lived data; the Löschkonzept writes itself                                                                                                                                                                                               |
 
 ## 3. Data inventory (what exists, where, how long)
 
