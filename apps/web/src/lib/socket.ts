@@ -26,7 +26,7 @@ const HEARTBEAT_INTERVAL_MS = 30_000; // Cloudflare idle timeout is ~100s; the D
 // goes into a socket nobody is reading.
 const PONG_TIMEOUT_MS = HEARTBEAT_INTERVAL_MS * 2;
 // A queue that grows without bound is a memory leak and, on reconnect, a burst
-// of stale frames billed 20:1. Kept comfortably BELOW the server's per-socket
+// of stale frames. Kept comfortably BELOW the server's per-socket
 // budget (120 with an 8/s refill): a flush larger than that bucket would be
 // partly refused, which would lose exactly the offline work the queue exists to
 // protect. Well past any real burst — a canvas Tidy is one frame.

@@ -18,13 +18,13 @@ A sanity check across Vercel, Netlify, Fly.io, Railway, Render, Supabase, Deno D
 
 **Free-tier budget we design against (verified July 2026):**
 
-| Resource        | Free limit                                                     | Our exposure                         |
-| --------------- | -------------------------------------------------------------- | ------------------------------------ |
-| Worker requests | 100k/day (static assets **free & unlimited**)                  | Trivial — SPA loads are static       |
-| DO requests     | 100k/day; **incoming WS messages bill 20:1**, outgoing free    | The binding constraint (see §8)      |
-| DO duration     | 13,000 GB-s/day; hibernated sockets bill **zero**              | Safe iff hibernation is never broken |
-| DO SQLite       | 5M rows read/day · 100k written/day · 5 GB total · 1 GB/object | Ample; never persist cursor/presence |
-| Limit behavior  | Hard fail until midnight UTC (≈ 1–2 a.m. German time)          | Graceful degradation required (§8)   |
+| Resource        | Free limit                                                                                            | Our exposure                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Worker requests | 100k/day (static assets **free & unlimited**)                                                         | Trivial — SPA loads are static                         |
+| DO requests     | 100k/day; incoming WS messages get a **20:1 discount** (twenty messages = one request), outgoing free | Comfortable — see §8 for the measured per-retro figure |
+| DO duration     | 13,000 GB-s/day; hibernated sockets bill **zero**                                                     | Safe iff hibernation is never broken                   |
+| DO SQLite       | 5M rows read/day · 100k written/day · 5 GB total · 1 GB/object                                        | **Rows written is the real ceiling** — measured below  |
+| Limit behavior  | Hard fail until midnight UTC (≈ 1–2 a.m. German time)                                                 | Graceful degradation required (§8)                     |
 
 Escape hatch if the company outgrows this: Workers Paid, $5/month.
 
@@ -133,12 +133,22 @@ Multiple storage ops without `await` batch into one implicit transaction (DO inp
 
 ## 8. Free-tier survival rules (all verified, all load-bearing)
 
-1. **Presence is the only real cost.** At a naive 10 Hz cursor rate, one session ≈ 27k billed DO requests; four sessions in a UTC day would exceed the 100k cap **mid-retro**. v1 ships column-level ghost presence only (start/stop + ≤1 Hz keepalive ≈ noise). If pixel cursors ship in v2: 3–4 Hz max, send only while moving, pause on hidden tabs and non-interactive phases → ~3–5k/session, 20+ sessions/day headroom.
-2. **Coalesce** cursor + editing + ready presence into one message type per tick — billing counts messages (20:1), not bytes.
+0. **What one retro actually costs (measured, not estimated).** `apps/worker/test/cost.test.ts` plays a full session — eight people, forty notes, every phase — against a real Durable Object and counts the rows it touches:
+
+   | Metric             | One retro | Free-tier ceiling | Retros/day |
+   | ------------------ | --------- | ----------------- | ---------- |
+   | Billed DO requests | ~18       | 100k/day          | ~5,500     |
+   | Rows written       | 553       | 100k/day          | **~180**   |
+   | Rows read          | 10,902    | 5M/day            | ~460       |
+
+   **Rows written is the binding constraint, not requests** — the opposite of what §1 assumed, because the 20:1 ratio on incoming WebSocket messages is a discount rather than a multiplier. Reads are the number that grows with board size (a join reads the whole board), so a very large board moves that column faster than the others. The test holds all three under a ceiling so a change that adds a write per keystroke is caught.
+
+1. **Presence is still the thing to watch.** At a naive 10 Hz cursor rate one session is ~27k billed requests, which would exhaust a day in four sessions. v1 ships column-level ghost presence only (start/stop + ≤1 Hz keepalive ≈ noise) and cursors are hard-disabled behind `CURSORS_ACTIVATABLE`. If pixel cursors ship: 3–4 Hz max, send only while moving, pause on hidden tabs and non-interactive phases.
+2. **Coalesce** cursor + editing + ready presence into one message type per tick — billing counts messages, not bytes, and the 20:1 discount applies per message however small.
 3. **Never persist presence** — RAM + broadcast only; the rows-written budget belongs to notes/votes/phases.
 4. **Never break hibernation** — no `setInterval`, no dangling outbound fetches (an outbound connection pins the DO up to 15 min).
 5. **Degrade gracefully at the cliff**: on DO limit errors, drop presence first, keep notes/voting working; banner explains; resets midnight UTC.
-6. **Count what we spend**: per-room billed-request counter, surfaced on an internal stats page, so the cap is visible weeks before it's hit.
+6. **Count what we spend**: partly done. There is no runtime counter or stats page, but `cost.test.ts` measures a full retro on every CI run and fails if the cost per session grows past its ceiling — which catches the regression that would matter (a change making each event cost more) without shipping instrumentation.
 7. GIF **search** goes through the Worker proxy; GIF **media** loads from KLIPY's CDN in v1 (proxying every thumbnail would eat Worker subrequest limits) — disclosed in the privacy note, R2 thumbnail cache is a v2 hardening option. _(This resolves a genuine tension between the platform research — "don't proxy media" — and the privacy research — "proxy everything": search terms + key are the sensitive part and cheap to proxy; media is bulky and merely reveals viewer IPs, which the per-board GIF toggle + disclosure covers.)_
 
 ## 9. Security model

@@ -13,7 +13,7 @@ import type { Phase } from "./phases.js";
 // toggle is hidden, and the server refuses to enable them. Flip to true (one
 // line) to make cursors reachable again — only when the Cloudflare free-tier
 // cost is acceptable (a paid plan or bounded usage), since cursor streams bill
-// inbound frames 20:1.
+// inbound frames.
 export const CURSORS_ACTIVATABLE = false;
 
 export const layoutModes = ["columns", "canvas"] as const;

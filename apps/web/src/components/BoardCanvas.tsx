@@ -455,7 +455,7 @@ export function BoardCanvas({
   }
 
   // Tidy: arrange the movable cards into a per-zone grid — ONE note.moveMany
-  // frame (never a loop of note.move: inbound frames bill 20:1).
+  // frame (never a loop of note.move: every inbound frame is billed).
   function tidy() {
     const byZone = new Map<string, Note[]>();
     for (const note of notes) {

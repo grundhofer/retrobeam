@@ -142,10 +142,11 @@ describe("board room websocket flow", () => {
 
 describe("per-socket message budget", () => {
   it("drops a flood without closing the socket, and recovers", async () => {
-    // Inbound WS messages bill 20:1 against an ACCOUNT-WIDE allowance, so a
-    // buggy or hostile client at browser speed can take every board offline
-    // until midnight UTC. The bucket is generous enough that a fast typist or a
-    // canvas Tidy never notices it.
+    // Inbound WS messages get a 20:1 billing discount, but the allowance is
+    // ACCOUNT-WIDE, so a client looping at machine speed still spends every
+    // board's budget. The bucket caps one socket at 8 frames a second, which no
+    // human interaction approaches — a fast typist or a canvas Tidy never
+    // notices it.
     const { boardId, adminToken } = await createBoard();
     const socket = await connect(boardId);
     socket.send({ type: "join", name: "Anna", adminToken });

@@ -92,12 +92,15 @@ interface SocketAttachment {
   budget?: { tokens: number; at: number };
 }
 
-// Inbound WebSocket messages bill 20:1, and the free-tier allowance is
-// account-wide: one client at 60 frames a second costs ~1200 billed requests a
-// second, which is the whole day's budget in about eighty seconds — and every
-// board goes down with it until midnight UTC. A generous per-socket bucket
-// costs a legitimate room nothing: a fast typist writing notes, a canvas Tidy,
-// or a reconnect burst are all well inside it.
+// Inbound WebSocket messages are billed at a 20:1 DISCOUNT — twenty of them
+// count as one request — but the free-tier allowance is account-wide, so a
+// runaway client still spends everyone's budget. At 1,000 frames a second
+// (trivial for a loop, impossible for a person) that is 50 billed requests a
+// second: the whole 100k daily allowance in about half an hour, and every board
+// goes down with it until midnight UTC. This bucket caps one socket at 8 frames
+// a second, which no human interaction approaches — a fast typist writing
+// notes, a canvas Tidy (one frame), or a reconnect replay are all well inside
+// it, and the burst allowance is fifteen seconds' worth.
 const BUCKET_CAPACITY = 120;
 const BUCKET_REFILL_PER_SEC = 8;
 // `resync` is the one command whose cost is unbounded relative to its input —
@@ -157,7 +160,7 @@ export interface BoardCreation {
 // (protocol.ts) and each serializes to ~138 chars, so a full canvas tidy is
 // ~42 KB. 8 KB used to cut that off at 58 cards — the client had already
 // applied its optimistic echo and never learned the frame was dropped.
-// Billing counts messages (20:1), not bytes, so a larger cap costs nothing;
+// Billing counts messages, not bytes, so a larger cap costs nothing;
 // the cap only exists to refuse absurd frames before paying for JSON.parse.
 const MAX_FRAME_CHARS = 65536;
 
