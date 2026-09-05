@@ -281,6 +281,119 @@ describe("staged / hidden columns", () => {
     expect(adminSync.notes.some((n) => n.columnId === col0)).toBe(true);
   });
 
+  it("a stacked note in a staged column is not an oracle for members", async () => {
+    // The "vote the stack, not a stacked note" reject used to run before the
+    // hidden-column check, so a member probing ids could tell a note inside a
+    // staged column from an unknown id — and which member of a stack was the
+    // anchor. Every invisible target must answer identically.
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    const col0 = admin.sync.columns[0]?.id ?? "";
+
+    await toWrite(admin.socket);
+    const anchor = newId();
+    const stacked = newId();
+    for (const [id, text] of [
+      [anchor, "anchor"],
+      [stacked, "stacked"],
+    ] as const) {
+      admin.socket.send({
+        type: "note.create",
+        opId: opId(),
+        noteId: id,
+        columnId: col0,
+        text,
+      });
+      await admin.socket.waitFor(
+        (e) => e.type === "note.created" && e.note.id === id,
+      );
+    }
+    await toPhase(admin.socket, "present");
+    admin.socket.send({
+      type: "note.group",
+      opId: opId(),
+      noteId: stacked,
+      targetNoteId: anchor,
+    });
+    await admin.socket.waitFor(
+      (e) =>
+        e.type === "note.updated" &&
+        e.note.id === stacked &&
+        e.note.groupId === anchor,
+    );
+    admin.socket.send({
+      type: "admin.column.setHidden",
+      opId: opId(),
+      columnId: col0,
+      hidden: true,
+    });
+    await ben.socket.waitFor(
+      (e) => e.type === "column.deleted" && e.columnId === col0,
+    );
+    await toPhase(admin.socket, "vote");
+
+    // Ben probes the stacked member, the anchor, and an id that never existed.
+    const codes: string[] = [];
+    for (const target of [stacked, anchor, newId()]) {
+      const op = opId();
+      ben.socket.send({
+        type: "vote.cast",
+        opId: op,
+        targetId: target,
+        delta: 1,
+      });
+      const rejected = await ben.socket.waitFor(
+        (e) => e.type === "reject" && e.opId === op,
+      );
+      if (rejected.type !== "reject") throw new Error("unreachable");
+      codes.push(rejected.code);
+    }
+    expect(codes).toEqual(["NOT_FOUND", "NOT_FOUND", "NOT_FOUND"]);
+  });
+
+  it("an archived board refuses column edits even from the facilitator", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const col0 = admin.sync.columns[0]?.id ?? "";
+    for (const phase of [
+      "write",
+      "present",
+      "vote",
+      "discuss",
+      "close",
+      "done",
+    ]) {
+      await toPhase(admin.socket, phase);
+    }
+
+    const renameOp = opId();
+    admin.socket.send({
+      type: "admin.column.rename",
+      opId: renameOp,
+      columnId: col0,
+      name: "too late",
+    });
+    const rename = await admin.socket.waitFor(
+      (e) => e.type === "reject" && e.opId === renameOp,
+    );
+    if (rename.type !== "reject") throw new Error("unreachable");
+    expect(rename.code).toBe("PHASE_LOCKED");
+
+    const rectOp = opId();
+    admin.socket.send({
+      type: "admin.column.setRect",
+      opId: rectOp,
+      columnId: col0,
+      rect: { x: 0, y: 0, w: 0.5, h: 0.5 },
+    });
+    const rect = await admin.socket.waitFor(
+      (e) => e.type === "reject" && e.opId === rectOp,
+    );
+    if (rect.type !== "reject") throw new Error("unreachable");
+    expect(rect.code).toBe("PHASE_LOCKED");
+  });
+
   it("reveals a hidden column with its now-visible notes to members", async () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);

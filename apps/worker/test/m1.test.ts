@@ -117,16 +117,28 @@ describe("write-phase privacy (the product's core property)", () => {
     if (!columnId) throw new Error("setup");
 
     const noteId = newId();
+    const createOp = opId();
     admin.socket.send({
       type: "note.create",
-      opId: opId(),
+      opId: createOp,
       noteId,
       columnId,
       text: "draft",
     });
-    await admin.socket.waitFor((e) => e.type === "ack");
-    admin.socket.send({ type: "note.delete", opId: opId(), noteId });
-    await admin.socket.waitFor((e) => e.type === "ack" && e.opId !== undefined);
+    await admin.socket.waitFor((e) => e.type === "ack" && e.opId === createOp);
+    const deleteOp = opId();
+    admin.socket.send({ type: "note.delete", opId: deleteOp, noteId });
+    await admin.socket.waitFor((e) => e.type === "ack" && e.opId === deleteOp);
+
+    // waitFor scans events that ALREADY arrived, so an ack barrier alone only
+    // proves the DELETE reached the server — not that Ben's socket has been
+    // given the chance to receive anything it would have sent him. Push a frame
+    // Ben is guaranteed to get and wait for THAT: it is broadcast after the
+    // delete, so if the delete had fanned out to him it is now in his log.
+    admin.socket.send({ type: "admin.gifs.set", enabled: false });
+    await ben.socket.waitFor(
+      (e) => e.type === "config.changed" && e.config.gifsEnabled === false,
+    );
 
     expect(JSON.stringify(ben.socket.events)).not.toContain(noteId);
   });

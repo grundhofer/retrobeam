@@ -1368,6 +1368,12 @@ export class BoardRoom extends DurableObject<Env> {
       );
       return;
     }
+    // An archived board is frozen for everyone, facilitator included — the
+    // same rule note.delete/update/react and admin.vote.config already apply.
+    if (this.phase() === "done") {
+      this.reject(ws, cmd.opId, "PHASE_LOCKED", "The retro is finished");
+      return;
+    }
     switch (cmd.type) {
       case "admin.column.create": {
         if (this.columnById(cmd.columnId) !== null) {
@@ -1530,6 +1536,12 @@ export class BoardRoom extends DurableObject<Env> {
         "NOT_ADMIN",
         "Only the facilitator moves zones",
       );
+      return;
+    }
+    // An archived board is frozen for everyone, facilitator included — the
+    // same rule note.delete/update/react and admin.vote.config already apply.
+    if (this.phase() === "done") {
+      this.reject(ws, cmd.opId, "PHASE_LOCKED", "The retro is finished");
       return;
     }
     const column = this.columnById(cmd.columnId);
@@ -2262,6 +2274,19 @@ export class BoardRoom extends DurableObject<Env> {
       this.reject(ws, cmd.opId, "PHASE_LOCKED", "Voting is not open");
       return;
     }
+    // A member cannot vote on a note in a column hidden from them — it's
+    // invisible, so answer like a nonexistent target (hidden notes are excluded
+    // from tallies anyway; this stops a modified client spending budget there).
+    // This runs BEFORE the votable classification: the "vote the stack, not a
+    // stacked note" reject is otherwise an oracle that tells a member a guessed
+    // id names a note inside a staged column, and which of them is the anchor.
+    if (participant.role !== "facilitator") {
+      const columnId = this.noteRowById(cmd.targetId)?.column_id ?? null;
+      if (columnId !== null && this.hiddenColumnIds().has(columnId)) {
+        this.reject(ws, cmd.opId, "NOT_FOUND", "Nothing to vote on");
+        return;
+      }
+    }
     // Votables are ungrouped notes and stacks (group ids).
     const kind = this.votableKind(cmd.targetId);
     if (kind === "grouped-note") {
@@ -2276,16 +2301,6 @@ export class BoardRoom extends DurableObject<Env> {
     if (kind === null) {
       this.reject(ws, cmd.opId, "NOT_FOUND", "Nothing to vote on");
       return;
-    }
-    // A member cannot vote on a note in a column hidden from them — it's
-    // invisible, so answer like a nonexistent target (hidden notes are excluded
-    // from tallies anyway; this stops a modified client spending budget there).
-    if (participant.role !== "facilitator") {
-      const columnId = this.noteRowById(cmd.targetId)?.column_id ?? null;
-      if (columnId !== null && this.hiddenColumnIds().has(columnId)) {
-        this.reject(ws, cmd.opId, "NOT_FOUND", "Nothing to vote on");
-        return;
-      }
     }
     const config = this.config();
     const current = Number(
@@ -3519,7 +3534,11 @@ export class BoardRoom extends DurableObject<Env> {
     const frame = JSON.stringify(event);
     for (const ws of this.ctx.getWebSockets()) {
       if (ws === exclude) continue;
-      if (readAttachment(ws)?.participantId === null) continue;
+      // Same normalization as broadcastEach: an unreadable attachment must be
+      // skipped, not treated as joined. `?.participantId === null` alone is
+      // false for an undefined attachment, which would fail OPEN here while
+      // broadcastEach fails closed — the two fan-outs must agree.
+      if ((readAttachment(ws)?.participantId ?? null) === null) continue;
       this.trySend(ws, frame);
     }
   }
