@@ -7,9 +7,12 @@ export default defineConfig({
   testDir: "e2e",
   timeout: 30_000,
   forbidOnly: !!process.env.CI,
-  // All specs share one vite dev server (single worker); a heavily-loaded
-  // sequential run occasionally trips a timing-sensitive assertion that passes
-  // in isolation. One retry absorbs those transient flakes (CI gets two).
+  // All specs share ONE vite dev server, so parallel specs contend for a single
+  // workerd instance. The comment used to claim a sequential run while `workers`
+  // was unset, which meant Playwright actually used half the cores against that
+  // shared server — the contention the retries were absorbing was partly
+  // self-inflicted. Run them serially and keep one retry as a genuine backstop.
+  workers: 1,
   retries: process.env.CI ? 2 : 1,
   use: {
     baseURL: "http://localhost:5173",

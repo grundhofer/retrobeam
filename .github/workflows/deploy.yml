@@ -9,7 +9,13 @@ on:
 
 jobs:
   preview:
-    if: github.event_name == 'pull_request' && vars.CLOUDFLARE_DEPLOY == 'true'
+    # Fork PRs never receive CLOUDFLARE_API_TOKEN, so without the repo check
+    # every external contribution would show an undiagnosable red check once
+    # deploys are switched on. A skipped job shows grey.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      vars.CLOUDFLARE_DEPLOY == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

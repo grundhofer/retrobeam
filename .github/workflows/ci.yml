@@ -35,6 +35,9 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm check
+      # The first production build used to happen inside the deploy job, so a
+      # broken Rollup pass or an unresolvable dynamic import merged green.
+      - run: pnpm build && test -f apps/web/dist/client/index.html
       - run: pnpm --filter @retropolis/shared test
       - run: pnpm --filter @retropolis/worker test
       - run: pnpm exec playwright install chromium --with-deps

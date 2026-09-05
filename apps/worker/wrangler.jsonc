@@ -37,6 +37,14 @@
   ],
   "observability": {
     "enabled": true,
+    // Invocation logs retain the full request URL, and every board URL IS the
+    // participant capability (/api/boards/:id, /ws, /export) — plus GIF search
+    // terms. Retaining them contradicts the "no tracking" promise in docs/05.
+    // Explicit console.error output (the DO's detached-promise logging) is
+    // unaffected and still reaches Workers Logs.
+    "logs": {
+      "invocation_logs": false,
+    },
   },
   "env": {
     // PR previews deploy here (worker "retropolis-preview") so preview builds
