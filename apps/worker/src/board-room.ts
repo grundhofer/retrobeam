@@ -13,9 +13,12 @@ import {
   parseClientCommand,
   phasePlanSchema,
   phaseRevealed,
+  phaseSchema,
+  PROTOCOL_VERSION,
   pickerKnows,
   pickerStateSchema,
   planJoin,
+  rotiReleaseSchema,
   redactNoteForViewer,
   visibleNotesFor,
   type Action,
@@ -44,6 +47,7 @@ import {
   type LayoutMode,
   type ZoneRect,
   ICEBREAKER_IDS,
+  icebreakerIdSchema,
   pickIcebreaker,
 } from "@retropolis/shared";
 import { generateSecret, randomIndex, safeEqual } from "./ids.js";
@@ -51,14 +55,24 @@ import { generateSecret, randomIndex, safeEqual } from "./ids.js";
 // Boards auto-delete after this window unless the facilitator keeps them.
 export const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
-// ROTI stays anonymous only if the average summarises enough people: with one
-// respondent the average IS that person's score, and with two a co-voter can
-// subtract their own to recover the other's. At three the average leaves at
-// least two unknowns for any single observer, so we withhold it below that.
-// (A determined observer diffing consecutive aggregates as the count ticks up
-// could still infer a marginal voter's score; real-room concurrency and the
-// one-decimal rounding blur that, and it's an acceptable residual for a team
-// retro — the blatant one- and two-voter leaks are what this closes.)
+// ROTI anonymity rests on TWO rules, and the count threshold alone is not one
+// of them.
+//
+// 1. The average is published exactly ONCE, when the board leaves the closing
+//    phase, and the poll is closed for good at that moment. A running mean
+//    re-broadcast on every submission is trivially differenceable: an observer
+//    holding consecutive aggregates computes n*avg(n) - (n-1)*avg(n-1) and
+//    recovers that respondent's integer score. Simulated over random score
+//    vectors, the one-decimal rounding blurs nothing at team scale — positions
+//    4 through 6 are recovered exactly 100% of the time, 7 through 9 about 88%.
+//    Re-scoring leaks outright, since the count holds still while the mean moves.
+// 2. Below this threshold the average is withheld even at release: with one
+//    respondent the average IS that person's score, and with two a co-voter
+//    subtracts their own to recover the other's.
+//
+// Residual, stated plainly: identities are free (any client-minted sessionKey
+// mints a participant), so a determined observer can pad the count. The
+// one-shot release is what actually closes the differencing channel.
 export const ROTI_MIN_ANONYMOUS = 3;
 
 interface KudoRow {
@@ -72,7 +86,25 @@ interface KudoRow {
 
 interface SocketAttachment {
   participantId: string | null;
+  /** Token bucket, carried in the attachment so it survives hibernation — the
+   *  DO keeps no in-memory session state by design. `at` is the epoch-ms the
+   *  bucket was last refilled. Absent on sockets from before this shipped. */
+  budget?: { tokens: number; at: number };
 }
+
+// Inbound WebSocket messages bill 20:1, and the free-tier allowance is
+// account-wide: one client at 60 frames a second costs ~1200 billed requests a
+// second, which is the whole day's budget in about eighty seconds — and every
+// board goes down with it until midnight UTC. A generous per-socket bucket
+// costs a legitimate room nothing: a fast typist writing notes, a canvas Tidy,
+// or a reconnect burst are all well inside it.
+const BUCKET_CAPACITY = 120;
+const BUCKET_REFILL_PER_SEC = 8;
+// `resync` is the one command whose cost is unbounded relative to its input —
+// a tiny frame returns the whole filtered board — so it is charged heavily.
+// At capacity that allows a burst of 6 (two rejections in a row legitimately
+// trigger two), settling to a sustained 8/20 = 0.4 snapshots a second.
+const RESYNC_COST = 20;
 
 interface ParticipantRow {
   id: string;
@@ -120,11 +152,32 @@ export interface BoardCreation {
   config?: BoardConfig;
 }
 
-const MAX_FRAME_CHARS = 8192;
+// Must fit the LARGEST frame the protocol itself permits, otherwise a legal
+// command is refused before zod ever sees it: `note.moveMany` allows 300 moves
+// (protocol.ts) and each serializes to ~138 chars, so a full canvas tidy is
+// ~42 KB. 8 KB used to cut that off at 58 cards — the client had already
+// applied its optimistic echo and never learned the frame was dropped.
+// Billing counts messages (20:1), not bytes, so a larger cap costs nothing;
+// the cap only exists to refuse absurd frames before paying for JSON.parse.
+const MAX_FRAME_CHARS = 65536;
+
+// Bumped when a migration step is added below the unconditional ones.
+const SCHEMA_VERSION = 1;
 
 // Phases in which notes may be created/edited by their author.
 function phaseAllowsWriting(phase: Phase): boolean {
   return phase === "write" || phase === "present";
+}
+
+// Command dispatch is synchronous, so the few storage-side effects that are
+// async (arming the alarm, wiping a board) cannot be awaited by their caller.
+// `void promise` would drop a rejection on the floor: a failed setAlarm means
+// the timer that clients are already counting down will never fire, and
+// nothing would say so. Log it instead — the label only, never board content.
+function detach(label: string, work: Promise<unknown>): void {
+  void work.catch((error: unknown) => {
+    console.error(`[BoardRoom] ${label} failed`, error);
+  });
 }
 
 // One board = one BoardRoom. Uses the WebSocket Hibernation API throughout:
@@ -209,7 +262,14 @@ export class BoardRoom extends DurableObject<Env> {
   }
 
   // Additive schema evolution for boards created before a column existed.
+  //
+  // Each step is PRAGMA-sniffed and idempotent, which is why this has been safe
+  // so far — but sniffing can only express "add a column if absent". A backfill,
+  // a rename or a data repair is unrepresentable, because there is no way to ask
+  // whether it already ran. The version marker below gives later migrations
+  // somewhere to record that, without changing what the existing steps do.
   private migrate(): void {
+    const from = Number(this.getMeta("schemaVersion") ?? "0");
     const participantColumns = this.sql
       .exec("PRAGMA table_info(participants)")
       .toArray()
@@ -255,6 +315,25 @@ export class BoardRoom extends DurableObject<Env> {
       if (!columnColumns.includes(col)) {
         this.sql.exec(`ALTER TABLE columns ADD COLUMN ${col} REAL`);
       }
+    }
+    // Secondary indexes. Only primary keys existed, so the hottest per-message
+    // predicates were full scans, and SQLite bills rows READ. `votes` is keyed
+    // (target_id, participant_id), which cannot seek by participant alone —
+    // exactly what myVotes and the vote meter do on every cast.
+    this.sql.exec(`
+      CREATE INDEX IF NOT EXISTS notes_by_column ON notes (column_id);
+      CREATE INDEX IF NOT EXISTS notes_by_group ON notes (group_id);
+      CREATE INDEX IF NOT EXISTS votes_by_participant ON votes (participant_id);
+      CREATE INDEX IF NOT EXISTS reactions_by_note ON reactions (note_id);
+    `);
+
+    // A one-way marker. Steps above stay idempotent and unconditional (they are
+    // what brings a pre-marker board up to date); anything added below runs
+    // `if (from < N)` and is recorded here. Only write it once the board
+    // actually exists — an untouched DO must stay indistinguishable from one
+    // that was never created, which is what makes an unknown board id 404.
+    if (this.getMeta("id") !== null && from < SCHEMA_VERSION) {
+      this.setMeta("schemaVersion", String(SCHEMA_VERSION));
     }
   }
 
@@ -315,6 +394,15 @@ export class BoardRoom extends DurableObject<Env> {
   // RPC: board metadata for the join page; null if never created.
   async info(): Promise<BoardInfo | null> {
     return this.getMeta("id") === null ? null : this.boardInfo();
+  }
+
+  // RPC: may this board's participants search for GIFs? Checked by the proxy
+  // BEFORE a search term leaves the edge, so the per-board opt-out is a
+  // property of the route rather than of client discipline. Deliberately
+  // returns a bare boolean — a missing board is indistinguishable from one
+  // that switched GIFs off.
+  async gifSearchAllowed(): Promise<boolean> {
+    return this.getMeta("id") !== null && this.config().gifsEnabled;
   }
 
   // RPC: structure-only snapshot for duplication — column names+order, board
@@ -400,6 +488,17 @@ export class BoardRoom extends DurableObject<Env> {
       return;
     }
 
+    // Charged before anything is done with the frame, so an over-budget client
+    // pays nothing but the (already-billed) inbound message.
+    if (!this.spendBudget(ws, command.type)) {
+      this.send(ws, {
+        type: "error",
+        code: "RATE_LIMIT",
+        message: "Too many messages — slow down",
+      });
+      return;
+    }
+
     if (command.type === "join") {
       this.handleJoin(ws, command.name, command.sessionKey, command.adminToken);
       return;
@@ -420,6 +519,33 @@ export class BoardRoom extends DurableObject<Env> {
       return;
     }
     this.dispatchCommand(ws, participant, command);
+  }
+
+  /** Token bucket per socket, stored in the attachment so it survives
+   *  hibernation. Returns false when the frame must be dropped. */
+  private spendBudget(ws: WebSocket, type: ClientCommand["type"]): boolean {
+    const attachment = readAttachment(ws);
+    if (attachment === null) return true; // not ours to police
+    const now = Date.now();
+    const previous = attachment.budget ?? { tokens: BUCKET_CAPACITY, at: now };
+    const refilled = Math.min(
+      BUCKET_CAPACITY,
+      previous.tokens + ((now - previous.at) / 1000) * BUCKET_REFILL_PER_SEC,
+    );
+
+    const cost = type === "resync" ? RESYNC_COST : 1;
+    if (refilled < cost) {
+      ws.serializeAttachment({
+        ...attachment,
+        budget: { tokens: refilled, at: now },
+      } satisfies SocketAttachment);
+      return false;
+    }
+    ws.serializeAttachment({
+      ...attachment,
+      budget: { tokens: refilled - cost, at: now },
+    } satisfies SocketAttachment);
+    return true;
   }
 
   private dispatchCommand(
@@ -535,10 +661,10 @@ export class BoardRoom extends DurableObject<Env> {
         this.handleCursor(ws, participant, command);
         return;
       case "admin.board.keep":
-        void this.handleBoardKeep(ws, participant);
+        detach("board.keep", this.handleBoardKeep(ws, participant));
         return;
       case "admin.board.delete":
-        void this.handleBoardDelete(ws, participant);
+        detach("board.delete", this.handleBoardDelete(ws, participant));
         return;
       case "admin.checkin.shuffle":
         this.handleCheckinShuffle(ws, participant);
@@ -610,16 +736,21 @@ export class BoardRoom extends DurableObject<Env> {
       }
     }
     await this.ctx.storage.deleteAlarm();
+    // Content first, board_meta LAST. board_meta holds the `id` row that makes
+    // the board resolvable at all, so wiping it first would 404 the board while
+    // note text and participant names were still on disk if anything threw
+    // mid-loop — the retention alarm would be gone too, with nothing left to
+    // re-arm it.
     for (const table of [
-      "board_meta",
-      "participants",
-      "columns",
       "notes",
       "reactions",
       "votes",
       "actions",
       "kudos",
       "roti",
+      "columns",
+      "participants",
+      "board_meta",
     ]) {
       this.sql.exec(`DELETE FROM ${table}`);
     }
@@ -858,6 +989,13 @@ export class BoardRoom extends DurableObject<Env> {
       }
       // Colliding with a note the caller cannot see must not read differently
       // from any other invalid id — reject codes are an existence oracle.
+      //
+      // The residual (INVALID here vs. a successful create for a free id) is
+      // deliberate: acking without writing would be a silent write-drop, and
+      // the client's optimistic echo would keep a note the server never has.
+      // Reaching this branch at all requires already knowing the 128-bit id of
+      // a note you cannot see, and the paths that used to leak such ids —
+      // note.deleted on reorg, board.columnCounts — are now per-recipient.
       const visible = noteVisibleTo(
         { authorId: existing.author_id, columnId: existing.column_id },
         participant.id,
@@ -1144,11 +1282,13 @@ export class BoardRoom extends DurableObject<Env> {
     this.setMeta("phase", target);
     this.sql.exec("UPDATE participants SET ready = 0");
     this.sql.exec(
-      "DELETE FROM board_meta WHERE key IN ('discussFocus', 'meterState')",
+      // lastSpin too: a reconnect within the wheel's hold window would
+      // otherwise replay the animation in whatever phase the board is now in.
+      "DELETE FROM board_meta WHERE key IN ('discussFocus', 'meterState', 'lastSpin')",
     );
     this.clearTimerMeta();
     // Re-arm for retention (must NOT drop the retention alarm on phase change).
-    void this.rescheduleAlarm();
+    detach("rescheduleAlarm(phase)", this.rescheduleAlarm());
 
     this.broadcastAll({
       type: "phase.changed",
@@ -1168,6 +1308,10 @@ export class BoardRoom extends DurableObject<Env> {
       });
     }
     if (target === "vote") {
+      // The budget may have been lowered while the board was rewound out of
+      // the vote phase; clamp before anyone sees their dots, otherwise voters
+      // carry an over-budget allocation into the new round.
+      this.clampVotesToConfig();
       // Votes may have migrated while regrouping in "present" — re-send every
       // voter their (possibly re-keyed) own votes so no dots are stranded.
       this.broadcastAllProgress();
@@ -1228,6 +1372,13 @@ export class BoardRoom extends DurableObject<Env> {
       });
     }
 
+    // Leaving the closing phase publishes the ROTI result, exactly once, and
+    // closes the poll. Until this moment nobody — facilitator included — has
+    // seen an average, so there is no sequence of aggregates to difference.
+    if (current === "close") {
+      this.releaseRoti();
+    }
+
     // Entering close/done: re-push existing kudos so a rewind-then-re-enter
     // doesn't leave connected clients with an empty wall (their reducer
     // cleared kudos on the way out). Idempotent upserts on the client.
@@ -1239,7 +1390,7 @@ export class BoardRoom extends DurableObject<Env> {
 
     // First entry into check-in picks an icebreaker (persists across rewinds
     // so the room doesn't get a new question every time it re-enters).
-    if (target === "checkin" && this.getMeta("icebreakerId") === null) {
+    if (target === "checkin" && this.icebreakerId() === null) {
       this.shuffleIcebreaker();
     }
 
@@ -1310,7 +1461,7 @@ export class BoardRoom extends DurableObject<Env> {
       }
     }
     // One alarm slot, shared with retention — re-arm for the nearest deadline.
-    void this.rescheduleAlarm();
+    detach("rescheduleAlarm(timer)", this.rescheduleAlarm());
 
     this.broadcastAll({
       type: "timer.changed",
@@ -1337,6 +1488,12 @@ export class BoardRoom extends DurableObject<Env> {
         "NOT_ADMIN",
         "Only the facilitator manages columns",
       );
+      return;
+    }
+    // An archived board is frozen for everyone, facilitator included — the
+    // same rule note.delete/update/react and admin.vote.config already apply.
+    if (this.phase() === "done") {
+      this.reject(ws, cmd.opId, "PHASE_LOCKED", "The retro is finished");
       return;
     }
     switch (cmd.type) {
@@ -1503,6 +1660,12 @@ export class BoardRoom extends DurableObject<Env> {
       );
       return;
     }
+    // An archived board is frozen for everyone, facilitator included — the
+    // same rule note.delete/update/react and admin.vote.config already apply.
+    if (this.phase() === "done") {
+      this.reject(ws, cmd.opId, "PHASE_LOCKED", "The retro is finished");
+      return;
+    }
     const column = this.columnById(cmd.columnId);
     if (column === null) {
       this.reject(ws, cmd.opId, "NOT_FOUND", "Column does not exist");
@@ -1597,6 +1760,12 @@ export class BoardRoom extends DurableObject<Env> {
     }
     const leftGroup = note.group_id;
     const changed: string[] = [];
+    // Where each note sat before this command, so the fan-out can tell "you
+    // lost sight of it" from "you never had it".
+    const columnBefore = new Map<string, string>([
+      [note.id, note.column_id],
+      [target.id, target.column_id],
+    ]);
     if (target.group_id === null) {
       this.sql.exec(
         "UPDATE notes SET group_id = ? WHERE id = ?",
@@ -1626,8 +1795,15 @@ export class BoardRoom extends DurableObject<Env> {
       ord,
       note.id,
     );
-    // Votes cast on the note in an earlier round follow it into the stack.
-    if (note.id !== groupId) this.migrateVotes(note.id, groupId);
+    // Votes cast on the note in an earlier round follow it into the stack —
+    // but ONLY when the note was its own votable. A note that was already in a
+    // stack votes under that stack's id, and for the stack's anchor that id is
+    // the note's own id: migrating it here would hand the whole old stack's
+    // votes to the destination and leave the survivors with none (their own
+    // re-key in repairGroupAfterLeave would then find an empty bucket).
+    if (leftGroup === null && note.id !== groupId) {
+      this.migrateVotes(note.id, groupId);
+    }
     changed.push(note.id);
     if (leftGroup !== null) {
       changed.push(...this.repairGroupAfterLeave(leftGroup, note.id));
@@ -1638,7 +1814,7 @@ export class BoardRoom extends DurableObject<Env> {
       if (updated === null) continue;
       // Grouping onto a target in a staged column moves the note there —
       // reorg-aware delivery drops it from members who can no longer see it.
-      this.broadcastNoteReorg(updated);
+      this.broadcastNoteReorg(updated, columnBefore.get(id));
     }
   }
 
@@ -1798,8 +1974,12 @@ export class BoardRoom extends DurableObject<Env> {
       const updated = this.noteById(id);
       if (updated === null) continue;
       // A move can land a note in a staged column — reorg-aware delivery drops
-      // it from members who can no longer see it.
-      this.broadcastNoteReorg(updated);
+      // it from members who can no longer see it. Only the moved note changed
+      // column; repaired group members stayed where they were.
+      this.broadcastNoteReorg(
+        updated,
+        id === note.id ? note.column_id : undefined,
+      );
     }
     // Moving between columns during write shifts the per-column totals.
     this.broadcastColumnCountsIfWriting();
@@ -2226,6 +2406,19 @@ export class BoardRoom extends DurableObject<Env> {
       this.reject(ws, cmd.opId, "PHASE_LOCKED", "Voting is not open");
       return;
     }
+    // A member cannot vote on a note in a column hidden from them — it's
+    // invisible, so answer like a nonexistent target (hidden notes are excluded
+    // from tallies anyway; this stops a modified client spending budget there).
+    // This runs BEFORE the votable classification: the "vote the stack, not a
+    // stacked note" reject is otherwise an oracle that tells a member a guessed
+    // id names a note inside a staged column, and which of them is the anchor.
+    if (participant.role !== "facilitator") {
+      const columnId = this.noteRowById(cmd.targetId)?.column_id ?? null;
+      if (columnId !== null && this.hiddenColumnIds().has(columnId)) {
+        this.reject(ws, cmd.opId, "NOT_FOUND", "Nothing to vote on");
+        return;
+      }
+    }
     // Votables are ungrouped notes and stacks (group ids).
     const kind = this.votableKind(cmd.targetId);
     if (kind === "grouped-note") {
@@ -2240,16 +2433,6 @@ export class BoardRoom extends DurableObject<Env> {
     if (kind === null) {
       this.reject(ws, cmd.opId, "NOT_FOUND", "Nothing to vote on");
       return;
-    }
-    // A member cannot vote on a note in a column hidden from them — it's
-    // invisible, so answer like a nonexistent target (hidden notes are excluded
-    // from tallies anyway; this stops a modified client spending budget there).
-    if (participant.role !== "facilitator") {
-      const columnId = this.noteRowById(cmd.targetId)?.column_id ?? null;
-      if (columnId !== null && this.hiddenColumnIds().has(columnId)) {
-        this.reject(ws, cmd.opId, "NOT_FOUND", "Nothing to vote on");
-        return;
-      }
     }
     const config = this.config();
     const current = Number(
@@ -2269,20 +2452,26 @@ export class BoardRoom extends DurableObject<Env> {
         )
         .toArray()[0]?.total ?? 0,
     );
-    const next = current + cmd.delta;
+    // Absolute where the client sends it, relative for a tab still running the
+    // previous build. The absolute form is what makes a resend after reconnect
+    // safe — replaying a delta would double-count.
+    const next = cmd.count ?? current + (cmd.delta ?? 0);
     if (next < 0) {
       this.reject(ws, cmd.opId, "INVALID", "No vote to remove");
       return;
     }
-    if (cmd.delta > 0 && total + 1 > config.votesPerPerson) {
+    if (next === current) {
+      this.ack(ws, cmd.opId); // idempotent resend of an applied cast
+      return;
+    }
+    const raising = next > current;
+    // Budgets bind only when spending MORE. A config lowered mid-round can
+    // leave a voter over budget; they must still be able to take dots off.
+    if (raising && total - current + next > config.votesPerPerson) {
       this.reject(ws, cmd.opId, "VOTE_BUDGET", "All votes used");
       return;
     }
-    if (
-      cmd.delta > 0 &&
-      config.maxPerTarget !== null &&
-      next > config.maxPerTarget
-    ) {
+    if (raising && config.maxPerTarget !== null && next > config.maxPerTarget) {
       this.reject(
         ws,
         cmd.opId,
@@ -2532,17 +2721,21 @@ export class BoardRoom extends DurableObject<Env> {
       .exec("SELECT id FROM participants WHERE online = 1")
       .toArray()
       .map((row) => String(row.id));
+    // One grouped pass over `votes` instead of one SUM per online participant:
+    // this runs on every cast, join and disconnect during the vote phase, and
+    // `votes` has no index on participant_id, so the per-person form was a
+    // full scan each time.
+    const spent = new Map<string, number>();
+    for (const row of this.sql
+      .exec(
+        "SELECT participant_id, SUM(count) AS total FROM votes GROUP BY participant_id",
+      )
+      .toArray()) {
+      spent.set(String(row.participant_id), Number(row.total ?? 0));
+    }
     let votersDone = 0;
     for (const id of online) {
-      const total = Number(
-        this.sql
-          .exec(
-            "SELECT COALESCE(SUM(count), 0) AS total FROM votes WHERE participant_id = ?",
-            id,
-          )
-          .toArray()[0]?.total ?? 0,
-      );
-      if (total >= budget) votersDone++;
+      if ((spent.get(id) ?? 0) >= budget) votersDone++;
     }
     return { votersDone, votersTotal: online.length };
   }
@@ -3028,11 +3221,13 @@ export class BoardRoom extends DurableObject<Env> {
 
   // Picks a fresh icebreaker (never repeating the current one) and broadcasts.
   private shuffleIcebreaker(): void {
-    const current = this.getMeta("icebreakerId");
-    const icebreakerId = pickIcebreaker(
-      randomIndex(ICEBREAKER_IDS.length),
-      current,
-    );
+    const current = this.icebreakerId();
+    // Draw over the pool pickIcebreaker will actually use. Drawing over all 24
+    // and letting it reduce mod 23 (the bank minus the current question) made
+    // the first remaining option twice as likely as every other.
+    const poolSize =
+      current !== null ? ICEBREAKER_IDS.length - 1 : ICEBREAKER_IDS.length;
+    const icebreakerId = pickIcebreaker(randomIndex(poolSize), current);
     this.setMeta("icebreakerId", icebreakerId);
     this.broadcastAll({
       type: "checkin.shuffled",
@@ -3088,8 +3283,10 @@ export class BoardRoom extends DurableObject<Env> {
     participant: ParticipantRow,
     cmd: Extract<ClientCommand, { type: "roti.set" }>,
   ): void {
-    // ROTI runs in the closing phase (alongside the appreciation wall).
-    if (this.phase() !== "close") {
+    // ROTI runs in the closing phase (alongside the appreciation wall), and
+    // only until its result is published — a poll does not reopen after its
+    // average is out, or a second release could be differenced against the first.
+    if (this.phase() !== "close" || this.rotiReleased() !== null) {
       this.reject(ws, undefined, "PHASE_LOCKED", "The ROTI poll is closed");
       return;
     }
@@ -3104,28 +3301,65 @@ export class BoardRoom extends DurableObject<Env> {
     // second tab / projector must not show a stale selection), never fanning
     // the individual score to anyone else.
     this.sendRotiYouTo(participant.id, cmd.score);
+    // Only the COUNT moves while the poll is open. See ROTI_MIN_ANONYMOUS.
+    this.broadcastRotiAggregate();
+  }
+
+  /** Everything anyone but the caster may learn about the poll. `average` is
+   *  null until the poll is released, and stays null if too few answered. */
+  private rotiReleased(): { count: number; average: number | null } | null {
+    const raw = this.getMeta("rotiReleased");
+    if (raw === null) return null;
+    try {
+      const parsed = rotiReleaseSchema.safeParse(JSON.parse(raw) as unknown);
+      return parsed.success ? parsed.data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private broadcastRotiAggregate(): void {
     const agg = this.rotiAggregate();
     this.broadcastAll({
       type: "roti.aggregate",
       seq: this.nextSeq(),
       count: agg.count,
       average: agg.average,
+      released: agg.released,
     });
   }
 
-  private rotiAggregate(): { count: number; average: number | null } {
+  /** Publish the result once, on leaving the closing phase, and freeze it. */
+  private releaseRoti(): void {
+    if (this.rotiReleased() !== null) return;
     const row = this.sql
       .exec("SELECT COUNT(*) AS n, COALESCE(AVG(score), 0) AS avg FROM roti")
       .toArray()[0];
     const count = Number(row?.n ?? 0);
-    // Withhold the average until enough people respond to keep it anonymous
-    // (see ROTI_MIN_ANONYMOUS). Below the threshold clients see only the count.
-    // Round to one decimal for a stable, readable average.
+    if (count === 0) return; // nobody answered — nothing to publish or freeze
     const average =
       count < ROTI_MIN_ANONYMOUS
         ? null
         : Math.round(Number(row?.avg ?? 0) * 10) / 10;
-    return { count, average };
+    this.setMeta("rotiReleased", JSON.stringify({ count, average }));
+    this.broadcastRotiAggregate();
+  }
+
+  private rotiAggregate(): {
+    count: number;
+    average: number | null;
+    released: boolean;
+  } {
+    // Once released the figures are frozen, so every later read — a resync, a
+    // late joiner, a rewind — reports the identical pair. While the poll is
+    // open only the count is knowable; the average is withheld from everyone,
+    // including the facilitator (see ROTI_MIN_ANONYMOUS).
+    const released = this.rotiReleased();
+    if (released !== null) return { ...released, released: true };
+    const count = Number(
+      this.sql.exec("SELECT COUNT(*) AS n FROM roti").toArray()[0]?.n ?? 0,
+    );
+    return { count, average: null, released: false };
   }
 
   private myRotiScore(participantId: string): number | null {
@@ -3196,6 +3430,15 @@ export class BoardRoom extends DurableObject<Env> {
     );
     const nameOf = (id: string | null): string | null =>
       includeAuthors && id !== null ? (names.get(id) ?? null) : null;
+    // An anonymous board strips note authorship on the wire
+    // (redactNoteForViewer), and the export must not be the one surface that
+    // hands it back — the file is downloadable by any board-id holder and is
+    // meant to be shared. Scoped to note authorship exactly like the live
+    // rule: an action owner and a kudo recipient are deliberate, addressed
+    // assignments, not authorship.
+    const anonymous = this.anonymous();
+    const authorNameOf = (id: string | null): string | null =>
+      anonymous ? null : nameOf(id);
 
     // Privacy: notes are private per-author until the reveal, and the export
     // has no viewer to scope to — so pre-reveal exports carry NO note bodies
@@ -3245,7 +3488,7 @@ export class BoardRoom extends DurableObject<Env> {
             return {
               text: n.text,
               gifUrl: n.gifUrl,
-              authorName: nameOf(n.authorId),
+              authorName: authorNameOf(n.authorId),
               votes: isVotable
                 ? (revealedVotes.tallies[votableId] ?? null)
                 : null,
@@ -3267,7 +3510,7 @@ export class BoardRoom extends DurableObject<Env> {
       kudos: this.allKudos().map((k) => ({
         cardType: k.cardType,
         toName: names.get(k.toId) ?? "someone",
-        fromName: nameOf(k.fromId),
+        fromName: authorNameOf(k.fromId),
         text: k.text,
       })),
     };
@@ -3306,26 +3549,37 @@ export class BoardRoom extends DurableObject<Env> {
   // Anonymized note totals per column (all authors, no ids, no text) — the
   // write-phase "cards exist" signal. Columns with no notes are simply absent
   // (the client reads them as 0).
-  private columnCounts(): Record<string, number> {
+  /** Per-column note totals, minus any column the viewer cannot see. Without
+   *  the hidden filter these counts named every staged column's id and told a
+   *  member how many notes were in it — the one place the staged-column rule
+   *  leaked, because the counts went out through broadcastAll rather than the
+   *  per-recipient filter every other note-bearing event uses. */
+  private columnCounts(
+    hiddenFor: ReadonlySet<string> | null,
+  ): Record<string, number> {
     const counts: Record<string, number> = {};
     for (const row of this.sql
       .exec("SELECT column_id, COUNT(*) AS n FROM notes GROUP BY column_id")
       .toArray()) {
-      counts[String(row.column_id)] = Number(row.n);
+      const columnId = String(row.column_id);
+      if (hiddenFor !== null && hiddenFor.has(columnId)) continue;
+      counts[columnId] = Number(row.n);
     }
     return counts;
   }
 
   // Broadcast fresh counts, but only while writing — the placeholder they feed
   // is a write-phase affordance, and from the reveal on everyone sees the notes
-  // themselves.
+  // themselves. Per recipient, so a staged column never reaches a member.
   private broadcastColumnCountsIfWriting(): void {
     if (this.phase() !== "write") return;
-    this.broadcastAll({
+    const hidden = this.hiddenColumnIds();
+    const seq = this.nextSeq();
+    this.broadcastEach((recipientId) => ({
       type: "board.columnCounts",
-      seq: this.nextSeq(),
-      counts: this.columnCounts(),
-    });
+      seq,
+      counts: this.columnCounts(this.hiddenSetFor(recipientId, hidden)),
+    }));
   }
 
   private buildSync(
@@ -3345,6 +3599,7 @@ export class BoardRoom extends DurableObject<Env> {
       phase,
       timer: this.timer(),
       you: { ...rowToParticipant(participant), sessionKey },
+      protocolVersion: PROTOCOL_VERSION,
       roster: this.roster(),
       readyIds: this.sql
         .exec("SELECT id FROM participants WHERE ready = 1")
@@ -3357,7 +3612,12 @@ export class BoardRoom extends DurableObject<Env> {
           : this.columns().filter((c) => !c.hidden),
       // Anonymized per-column totals only matter while writing; other phases
       // reveal the notes themselves, so send an empty map there.
-      columnCounts: phase === "write" ? this.columnCounts() : {},
+      columnCounts:
+        phase === "write"
+          ? this.columnCounts(
+              this.hiddenSetFor(participant.id, this.hiddenColumnIds()),
+            )
+          : {},
       picker: this.picker(),
       lastSpin: this.activeSpinForSync(),
       votes: this.votesForSync(participant.id, phase),
@@ -3365,8 +3625,7 @@ export class BoardRoom extends DurableObject<Env> {
       actions: this.actions(),
       // Staged reveal: the appreciation wall only appears from the close phase.
       kudos: this.kudosForPhase(phase, participant.id),
-      icebreakerId:
-        (this.getMeta("icebreakerId") as IcebreakerId | null) ?? null,
+      icebreakerId: this.icebreakerId(),
       workingAgreements: this.getMeta("workingAgreements") ?? "",
       roti: {
         ...this.rotiAggregate(),
@@ -3413,28 +3672,34 @@ export class BoardRoom extends DurableObject<Env> {
   // its old position (the note-level analogue of column hide/reveal). Ordinary
   // pre-reveal privacy is unaffected: when the note is NOT in a hidden column,
   // non-viewers get nothing, exactly like broadcastNoteEvent.
-  private broadcastNoteReorg(note: Note): void {
+  /** Fan out a note that may have changed column. A recipient who can still
+   *  see it gets an update; one who could see it BEFORE but not now gets a
+   *  delete so it leaves their board.
+   *
+   *  `previousColumnId` is what makes the delete safe. Without it, a note moved
+   *  between two staged columns produced a note.deleted carrying the id of a
+   *  note the member had never been shown — announcing the existence of
+   *  something inside a column that is supposed to be invisible. */
+  private broadcastNoteReorg(note: Note, previousColumnId?: string): void {
     const phase = this.phase();
     const anonymous = this.anonymous();
     const hidden = this.hiddenColumnIds();
-    const landedHidden = hidden.has(note.columnId);
+    const before: Note = {
+      ...note,
+      columnId: previousColumnId ?? note.columnId,
+    };
     const seq = this.nextSeq();
     this.broadcastEach((recipientId) => {
-      if (
-        noteVisibleTo(
-          note,
-          recipientId,
-          phase,
-          this.hiddenSetFor(recipientId, hidden),
-        )
-      ) {
+      const hiddenFor = this.hiddenSetFor(recipientId, hidden);
+      if (noteVisibleTo(note, recipientId, phase, hiddenFor)) {
         return {
           type: "note.updated",
           seq,
           note: redactNoteForViewer(note, recipientId, anonymous),
         };
       }
-      return landedHidden
+      // Only tell them it is gone if they had it in the first place.
+      return noteVisibleTo(before, recipientId, phase, hiddenFor)
         ? { type: "note.deleted", seq, noteId: note.id }
         : null;
     });
@@ -3475,7 +3740,11 @@ export class BoardRoom extends DurableObject<Env> {
     const frame = JSON.stringify(event);
     for (const ws of this.ctx.getWebSockets()) {
       if (ws === exclude) continue;
-      if (readAttachment(ws)?.participantId === null) continue;
+      // Same normalization as broadcastEach: an unreadable attachment must be
+      // skipped, not treated as joined. `?.participantId === null` alone is
+      // false for an undefined attachment, which would fail OPEN here while
+      // broadcastEach fails closed — the two fan-outs must agree.
+      if ((readAttachment(ws)?.participantId ?? null) === null) continue;
       this.trySend(ws, frame);
     }
   }
@@ -3495,6 +3764,13 @@ export class BoardRoom extends DurableObject<Env> {
     }
   }
 
+  /** `seq` here is the board's ordering stamp AT THE MOMENT of acknowledgement,
+   *  not a sequence number belonging to the operation. Handlers that emit one
+   *  broadcast pass that event's seq; the rest report the current stamp, and an
+   *  idempotent retry has no event of its own to report at all. Nothing
+   *  reconciles on it — recovery is a blanket resync (see protocol.ts) — so it
+   *  is a diagnostic, and the doc comment says so rather than the field
+   *  pretending to a precision it cannot have uniformly. */
   private ack(ws: WebSocket, opId: string, seq?: number): void {
     this.send(ws, { type: "ack", opId, seq: seq ?? this.currentSeq() });
   }
@@ -3677,8 +3953,13 @@ export class BoardRoom extends DurableObject<Env> {
     return raw === null ? null : Number(raw);
   }
 
+  // Validated, not cast. zod guards the wire; the database was guarded by
+  // nothing, so a value written by an older build (or a hand-edited row) became
+  // a Phase by assertion and every downstream switch silently misbehaved.
+  // Falling back to "lobby" is the safe direction: it reveals nothing.
   private phase(): Phase {
-    return (this.getMeta("phase") ?? "lobby") as Phase;
+    const parsed = phaseSchema.safeParse(this.getMeta("phase"));
+    return parsed.success ? parsed.data : "lobby";
   }
 
   private phasePlan() {
@@ -3690,6 +3971,13 @@ export class BoardRoom extends DurableObject<Env> {
 
   private anonymous(): boolean {
     return this.getMeta("anonymous") === "1";
+  }
+
+  /** Same reasoning as phase(): a stored id that is no longer in the bank must
+   *  read as "no question chosen", not as a member of the union by assertion. */
+  private icebreakerId(): IcebreakerId | null {
+    const parsed = icebreakerIdSchema.safeParse(this.getMeta("icebreakerId"));
+    return parsed.success ? parsed.data : null;
   }
 
   private timer(): Timer {

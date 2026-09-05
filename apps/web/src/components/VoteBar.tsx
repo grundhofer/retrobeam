@@ -101,8 +101,20 @@ function VoteSettings({ config }: { config: BoardConfig }) {
               value={maxPerTarget ?? ""}
               placeholder="∞"
               onChange={(event) =>
+                // Clamp to the schema's own 1..10, the way NumberField below
+                // does. Unclamped, one out-of-range digit made the whole
+                // admin.vote.config frame fail server-side parsing, silently
+                // discarding the facilitator's other edits with it.
                 setMaxPerTarget(
-                  event.target.value === "" ? null : Number(event.target.value),
+                  event.target.value === ""
+                    ? null
+                    : Math.min(
+                        10,
+                        Math.max(
+                          1,
+                          Math.round(Number(event.target.value)) || 1,
+                        ),
+                      ),
                 )
               }
               className="w-14 rounded border border-zinc-300 px-1.5 py-0.5 text-right"

@@ -211,6 +211,7 @@ const resources = {
         none: "No GIFs found.",
         hint: "Type to search for a GIF.",
         unavailable: "GIF search isn't set up for this board.",
+        failed: "GIF search didn't respond. Try again in a moment.",
         remove: "Remove GIF",
         poweredBy: "Powered by KLIPY",
       },
@@ -267,8 +268,12 @@ const resources = {
         title: "Return on time invested",
         question: "Was this retro a good use of your time?",
         result: "Average {{average}} · {{count}} responses",
-        pending: "{{count}} responses · average appears once 3 people answer",
-        anonymous: "Anonymous — only the average is shared.",
+        pending_one:
+          "{{count}} response so far · the average is shared when the retro closes",
+        pending_other:
+          "{{count}} responses so far · the average is shared when the retro closes",
+        tooFew: "Too few responses to share an average anonymously.",
+        anonymous: "Anonymous — only the average is shared, once at the end.",
       },
       icebreaker: {
         "one-word": "In one word, how did this sprint feel?",
@@ -305,6 +310,32 @@ const resources = {
         title: "Board not found",
         body: "This board does not exist or has been deleted.",
         home: "Create a new board",
+      },
+      lookupFailed: {
+        title: "Couldn't reach the board",
+        body: "The board may be fine — we just couldn't ask. Check your connection and try again.",
+        retry: "Try again",
+      },
+      reject: {
+        title: "That didn't go through",
+        PHASE_LOCKED: "That isn't available in this phase.",
+        NOT_ADMIN: "Only the facilitator can do that.",
+        NOT_AUTHOR: "You can only change your own cards.",
+        NOT_FOUND: "That card is no longer there.",
+        CONFLICT: "Someone changed that at the same moment. Try again.",
+        INVALID: "That didn't work — the board has been refreshed.",
+        VOTE_BUDGET: "You've used all your votes.",
+        RATE_LIMIT: "Too many actions at once. Give it a second.",
+        dismiss: "Dismiss",
+      },
+      update: {
+        available: "A newer version of Retropolis is running on the server.",
+        reload: "Reload",
+      },
+      error: {
+        title: "Something went wrong",
+        body: "The board itself is safe — it lives on the server. Reloading rejoins it.",
+        reload: "Reload the board",
       },
       legal: {
         license: "Free software: AGPL-3.0-or-later",
@@ -520,6 +551,8 @@ const resources = {
         none: "Keine GIFs gefunden.",
         hint: "Tippe, um nach einem GIF zu suchen.",
         unavailable: "GIF-Suche ist für dieses Board nicht eingerichtet.",
+        failed:
+          "Die GIF-Suche hat nicht geantwortet. Versuch es gleich nochmal.",
         remove: "GIF entfernen",
         poweredBy: "Bereitgestellt von KLIPY",
       },
@@ -576,8 +609,13 @@ const resources = {
         title: "Return on Time Invested",
         question: "War diese Retro deine Zeit wert?",
         result: "Durchschnitt {{average}} · {{count}} Antworten",
-        pending: "{{count}} Antworten · Durchschnitt ab 3 Antworten",
-        anonymous: "Anonym — nur der Durchschnitt wird geteilt.",
+        pending_one:
+          "{{count}} Antwort bisher · der Durchschnitt wird zum Abschluss geteilt",
+        pending_other:
+          "{{count}} Antworten bisher · der Durchschnitt wird zum Abschluss geteilt",
+        tooFew: "Zu wenige Antworten, um den Durchschnitt anonym zu teilen.",
+        anonymous:
+          "Anonym — nur der Durchschnitt wird geteilt, einmal am Ende.",
       },
       icebreaker: {
         "one-word": "Beschreibe diesen Sprint in einem Wort.",
@@ -617,6 +655,32 @@ const resources = {
         body: "Dieses Board existiert nicht oder wurde gelöscht.",
         home: "Neues Board erstellen",
       },
+      lookupFailed: {
+        title: "Board nicht erreichbar",
+        body: "Das Board ist vermutlich in Ordnung — wir konnten nur nicht nachfragen. Prüfe deine Verbindung und versuche es erneut.",
+        retry: "Erneut versuchen",
+      },
+      reject: {
+        title: "Das hat nicht geklappt",
+        PHASE_LOCKED: "Das geht in dieser Phase nicht.",
+        NOT_ADMIN: "Das kann nur die Moderation.",
+        NOT_AUTHOR: "Du kannst nur deine eigenen Karten ändern.",
+        NOT_FOUND: "Diese Karte gibt es nicht mehr.",
+        CONFLICT: "Jemand hat das gleichzeitig geändert. Versuch es nochmal.",
+        INVALID: "Das hat nicht funktioniert — das Board wurde aktualisiert.",
+        VOTE_BUDGET: "Du hast alle Stimmen vergeben.",
+        RATE_LIMIT: "Zu viele Aktionen auf einmal. Kurz durchatmen.",
+        dismiss: "Schließen",
+      },
+      update: {
+        available: "Auf dem Server läuft eine neuere Version von Retropolis.",
+        reload: "Neu laden",
+      },
+      error: {
+        title: "Da ist etwas schiefgelaufen",
+        body: "Das Board selbst ist sicher — es liegt auf dem Server. Neu laden verbindet dich wieder.",
+        reload: "Board neu laden",
+      },
       legal: {
         license: "Freie Software: AGPL-3.0-or-later",
         redistribute: "Weitergabe und Änderung erlaubt, ohne Gewährleistung.",
@@ -639,12 +703,22 @@ function initialLanguage(): "de" | "en" {
   return navigator.language.toLowerCase().startsWith("de") ? "de" : "en";
 }
 
+// index.html ships lang="en"; screen readers and hyphenation pick their
+// pronunciation/rules from it, so it has to follow the actual UI language —
+// on load and on every switch.
+function syncDocumentLanguage(lang: string): void {
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = lang.startsWith("de") ? "de" : "en";
+  }
+}
+
 void i18n.use(initReactI18next).init({
   resources,
   lng: initialLanguage(),
   fallbackLng: "en",
   interpolation: { escapeValue: false },
 });
+syncDocumentLanguage(i18n.language);
 
 export function setLanguage(lang: "de" | "en"): void {
   try {
@@ -652,7 +726,11 @@ export function setLanguage(lang: "de" | "en"): void {
   } catch {
     // storage unavailable — the choice just won't persist
   }
+  syncDocumentLanguage(lang);
   void i18n.changeLanguage(lang);
 }
+
+/** Exported for the DE/EN parity test — not part of the runtime surface. */
+export const translationResources = resources;
 
 export default i18n;

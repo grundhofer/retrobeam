@@ -56,7 +56,9 @@ async function joined(
 
 async function toPhase(socket: TestSocket, phase: string) {
   socket.send({ type: "admin.phase.set", phase });
-  await socket.waitFor((e) => e.type === "phase.changed" && e.phase === phase);
+  await socket.waitForNext(
+    (e) => e.type === "phase.changed" && e.phase === phase,
+  );
 }
 
 async function presentingBoard() {
@@ -123,7 +125,7 @@ describe("picker rotation", () => {
 
     // Members cannot hand-pick.
     ben.socket.send({ type: "admin.picker.pick", participantId: ben.you.id });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
   });
@@ -141,7 +143,7 @@ describe("picker rotation", () => {
 
     // Someone who isn't presenting can't end the turn.
     admin.socket.send({ type: "picker.done" });
-    const wrong = await admin.socket.waitFor((e) => e.type === "reject");
+    const wrong = await admin.socket.waitForNext((e) => e.type === "reject");
     if (wrong.type !== "reject") throw new Error("unreachable");
     expect(wrong.code).toBe("INVALID");
 
@@ -174,7 +176,7 @@ describe("picker rotation", () => {
     // An immediate second spin is refused while the wheel is animating —
     // a facilitator double-click must not rob the winner of their turn.
     admin.socket.send({ type: "admin.picker.spin" });
-    const guarded = await admin.socket.waitFor((e) => e.type === "reject");
+    const guarded = await admin.socket.waitForNext((e) => e.type === "reject");
     if (guarded.type !== "reject") throw new Error("unreachable");
     expect(guarded.code).toBe("INVALID");
 
@@ -222,7 +224,7 @@ describe("picker rotation", () => {
     await admin.socket.waitFor((e) => e.type === "picker.changed");
 
     ben.socket.send({ type: "admin.picker.spin" });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
 
@@ -322,7 +324,7 @@ describe("canvas layout & positions", () => {
     expect(changed.type).toBe("config.changed");
 
     ben.socket.send({ type: "admin.layout.set", layout: "columns" });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
   });
@@ -439,7 +441,7 @@ describe("canvas layout & positions", () => {
       columnId,
       rect: { x: 0, y: 0, w: 0.5, h: 0.5 },
     });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
   });
@@ -459,13 +461,17 @@ describe("canvas layout & positions", () => {
 
     // Members cannot toggle settings.
     ben.socket.send({ type: "admin.cursors.set", enabled: true });
-    const memberReject = await ben.socket.waitFor((e) => e.type === "reject");
+    const memberReject = await ben.socket.waitForNext(
+      (e) => e.type === "reject",
+    );
     if (memberReject.type !== "reject") throw new Error("unreachable");
     expect(memberReject.code).toBe("NOT_ADMIN");
 
     // Activation is currently disabled — even the facilitator cannot enable them.
     admin.socket.send({ type: "admin.cursors.set", enabled: true });
-    const adminReject = await admin.socket.waitFor((e) => e.type === "reject");
+    const adminReject = await admin.socket.waitForNext(
+      (e) => e.type === "reject",
+    );
     if (adminReject.type !== "reject") throw new Error("unreachable");
     expect(adminReject.code).toBe("INVALID");
 
@@ -501,6 +507,46 @@ describe("canvas layout & positions", () => {
     }
     expect(movedA.note.y).toBe(0.3);
     expect(movedB.note.y).toBe(0.8);
+  });
+
+  it("a full-size moveMany fits the inbound frame limit", async () => {
+    // The canvas Tidy button sends ONE moveMany covering every movable card.
+    // The schema allows 300 moves (~138 chars each); the DO's frame guard used
+    // to cut in at ~58, refusing a legal frame with an opId-less BAD_MESSAGE
+    // while the client had already applied its optimistic echo.
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    await toPhase(admin.socket, "write");
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    const first = await createNote(admin.socket, columnId, "real");
+
+    // Worst case the protocol permits: 300 moves at full float precision. Only
+    // the real note can move; the rest exist purely to size the frame.
+    const moves = [{ noteId: first, columnId, x: 0.16666666666666666, y: 0.5 }];
+    while (moves.length < 300) {
+      moves.push({
+        noteId: "f".repeat(32),
+        columnId,
+        x: 0.16666666666666666,
+        y: 0.5133333333333333,
+      });
+    }
+    expect(
+      JSON.stringify({ type: "note.moveMany", moves }).length,
+    ).toBeGreaterThan(8192);
+
+    admin.socket.send({ type: "note.moveMany", opId: opId(), moves });
+    const moved = await admin.socket.waitFor(
+      (e) => e.type === "note.updated" && e.note.id === first,
+    );
+    if (moved.type !== "note.updated") throw new Error("unreachable");
+    expect(moved.note.x).toBe(0.16666666666666666);
+    expect(
+      admin.socket.events.some(
+        (e) => e.type === "error" && e.code === "BAD_MESSAGE",
+      ),
+    ).toBe(false);
   });
 
   it("same-zone canvas reposition KEEPS a stack; column-mode drag (no x) still ungroups", async () => {
@@ -576,7 +622,7 @@ describe("picker style (skin)", () => {
   it("only the facilitator changes the skin", async () => {
     const { ben } = await presentingBoard();
     ben.socket.send({ type: "admin.picker.style", style: "slots" });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
   });
@@ -634,7 +680,7 @@ describe("grouping & moving", () => {
       noteId: a,
       targetNoteId: b,
     });
-    const rejected = await admin.socket.waitFor((e) => e.type === "reject");
+    const rejected = await admin.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("PHASE_LOCKED");
   });
@@ -691,7 +737,7 @@ describe("facilitator handoff", () => {
       participantId: ben.you.id,
       role: "facilitator",
     });
-    const notAdmin = await ben.socket.waitFor((e) => e.type === "reject");
+    const notAdmin = await ben.socket.waitForNext((e) => e.type === "reject");
     if (notAdmin.type !== "reject") throw new Error("unreachable");
     expect(notAdmin.code).toBe("NOT_ADMIN");
 

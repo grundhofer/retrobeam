@@ -68,12 +68,21 @@ export interface ClientBoardState {
   workingAgreements: string;
   /** ROTI closing poll: anonymous aggregate + the viewer's own score.
    *  average is null until enough people respond to stay anonymous. */
-  roti: { count: number; average: number | null; yourScore: number | null };
+  roti: {
+    count: number;
+    average: number | null;
+    yourScore: number | null;
+    /** the poll is closed and its result published — average will not change */
+    released: boolean;
+  };
   /** epoch-ms auto-delete deadline; null once the admin kept the board */
   retentionAt: number | null;
   /** set once the board is deleted (retention or admin) — client shows a
    *  closing screen and stops trying to reconnect */
   deleted: boolean;
+  /** Highest board-global seq this client has seen. Diagnostic only — NOT a
+   *  gap detector, because the privacy filter drops events per recipient by
+   *  design and a hole is therefore correct. */
   lastSeq: number;
 }
 
@@ -98,7 +107,7 @@ export const initialBoardState: ClientBoardState = {
   kudos: [],
   icebreakerId: null,
   workingAgreements: "",
-  roti: { count: 0, average: null, yourScore: null },
+  roti: { count: 0, average: null, yourScore: null, released: false },
   retentionAt: null,
   deleted: false,
   lastSeq: 0,
@@ -248,7 +257,12 @@ export function applyServerEvent(
     case "roti.aggregate":
       return {
         ...state,
-        roti: { ...state.roti, count: event.count, average: event.average },
+        roti: {
+          ...state.roti,
+          count: event.count,
+          average: event.average,
+          released: event.released,
+        },
         lastSeq: seq(state, event.seq),
       };
 
@@ -412,6 +426,9 @@ export function applyServerEvent(
 
 function seq(state: ClientBoardState, eventSeq: number): number {
   // Optimistic local echoes carry seq 0 and must not regress the counter.
+  // This is a "how recent is my state" marker for diagnostics, NOT a gap
+  // detector: per-recipient filtering makes holes legitimate (see the header
+  // in protocol.ts), so a jump from 12 to 17 says nothing about loss.
   return Math.max(state.lastSeq, eventSeq);
 }
 

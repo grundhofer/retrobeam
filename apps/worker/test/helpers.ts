@@ -5,6 +5,21 @@ import { SELF } from "cloudflare:test";
 import { expect } from "vitest";
 import { parseServerEvent, type ServerEvent } from "@retropolis/shared";
 
+// The create/duplicate routes are rate limited per client IP. Real requests
+// always carry cf-connecting-ip (Cloudflare sets it at the edge); SELF.fetch
+// does not, so every test would otherwise share one bucket and the suite would
+// throttle itself. Give each caller its own address — the limiter stays fully
+// enforced, and a dedicated test hammers a single IP on purpose.
+let ipCounter = 0;
+export function freshIp(): string {
+  ipCounter += 1;
+  return `203.0.113.${ipCounter % 254}.${Math.floor(ipCounter / 254)}`;
+}
+
+export function ipHeaders(ip = freshIp()): Record<string, string> {
+  return { "cf-connecting-ip": ip };
+}
+
 export async function createBoard(
   name = "Sprint 12",
   options: {
@@ -19,7 +34,7 @@ export async function createBoard(
 }> {
   const response = await SELF.fetch("https://example.com/api/boards", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...ipHeaders() },
     body: JSON.stringify({ name, ...options }),
   });
   expect(response.status).toBe(200);
@@ -29,8 +44,16 @@ export async function createBoard(
 export interface TestSocket {
   ws: WebSocket;
   events: ServerEvent[];
-  /** Waits until an event matching the predicate has arrived (including past events). */
-  waitFor(predicate: (event: ServerEvent) => boolean): Promise<ServerEvent>;
+  /** Waits until an event matching the predicate has arrived, INCLUDING ones
+   *  already in the log. The predicate receives the event's index so a caller
+   *  can require a fresh one: an "ack" barrier is otherwise satisfied by an ack
+   *  from three commands ago, which silently turns a negative assertion into a
+   *  no-op. Prefer `waitForNext` when the point is that something new arrives. */
+  waitFor(
+    predicate: (event: ServerEvent, index: number) => boolean,
+  ): Promise<ServerEvent>;
+  /** Like waitFor, but ignores everything already received. */
+  waitForNext(predicate: (event: ServerEvent) => boolean): Promise<ServerEvent>;
   send(command: unknown): void;
 }
 
@@ -56,13 +79,13 @@ export async function connect(boardId: string): Promise<TestSocket> {
     }
   });
 
-  return {
+  const socket: TestSocket = {
     ws,
     events,
     async waitFor(predicate) {
       const deadline = Date.now() + 2000;
       for (;;) {
-        const match = events.find(predicate);
+        const match = events.find((event, index) => predicate(event, index));
         if (match) return match;
         if (Date.now() > deadline) {
           throw new Error(
@@ -75,8 +98,15 @@ export async function connect(boardId: string): Promise<TestSocket> {
         });
       }
     },
+    async waitForNext(predicate) {
+      const from = events.length;
+      return socket.waitFor(
+        (event, index) => index >= from && predicate(event),
+      );
+    },
     send(command) {
       ws.send(JSON.stringify(command));
     },
   };
+  return socket;
 }

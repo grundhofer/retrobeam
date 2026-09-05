@@ -4,7 +4,7 @@
 import { env, runInDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { boardStub } from "../src/board-stub.js";
-import { createBoard } from "./helpers.js";
+import { createBoard, ipHeaders } from "./helpers.js";
 
 describe("POST /api/boards", () => {
   it("creates a board and returns capability secrets", async () => {
@@ -29,7 +29,7 @@ describe("POST /api/boards", () => {
   it("rejects an invalid body", async () => {
     const response = await SELF.fetch("https://example.com/api/boards", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...ipHeaders() },
       body: JSON.stringify({ name: "   " }),
     });
     expect(response.status).toBe(400);

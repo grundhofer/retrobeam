@@ -157,6 +157,117 @@ test("a note written while offline is delivered after reconnect", async ({
   await context.close();
 });
 
+test("a note in flight when the socket dies survives the reconnect", async ({
+  browser,
+}) => {
+  // The offline test above covers the QUEUE: written while known-disconnected.
+  // This covers the harder case the queue never did — the frame was handed to a
+  // live socket that then died, so it was neither queued nor acknowledged, and
+  // the next snapshot wiped it off the screen along with whatever was typed.
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("/");
+  await page.getByRole("textbox").fill("In-flight resilience");
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(page, "Anna");
+  await toWrite(page);
+
+  const composer = page
+    .getByPlaceholder(/write a note|notiz schreiben/i)
+    .first();
+  await expect(composer).toBeVisible();
+
+  // Silently swallow outbound frames, so the client still believes it is
+  // online: exactly the half-open case. The note is "sent" and lost.
+  type WsHandle = {
+    send: (data: string) => void;
+    reconnect: () => void;
+  };
+  await page.evaluate(() => {
+    const ws = (window as unknown as { __retropolisWs?: WsHandle })
+      .__retropolisWs;
+    if (!ws) return;
+    (window as unknown as { __realSend?: WsHandle["send"] }).__realSend =
+      ws.send.bind(ws);
+    ws.send = () => {};
+  });
+  await composer.fill("Sent into a dead socket");
+  await composer.press("Enter");
+  await expect(page.getByText("Sent into a dead socket")).toBeVisible();
+
+  // Put the socket back the way it was, then drop it. The frame is gone — it
+  // was never written — and only the in-flight replay can recover it.
+  await page.evaluate(() => {
+    const ws = (window as unknown as { __retropolisWs?: WsHandle })
+      .__retropolisWs;
+    const real = (window as unknown as { __realSend?: WsHandle["send"] })
+      .__realSend;
+    if (ws && real) ws.send = real;
+    ws?.reconnect();
+  });
+
+  // A reload proves it reached the server rather than merely staying on screen.
+  await expect(page.getByRole("status")).toHaveCount(0, { timeout: 20_000 });
+  await page.reload();
+  await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
+  await expect(page.getByText("Sent into a dead socket")).toBeVisible({
+    timeout: 20_000,
+  });
+
+  await context.close();
+});
+
+test("a refused command is explained instead of vanishing", async ({
+  browser,
+}) => {
+  // Every refusal used to be silent: the command vanished, the board quietly
+  // resynced, and nothing told the user anything. The composer's own
+  // restore-on-reject path rides on the same wiring (mutate's onReject).
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("/");
+  await page.getByRole("textbox").fill("Refusal feedback");
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(page, "Anna");
+
+  // A vote cast in the lobby is refused by the server's phase gate. Sent over
+  // the live socket so the whole client path runs, exactly as it would for a
+  // note typed the instant the facilitator moved the room on.
+  await page.evaluate(() => {
+    const ws = (
+      window as unknown as { __retropolisWs?: { send: (d: string) => void } }
+    ).__retropolisWs;
+    ws?.send(
+      JSON.stringify({
+        type: "vote.cast",
+        opId: "a".repeat(32),
+        targetId: "b".repeat(32),
+        count: 1,
+      }),
+    );
+  });
+
+  const notice = page.getByTestId("notice");
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText(/phase|Phase/);
+  // It is announced, not just drawn.
+  await expect(page.getByTestId("notices")).toHaveAttribute(
+    "aria-live",
+    "polite",
+  );
+
+  await notice.getByRole("button").click();
+  await expect(page.getByTestId("notice")).toHaveCount(0);
+
+  await context.close();
+});
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();

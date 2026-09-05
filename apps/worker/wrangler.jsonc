@@ -28,6 +28,22 @@
     // Set to your GIF provider's media host if it differs from the default.
     "GIF_HOST_SUFFIX": "klipy.com",
   },
+  // Per-IP brakes. Board creation and duplication are unauthenticated and each
+  // mints a permanent, alarm-armed Durable Object; the GIF proxy spends the
+  // operator's provider quota. The free-tier allowance is account-wide, so an
+  // unthrottled script takes every board offline until midnight UTC.
+  "ratelimits": [
+    {
+      "name": "CREATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 },
+    },
+    {
+      "name": "GIF_LIMITER",
+      "namespace_id": "1002",
+      "simple": { "limit": 60, "period": 60 },
+    },
+  ],
   "migrations": [
     {
       "tag": "v1",
@@ -37,6 +53,14 @@
   ],
   "observability": {
     "enabled": true,
+    // Invocation logs retain the full request URL, and every board URL IS the
+    // participant capability (/api/boards/:id, /ws, /export) — plus GIF search
+    // terms. Retaining them contradicts the "no tracking" promise in docs/05.
+    // Explicit console.error output (the DO's detached-promise logging) is
+    // unaffected and still reaches Workers Logs.
+    "logs": {
+      "invocation_logs": false,
+    },
   },
   "env": {
     // PR previews deploy here (worker "retropolis-preview") so preview builds
@@ -50,6 +74,24 @@
           },
         ],
       },
+      // wrangler does NOT inherit top-level vars or bindings into a named
+      // environment — they have to be repeated or they are simply absent.
+      "vars": {
+        "KLIPY_API_KEY": "",
+        "GIF_HOST_SUFFIX": "klipy.com",
+      },
+      "ratelimits": [
+        {
+          "name": "CREATE_LIMITER",
+          "namespace_id": "1001",
+          "simple": { "limit": 10, "period": 60 },
+        },
+        {
+          "name": "GIF_LIMITER",
+          "namespace_id": "1002",
+          "simple": { "limit": 60, "period": 60 },
+        },
+      ],
     },
   },
 }

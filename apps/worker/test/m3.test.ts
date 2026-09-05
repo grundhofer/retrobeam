@@ -37,7 +37,7 @@ async function advanceTo(
 ): Promise<void> {
   for (const phase of phases) {
     admin.socket.send({ type: "admin.phase.set", phase });
-    await admin.socket.waitFor(
+    await admin.socket.waitForNext(
       (e) => e.type === "phase.changed" && e.phase === phase,
     );
   }
@@ -132,7 +132,7 @@ describe("blind voting", () => {
     cast(ben.socket, noteA, 1);
     await ben.socket.waitFor((e) => e.type === "vote.progress");
     cast(ben.socket, noteA, 1); // exceeds maxPerTarget
-    const capped = await ben.socket.waitFor((e) => e.type === "reject");
+    const capped = await ben.socket.waitForNext((e) => e.type === "reject");
     if (capped.type !== "reject") throw new Error("unreachable");
     expect(capped.code).toBe("VOTE_BUDGET");
 
@@ -186,7 +186,7 @@ describe("blind voting", () => {
     const noteB = await createNote(admin.socket, columnId, "two");
 
     cast(admin.socket, noteA, 1); // still in write phase
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
 
@@ -268,7 +268,7 @@ describe("reveal & discussion", () => {
   it("discussion focus is admin-only, discuss-phase-only, and synced", async () => {
     const { admin, ben, noteA } = await votingBoard();
     admin.socket.send({ type: "admin.discuss.focus", targetId: noteA });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
 
@@ -310,7 +310,7 @@ describe("reveal & discussion", () => {
       noteId: noteA,
       targetNoteId: noteB,
     });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
   });
@@ -354,6 +354,72 @@ describe("vote migration through stack changes", () => {
     );
     if (revealed.type !== "votes.revealed") throw new Error("unreachable");
     expect(revealed.tallies[noteA]).toBe(1); // stack id = noteA
+  });
+
+  it("moving a stack's anchor elsewhere leaves the stack's votes with the stack", async () => {
+    // A stack is identified by its anchor's note id, so the anchor's own id is
+    // also the stack's vote bucket. Dragging that anchor onto a third note used
+    // to migrate the WHOLE stack's votes to the destination, zeroing the
+    // survivors and crowning a card nobody voted for.
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    await advanceTo(admin, ["write"]);
+    const anchor = await createNote(admin.socket, columnId, "anchor");
+    const member = await createNote(admin.socket, columnId, "member");
+    const outsider = await createNote(admin.socket, columnId, "outsider");
+    await advanceTo(admin, ["present"]);
+
+    // Stack `member` onto `anchor` → stack id === anchor.
+    admin.socket.send({
+      type: "note.group",
+      opId: opId(),
+      noteId: member,
+      targetNoteId: anchor,
+    });
+    await admin.socket.waitFor(
+      (e) =>
+        e.type === "note.updated" &&
+        e.note.id === member &&
+        e.note.groupId === anchor,
+    );
+
+    // Three dots on the stack.
+    await advanceTo(admin, ["vote"]);
+    castMany(admin.socket, anchor, 3);
+    await admin.socket.waitFor(
+      (e) => e.type === "vote.progress" && e.yourVotes[anchor] === 3,
+    );
+
+    // Rewind and drag the anchor out of its own stack, onto the outsider.
+    admin.socket.send({ type: "admin.phase.set", phase: "present" });
+    await admin.socket.waitFor(
+      (e) => e.type === "phase.changed" && e.phase === "present",
+    );
+    admin.socket.send({
+      type: "note.group",
+      opId: opId(),
+      noteId: anchor,
+      targetNoteId: outsider,
+    });
+    await admin.socket.waitFor(
+      (e) =>
+        e.type === "note.updated" &&
+        e.note.id === anchor &&
+        e.note.groupId === outsider,
+    );
+
+    await advanceTo(admin, ["vote", "discuss"]);
+    const revealed = await admin.socket.waitFor(
+      (e) => e.type === "votes.revealed",
+    );
+    if (revealed.type !== "votes.revealed") throw new Error("unreachable");
+    // `member` is alone now, so the old stack dissolved onto it and kept the
+    // three dots. The outsider's new stack was never voted for.
+    expect(revealed.tallies[member]).toBe(3);
+    expect(revealed.tallies[outsider] ?? 0).toBe(0);
+    expect(revealed.topTargetIds[0]).toBe(member);
   });
 });
 
@@ -466,7 +532,7 @@ describe("review-fleet regressions", () => {
     );
     await advanceTo(admin, ["vote", "discuss"]);
     admin.socket.send({ type: "admin.discuss.focus", targetId: noteB }); // buried member
-    const rejected = await admin.socket.waitFor((e) => e.type === "reject");
+    const rejected = await admin.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_FOUND");
   });
@@ -556,7 +622,7 @@ describe("action items", () => {
       text: "Fix the pipeline",
       ownerId: ben.you.id,
     });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
 

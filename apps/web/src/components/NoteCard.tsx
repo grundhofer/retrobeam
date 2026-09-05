@@ -181,6 +181,7 @@ export function NoteCard({
               src={note.gifUrl}
               alt=""
               loading="lazy"
+              referrerPolicy="no-referrer"
               className="mt-2 max-h-40 w-full rounded-lg object-contain"
             />
           ) : null}

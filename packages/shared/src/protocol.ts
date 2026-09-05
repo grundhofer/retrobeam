@@ -18,6 +18,21 @@ import { sessionKeySchema } from "./session-key.js";
 
 export const rotiScoreSchema = z.number().int().min(1).max(5);
 
+/** Bumped whenever a wire shape changes in a way an older bundle would get
+ *  wrong. A deploy disconnects every socket, and the reconnecting tab is still
+ *  running the OLD build — it is told the server's version in `sync` and can
+ *  offer a reload rather than quietly misbehaving. Never used to refuse a
+ *  connection: locking someone out mid-retro is worse than a stale tab. */
+export const PROTOCOL_VERSION = 2;
+
+/** The published ROTI result, persisted once when the poll closes so every
+ *  later read reports the identical pair (see ROTI_MIN_ANONYMOUS). */
+export const rotiReleaseSchema = z.object({
+  count: z.number().int().min(0),
+  average: z.number().nullable(),
+});
+export type RotiRelease = z.infer<typeof rotiReleaseSchema>;
+
 // ---------------------------------------------------------------------------
 // Entities
 // ---------------------------------------------------------------------------
@@ -172,8 +187,18 @@ export const reactionEmojiSchema = z.enum(REACTION_EMOJI);
 export type ReactionEmoji = z.infer<typeof reactionEmojiSchema>;
 
 // ---------------------------------------------------------------------------
-// Client → Server. Mutating commands carry a client-minted opId (acked or
-// rejected); presence-style messages are fire-and-forget and never persisted.
+// Client → Server. Three families, and the difference matters for recovery:
+//
+//  1. ENTITY MUTATIONS carry a client-minted `opId` and are idempotent — the id
+//     comes from the client and the payload is absolute, never a delta — so the
+//     socket layer can replay one whose ack never arrived. These are acked or
+//     rejected by opId.
+//  2. CONTROL COMMANDS (phase, timer, picker, board settings, ready) carry no
+//     opId. They are not replayable: re-applying "advance the phase" after a
+//     reconnect could step the room twice. Their recovery is the blanket
+//     resync, and a refusal reaches the sender as a reject with no opId.
+//  3. PRESENCE (editing, cursor) is fire-and-forget, never persisted, and never
+//     replayed — it describes *now*, so a delayed copy is worse than nothing.
 // ---------------------------------------------------------------------------
 
 export const clientCommandSchema = z.discriminatedUnion("type", [
@@ -321,7 +346,15 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     type: z.literal("vote.cast"),
     opId: hexIdSchema,
     targetId: hexIdSchema,
-    delta: z.union([z.literal(1), z.literal(-1)]),
+    /** Absolute number of dots this voter wants on this target (0 clears it).
+     *  Absolute, not relative, so the command is idempotent: resending it after
+     *  a reconnect cannot double-count, which is what lets the client replay
+     *  unacked operations at all. */
+    count: z.number().int().min(0).max(10).optional(),
+    /** @deprecated relative form. Accepted for one release so a tab still open
+     *  across a deploy keeps working; the server prefers `count` when both are
+     *  present. Remove once PROTOCOL_VERSION has moved on. */
+    delta: z.union([z.literal(1), z.literal(-1)]).optional(),
   }),
   z.object({
     type: z.literal("admin.vote.config"),
@@ -425,10 +458,19 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
 export type ClientCommand = z.infer<typeof clientCommandSchema>;
 
 // ---------------------------------------------------------------------------
-// Server → Client. Every broadcast carries a monotonic per-board seq for gap
-// detection. `sync` is the full per-recipient-FILTERED snapshot sent on every
-// (re)join and on request — the snapshot goes through the same visibility
+// Server → Client. `sync` is the full per-recipient-FILTERED snapshot sent on
+// every (re)join and on request — the snapshot goes through the same visibility
 // filter as live events (the classic leak path).
+//
+// `seq` is a BOARD-GLOBAL ordering stamp, not a per-recipient sequence, and it
+// is deliberately not usable for gap detection. The privacy filter drops events
+// per recipient by design — a member is never sent another author's write-phase
+// note, or anything inside a staged column — so holes in one participant's
+// stream are correct, not evidence of loss. A few events carry no seq at all
+// (the private vote.progress / roti.you frames, board.deleted, error), for the
+// same reason: they are not part of the board's shared timeline. Recovery is
+// blanket: on a reject, on a refused frame, or on reconnect, ask for a fresh
+// snapshot. That is cheap because the snapshot is small.
 // ---------------------------------------------------------------------------
 
 export const rejectCodeSchema = z.enum([
@@ -452,6 +494,10 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     phase: phaseSchema,
     timer: timerSchema,
     you: participantSchema.extend({ sessionKey: z.string() }),
+    /** The server's wire version; a client whose own PROTOCOL_VERSION is lower
+     *  is running a bundle from before the last deploy. Optional so a snapshot
+     *  from an older server still parses. */
+    protocolVersion: z.number().optional(),
     roster: z.array(participantSchema),
     readyIds: z.array(z.string()),
     columns: z.array(columnSchema),
@@ -490,6 +536,9 @@ export const serverEventSchema = z.discriminatedUnion("type", [
       count: z.number(),
       average: z.number().nullable(),
       yourScore: z.number().nullable(),
+      /** the poll has been closed and its result published; no further scores
+       *  are accepted, and `average` will not change again. */
+      released: z.boolean(),
     }),
   }),
 
@@ -686,13 +735,20 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     text: z.string(),
   }),
   // Anonymous ROTI aggregate broadcast to everyone; individual scores never
-  // leave the server (the caster learns only their own via roti.you). average
-  // is null until the response count clears the anonymity threshold.
+  // leave the server (the caster learns only their own via roti.you).
+  //
+  // `average` is null for the entire life of the poll and is published exactly
+  // ONCE, when the board leaves the closing phase (`released: true`). A running
+  // mean re-broadcast per submission is differenceable: from the third
+  // respondent on, n*avg(n) - (n-1)*avg(n-1) recovers an individual 1-5 score
+  // exactly, and one-decimal rounding does not blur it at team scale. It stays
+  // null on release when fewer than ROTI_MIN_ANONYMOUS people answered.
   z.object({
     type: z.literal("roti.aggregate"),
     seq: z.number(),
     count: z.number(),
     average: z.number().nullable(),
+    released: z.boolean(),
   }),
   z.object({ type: z.literal("roti.you"), yourScore: rotiScoreSchema }),
   // The board was deleted (retention expiry or admin delete-now) — the client
@@ -701,7 +757,12 @@ export const serverEventSchema = z.discriminatedUnion("type", [
 
   z.object({
     type: z.literal("error"),
-    code: z.enum(["BAD_MESSAGE", "NOT_JOINED", "BOARD_NOT_FOUND"]),
+    code: z.enum([
+      "BAD_MESSAGE",
+      "NOT_JOINED",
+      "BOARD_NOT_FOUND",
+      "RATE_LIMIT",
+    ]),
     message: z.string(),
   }),
 ]);

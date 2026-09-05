@@ -151,7 +151,7 @@ describe("parseServerEvent", () => {
         retentionAt: null,
         icebreakerId: null,
         workingAgreements: "",
-        roti: { count: 0, average: 0, yourScore: null },
+        roti: { count: 0, average: 0, yourScore: null, released: false },
       }),
     );
     expect(event?.type).toBe("sync");

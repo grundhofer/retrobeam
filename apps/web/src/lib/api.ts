@@ -43,14 +43,26 @@ export async function duplicateBoard(
   return createBoardResponseSchema.parse(await response.json());
 }
 
-export async function fetchBoardInfo(
-  boardId: string,
-): Promise<BoardInfo | null> {
-  const response = await fetch(`/api/boards/${boardId}`);
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`fetch board failed: ${response.status}`);
-  const data = z
-    .object({ board: boardInfoSchema })
-    .parse(await response.json());
-  return data.board;
+/** "This board does not exist" and "we could not ask" are different answers and
+ *  need different screens: the first is final, the second is worth retrying.
+ *  Collapsing them showed a confident "Board not found" to someone whose wifi
+ *  had dropped — and invited them to abandon a board that was fine. */
+export type BoardLookup =
+  | { status: "ok"; board: BoardInfo }
+  | { status: "missing" }
+  | { status: "error" };
+
+export async function fetchBoardInfo(boardId: string): Promise<BoardLookup> {
+  try {
+    const response = await fetch(`/api/boards/${boardId}`);
+    if (response.status === 404) return { status: "missing" };
+    if (!response.ok) return { status: "error" };
+    const data = z
+      .object({ board: boardInfoSchema })
+      .parse(await response.json());
+    return { status: "ok", board: data.board };
+  } catch {
+    // Offline, DNS, a parse failure — all "ask again later", never "gone".
+    return { status: "error" };
+  }
 }

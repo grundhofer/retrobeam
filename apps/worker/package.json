@@ -5,12 +5,12 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "check": "tsc --noEmit",
-    "types": "wrangler types",
+    "types": "wrangler types --strict-vars=false",
     "test": "vitest run"
   },
   "dependencies": {
     "@retropolis/shared": "workspace:*",
-    "hono": "^4.12.30",
+    "hono": "^4.13.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {

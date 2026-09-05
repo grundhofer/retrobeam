@@ -27,7 +27,7 @@ Retropolis is guided **and** playful **and** free. One facilitator steps the who
 
 ### 1. Share a link
 
-No accounts, no invites, no seat licences. Create a board, drop the URL into your team chat, everyone types a display name and they're in. The facilitator keeps a separate admin link.
+No accounts, no invites, no seat licences. Create a board, drop the URL into your team chat, everyone types a display name and they're in. Whoever created the board keeps the facilitator controls in that browser, and can hand them to anyone else in the room.
 
 ### 2. Everyone writes in private
 
@@ -55,7 +55,7 @@ Dot voting with server-enforced budgets and no running tallies, so nobody piles 
 
 ![The appreciation wall with kudos cards and an anonymous ROTI poll](docs/screenshots/appreciation.png)
 
-Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll — your own score stays private, and the average is withheld until three people have answered so it can't be differenced back to one person.
+Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll — your own score stays private, and the average is published once, when the retro closes. Nobody watches a running mean creep up, because consecutive averages can be subtracted to recover whoever answered last. It stays withheld entirely below three responses.
 
 ## What's in the box
 

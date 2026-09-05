@@ -109,9 +109,15 @@ export function toMarkdown(data: BoardExport): string {
   return lines.join("\n").trimEnd() + "\n";
 }
 
+// A retro export is opened in Excel/Sheets, and every cell is text a
+// participant typed. Two hazards follow:
+//  1. Formula injection — a note reading `=HYPERLINK("http://evil","hi")` is
+//     evaluated on open. Prefixing with an apostrophe forces text.
+//  2. A bare CR inside a note would split the row, since rows join on CRLF.
 function csvCell(value: string): string {
-  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
+  const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  if (/["\n\r,]/.test(guarded)) return `"${guarded.replace(/"/g, '""')}"`;
+  return guarded;
 }
 
 export function toCsv(data: BoardExport): string {

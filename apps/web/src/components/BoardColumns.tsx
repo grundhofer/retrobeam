@@ -63,7 +63,9 @@ export function BoardColumns(props: BoardColumnsProps) {
     if (next === 0) delete yourVotes[targetId];
     else yourVotes[targetId] = next;
     mutate(
-      { type: "vote.cast", opId: generateHexId(), targetId, delta },
+      // Absolute count, not a delta: a resend after a reconnect must not
+      // double-count, which is what makes replaying unacked ops safe.
+      { type: "vote.cast", opId: generateHexId(), targetId, count: next },
       { type: "vote.progress", yourVotes },
     );
   }
@@ -661,10 +663,11 @@ function NoteComposer({
     // Matches the server's per-author ordering rule.
     const own = notes.filter((note) => note.authorId === you.id);
     const order = Math.max(0, ...own.map((note) => note.order)) + 1;
+    const opId = generateHexId();
     mutate(
       {
         type: "note.create",
-        opId: generateHexId(),
+        opId,
         noteId,
         columnId,
         text: trimmed,
@@ -685,6 +688,12 @@ function NoteComposer({
           groupId: null,
           reactions: {},
         },
+      },
+      // Refused (wrong phase, a board that moved on): hand the text back rather
+      // than let the composer's own optimism destroy it.
+      () => {
+        setText((current) => (current === "" ? trimmed : current));
+        setGifUrl((current) => current ?? gifUrl);
       },
     );
     setText("");
@@ -718,7 +727,12 @@ function NoteComposer({
       />
       {gifUrl !== null ? (
         <div className="relative mt-1 w-fit">
-          <img src={gifUrl} alt="" className="max-h-24 rounded-lg" />
+          <img
+            src={gifUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="max-h-24 rounded-lg"
+          />
           <button
             type="button"
             onClick={() => setGifUrl(null)}

@@ -13,29 +13,38 @@ Retropolis is an employee-feedback tool for a German company. Two legal frames a
 
 These aren't bolt-ons; they're why the works-council conversation should be easy:
 
-| Design decision                                                                       | Privacy effect                                                   |
-| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| No accounts; join via link + self-chosen display name (pseudonyms fine)               | Minimal personal data; no e-mail addresses, no directory         |
-| Private write phase enforced **server-side** (others' notes never sent over the wire) | Anti-surveillance by design — a selling point, frame it that way |
-| No admin superpowers over content: the facilitator sees exactly what the team sees    | No hidden "who wrote what" view                                  |
-| Ghost cards carry no content and no true length signal                                | Activity visible, behavior not measurable                        |
-| Blind voting; admin sees only an anonymous progress count                             | No vote attribution                                              |
-| Per-board anonymity toggle (strips `authorId` from all payloads permanently)          | Optional full anonymity for sensitive retros                     |
-| No per-user analytics, no tracking SDKs, no IP logging in the app                     | Nothing to co-determine about evaluation                         |
-| Exports exclude author names by default                                               | The keepable artifact is depersonalized                          |
-| EU jurisdiction Durable Objects (decided)                                             | Board data stored & processed in EU data centers                 |
-| 90-day auto-delete + facilitator delete-now + export-then-purge flow (decided)        | Short-lived data; the Löschkonzept writes itself                 |
+| Design decision                                                                       | Privacy effect                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No accounts; join via link + self-chosen display name (pseudonyms fine)               | Minimal personal data; no e-mail addresses, no directory                                                                                                                                                                                       |
+| Private write phase enforced **server-side** (others' notes never sent over the wire) | Anti-surveillance by design — a selling point, frame it that way                                                                                                                                                                               |
+| No admin superpowers over content: the facilitator sees exactly what the team sees    | No hidden "who wrote what" view                                                                                                                                                                                                                |
+| Ghost cards carry no content and no true length signal                                | Activity visible, behavior not measurable                                                                                                                                                                                                      |
+| Blind voting; admin sees only an anonymous progress count                             | No vote attribution                                                                                                                                                                                                                            |
+| Per-board anonymity toggle (strips `authorId` from all payloads permanently)          | **NOT SHIPPED.** The filter exists and is enforced everywhere (including the export), but nothing can switch it on: the create request has no field for it and no command sets it. Do not promise it to a works council until it is reachable. |
+| No per-user analytics, no tracking SDKs, no IP logging in the app                     | Nothing to co-determine about evaluation                                                                                                                                                                                                       |
+| Exports exclude author names by default                                               | The keepable artifact is depersonalized                                                                                                                                                                                                        |
+| EU jurisdiction Durable Objects (decided)                                             | Board data stored & processed in EU data centers                                                                                                                                                                                               |
+| 90-day auto-delete + facilitator delete-now + export-then-purge flow (decided)        | Short-lived data; the Löschkonzept writes itself                                                                                                                                                                                               |
 
 ## 3. Data inventory (what exists, where, how long)
 
-| Data                                         | Where                          | Lifetime                                     |
-| -------------------------------------------- | ------------------------------ | -------------------------------------------- |
-| Display name, assigned color, role           | Board DO (EU)                  | Until board deletion (≤90 days default)      |
-| Notes, reactions, votes, action items, kudos | Board DO (EU)                  | Same                                         |
-| Session token                                | Participant's localStorage     | Local only                                   |
-| GIF search terms                             | Worker (transit only, proxied) | Not stored; never reaches KLIPY with user IP |
-| GIF media loads                              | KLIPY CDN (US)                 | Viewer IPs visible to CDN — see §4           |
-| Application logs                             | None by design                 | —                                            |
+| Data                                         | Where                           | Lifetime                                     |
+| -------------------------------------------- | ------------------------------- | -------------------------------------------- |
+| Display name, assigned color, role           | Board DO (EU)                   | Until board deletion (≤90 days default)      |
+| Notes, reactions, votes, action items, kudos | Board DO (EU)                   | Same                                         |
+| Session token                                | Participant's localStorage      | Local only                                   |
+| GIF search terms                             | Worker (transit only, proxied)  | Not stored; never reaches KLIPY with user IP |
+| GIF media loads                              | KLIPY CDN (US)                  | Viewer IPs visible to CDN — see §4           |
+| Application logs                             | None by design                  | —                                            |
+| Cloudflare invocation logs                   | Disabled (`observability.logs`) | —                                            |
+
+Cloudflare's invocation logging is switched off in `apps/worker/wrangler.jsonc`
+because it retains the full request URL for several days, and a board URL **is**
+the participant capability (`/api/boards/:id`, `/ws`, `/export`) — retaining it
+would both weaken the capability model and log GIF search terms we otherwise
+never store. Explicit `console.error` output (a failed alarm arming, for
+instance) is still emitted and still reaches Workers Logs; it never contains
+board content.
 
 ## 4. Third parties / sub-processors
 

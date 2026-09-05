@@ -30,7 +30,9 @@ async function joined(
 
 async function toPhase(socket: TestSocket, phase: string) {
   socket.send({ type: "admin.phase.set", phase });
-  await socket.waitFor((e) => e.type === "phase.changed" && e.phase === phase);
+  await socket.waitForNext(
+    (e) => e.type === "phase.changed" && e.phase === phase,
+  );
 }
 
 async function toClose(admin: { socket: TestSocket }) {
@@ -82,13 +84,13 @@ describe("check-in", () => {
     await toPhase(admin.socket, "checkin");
 
     ben.socket.send({ type: "admin.checkin.shuffle" });
-    const notAdmin = await ben.socket.waitFor((e) => e.type === "reject");
+    const notAdmin = await ben.socket.waitForNext((e) => e.type === "reject");
     if (notAdmin.type !== "reject") throw new Error("unreachable");
     expect(notAdmin.code).toBe("NOT_ADMIN");
 
     await toPhase(admin.socket, "write");
     admin.socket.send({ type: "admin.checkin.shuffle" });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
   });
@@ -113,64 +115,111 @@ describe("check-in", () => {
 
     // Members can't edit.
     ben.socket.send({ type: "admin.agreements.set", text: "hacked" });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
   });
 });
 
 describe("ROTI closing poll", () => {
-  it("is anonymous: withholds the average until enough people respond, then shares only the aggregate", async () => {
+  it("publishes the average ONCE at the end, never as a running mean", async () => {
+    // A running mean re-broadcast per submission is differenceable: an observer
+    // holding two consecutive aggregates computes n*avg(n) - (n-1)*avg(n-1) and
+    // recovers that respondent's exact 1-5 score. So while the poll is open,
+    // only the COUNT may move.
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);
     const ben = await joined(boardId, "Ben");
     const cara = await joined(boardId, "Cara");
     await toClose(admin);
 
-    // Anna rates 5 → she alone learns her score; others see the count but NO
-    // average (a single respondent's average would BE her exact score).
     admin.socket.send({ type: "roti.set", score: 5 });
     const you = await admin.socket.waitFor((e) => e.type === "roti.you");
     if (you.type !== "roti.you") throw new Error("unreachable");
     expect(you.yourScore).toBe(5);
-
-    const agg1 = await ben.socket.waitFor(
-      (e) => e.type === "roti.aggregate" && e.count === 1,
-    );
-    if (agg1.type !== "roti.aggregate") throw new Error("unreachable");
-    expect(agg1.average).toBeNull(); // withheld below the anonymity threshold
-    // Ben got no roti.you (that's private to the caster's own sockets).
+    // The caster's own score is private to their own sockets.
     expect(ben.socket.events.some((e) => e.type === "roti.you")).toBe(false);
 
-    // Two respondents still isn't enough — a co-voter could subtract their own.
     ben.socket.send({ type: "roti.set", score: 3 });
-    const agg2 = await admin.socket.waitFor(
+    await admin.socket.waitFor(
       (e) => e.type === "roti.aggregate" && e.count === 2,
     );
-    if (agg2.type !== "roti.aggregate") throw new Error("unreachable");
-    expect(agg2.average).toBeNull();
-
-    // The third response clears the threshold: now the average appears.
     cara.socket.send({ type: "roti.set", score: 4 });
-    const agg3 = await admin.socket.waitFor(
-      (e) => e.type === "roti.aggregate" && e.count === 3 && e.average === 4,
+    await admin.socket.waitFor(
+      (e) => e.type === "roti.aggregate" && e.count === 3,
     );
-    if (agg3.type !== "roti.aggregate") throw new Error("unreachable");
-    expect(agg3.average).toBe(4); // (5 + 3 + 4) / 3
-
-    // Re-voting updates in place (count stays 3), the average recomputes.
+    // Re-scoring is the sharpest case: the count holds still while a running
+    // mean would move, publishing the delta outright.
     admin.socket.send({ type: "roti.set", score: 1 });
-    const agg4 = await admin.socket.waitFor(
-      (e) => e.type === "roti.aggregate" && e.count === 3 && e.average === 2.7,
+    await admin.socket.waitFor(
+      (e) => e.type === "roti.you" && e.yourScore === 1,
     );
-    if (agg4.type !== "roti.aggregate") throw new Error("unreachable");
-    expect(agg4.count).toBe(3); // still 3 voters, (1 + 3 + 4) / 3 → 2.7
 
-    // A fresh joiner's sync carries the aggregate but only their own (null) score.
+    // NOT ONE aggregate broadcast during the open poll carried an average, and
+    // none claimed to be released.
+    const openAggregates = admin.socket.events.filter(
+      (e) => e.type === "roti.aggregate",
+    );
+    expect(openAggregates.length).toBeGreaterThanOrEqual(3);
+    for (const agg of openAggregates) {
+      if (agg.type !== "roti.aggregate") throw new Error("unreachable");
+      expect(agg.average).toBeNull();
+      expect(agg.released).toBe(false);
+    }
+    // …and a mid-poll joiner cannot read one out of a snapshot either.
     const dan = await joined(boardId, "Dan");
     expect(dan.sync.roti.count).toBe(3);
-    expect(dan.sync.roti.average).toBe(2.7);
+    expect(dan.sync.roti.average).toBeNull();
+    expect(dan.sync.roti.released).toBe(false);
     expect(dan.sync.roti.yourScore).toBeNull();
+
+    // Leaving the closing phase publishes the result, exactly once.
+    await toPhase(admin.socket, "done");
+    const released = await ben.socket.waitFor(
+      (e) => e.type === "roti.aggregate" && e.released,
+    );
+    if (released.type !== "roti.aggregate") throw new Error("unreachable");
+    expect(released.count).toBe(3);
+    expect(released.average).toBe(2.7); // (1 + 3 + 4) / 3
+
+    // The poll is closed for good — a second release could be differenced
+    // against the first.
+    ben.socket.send({ type: "roti.set", score: 5 });
+    const refused = await ben.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("PHASE_LOCKED");
+
+    // The published figures are frozen: every later read is identical.
+    ben.socket.send({ type: "resync" });
+    const resynced = await ben.socket.waitFor(
+      (e) => e.type === "sync" && e.roti.released,
+    );
+    if (resynced.type !== "sync") throw new Error("unreachable");
+    expect(resynced.roti.count).toBe(3);
+    expect(resynced.roti.average).toBe(2.7);
+  });
+
+  it("withholds the average at release when too few people answered", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    await toClose(admin);
+
+    admin.socket.send({ type: "roti.set", score: 5 });
+    await admin.socket.waitFor((e) => e.type === "roti.you");
+    ben.socket.send({ type: "roti.set", score: 1 });
+    await admin.socket.waitFor(
+      (e) => e.type === "roti.aggregate" && e.count === 2,
+    );
+
+    await toPhase(admin.socket, "done");
+    const released = await ben.socket.waitFor(
+      (e) => e.type === "roti.aggregate" && e.released,
+    );
+    if (released.type !== "roti.aggregate") throw new Error("unreachable");
+    expect(released.count).toBe(2);
+    // With two respondents a co-voter subtracts their own to recover the other.
+    expect(released.average).toBeNull();
   });
 
   it("sends the caster's own score to every one of their sockets", async () => {
@@ -199,7 +248,7 @@ describe("ROTI closing poll", () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);
     admin.socket.send({ type: "roti.set", score: 4 });
-    const rejected = await admin.socket.waitFor((e) => e.type === "reject");
+    const rejected = await admin.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("PHASE_LOCKED");
     void opId;

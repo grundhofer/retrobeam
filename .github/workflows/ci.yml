@@ -5,9 +5,20 @@ on:
     branches: [main]
   pull_request:
 
+# The pipeline only reads the repo; nothing here needs a writable token.
+permissions:
+  contents: read
+
+# A push that supersedes an in-flight run cancels it — the e2e leg is the
+# expensive one and there is no value in finishing it for a stale commit.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -16,9 +27,17 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Advisories against the two dependencies that actually reach production
+      # (the Worker's HTTP framework and the SPA's router). The build chain is
+      # noisy and not user-facing, so it does not gate the pipeline.
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm check
+      # The first production build used to happen inside the deploy job, so a
+      # broken Rollup pass or an unresolvable dynamic import merged green.
+      - run: pnpm build && test -f apps/web/dist/client/index.html
       - run: pnpm --filter @retropolis/shared test
       - run: pnpm --filter @retropolis/worker test
       - run: pnpm exec playwright install chromium --with-deps

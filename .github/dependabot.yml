@@ -1,0 +1,29 @@
+# The CLA workflow already allowlists dependabot[bot], so its PRs merge without
+# a signature. Grouping keeps the noise to roughly one PR per ecosystem a week
+# rather than one per package.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Security patches arrive on their own so they are never held up behind a
+      # noisy major bump.
+      production:
+        applies-to: version-updates
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        applies-to: version-updates
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

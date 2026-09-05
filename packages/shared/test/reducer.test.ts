@@ -86,7 +86,7 @@ const sync: ServerEvent = {
   kudos: [],
   icebreakerId: null,
   workingAgreements: "Vegas rule",
-  roti: { count: 0, average: 0, yourScore: null },
+  roti: { count: 0, average: 0, yourScore: null, released: false },
   retentionAt: null,
 };
 
@@ -565,9 +565,11 @@ describe("check-in & ROTI (M5)", () => {
       seq: 6,
       count: 3,
       average: 4.5,
+      released: true,
     });
     expect(state.roti.count).toBe(3);
     expect(state.roti.average).toBe(4.5);
+    expect(state.roti.released).toBe(true);
     expect(state.roti.yourScore).toBeNull();
     state = applyServerEvent(state, { type: "roti.you", yourScore: 5 });
     expect(state.roti.yourScore).toBe(5);
@@ -576,6 +578,7 @@ describe("check-in & ROTI (M5)", () => {
       seq: 7,
       count: 4,
       average: 4.75,
+      released: true,
     });
     expect(state.roti.yourScore).toBe(5); // aggregate must not clobber own score
   });

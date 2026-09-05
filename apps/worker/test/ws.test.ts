@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, it } from "vitest";
+import { evictAllDurableObjects } from "cloudflare:test";
 import { connect, createBoard } from "./helpers.js";
+
+// Mirrors BUCKET_CAPACITY in board-room.ts.
+const BUCKET_CAPACITY = 120;
 
 describe("board room websocket flow", () => {
   it("join returns a sync snapshot with identity and roster", async () => {
@@ -133,5 +137,102 @@ describe("board room websocket flow", () => {
 
     socket.send({ type: "join", name: "Anna" });
     await socket.waitFor((e) => e.type === "sync");
+  });
+});
+
+describe("per-socket message budget", () => {
+  it("drops a flood without closing the socket, and recovers", async () => {
+    // Inbound WS messages bill 20:1 against an ACCOUNT-WIDE allowance, so a
+    // buggy or hostile client at browser speed can take every board offline
+    // until midnight UTC. The bucket is generous enough that a fast typist or a
+    // canvas Tidy never notices it.
+    const { boardId, adminToken } = await createBoard();
+    const socket = await connect(boardId);
+    socket.send({ type: "join", name: "Anna", adminToken });
+    await socket.waitFor((e) => e.type === "sync");
+
+    for (let i = 0; i < 400; i++) {
+      socket.send({ type: "ready.set", ready: i % 2 === 0 });
+    }
+    const limited = await socket.waitFor(
+      (e) => e.type === "error" && e.code === "RATE_LIMIT",
+    );
+    expect(limited.type).toBe("error");
+
+    // Exactly the bucket's capacity was served before the drop — the limit is a
+    // budget, not a kill switch.
+    expect(
+      socket.events.filter((e) => e.type === "ready.changed").length,
+    ).toBeLessThanOrEqual(BUCKET_CAPACITY + 1);
+
+    // The socket stays usable: a legitimate client that briefly overran must
+    // not lose its board. The bucket refills, so an ordinary frame is served
+    // again. (`resync` costs 20, so it stays refused for longer — deliberately,
+    // since it is the one command whose cost is unbounded by its input.)
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    socket.send({ type: "ready.set", ready: true });
+    const recovered = await socket.waitFor(
+      (e) => e.type === "ready.changed" && e.ready === true,
+    );
+    expect(recovered.type).toBe("ready.changed");
+  });
+});
+
+describe("hibernation survival", () => {
+  it("identity, budget and state survive the Durable Object being evicted", async () => {
+    // Architecture rule 2 makes this load-bearing: the object keeps NO
+    // in-memory session state, so an idle board can hibernate and bill zero.
+    // Everything a handler needs lives in SQLite or in the socket attachment.
+    // Nothing proved it — an accidental instance field would have looked fine
+    // in every other test, because they never let the object go away.
+    const { boardId, adminToken } = await createBoard();
+    const socket = await connect(boardId);
+    socket.send({ type: "join", name: "Anna", adminToken });
+    const sync = await socket.waitFor((e) => e.type === "sync");
+    if (sync.type !== "sync") throw new Error("unreachable");
+    const columnId = sync.columns[0]?.id ?? "";
+
+    socket.send({ type: "admin.phase.set", phase: "write" });
+    await socket.waitForNext(
+      (e) => e.type === "phase.changed" && e.phase === "write",
+    );
+    const before = crypto.randomUUID().replaceAll("-", "");
+    socket.send({
+      type: "note.create",
+      opId: "e".repeat(32),
+      noteId: before,
+      columnId,
+      text: "written before eviction",
+    });
+    await socket.waitForNext((e) => e.type === "note.created");
+
+    // Tear the instance down. Storage is kept and the socket is hibernated
+    // rather than closed, which is exactly what an idle board does in
+    // production.
+    await evictAllDurableObjects();
+
+    // The SAME socket still works, and the participant is still the
+    // facilitator — that role came back from the attachment, not from memory.
+    const after = crypto.randomUUID().replaceAll("-", "");
+    socket.send({
+      type: "note.create",
+      opId: "f".repeat(32),
+      noteId: after,
+      columnId,
+      text: "written after eviction",
+    });
+    await socket.waitForNext(
+      (e) => e.type === "note.created" && e.note.id === after,
+    );
+
+    socket.send({ type: "resync" });
+    const resumed = await socket.waitForNext((e) => e.type === "sync");
+    if (resumed.type !== "sync") throw new Error("unreachable");
+    expect(resumed.you.role).toBe("facilitator");
+    expect(resumed.you.id).toBe(sync.you.id);
+    expect(resumed.phase).toBe("write");
+    expect(resumed.notes.map((n) => n.id).sort()).toEqual(
+      [before, after].sort(),
+    );
   });
 });
