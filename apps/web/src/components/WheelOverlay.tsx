@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import {
   SLOT_REELS,
   slotReel,
+  WHEEL_HOLD_MS,
   wheelTargetRotation,
   type Participant,
   type WheelSpin,
@@ -13,8 +14,6 @@ import {
 import { burstConfetti } from "../lib/confetti.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
-
-const HOLD_AFTER_LANDING_MS = 2600;
 
 // Every client renders the SAME spin from the broadcast seed and lands on the
 // same name. Reduced-motion (and late joiners) skip straight to the result.
@@ -26,7 +25,7 @@ export function WheelOverlay() {
 
   if (spin === null) return null;
   const localEnd = spin.startAt - clockOffsetMs + spin.durationMs;
-  if (now > localEnd + HOLD_AFTER_LANDING_MS) return null;
+  if (now > localEnd + WHEEL_HOLD_MS) return null;
 
   return (
     <SpinScene

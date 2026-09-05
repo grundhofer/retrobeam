@@ -267,7 +267,10 @@ const resources = {
         title: "Return on time invested",
         question: "Was this retro a good use of your time?",
         result: "Average {{average}} · {{count}} responses",
-        pending: "{{count}} responses · average appears once 3 people answer",
+        pending_one:
+          "{{count}} response · average appears once 3 people answer",
+        pending_other:
+          "{{count}} responses · average appears once 3 people answer",
         anonymous: "Anonymous — only the average is shared.",
       },
       icebreaker: {
@@ -305,6 +308,11 @@ const resources = {
         title: "Board not found",
         body: "This board does not exist or has been deleted.",
         home: "Create a new board",
+      },
+      error: {
+        title: "Something went wrong",
+        body: "The board itself is safe — it lives on the server. Reloading rejoins it.",
+        reload: "Reload the board",
       },
       legal: {
         license: "Free software: AGPL-3.0-or-later",
@@ -576,7 +584,8 @@ const resources = {
         title: "Return on Time Invested",
         question: "War diese Retro deine Zeit wert?",
         result: "Durchschnitt {{average}} · {{count}} Antworten",
-        pending: "{{count}} Antworten · Durchschnitt ab 3 Antworten",
+        pending_one: "{{count}} Antwort · Durchschnitt ab 3 Antworten",
+        pending_other: "{{count}} Antworten · Durchschnitt ab 3 Antworten",
         anonymous: "Anonym — nur der Durchschnitt wird geteilt.",
       },
       icebreaker: {
@@ -617,6 +626,11 @@ const resources = {
         body: "Dieses Board existiert nicht oder wurde gelöscht.",
         home: "Neues Board erstellen",
       },
+      error: {
+        title: "Da ist etwas schiefgelaufen",
+        body: "Das Board selbst ist sicher — es liegt auf dem Server. Neu laden verbindet dich wieder.",
+        reload: "Board neu laden",
+      },
       legal: {
         license: "Freie Software: AGPL-3.0-or-later",
         redistribute: "Weitergabe und Änderung erlaubt, ohne Gewährleistung.",
@@ -639,12 +653,22 @@ function initialLanguage(): "de" | "en" {
   return navigator.language.toLowerCase().startsWith("de") ? "de" : "en";
 }
 
+// index.html ships lang="en"; screen readers and hyphenation pick their
+// pronunciation/rules from it, so it has to follow the actual UI language —
+// on load and on every switch.
+function syncDocumentLanguage(lang: string): void {
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = lang.startsWith("de") ? "de" : "en";
+  }
+}
+
 void i18n.use(initReactI18next).init({
   resources,
   lng: initialLanguage(),
   fallbackLng: "en",
   interpolation: { escapeValue: false },
 });
+syncDocumentLanguage(i18n.language);
 
 export function setLanguage(lang: "de" | "en"): void {
   try {
@@ -652,7 +676,11 @@ export function setLanguage(lang: "de" | "en"): void {
   } catch {
     // storage unavailable — the choice just won't persist
   }
+  syncDocumentLanguage(lang);
   void i18n.changeLanguage(lang);
 }
+
+/** Exported for the DE/EN parity test — not part of the runtime surface. */
+export const translationResources = resources;
 
 export default i18n;

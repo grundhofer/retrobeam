@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- The board URL IS the capability: /board/<128-bit id> grants access to
+         anyone holding it. GIF thumbnails load from the provider's CDN, and the
+         AGPL notices link out to GitHub, so no request may ever carry this page
+         URL in a Referer header. Browsers default to origin-only cross-origin
+         today; this states the guarantee rather than relying on that default. -->
+    <meta name="referrer" content="no-referrer" />
     <title>Retropolis</title>
   </head>
   <body>

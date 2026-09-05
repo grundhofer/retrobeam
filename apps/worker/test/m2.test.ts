@@ -503,6 +503,46 @@ describe("canvas layout & positions", () => {
     expect(movedB.note.y).toBe(0.8);
   });
 
+  it("a full-size moveMany fits the inbound frame limit", async () => {
+    // The canvas Tidy button sends ONE moveMany covering every movable card.
+    // The schema allows 300 moves (~138 chars each); the DO's frame guard used
+    // to cut in at ~58, refusing a legal frame with an opId-less BAD_MESSAGE
+    // while the client had already applied its optimistic echo.
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    await toPhase(admin.socket, "write");
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    const first = await createNote(admin.socket, columnId, "real");
+
+    // Worst case the protocol permits: 300 moves at full float precision. Only
+    // the real note can move; the rest exist purely to size the frame.
+    const moves = [{ noteId: first, columnId, x: 0.16666666666666666, y: 0.5 }];
+    while (moves.length < 300) {
+      moves.push({
+        noteId: "f".repeat(32),
+        columnId,
+        x: 0.16666666666666666,
+        y: 0.5133333333333333,
+      });
+    }
+    expect(
+      JSON.stringify({ type: "note.moveMany", moves }).length,
+    ).toBeGreaterThan(8192);
+
+    admin.socket.send({ type: "note.moveMany", opId: opId(), moves });
+    const moved = await admin.socket.waitFor(
+      (e) => e.type === "note.updated" && e.note.id === first,
+    );
+    if (moved.type !== "note.updated") throw new Error("unreachable");
+    expect(moved.note.x).toBe(0.16666666666666666);
+    expect(
+      admin.socket.events.some(
+        (e) => e.type === "error" && e.code === "BAD_MESSAGE",
+      ),
+    ).toBe(false);
+  });
+
   it("same-zone canvas reposition KEEPS a stack; column-mode drag (no x) still ungroups", async () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);

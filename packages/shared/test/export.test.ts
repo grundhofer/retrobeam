@@ -88,6 +88,63 @@ describe("toCsv", () => {
     expect(csv).toContain("action,");
     expect(csv).toContain("kudo,");
   });
+
+  it("neutralizes spreadsheet formulas typed into a note", () => {
+    const note = (text: string) => ({
+      ...sample,
+      columns: [
+        {
+          name: "Went well",
+          notes: [
+            {
+              text,
+              gifUrl: null,
+              authorName: null,
+              votes: null,
+              crownedRank: null,
+            },
+          ],
+        },
+      ],
+      actions: [],
+      kudos: [],
+    });
+    for (const payload of [
+      '=HYPERLINK("http://evil.example","click")',
+      "+1+1",
+      "-2+3",
+      "@SUM(A1:A9)",
+    ]) {
+      const row = toCsv(note(payload)).split("\r\n")[1] ?? "";
+      expect(row).not.toContain(`,${payload}`);
+      expect(row).toContain(`'${payload.slice(0, 1)}`);
+    }
+  });
+
+  it("quotes a bare carriage return so it cannot split the row", () => {
+    const csv = toCsv({
+      ...sample,
+      columns: [
+        {
+          name: "Went well",
+          notes: [
+            {
+              text: "before\rafter",
+              gifUrl: null,
+              authorName: null,
+              votes: null,
+              crownedRank: null,
+            },
+          ],
+        },
+      ],
+      actions: [],
+      kudos: [],
+    });
+    expect(csv).toContain('"before\rafter"');
+    // header + one note row + trailing terminator
+    expect(csv.split("\r\n")).toHaveLength(3);
+  });
 });
 
 describe("toJson", () => {

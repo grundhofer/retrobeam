@@ -229,6 +229,20 @@ export function BoardMenu({
                     {t("menu.keep")}
                   </button>
                 ) : null}
+                {/* Deleting wipes the board for everyone and cannot be undone.
+                    The confirmation is therefore a SECOND button beside the
+                    trigger, never one swapped in underneath the pointer — with
+                    an in-place swap a double-click on "Delete now" destroyed
+                    the retro on its own second click. */}
+                <button
+                  type="button"
+                  data-testid="delete-board"
+                  aria-expanded={confirmingDelete}
+                  onClick={() => setConfirmingDelete(!confirmingDelete)}
+                  className="rounded-lg border border-red-200 px-3 py-1 text-red-700 hover:bg-red-50"
+                >
+                  {confirmingDelete ? t("note.cancel") : t("menu.deleteNow")}
+                </button>
                 {confirmingDelete ? (
                   <button
                     type="button"
@@ -238,16 +252,7 @@ export function BoardMenu({
                   >
                     {t("menu.reallyDelete")}
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    data-testid="delete-board"
-                    onClick={() => setConfirmingDelete(true)}
-                    className="rounded-lg border border-red-200 px-3 py-1 text-red-700 hover:bg-red-50"
-                  >
-                    {t("menu.deleteNow")}
-                  </button>
-                )}
+                ) : null}
               </div>
             </div>
           ) : null}

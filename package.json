@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "pnpm --filter @retropolis/web dev",
     "build": "pnpm --filter @retropolis/web build",
-    "check": "pnpm -r run check",
+    "check": "pnpm -r run check && tsc -p tsconfig.e2e.json",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

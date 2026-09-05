@@ -120,11 +120,29 @@ export interface BoardCreation {
   config?: BoardConfig;
 }
 
-const MAX_FRAME_CHARS = 8192;
+// Must fit the LARGEST frame the protocol itself permits, otherwise a legal
+// command is refused before zod ever sees it: `note.moveMany` allows 300 moves
+// (protocol.ts) and each serializes to ~138 chars, so a full canvas tidy is
+// ~42 KB. 8 KB used to cut that off at 58 cards — the client had already
+// applied its optimistic echo and never learned the frame was dropped.
+// Billing counts messages (20:1), not bytes, so a larger cap costs nothing;
+// the cap only exists to refuse absurd frames before paying for JSON.parse.
+const MAX_FRAME_CHARS = 65536;
 
 // Phases in which notes may be created/edited by their author.
 function phaseAllowsWriting(phase: Phase): boolean {
   return phase === "write" || phase === "present";
+}
+
+// Command dispatch is synchronous, so the few storage-side effects that are
+// async (arming the alarm, wiping a board) cannot be awaited by their caller.
+// `void promise` would drop a rejection on the floor: a failed setAlarm means
+// the timer that clients are already counting down will never fire, and
+// nothing would say so. Log it instead — the label only, never board content.
+function detach(label: string, work: Promise<unknown>): void {
+  void work.catch((error: unknown) => {
+    console.error(`[BoardRoom] ${label} failed`, error);
+  });
 }
 
 // One board = one BoardRoom. Uses the WebSocket Hibernation API throughout:
@@ -535,10 +553,10 @@ export class BoardRoom extends DurableObject<Env> {
         this.handleCursor(ws, participant, command);
         return;
       case "admin.board.keep":
-        void this.handleBoardKeep(ws, participant);
+        detach("board.keep", this.handleBoardKeep(ws, participant));
         return;
       case "admin.board.delete":
-        void this.handleBoardDelete(ws, participant);
+        detach("board.delete", this.handleBoardDelete(ws, participant));
         return;
       case "admin.checkin.shuffle":
         this.handleCheckinShuffle(ws, participant);
@@ -610,16 +628,21 @@ export class BoardRoom extends DurableObject<Env> {
       }
     }
     await this.ctx.storage.deleteAlarm();
+    // Content first, board_meta LAST. board_meta holds the `id` row that makes
+    // the board resolvable at all, so wiping it first would 404 the board while
+    // note text and participant names were still on disk if anything threw
+    // mid-loop — the retention alarm would be gone too, with nothing left to
+    // re-arm it.
     for (const table of [
-      "board_meta",
-      "participants",
-      "columns",
       "notes",
       "reactions",
       "votes",
       "actions",
       "kudos",
       "roti",
+      "columns",
+      "participants",
+      "board_meta",
     ]) {
       this.sql.exec(`DELETE FROM ${table}`);
     }
@@ -1144,11 +1167,13 @@ export class BoardRoom extends DurableObject<Env> {
     this.setMeta("phase", target);
     this.sql.exec("UPDATE participants SET ready = 0");
     this.sql.exec(
-      "DELETE FROM board_meta WHERE key IN ('discussFocus', 'meterState')",
+      // lastSpin too: a reconnect within the wheel's hold window would
+      // otherwise replay the animation in whatever phase the board is now in.
+      "DELETE FROM board_meta WHERE key IN ('discussFocus', 'meterState', 'lastSpin')",
     );
     this.clearTimerMeta();
     // Re-arm for retention (must NOT drop the retention alarm on phase change).
-    void this.rescheduleAlarm();
+    detach("rescheduleAlarm(phase)", this.rescheduleAlarm());
 
     this.broadcastAll({
       type: "phase.changed",
@@ -1168,6 +1193,10 @@ export class BoardRoom extends DurableObject<Env> {
       });
     }
     if (target === "vote") {
+      // The budget may have been lowered while the board was rewound out of
+      // the vote phase; clamp before anyone sees their dots, otherwise voters
+      // carry an over-budget allocation into the new round.
+      this.clampVotesToConfig();
       // Votes may have migrated while regrouping in "present" — re-send every
       // voter their (possibly re-keyed) own votes so no dots are stranded.
       this.broadcastAllProgress();
@@ -1310,7 +1339,7 @@ export class BoardRoom extends DurableObject<Env> {
       }
     }
     // One alarm slot, shared with retention — re-arm for the nearest deadline.
-    void this.rescheduleAlarm();
+    detach("rescheduleAlarm(timer)", this.rescheduleAlarm());
 
     this.broadcastAll({
       type: "timer.changed",
@@ -1626,8 +1655,15 @@ export class BoardRoom extends DurableObject<Env> {
       ord,
       note.id,
     );
-    // Votes cast on the note in an earlier round follow it into the stack.
-    if (note.id !== groupId) this.migrateVotes(note.id, groupId);
+    // Votes cast on the note in an earlier round follow it into the stack —
+    // but ONLY when the note was its own votable. A note that was already in a
+    // stack votes under that stack's id, and for the stack's anchor that id is
+    // the note's own id: migrating it here would hand the whole old stack's
+    // votes to the destination and leave the survivors with none (their own
+    // re-key in repairGroupAfterLeave would then find an empty bucket).
+    if (leftGroup === null && note.id !== groupId) {
+      this.migrateVotes(note.id, groupId);
+    }
     changed.push(note.id);
     if (leftGroup !== null) {
       changed.push(...this.repairGroupAfterLeave(leftGroup, note.id));
@@ -2532,17 +2568,21 @@ export class BoardRoom extends DurableObject<Env> {
       .exec("SELECT id FROM participants WHERE online = 1")
       .toArray()
       .map((row) => String(row.id));
+    // One grouped pass over `votes` instead of one SUM per online participant:
+    // this runs on every cast, join and disconnect during the vote phase, and
+    // `votes` has no index on participant_id, so the per-person form was a
+    // full scan each time.
+    const spent = new Map<string, number>();
+    for (const row of this.sql
+      .exec(
+        "SELECT participant_id, SUM(count) AS total FROM votes GROUP BY participant_id",
+      )
+      .toArray()) {
+      spent.set(String(row.participant_id), Number(row.total ?? 0));
+    }
     let votersDone = 0;
     for (const id of online) {
-      const total = Number(
-        this.sql
-          .exec(
-            "SELECT COALESCE(SUM(count), 0) AS total FROM votes WHERE participant_id = ?",
-            id,
-          )
-          .toArray()[0]?.total ?? 0,
-      );
-      if (total >= budget) votersDone++;
+      if ((spent.get(id) ?? 0) >= budget) votersDone++;
     }
     return { votersDone, votersTotal: online.length };
   }
@@ -3029,10 +3069,14 @@ export class BoardRoom extends DurableObject<Env> {
   // Picks a fresh icebreaker (never repeating the current one) and broadcasts.
   private shuffleIcebreaker(): void {
     const current = this.getMeta("icebreakerId");
-    const icebreakerId = pickIcebreaker(
-      randomIndex(ICEBREAKER_IDS.length),
-      current,
-    );
+    // Draw over the pool pickIcebreaker will actually use. Drawing over all 24
+    // and letting it reduce mod 23 (the bank minus the current question) made
+    // the first remaining option twice as likely as every other.
+    const poolSize =
+      current !== null && ICEBREAKER_IDS.includes(current as IcebreakerId)
+        ? ICEBREAKER_IDS.length - 1
+        : ICEBREAKER_IDS.length;
+    const icebreakerId = pickIcebreaker(randomIndex(poolSize), current);
     this.setMeta("icebreakerId", icebreakerId);
     this.broadcastAll({
       type: "checkin.shuffled",

@@ -1,0 +1,13 @@
+// The Playwright specs and their config belong to no workspace package, so
+// `pnpm -r run check` never saw them — ~900 lines of test code with no type
+// checking at all, and no way for ESLint to type-check them either.
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  // playwright.config.ts is left out on purpose: it reads process.env and
+  // would pull @types/node in as a new root dependency for 27 lines of config.
+  "include": ["e2e"]
+}

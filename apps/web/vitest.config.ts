@@ -12,7 +12,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
-    include: ["src/**/*.test.tsx"],
+    // .ts as well as .tsx — a non-JSX test (the i18n parity check, socket
+    // helpers) was silently invisible to the runner under a .tsx-only glob.
+    include: ["src/**/*.test.{ts,tsx}"],
     browser: {
       enabled: true,
       provider: playwright(),

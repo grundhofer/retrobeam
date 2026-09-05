@@ -210,11 +210,14 @@ function Room({
         }
         if (
           event.type === "reject" ||
-          (event.type === "error" && event.code === "NOT_JOINED")
+          (event.type === "error" &&
+            (event.code === "NOT_JOINED" || event.code === "BAD_MESSAGE"))
         ) {
-          // An optimistic prediction was wrong (race, permission, phase) or a
-          // command raced the join — the snapshot is tiny, so the recovery is
-          // a full resync.
+          // An optimistic prediction was wrong (race, permission, phase), a
+          // command raced the join, or the server refused the frame outright —
+          // the snapshot is tiny, so the recovery is a full resync. BAD_MESSAGE
+          // matters because it carries no opId: without a resync the optimistic
+          // echo would stay applied forever against a server that never saw it.
           socket.send({ type: "resync" });
         }
         dispatch(event);

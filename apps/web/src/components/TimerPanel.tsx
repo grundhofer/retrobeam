@@ -9,9 +9,6 @@ import { useConnection } from "../lib/connection.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
 
-// Read once at module load — only this component toggles it afterwards.
-const initialSound = soundEnabled();
-
 export function TimerPanel({
   timer,
   isAdmin,
@@ -23,7 +20,10 @@ export function TimerPanel({
   const { send } = useConnection();
   const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
   const now = useNow();
-  const [sound, setSound] = useState(initialSound);
+  // Lazy initializer, not a module-load constant: the panel remounts on every
+  // layout/phase switch, and a module-scoped snapshot showed the toggle in the
+  // state it had when the bundle loaded rather than the stored preference.
+  const [sound, setSound] = useState(soundEnabled);
 
   const running = timer.endsAt !== null;
   const paused = timer.pausedRemainingMs !== null;
