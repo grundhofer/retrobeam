@@ -13,6 +13,7 @@ import {
   parseClientCommand,
   phasePlanSchema,
   phaseRevealed,
+  phaseSchema,
   pickerKnows,
   pickerStateSchema,
   planJoin,
@@ -45,6 +46,7 @@ import {
   type LayoutMode,
   type ZoneRect,
   ICEBREAKER_IDS,
+  icebreakerIdSchema,
   pickIcebreaker,
 } from "@retropolis/shared";
 import { generateSecret, randomIndex, safeEqual } from "./ids.js";
@@ -158,6 +160,9 @@ export interface BoardCreation {
 // the cap only exists to refuse absurd frames before paying for JSON.parse.
 const MAX_FRAME_CHARS = 65536;
 
+// Bumped when a migration step is added below the unconditional ones.
+const SCHEMA_VERSION = 1;
+
 // Phases in which notes may be created/edited by their author.
 function phaseAllowsWriting(phase: Phase): boolean {
   return phase === "write" || phase === "present";
@@ -256,7 +261,14 @@ export class BoardRoom extends DurableObject<Env> {
   }
 
   // Additive schema evolution for boards created before a column existed.
+  //
+  // Each step is PRAGMA-sniffed and idempotent, which is why this has been safe
+  // so far — but sniffing can only express "add a column if absent". A backfill,
+  // a rename or a data repair is unrepresentable, because there is no way to ask
+  // whether it already ran. The version marker below gives later migrations
+  // somewhere to record that, without changing what the existing steps do.
   private migrate(): void {
+    const from = Number(this.getMeta("schemaVersion") ?? "0");
     const participantColumns = this.sql
       .exec("PRAGMA table_info(participants)")
       .toArray()
@@ -313,6 +325,15 @@ export class BoardRoom extends DurableObject<Env> {
       CREATE INDEX IF NOT EXISTS votes_by_participant ON votes (participant_id);
       CREATE INDEX IF NOT EXISTS reactions_by_note ON reactions (note_id);
     `);
+
+    // A one-way marker. Steps above stay idempotent and unconditional (they are
+    // what brings a pre-marker board up to date); anything added below runs
+    // `if (from < N)` and is recorded here. Only write it once the board
+    // actually exists — an untouched DO must stay indistinguishable from one
+    // that was never created, which is what makes an unknown board id 404.
+    if (this.getMeta("id") !== null && from < SCHEMA_VERSION) {
+      this.setMeta("schemaVersion", String(SCHEMA_VERSION));
+    }
   }
 
   // Called once by the Worker when a board is created (RPC).
@@ -1368,7 +1389,7 @@ export class BoardRoom extends DurableObject<Env> {
 
     // First entry into check-in picks an icebreaker (persists across rewinds
     // so the room doesn't get a new question every time it re-enters).
-    if (target === "checkin" && this.getMeta("icebreakerId") === null) {
+    if (target === "checkin" && this.icebreakerId() === null) {
       this.shuffleIcebreaker();
     }
 
@@ -3193,14 +3214,12 @@ export class BoardRoom extends DurableObject<Env> {
 
   // Picks a fresh icebreaker (never repeating the current one) and broadcasts.
   private shuffleIcebreaker(): void {
-    const current = this.getMeta("icebreakerId");
+    const current = this.icebreakerId();
     // Draw over the pool pickIcebreaker will actually use. Drawing over all 24
     // and letting it reduce mod 23 (the bank minus the current question) made
     // the first remaining option twice as likely as every other.
     const poolSize =
-      current !== null && ICEBREAKER_IDS.includes(current as IcebreakerId)
-        ? ICEBREAKER_IDS.length - 1
-        : ICEBREAKER_IDS.length;
+      current !== null ? ICEBREAKER_IDS.length - 1 : ICEBREAKER_IDS.length;
     const icebreakerId = pickIcebreaker(randomIndex(poolSize), current);
     this.setMeta("icebreakerId", icebreakerId);
     this.broadcastAll({
@@ -3598,8 +3617,7 @@ export class BoardRoom extends DurableObject<Env> {
       actions: this.actions(),
       // Staged reveal: the appreciation wall only appears from the close phase.
       kudos: this.kudosForPhase(phase, participant.id),
-      icebreakerId:
-        (this.getMeta("icebreakerId") as IcebreakerId | null) ?? null,
+      icebreakerId: this.icebreakerId(),
       workingAgreements: this.getMeta("workingAgreements") ?? "",
       roti: {
         ...this.rotiAggregate(),
@@ -3920,8 +3938,13 @@ export class BoardRoom extends DurableObject<Env> {
     return raw === null ? null : Number(raw);
   }
 
+  // Validated, not cast. zod guards the wire; the database was guarded by
+  // nothing, so a value written by an older build (or a hand-edited row) became
+  // a Phase by assertion and every downstream switch silently misbehaved.
+  // Falling back to "lobby" is the safe direction: it reveals nothing.
   private phase(): Phase {
-    return (this.getMeta("phase") ?? "lobby") as Phase;
+    const parsed = phaseSchema.safeParse(this.getMeta("phase"));
+    return parsed.success ? parsed.data : "lobby";
   }
 
   private phasePlan() {
@@ -3933,6 +3956,13 @@ export class BoardRoom extends DurableObject<Env> {
 
   private anonymous(): boolean {
     return this.getMeta("anonymous") === "1";
+  }
+
+  /** Same reasoning as phase(): a stored id that is no longer in the bank must
+   *  read as "no question chosen", not as a member of the union by assertion. */
+  private icebreakerId(): IcebreakerId | null {
+    const parsed = icebreakerIdSchema.safeParse(this.getMeta("icebreakerId"));
+    return parsed.success ? parsed.data : null;
   }
 
   private timer(): Timer {

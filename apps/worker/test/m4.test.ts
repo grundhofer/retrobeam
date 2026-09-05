@@ -44,7 +44,7 @@ async function advance(
 ): Promise<void> {
   for (const phase of phases) {
     admin.socket.send({ type: "admin.phase.set", phase });
-    await admin.socket.waitFor(
+    await admin.socket.waitForNext(
       (e) => e.type === "phase.changed" && e.phase === phase,
     );
   }
@@ -66,7 +66,7 @@ describe("appreciation wall", () => {
       text: "early",
       anonymous: false,
     });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
 
@@ -546,7 +546,7 @@ describe("retention", () => {
     const ben = await joined(boardId, "Ben");
 
     ben.socket.send({ type: "admin.board.delete" });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
 

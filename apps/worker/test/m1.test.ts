@@ -86,7 +86,7 @@ describe("write-phase privacy (the product's core property)", () => {
       columnId,
       text: "Anna's secret",
     });
-    await admin.socket.waitFor((e) => e.type === "ack");
+    await admin.socket.waitForNext((e) => e.type === "ack");
 
     // Anna sees her own note in a fresh snapshot…
     admin.socket.send({ type: "resync" });
@@ -156,7 +156,7 @@ describe("write-phase privacy (the product's core property)", () => {
       columnId,
       text: "Anna's point",
     });
-    await admin.socket.waitFor((e) => e.type === "ack");
+    await admin.socket.waitForNext((e) => e.type === "ack");
 
     admin.socket.send({ type: "admin.phase.set", phase: "present" });
     const revealed = await ben.socket.waitFor(
@@ -186,12 +186,12 @@ describe("phase machine", () => {
     const ben = await joined(boardId, "Ben");
 
     ben.socket.send({ type: "admin.phase.set", phase: "write" });
-    const notAdmin = await ben.socket.waitFor((e) => e.type === "reject");
+    const notAdmin = await ben.socket.waitForNext((e) => e.type === "reject");
     if (notAdmin.type !== "reject") throw new Error("unreachable");
     expect(notAdmin.code).toBe("NOT_ADMIN");
 
     admin.socket.send({ type: "admin.phase.set", phase: "present" }); // skips write
-    const illegal = await admin.socket.waitFor((e) => e.type === "reject");
+    const illegal = await admin.socket.waitForNext((e) => e.type === "reject");
     if (illegal.type !== "reject") throw new Error("unreachable");
     expect(illegal.code).toBe("INVALID");
   });
@@ -228,7 +228,7 @@ describe("notes & reactions gating", () => {
       columnId,
       text: "early",
     });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
   });
@@ -245,7 +245,7 @@ describe("notes & reactions gating", () => {
       columnId,
       text: "point",
     });
-    await admin.socket.waitFor((e) => e.type === "ack");
+    await admin.socket.waitForNext((e) => e.type === "ack");
 
     admin.socket.send({
       type: "note.react",
@@ -254,7 +254,7 @@ describe("notes & reactions gating", () => {
       emoji: "🎉",
       on: true,
     });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
 
@@ -288,7 +288,7 @@ describe("notes & reactions gating", () => {
       columnId,
       text: "once",
     });
-    await admin.socket.waitFor((e) => e.type === "ack");
+    await admin.socket.waitForNext((e) => e.type === "ack");
     admin.socket.send({
       type: "note.create",
       opId: opId(),
@@ -324,7 +324,7 @@ describe("review-fleet regressions", () => {
       columnId,
       text: "hidden",
     });
-    await admin.socket.waitFor((e) => e.type === "ack");
+    await admin.socket.waitForNext((e) => e.type === "ack");
 
     // update of a hidden foreign note answers NOT_FOUND (not NOT_AUTHOR)
     ben.socket.send({
@@ -333,13 +333,13 @@ describe("review-fleet regressions", () => {
       noteId: hiddenId,
       text: "probe",
     });
-    const probe1 = await ben.socket.waitFor((e) => e.type === "reject");
+    const probe1 = await ben.socket.waitForNext((e) => e.type === "reject");
     if (probe1.type !== "reject") throw new Error("unreachable");
     expect(probe1.code).toBe("NOT_FOUND");
 
     // delete of a hidden foreign note acks like a nonexistent one — and does NOT delete
     ben.socket.send({ type: "note.delete", opId: opId(), noteId: hiddenId });
-    await ben.socket.waitFor((e) => e.type === "ack");
+    await ben.socket.waitForNext((e) => e.type === "ack");
     admin.socket.send({ type: "resync" });
     const sync = await admin.socket.waitFor(
       (e) => e.type === "sync" && e.notes.length > 0,
@@ -402,7 +402,7 @@ describe("review-fleet regressions", () => {
       columnId,
       text: "keep me",
     });
-    await admin.socket.waitFor((e) => e.type === "ack");
+    await admin.socket.waitForNext((e) => e.type === "ack");
 
     for (const phase of ["vote", "discuss", "close", "done"] as const) {
       admin.socket.send({ type: "admin.phase.set", phase });
@@ -411,7 +411,7 @@ describe("review-fleet regressions", () => {
       );
     }
     admin.socket.send({ type: "note.delete", opId: opId(), noteId });
-    const rejected = await admin.socket.waitFor((e) => e.type === "reject");
+    const rejected = await admin.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("PHASE_LOCKED");
   });
@@ -505,7 +505,7 @@ describe("timer", () => {
     const { boardId } = await boardInPhase("write");
     const ben = await joined(boardId, "Ben");
     ben.socket.send({ type: "admin.timer.start", durationSec: 60 });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
   });
@@ -524,7 +524,7 @@ describe("columns", () => {
       columnId: column.id,
       name: "Nope",
     });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
 
@@ -547,7 +547,7 @@ describe("columns", () => {
       columnId: column.id,
       text: "in doomed column",
     });
-    await admin.socket.waitFor((e) => e.type === "ack");
+    await admin.socket.waitForNext((e) => e.type === "ack");
     admin.socket.send({
       type: "admin.column.delete",
       opId: opId(),

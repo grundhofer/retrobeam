@@ -44,8 +44,16 @@ export async function createBoard(
 export interface TestSocket {
   ws: WebSocket;
   events: ServerEvent[];
-  /** Waits until an event matching the predicate has arrived (including past events). */
-  waitFor(predicate: (event: ServerEvent) => boolean): Promise<ServerEvent>;
+  /** Waits until an event matching the predicate has arrived, INCLUDING ones
+   *  already in the log. The predicate receives the event's index so a caller
+   *  can require a fresh one: an "ack" barrier is otherwise satisfied by an ack
+   *  from three commands ago, which silently turns a negative assertion into a
+   *  no-op. Prefer `waitForNext` when the point is that something new arrives. */
+  waitFor(
+    predicate: (event: ServerEvent, index: number) => boolean,
+  ): Promise<ServerEvent>;
+  /** Like waitFor, but ignores everything already received. */
+  waitForNext(predicate: (event: ServerEvent) => boolean): Promise<ServerEvent>;
   send(command: unknown): void;
 }
 
@@ -71,13 +79,13 @@ export async function connect(boardId: string): Promise<TestSocket> {
     }
   });
 
-  return {
+  const socket: TestSocket = {
     ws,
     events,
     async waitFor(predicate) {
       const deadline = Date.now() + 2000;
       for (;;) {
-        const match = events.find(predicate);
+        const match = events.find((event, index) => predicate(event, index));
         if (match) return match;
         if (Date.now() > deadline) {
           throw new Error(
@@ -90,8 +98,15 @@ export async function connect(boardId: string): Promise<TestSocket> {
         });
       }
     },
+    async waitForNext(predicate) {
+      const from = events.length;
+      return socket.waitFor(
+        (event, index) => index >= from && predicate(event),
+      );
+    },
     send(command) {
       ws.send(JSON.stringify(command));
     },
   };
+  return socket;
 }

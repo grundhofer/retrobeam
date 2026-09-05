@@ -37,7 +37,7 @@ async function advanceTo(
 ): Promise<void> {
   for (const phase of phases) {
     admin.socket.send({ type: "admin.phase.set", phase });
-    await admin.socket.waitFor(
+    await admin.socket.waitForNext(
       (e) => e.type === "phase.changed" && e.phase === phase,
     );
   }
@@ -132,7 +132,7 @@ describe("blind voting", () => {
     cast(ben.socket, noteA, 1);
     await ben.socket.waitFor((e) => e.type === "vote.progress");
     cast(ben.socket, noteA, 1); // exceeds maxPerTarget
-    const capped = await ben.socket.waitFor((e) => e.type === "reject");
+    const capped = await ben.socket.waitForNext((e) => e.type === "reject");
     if (capped.type !== "reject") throw new Error("unreachable");
     expect(capped.code).toBe("VOTE_BUDGET");
 
@@ -186,7 +186,7 @@ describe("blind voting", () => {
     const noteB = await createNote(admin.socket, columnId, "two");
 
     cast(admin.socket, noteA, 1); // still in write phase
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
 
@@ -268,7 +268,7 @@ describe("reveal & discussion", () => {
   it("discussion focus is admin-only, discuss-phase-only, and synced", async () => {
     const { admin, ben, noteA } = await votingBoard();
     admin.socket.send({ type: "admin.discuss.focus", targetId: noteA });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
 
@@ -310,7 +310,7 @@ describe("reveal & discussion", () => {
       noteId: noteA,
       targetNoteId: noteB,
     });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
   });
@@ -532,7 +532,7 @@ describe("review-fleet regressions", () => {
     );
     await advanceTo(admin, ["vote", "discuss"]);
     admin.socket.send({ type: "admin.discuss.focus", targetId: noteB }); // buried member
-    const rejected = await admin.socket.waitFor((e) => e.type === "reject");
+    const rejected = await admin.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_FOUND");
   });
@@ -622,7 +622,7 @@ describe("action items", () => {
       text: "Fix the pipeline",
       ownerId: ben.you.id,
     });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
 

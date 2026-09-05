@@ -30,7 +30,9 @@ async function joined(
 
 async function toPhase(socket: TestSocket, phase: string) {
   socket.send({ type: "admin.phase.set", phase });
-  await socket.waitFor((e) => e.type === "phase.changed" && e.phase === phase);
+  await socket.waitForNext(
+    (e) => e.type === "phase.changed" && e.phase === phase,
+  );
 }
 
 async function toClose(admin: { socket: TestSocket }) {
@@ -82,13 +84,13 @@ describe("check-in", () => {
     await toPhase(admin.socket, "checkin");
 
     ben.socket.send({ type: "admin.checkin.shuffle" });
-    const notAdmin = await ben.socket.waitFor((e) => e.type === "reject");
+    const notAdmin = await ben.socket.waitForNext((e) => e.type === "reject");
     if (notAdmin.type !== "reject") throw new Error("unreachable");
     expect(notAdmin.code).toBe("NOT_ADMIN");
 
     await toPhase(admin.socket, "write");
     admin.socket.send({ type: "admin.checkin.shuffle" });
-    const locked = await admin.socket.waitFor((e) => e.type === "reject");
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
   });
@@ -113,7 +115,7 @@ describe("check-in", () => {
 
     // Members can't edit.
     ben.socket.send({ type: "admin.agreements.set", text: "hacked" });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
   });
@@ -183,7 +185,7 @@ describe("ROTI closing poll", () => {
     // The poll is closed for good — a second release could be differenced
     // against the first.
     ben.socket.send({ type: "roti.set", score: 5 });
-    const refused = await ben.socket.waitFor((e) => e.type === "reject");
+    const refused = await ben.socket.waitForNext((e) => e.type === "reject");
     if (refused.type !== "reject") throw new Error("unreachable");
     expect(refused.code).toBe("PHASE_LOCKED");
 
@@ -246,7 +248,7 @@ describe("ROTI closing poll", () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);
     admin.socket.send({ type: "roti.set", score: 4 });
-    const rejected = await admin.socket.waitFor((e) => e.type === "reject");
+    const rejected = await admin.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("PHASE_LOCKED");
     void opId;

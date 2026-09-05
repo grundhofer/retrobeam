@@ -35,7 +35,9 @@ async function joined(
 
 async function toPhase(socket: TestSocket, phase: string) {
   socket.send({ type: "admin.phase.set", phase });
-  await socket.waitFor((e) => e.type === "phase.changed" && e.phase === phase);
+  await socket.waitForNext(
+    (e) => e.type === "phase.changed" && e.phase === phase,
+  );
 }
 
 const DUP_URL = (id: string) =>
@@ -635,7 +637,7 @@ describe("staged / hidden columns", () => {
       columnId: colId,
       text: "sneaky",
     });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_FOUND");
   });
@@ -652,7 +654,7 @@ describe("staged / hidden columns", () => {
       columnId: col0,
       hidden: true,
     });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
   });
@@ -819,7 +821,7 @@ describe("staged / hidden columns", () => {
       emoji: "👍",
       on: true,
     });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_FOUND"); // identical to a nonexistent note
   });
@@ -863,7 +865,7 @@ describe("staged / hidden columns", () => {
     // Ben still holds n1's id but cannot see the staged column → NOT_FOUND, and
     // the facilitator's stack is not corrupted.
     ben.socket.send({ type: "note.ungroup", opId: opId(), noteId: n1 });
-    const rejected = await ben.socket.waitFor((e) => e.type === "reject");
+    const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_FOUND");
   });
@@ -876,7 +878,7 @@ describe("staged / hidden columns", () => {
     await toPhase(admin.socket, "present");
 
     admin.socket.send({ type: "note.delete", opId: opId(), noteId });
-    await admin.socket.waitFor((e) => e.type === "ack");
+    await admin.socket.waitForNext((e) => e.type === "ack");
     // Synchronize on a broadcast Ben WILL receive, then assert no leak.
     admin.socket.send({ type: "admin.gifs.set", enabled: false });
     await ben.socket.waitFor((e) => e.type === "config.changed");
@@ -964,7 +966,7 @@ describe("staged / hidden columns", () => {
     await toPhase(admin.socket, "discuss");
 
     admin.socket.send({ type: "admin.discuss.focus", targetId: noteId });
-    const rejected = await admin.socket.waitFor((e) => e.type === "reject");
+    const rejected = await admin.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_FOUND");
   });
