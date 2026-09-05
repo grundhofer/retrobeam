@@ -212,6 +212,7 @@ const resources = {
         hint: "Type to search for a GIF.",
         unavailable: "GIF search isn't set up for this board.",
         failed: "GIF search didn't respond. Try again in a moment.",
+        throttled: "That's a lot of GIF searching! Give it a few seconds.",
         remove: "Remove GIF",
         poweredBy: "Powered by KLIPY",
       },
@@ -553,6 +554,7 @@ const resources = {
         unavailable: "GIF-Suche ist für dieses Board nicht eingerichtet.",
         failed:
           "Die GIF-Suche hat nicht geantwortet. Versuch es gleich nochmal.",
+        throttled: "Ganz schön viele GIF-Suchen! Gib ihr ein paar Sekunden.",
         remove: "GIF entfernen",
         // NOT translated: KLIPY's API terms require the literal string
         // "Powered by KLIPY" (plus their logo, still to be added). An

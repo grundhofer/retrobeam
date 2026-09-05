@@ -466,6 +466,8 @@ describe("GIF proxy", () => {
     );
     expect(off.status).toBe(200);
     expect(await off.json()).toEqual({ configured: false, gifs: [] });
+    // Switched off is a 200 with configured:false — permanent, "not set up".
+    // Being merely BUSY must not look like that; see rate-limiter.test.ts.
   });
 });
 

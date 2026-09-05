@@ -227,10 +227,16 @@ app.get("/api/boards/:id/gifs/search", async (c) => {
     // per BOARD, not per IP: a whole team behind one office address would
     // otherwise share a single bucket and throttle each other during the
     // appreciation round, when everyone picks a GIF at once.
-    if (!(await boardStub(c.env, boardId).gifSearchAllowed())) {
-      // Same shape as "no key configured": the picker shows its unavailable
-      // state either way, and a member learns nothing about the board.
+    const allowed = await boardStub(c.env, boardId).gifSearchAllowed();
+    if (allowed === "off") {
+      // Same shape as "no key configured" — for the user these are the same
+      // situation: GIFs are not available here, and waiting will not change it.
       return c.json({ configured: false, gifs: [] });
+    }
+    if (allowed === "throttled") {
+      // 429 rather than an empty result, so the picker can say "busy, try
+      // again" instead of "not set up". Our own throttle is over in seconds.
+      return c.json({ error: "RATE_LIMITED" }, 429, { "retry-after": "5" });
     }
     const query = c.req.query("q") ?? "";
     const locale = c.req.query("locale") ?? "en";

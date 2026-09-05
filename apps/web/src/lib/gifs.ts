@@ -16,8 +16,11 @@ const gifSearchResponseSchema = z.object({
   configured: z.boolean(),
   gifs: z.array(gifResultSchema),
   /** Set by the client, not the server: the lookup itself failed (offline,
-   *  throttled, provider down) rather than GIFs being switched off. */
+   *  provider down, unreadable response) rather than GIFs being switched off. */
   failed: z.boolean().optional(),
+  /** Too many searches just now — distinct from `failed` because the honest
+   *  advice differs: this one really does clear up in a few seconds. */
+  throttled: z.boolean().optional(),
 });
 export type GifSearchResponse = z.infer<typeof gifSearchResponseSchema>;
 
@@ -39,7 +42,10 @@ export async function searchGifs(
     // 429 and 5xx are transient; "not set up for this board" is not. Reporting
     // a rate limit as "unavailable" told people to give up on a working
     // feature, so the two are distinguished.
-    if (response.status === 429 || response.status >= 500) {
+    if (response.status === 429) {
+      return { configured: true, gifs: [], failed: true, throttled: true };
+    }
+    if (response.status >= 500) {
       return { configured: true, gifs: [], failed: true };
     }
     if (!response.ok) return { configured: false, gifs: [] };

@@ -413,23 +413,27 @@ export class BoardRoom extends DurableObject<Env> {
   // RPC: may this board's participants search for GIFs RIGHT NOW? Checked by
   // the proxy BEFORE a search term leaves the edge, so both the per-board
   // opt-out and its search budget are properties of the route rather than of
-  // client discipline. Deliberately returns a bare boolean — a missing board,
-  // one that switched GIFs off, and one that has burned its budget are
-  // indistinguishable to the caller, and the picker shows the same state.
+  // client discipline. A missing board reads as "off", like one that switched
+  // GIFs off — there is nothing to protect there, since every member already
+  // receives the board's gifsEnabled flag in their snapshot.
   //
   // The budget is per BOARD, which is the right unit: a team behind one office
   // address would share an IP bucket and throttle each other during the
   // appreciation round. It rides in memory for the same reason the standalone
   // limiter does — losing it when an idle board hibernates costs nothing.
-  async gifSearchAllowed(): Promise<boolean> {
-    if (this.getMeta("id") === null || !this.config().gifsEnabled) return false;
+  async gifSearchAllowed(): Promise<"ok" | "off" | "throttled"> {
+    if (this.getMeta("id") === null || !this.config().gifsEnabled) return "off";
     const now = Date.now();
     const tokens = Math.min(
       GIF_BURST,
       this.gifBudget.tokens + ((now - this.gifBudget.at) / 1000) * GIF_PER_SEC,
     );
     this.gifBudget = { tokens: Math.max(0, tokens - 1), at: now };
-    return tokens >= 1;
+    // "off" and "throttled" must NOT collapse into one answer. Off is
+    // permanent and the honest message is "not set up"; throttled is over in
+    // seconds and the honest message is "try again". Telling someone the
+    // feature is unavailable when it is merely busy makes them stop using it.
+    return tokens >= 1 ? "ok" : "throttled";
   }
 
   // RPC: structure-only snapshot for duplication — column names+order, board

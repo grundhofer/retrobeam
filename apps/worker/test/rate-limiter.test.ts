@@ -111,10 +111,24 @@ describe("GIF search budget", () => {
     // Well past the burst: every call answers 200 with the same degraded shape
     // (no key is configured in tests), so exhausting the budget is not
     // observable to a caller — which is the point.
-    for (let i = 0; i < 70; i++) {
+    // The burst is generous enough that a whole appreciation round never sees
+    // it: sixty searches back to back all succeed.
+    for (let i = 0; i < 60; i++) {
       const res = await SELF.fetch(url, { headers: ipHeaders() });
       expect(res.status).toBe(200);
     }
+    // Past the burst the board is BUSY, not switched off. These must look
+    // different to the user: "not set up" is permanent advice and makes people
+    // stop using the feature; "busy" clears in seconds. The route says 429 and
+    // the picker has its own message for it.
+    let throttled: Response | null = null;
+    for (let i = 0; i < 20 && throttled === null; i++) {
+      const res = await SELF.fetch(url, { headers: ipHeaders() });
+      if (res.status === 429) throttled = res;
+    }
+    expect(throttled, "the per-board GIF budget never engaged").not.toBeNull();
+    expect(Number(throttled?.headers.get("retry-after"))).toBeGreaterThan(0);
+
     // A different board is unaffected by the first one's spending.
     const second = await createBoard();
     const fresh = await SELF.fetch(
