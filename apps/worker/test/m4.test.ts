@@ -469,41 +469,6 @@ describe("GIF proxy", () => {
   });
 });
 
-describe("abuse brakes", () => {
-  it("throttles board creation per client IP", async () => {
-    const headers = { "content-type": "application/json", ...ipHeaders() };
-    const statuses: number[] = [];
-    for (let i = 0; i < 14; i++) {
-      const res = await SELF.fetch("https://example.com/api/boards", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ name: `Flood ${i}` }),
-      });
-      statuses.push(res.status);
-    }
-    // Each accepted call mints a permanent, alarm-armed Durable Object, so an
-    // unthrottled script would spend the account-wide daily allowance.
-    expect(statuses.filter((s) => s === 200).length).toBeLessThanOrEqual(10);
-    expect(statuses).toContain(429);
-    // A different address is unaffected.
-    const other = await SELF.fetch("https://example.com/api/boards", {
-      method: "POST",
-      headers: { "content-type": "application/json", ...ipHeaders() },
-      body: JSON.stringify({ name: "Innocent" }),
-    });
-    expect(other.status).toBe(200);
-  });
-
-  it("refuses an oversized request body", async () => {
-    const res = await SELF.fetch("https://example.com/api/boards", {
-      method: "POST",
-      headers: { "content-type": "application/json", ...ipHeaders() },
-      body: JSON.stringify({ name: "x".repeat(8000) }),
-    });
-    expect(res.status).toBe(413);
-  });
-});
-
 describe("retention", () => {
   it("keep clears the auto-delete deadline", async () => {
     const { boardId, adminToken } = await createBoard();

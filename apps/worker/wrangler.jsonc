@@ -16,6 +16,10 @@
         "name": "BOARD_ROOM",
         "class_name": "BoardRoom",
       },
+      {
+        "name": "RATE_LIMITER",
+        "class_name": "RateLimiter",
+      },
     ],
   },
   "vars": {
@@ -50,6 +54,12 @@
       // SQLite-backed is the only DO type available on the free plan.
       "new_sqlite_classes": ["BoardRoom"],
     },
+    {
+      "tag": "v2",
+      // SQLite-backed because that is the only class type the free plan
+      // offers; the limiter itself keeps no storage (see rate-limiter.ts).
+      "new_sqlite_classes": ["RateLimiter"],
+    },
   ],
   "observability": {
     "enabled": true,
@@ -71,6 +81,10 @@
           {
             "name": "BOARD_ROOM",
             "class_name": "BoardRoom",
+          },
+          {
+            "name": "RATE_LIMITER",
+            "class_name": "RateLimiter",
           },
         ],
       },

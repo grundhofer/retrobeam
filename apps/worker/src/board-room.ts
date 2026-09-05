@@ -164,6 +164,13 @@ const MAX_FRAME_CHARS = 65536;
 // Bumped when a migration step is added below the unconditional ones.
 const SCHEMA_VERSION = 1;
 
+// GIF search budget per board. Generous on purpose: the whole appreciation
+// round is eight people picking a GIF at once, and the picker already debounces
+// at 350 ms. Sixty a minute sustained is far past a real room and still caps
+// what a board capability can spend of the operator's provider quota.
+const GIF_BURST = 60;
+const GIF_PER_SEC = 1;
+
 // Phases in which notes may be created/edited by their author.
 function phaseAllowsWriting(phase: Phase): boolean {
   return phase === "write" || phase === "present";
@@ -185,6 +192,10 @@ function detach(label: string, work: Promise<unknown>): void {
 // a handler needs lives in SQLite or in the socket attachment.
 export class BoardRoom extends DurableObject<Env> {
   private readonly sql: SqlStorage;
+  /** GIF search budget for this board. Ephemeral by design — see
+   *  gifSearchAllowed(); an evicted board was idle, so there was nothing to
+   *  throttle. Never persisted: the free tier's write budget belongs to notes. */
+  private gifBudget = { tokens: GIF_BURST, at: 0 };
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -396,13 +407,26 @@ export class BoardRoom extends DurableObject<Env> {
     return this.getMeta("id") === null ? null : this.boardInfo();
   }
 
-  // RPC: may this board's participants search for GIFs? Checked by the proxy
-  // BEFORE a search term leaves the edge, so the per-board opt-out is a
-  // property of the route rather than of client discipline. Deliberately
-  // returns a bare boolean — a missing board is indistinguishable from one
-  // that switched GIFs off.
+  // RPC: may this board's participants search for GIFs RIGHT NOW? Checked by
+  // the proxy BEFORE a search term leaves the edge, so both the per-board
+  // opt-out and its search budget are properties of the route rather than of
+  // client discipline. Deliberately returns a bare boolean — a missing board,
+  // one that switched GIFs off, and one that has burned its budget are
+  // indistinguishable to the caller, and the picker shows the same state.
+  //
+  // The budget is per BOARD, which is the right unit: a team behind one office
+  // address would share an IP bucket and throttle each other during the
+  // appreciation round. It rides in memory for the same reason the standalone
+  // limiter does — losing it when an idle board hibernates costs nothing.
   async gifSearchAllowed(): Promise<boolean> {
-    return this.getMeta("id") !== null && this.config().gifsEnabled;
+    if (this.getMeta("id") === null || !this.config().gifsEnabled) return false;
+    const now = Date.now();
+    const tokens = Math.min(
+      GIF_BURST,
+      this.gifBudget.tokens + ((now - this.gifBudget.at) / 1000) * GIF_PER_SEC,
+    );
+    this.gifBudget = { tokens: Math.max(0, tokens - 1), at: now };
+    return tokens >= 1;
   }
 
   // RPC: structure-only snapshot for duplication — column names+order, board

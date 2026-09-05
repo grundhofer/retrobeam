@@ -16,11 +16,12 @@ import {
   templateKeySchema,
   type ExportFormat,
 } from "@retropolis/shared";
-import { boardStub } from "./board-stub.js";
+import { boardStub, limiterStub } from "./board-stub.js";
 import { searchGifs } from "./gifs.js";
 import { generateSecret, isSecretShaped } from "./ids.js";
 
 export { BoardRoom } from "./board-room.js";
+export { RateLimiter } from "./rate-limiter.js";
 
 const createBoardRequestSchema = z.object({
   name: boardNameSchema,
@@ -42,17 +43,41 @@ const duplicateBoardRequestSchema = z.object({
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Board creation, duplication and GIF search are unauthenticated: creation
-// mints a permanent, alarm-armed Durable Object and GIF search spends the
-// operator's provider quota. The free-tier allowance is account-wide, so one
-// unthrottled script takes every board offline until the counter resets at
-// midnight UTC. Keyed on the client IP, which is all an anonymous product has.
-function rateLimit(pick: (env: Env) => RateLimit) {
+// Board creation is unauthenticated and each call mints a permanent,
+// alarm-armed Durable Object. The free-tier allowance is account-wide, so one
+// unthrottled script takes every board offline until midnight UTC. Keyed on the
+// client IP, which is all an anonymous product has.
+//
+// TWO layers, and only the second is a guarantee:
+//
+//  1. The platform binding, best effort. Its counters are per-machine and
+//     reconciled in the background, so on a low-traffic Worker it admits
+//     everything (measured: 50 requests in seconds, none refused). It costs
+//     nothing and does shed load once traffic is high enough to be worth
+//     shedding, so it runs first and saves a Durable Object request when it
+//     fires — but nothing may depend on it.
+//  2. The RateLimiter Durable Object, authoritative. One instance,
+//     single-threaded, so its count is exact. Costs one DO request per attempt
+//     — cheap next to the permanent object a create would otherwise mint.
+const CREATE_BURST = 10;
+const CREATE_PER_SEC = 10 / 60; // ten a minute sustained
+
+function createLimit() {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const key = c.req.header("cf-connecting-ip") ?? "unknown";
-    const { success } = await pick(c.env).limit({ key });
-    if (!success) {
+    const cheap = await c.env.CREATE_LIMITER.limit({ key });
+    if (!cheap.success) {
       return c.json({ error: "RATE_LIMITED" }, 429, { "retry-after": "60" });
+    }
+    const decision = await limiterStub(c.env).take(
+      `create:${key}`,
+      CREATE_BURST,
+      CREATE_PER_SEC,
+    );
+    if (!decision.allowed) {
+      return c.json({ error: "RATE_LIMITED" }, 429, {
+        "retry-after": String(decision.retryAfter),
+      });
     }
     await next();
   };
@@ -64,89 +89,79 @@ const smallBody = bodyLimit({
   onError: (c) => c.json({ error: "PAYLOAD_TOO_LARGE" }, 413),
 });
 
-app.post(
-  "/api/boards",
-  smallBody,
-  rateLimit((env) => env.CREATE_LIMITER),
-  async (c) => {
-    const body: unknown = await c.req.json().catch(() => null);
-    const parsed = createBoardRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return c.json({ error: "INVALID_REQUEST" }, 400);
-    }
-    const boardId = generateSecret();
-    const adminToken = generateSecret();
-    // Template columns are materialized in the creator's language at creation —
-    // column names are board data, editable afterwards.
-    const columns = templateColumnNames(
-      parsed.data.template,
-      parsed.data.locale,
-    ).map((name, index) => ({ id: generateSecret(), name, order: index }));
-    await boardStub(c.env, boardId).initialize({
-      boardId,
-      name: parsed.data.name,
-      adminToken,
-      columns,
-      // Empty = the client shows a localized default set of agreements until the
-      // facilitator edits them (avoids baking a locale into stored data).
-      workingAgreements: "",
-      layout: parsed.data.layout,
-      // Only overrides the default when the caller opts into the check-in phase.
-      ...(parsed.data.checkin
-        ? { phasePlan: { ...DEFAULT_PHASE_PLAN, checkin: true } }
-        : {}),
-    });
-    return c.json({ boardId, adminToken });
-  },
-);
+app.post("/api/boards", smallBody, createLimit(), async (c) => {
+  const body: unknown = await c.req.json().catch(() => null);
+  const parsed = createBoardRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "INVALID_REQUEST" }, 400);
+  }
+  const boardId = generateSecret();
+  const adminToken = generateSecret();
+  // Template columns are materialized in the creator's language at creation —
+  // column names are board data, editable afterwards.
+  const columns = templateColumnNames(
+    parsed.data.template,
+    parsed.data.locale,
+  ).map((name, index) => ({ id: generateSecret(), name, order: index }));
+  await boardStub(c.env, boardId).initialize({
+    boardId,
+    name: parsed.data.name,
+    adminToken,
+    columns,
+    // Empty = the client shows a localized default set of agreements until the
+    // facilitator edits them (avoids baking a locale into stored data).
+    workingAgreements: "",
+    layout: parsed.data.layout,
+    // Only overrides the default when the caller opts into the check-in phase.
+    ...(parsed.data.checkin
+      ? { phasePlan: { ...DEFAULT_PHASE_PLAN, checkin: true } }
+      : {}),
+  });
+  return c.json({ boardId, adminToken });
+});
 
 // Duplicate a board's STRUCTURE (columns, config, working agreements) into a
 // fresh board — no notes, votes, participants, kudos, or roti carry over.
 // Gated on the source board's admin token (facilitator-only).
-app.post(
-  "/api/boards/:id/duplicate",
-  smallBody,
-  rateLimit((env) => env.CREATE_LIMITER),
-  async (c) => {
-    const sourceId = c.req.param("id");
-    if (!isSecretShaped(sourceId)) {
-      return c.json({ error: "BOARD_NOT_FOUND" }, 404);
-    }
-    const body: unknown = await c.req.json().catch(() => null);
-    const parsed = duplicateBoardRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return c.json({ error: "INVALID_REQUEST" }, 400);
-    }
-    const snapshot = await boardStub(c.env, sourceId).duplicationSnapshot(
-      parsed.data.adminToken,
-    );
-    // null = board missing OR wrong admin token — 404 either way (the id is the
-    // capability; we don't confirm existence to a non-facilitator).
-    if (snapshot === null) {
-      return c.json({ error: "BOARD_NOT_FOUND" }, 404);
-    }
-    const boardId = generateSecret();
-    const adminToken = generateSecret();
-    // Fresh column ids — the source ids never cross into the copy. Staged
-    // (hidden) columns stay staged so their names are not exposed to the copy.
-    const columns = snapshot.columns.map((column, index) => ({
-      id: generateSecret(),
-      name: column.name,
-      order: index,
-      hidden: column.hidden,
-      rect: column.rect,
-    }));
-    await boardStub(c.env, boardId).initialize({
-      boardId,
-      name: parsed.data.name ?? snapshot.name,
-      adminToken,
-      columns,
-      workingAgreements: snapshot.workingAgreements,
-      config: snapshot.config,
-    });
-    return c.json({ boardId, adminToken });
-  },
-);
+app.post("/api/boards/:id/duplicate", smallBody, createLimit(), async (c) => {
+  const sourceId = c.req.param("id");
+  if (!isSecretShaped(sourceId)) {
+    return c.json({ error: "BOARD_NOT_FOUND" }, 404);
+  }
+  const body: unknown = await c.req.json().catch(() => null);
+  const parsed = duplicateBoardRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "INVALID_REQUEST" }, 400);
+  }
+  const snapshot = await boardStub(c.env, sourceId).duplicationSnapshot(
+    parsed.data.adminToken,
+  );
+  // null = board missing OR wrong admin token — 404 either way (the id is the
+  // capability; we don't confirm existence to a non-facilitator).
+  if (snapshot === null) {
+    return c.json({ error: "BOARD_NOT_FOUND" }, 404);
+  }
+  const boardId = generateSecret();
+  const adminToken = generateSecret();
+  // Fresh column ids — the source ids never cross into the copy. Staged
+  // (hidden) columns stay staged so their names are not exposed to the copy.
+  const columns = snapshot.columns.map((column, index) => ({
+    id: generateSecret(),
+    name: column.name,
+    order: index,
+    hidden: column.hidden,
+    rect: column.rect,
+  }));
+  await boardStub(c.env, boardId).initialize({
+    boardId,
+    name: parsed.data.name ?? snapshot.name,
+    adminToken,
+    columns,
+    workingAgreements: snapshot.workingAgreements,
+    config: snapshot.config,
+  });
+  return c.json({ boardId, adminToken });
+});
 
 app.get("/api/boards/:id", async (c) => {
   const boardId = c.req.param("id");
@@ -201,16 +216,17 @@ app.get("/api/boards/:id/export", async (c) => {
 // because it had no board to ask. Now a caller needs a board capability, the
 // board's setting is checked BEFORE any search term leaves the edge, and the
 // route is rate limited per IP.
-app.get(
-  "/api/boards/:id/gifs/search",
-  rateLimit((env) => env.GIF_LIMITER),
-  async (c) => {
-    // The middleware chain erases Hono's path-param inference, so default it;
-    // an empty id fails the shape check and 404s like any other bad id.
-    const boardId = c.req.param("id") ?? "";
+app.get("/api/boards/:id/gifs/search", async (c) => {
+  {
+    const boardId = c.req.param("id");
     if (!isSecretShaped(boardId)) {
       return c.json({ error: "BOARD_NOT_FOUND" }, 404);
     }
+    // Budget and opt-out are answered by the SAME Durable Object call the route
+    // already had to make, so throttling GIF search costs nothing extra. Keyed
+    // per BOARD, not per IP: a whole team behind one office address would
+    // otherwise share a single bucket and throttle each other during the
+    // appreciation round, when everyone picks a GIF at once.
     if (!(await boardStub(c.env, boardId).gifSearchAllowed())) {
       // Same shape as "no key configured": the picker shows its unavailable
       // state either way, and a member learns nothing about the board.
@@ -223,8 +239,8 @@ app.get(
       // Private: the response is board-scoped and the URL carries a capability.
       "cache-control": "private, max-age=60",
     });
-  },
-);
+  }
+});
 
 app.get("/api/boards/:id/ws", async (c) => {
   if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {
