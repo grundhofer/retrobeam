@@ -14,6 +14,7 @@ import {
   phasePlanSchema,
   phaseRevealed,
   phaseSchema,
+  PROTOCOL_VERSION,
   pickerKnows,
   pickerStateSchema,
   planJoin,
@@ -2451,20 +2452,26 @@ export class BoardRoom extends DurableObject<Env> {
         )
         .toArray()[0]?.total ?? 0,
     );
-    const next = current + cmd.delta;
+    // Absolute where the client sends it, relative for a tab still running the
+    // previous build. The absolute form is what makes a resend after reconnect
+    // safe — replaying a delta would double-count.
+    const next = cmd.count ?? current + (cmd.delta ?? 0);
     if (next < 0) {
       this.reject(ws, cmd.opId, "INVALID", "No vote to remove");
       return;
     }
-    if (cmd.delta > 0 && total + 1 > config.votesPerPerson) {
+    if (next === current) {
+      this.ack(ws, cmd.opId); // idempotent resend of an applied cast
+      return;
+    }
+    const raising = next > current;
+    // Budgets bind only when spending MORE. A config lowered mid-round can
+    // leave a voter over budget; they must still be able to take dots off.
+    if (raising && total - current + next > config.votesPerPerson) {
       this.reject(ws, cmd.opId, "VOTE_BUDGET", "All votes used");
       return;
     }
-    if (
-      cmd.delta > 0 &&
-      config.maxPerTarget !== null &&
-      next > config.maxPerTarget
-    ) {
+    if (raising && config.maxPerTarget !== null && next > config.maxPerTarget) {
       this.reject(
         ws,
         cmd.opId,
@@ -3592,6 +3599,7 @@ export class BoardRoom extends DurableObject<Env> {
       phase,
       timer: this.timer(),
       you: { ...rowToParticipant(participant), sessionKey },
+      protocolVersion: PROTOCOL_VERSION,
       roster: this.roster(),
       readyIds: this.sql
         .exec("SELECT id FROM participants WHERE ready = 1")
@@ -3756,6 +3764,13 @@ export class BoardRoom extends DurableObject<Env> {
     }
   }
 
+  /** `seq` here is the board's ordering stamp AT THE MOMENT of acknowledgement,
+   *  not a sequence number belonging to the operation. Handlers that emit one
+   *  broadcast pass that event's seq; the rest report the current stamp, and an
+   *  idempotent retry has no event of its own to report at all. Nothing
+   *  reconciles on it — recovery is a blanket resync (see protocol.ts) — so it
+   *  is a diagnostic, and the doc comment says so rather than the field
+   *  pretending to a precision it cannot have uniformly. */
   private ack(ws: WebSocket, opId: string, seq?: number): void {
     this.send(ws, { type: "ack", opId, seq: seq ?? this.currentSeq() });
   }

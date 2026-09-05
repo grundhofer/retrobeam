@@ -63,7 +63,9 @@ export function BoardColumns(props: BoardColumnsProps) {
     if (next === 0) delete yourVotes[targetId];
     else yourVotes[targetId] = next;
     mutate(
-      { type: "vote.cast", opId: generateHexId(), targetId, delta },
+      // Absolute count, not a delta: a resend after a reconnect must not
+      // double-count, which is what makes replaying unacked ops safe.
+      { type: "vote.cast", opId: generateHexId(), targetId, count: next },
       { type: "vote.progress", yourVotes },
     );
   }

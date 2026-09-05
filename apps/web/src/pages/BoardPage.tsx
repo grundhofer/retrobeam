@@ -7,6 +7,7 @@ import { Link, useParams } from "react-router";
 import {
   boardSurface,
   CURSORS_ACTIVATABLE,
+  PROTOCOL_VERSION,
   type BoardInfo,
   type ClientCommand,
   type ServerEvent,
@@ -165,6 +166,11 @@ function Room({
   const state = useBoardStore((store) => store.state);
   const status = useBoardStore((store) => store.status);
   const socketRef = useRef<BoardSocket | null>(null);
+  // A deploy disconnects every socket, and the tab that reconnects is still
+  // running the previous bundle. Rather than let it quietly misread a changed
+  // wire shape, offer a reload — the board is safe on the server, so reloading
+  // costs nothing but the click.
+  const [staleBuild, setStaleBuild] = useState(false);
 
   // Stable connection facade over whichever socket is currently alive. User
   // interactions can only happen after the effect below has run, so the ref
@@ -196,6 +202,9 @@ function Room({
         if (event.type === "sync") {
           saveSessionKey(boardId, event.you.sessionKey);
           setClockOffset(event.serverNow - Date.now());
+          if ((event.protocolVersion ?? PROTOCOL_VERSION) > PROTOCOL_VERSION) {
+            setStaleBuild(true);
+          }
         }
         if (event.type === "timer.changed") {
           setClockOffset(event.serverNow - Date.now());
@@ -296,6 +305,22 @@ function Room({
   return (
     <ConnectionProvider value={connection}>
       <WheelOverlay />
+      {staleBuild ? (
+        <div
+          role="status"
+          data-testid="stale-build"
+          className="flex items-center justify-center gap-3 bg-amber-100 px-4 py-2 text-sm text-amber-900"
+        >
+          {t("update.available")}
+          <button
+            type="button"
+            onClick={() => location.reload()}
+            className="rounded-md bg-amber-900 px-2 py-0.5 font-medium text-white"
+          >
+            {t("update.reload")}
+          </button>
+        </div>
+      ) : null}
       <div className="flex min-h-dvh flex-col bg-zinc-50">
         <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-200 bg-white px-6 py-3">
           <div className="flex min-w-0 items-baseline gap-3">

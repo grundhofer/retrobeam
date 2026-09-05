@@ -310,6 +310,10 @@ const resources = {
         body: "This board does not exist or has been deleted.",
         home: "Create a new board",
       },
+      update: {
+        available: "A newer version of Retropolis is running on the server.",
+        reload: "Reload",
+      },
       error: {
         title: "Something went wrong",
         body: "The board itself is safe — it lives on the server. Reloading rejoins it.",
@@ -630,6 +634,10 @@ const resources = {
         title: "Board nicht gefunden",
         body: "Dieses Board existiert nicht oder wurde gelöscht.",
         home: "Neues Board erstellen",
+      },
+      update: {
+        available: "Auf dem Server läuft eine neuere Version von Retropolis.",
+        reload: "Neu laden",
       },
       error: {
         title: "Da ist etwas schiefgelaufen",

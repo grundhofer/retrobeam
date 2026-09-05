@@ -80,6 +80,9 @@ export interface ClientBoardState {
   /** set once the board is deleted (retention or admin) — client shows a
    *  closing screen and stops trying to reconnect */
   deleted: boolean;
+  /** Highest board-global seq this client has seen. Diagnostic only — NOT a
+   *  gap detector, because the privacy filter drops events per recipient by
+   *  design and a hole is therefore correct. */
   lastSeq: number;
 }
 
@@ -423,6 +426,9 @@ export function applyServerEvent(
 
 function seq(state: ClientBoardState, eventSeq: number): number {
   // Optimistic local echoes carry seq 0 and must not regress the counter.
+  // This is a "how recent is my state" marker for diagnostics, NOT a gap
+  // detector: per-recipient filtering makes holes legitimate (see the header
+  // in protocol.ts), so a jump from 12 to 17 says nothing about loss.
   return Math.max(state.lastSeq, eventSeq);
 }
 
