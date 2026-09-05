@@ -3435,7 +3435,15 @@ export class BoardRoom extends DurableObject<Env> {
       return null;
     }
     const suffix = (this.env.GIF_HOST_SUFFIX || "klipy.com").toLowerCase();
-    return host === suffix || host.endsWith("." + suffix) ? url : null;
+    if (host === suffix || host.endsWith("." + suffix)) return url;
+    // Silent otherwise: the note saves without its GIF and nobody is told why.
+    // The likely cause is not an attack but a misconfigured GIF_HOST_SUFFIX —
+    // the provider serving media from a CDN host nobody checked — so name the
+    // host that was refused. Never the rest of the URL, which is a search term.
+    console.error(
+      `[gifs] refused media host "${host}" (GIF_HOST_SUFFIX is "${suffix}")`,
+    );
+    return null;
   }
 
   // Staged reveal: the wall is empty until the close phase; anonymous kudos

@@ -93,7 +93,19 @@ pnpm install
 pnpm --filter @retropolis/web run deploy   # needs `wrangler login`
 ```
 
-Optional: set `KLIPY_API_KEY` as a Worker secret to switch on GIF search. Without it, GIF search simply reports itself as unavailable.
+Optional: switch on GIF search with a [KLIPY](https://klipy.com/api) key.
+
+```sh
+wrangler secret put KLIPY_API_KEY --name retropolis   # from apps/web
+```
+
+Without it GIF search reports itself as unavailable and everything else works.
+After setting it, search for something in the GIF picker once: the picker
+distinguishes _not configured_, _nothing matched_, and _the lookup failed_, and
+the Worker logs a line naming the response's field names if the provider's shape
+is not one it can read. If a chosen GIF disappears when the card is saved, the
+media CDN is on a different host than `GIF_HOST_SUFFIX` in
+`apps/worker/wrangler.jsonc` — the log names the host that was refused.
 
 ## Development
 
