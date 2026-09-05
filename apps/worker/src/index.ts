@@ -160,8 +160,14 @@ app.get("/api/boards/:id", async (c) => {
   return c.json({ board });
 });
 
-// Export a board. Anyone with the (capability) board id may export; author
-// names are excluded by default — pass ?authors=true to include them.
+// Export a board. Deliberately open to any holder of the board id, not gated on
+// the admin token: the board id IS a full participant capability, and the export
+// carries nothing a participant cannot already read on screen — pre-reveal note
+// bodies and staged columns are omitted, tallies stay blind until the reveal,
+// and an anonymous board strips note authorship. Gating it would mean putting
+// the admin token in a GET URL (history, logs, referrers) for no confidentiality
+// gain. Author names are excluded by default — pass ?authors=true to include
+// them. docs/01 §10 states the same rule.
 app.get("/api/boards/:id/export", async (c) => {
   const boardId = c.req.param("id");
   if (!isSecretShaped(boardId)) {

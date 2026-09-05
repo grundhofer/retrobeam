@@ -357,6 +357,160 @@ describe("staged / hidden columns", () => {
     expect(codes).toEqual(["NOT_FOUND", "NOT_FOUND", "NOT_FOUND"]);
   });
 
+  it("staged column ids and note counts never reach a member", async () => {
+    // board.columnCounts feeds the write-phase "N cards from the team"
+    // placeholder. It went out through broadcastAll, so it named every staged
+    // column's id and how many notes were inside — the one note-bearing signal
+    // that bypassed the per-recipient filter.
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    const [col0, col1] = admin.sync.columns.map((c) => c.id);
+    if (!col0 || !col1) throw new Error("setup");
+
+    admin.socket.send({
+      type: "admin.column.setHidden",
+      opId: opId(),
+      columnId: col0,
+      hidden: true,
+    });
+    await admin.socket.waitFor((e) => e.type === "column.updated");
+    await toWrite(admin.socket);
+
+    const noteId = newId();
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId,
+      columnId: col0,
+      text: "staged secret",
+    });
+    await admin.socket.waitFor(
+      (e) => e.type === "note.created" && e.note.id === noteId,
+    );
+    // A visible-column note gives Ben a counts frame he is meant to receive.
+    ben.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId: newId(),
+      columnId: col1,
+      text: "ben's",
+    });
+    const counts = await ben.socket.waitFor(
+      (e) => e.type === "board.columnCounts" && col1 in e.counts,
+    );
+    if (counts.type !== "board.columnCounts") throw new Error("unreachable");
+    expect(counts.counts[col0]).toBeUndefined();
+    expect(counts.counts[col1]).toBe(1);
+
+    // …and no counts frame he ever received mentions the staged column.
+    for (const event of ben.socket.events) {
+      if (event.type !== "board.columnCounts") continue;
+      expect(Object.keys(event.counts)).not.toContain(col0);
+    }
+    // The snapshot agrees; the facilitator still sees both.
+    ben.socket.send({ type: "resync" });
+    const benSync = await ben.socket.waitFor(
+      (e) => e.type === "sync" && e.phase === "write",
+    );
+    if (benSync.type !== "sync") throw new Error("unreachable");
+    expect(Object.keys(benSync.columnCounts)).not.toContain(col0);
+    admin.socket.send({ type: "resync" });
+    const adminSync = await admin.socket.waitFor(
+      (e) =>
+        e.type === "sync" && e.phase === "write" && e.columnCounts[col0] === 1,
+    );
+    expect(adminSync.type).toBe("sync");
+  });
+
+  it("moving a note between two staged columns tells members nothing", async () => {
+    // The reorg fan-out emitted note.deleted whenever a note LANDED somewhere
+    // hidden — including for members who had never been shown it, announcing
+    // the existence of a note inside an invisible column.
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    const [col0, col1] = admin.sync.columns.map((c) => c.id);
+    if (!col0 || !col1) throw new Error("setup");
+
+    await toWrite(admin.socket);
+    const noteId = newId();
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId,
+      columnId: col0,
+      text: "secret",
+    });
+    await admin.socket.waitFor(
+      (e) => e.type === "note.created" && e.note.id === noteId,
+    );
+    for (const columnId of [col0, col1]) {
+      admin.socket.send({
+        type: "admin.column.setHidden",
+        opId: opId(),
+        columnId,
+        hidden: true,
+      });
+      await ben.socket.waitFor(
+        (e) => e.type === "column.deleted" && e.columnId === columnId,
+      );
+    }
+    await toPhase(admin.socket, "present");
+
+    const moveOp = opId();
+    admin.socket.send({
+      type: "note.move",
+      opId: moveOp,
+      noteId,
+      columnId: col1,
+    });
+    await admin.socket.waitFor((e) => e.type === "ack" && e.opId === moveOp);
+
+    // A frame Ben is guaranteed to receive, broadcast after the move.
+    admin.socket.send({ type: "admin.gifs.set", enabled: false });
+    await ben.socket.waitFor(
+      (e) => e.type === "config.changed" && !e.config.gifsEnabled,
+    );
+    expect(JSON.stringify(ben.socket.events)).not.toContain(noteId);
+  });
+
+  it("an anonymous board strips note authorship from the export too", async () => {
+    // Anonymity is reachable today only through duplication, which copies a
+    // source board's config — so seed the flag directly and assert the export
+    // honours it. Every WS path already does (redactNoteForViewer); the export
+    // was the one surface keyed on ?authors=true alone.
+    const { boardId, adminToken } = await createBoard();
+    await runInDurableObject(boardStub(env, boardId), (_i, state) => {
+      state.storage.sql.exec(
+        "INSERT INTO board_meta (key, value) VALUES ('anonymous', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
+      );
+    });
+    const admin = await joined(boardId, "Anna", adminToken);
+    const col0 = admin.sync.columns[0]?.id ?? "";
+    await toWrite(admin.socket);
+    const noteId = newId();
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId,
+      columnId: col0,
+      text: "authored point",
+    });
+    await admin.socket.waitFor(
+      (e) => e.type === "note.created" && e.note.id === noteId,
+    );
+    await toPhase(admin.socket, "present");
+
+    const res = await SELF.fetch(
+      `https://example.com/api/boards/${boardId}/export?format=json&authors=true`,
+    );
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("authored point");
+    expect(body).not.toContain("Anna");
+  });
+
   it("an archived board refuses column edits even from the facilitator", async () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);

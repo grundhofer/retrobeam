@@ -967,6 +967,13 @@ export class BoardRoom extends DurableObject<Env> {
       }
       // Colliding with a note the caller cannot see must not read differently
       // from any other invalid id — reject codes are an existence oracle.
+      //
+      // The residual (INVALID here vs. a successful create for a free id) is
+      // deliberate: acking without writing would be a silent write-drop, and
+      // the client's optimistic echo would keep a note the server never has.
+      // Reaching this branch at all requires already knowing the 128-bit id of
+      // a note you cannot see, and the paths that used to leak such ids —
+      // note.deleted on reorg, board.columnCounts — are now per-recipient.
       const visible = noteVisibleTo(
         { authorId: existing.author_id, columnId: existing.column_id },
         participant.id,
@@ -1731,6 +1738,12 @@ export class BoardRoom extends DurableObject<Env> {
     }
     const leftGroup = note.group_id;
     const changed: string[] = [];
+    // Where each note sat before this command, so the fan-out can tell "you
+    // lost sight of it" from "you never had it".
+    const columnBefore = new Map<string, string>([
+      [note.id, note.column_id],
+      [target.id, target.column_id],
+    ]);
     if (target.group_id === null) {
       this.sql.exec(
         "UPDATE notes SET group_id = ? WHERE id = ?",
@@ -1779,7 +1792,7 @@ export class BoardRoom extends DurableObject<Env> {
       if (updated === null) continue;
       // Grouping onto a target in a staged column moves the note there —
       // reorg-aware delivery drops it from members who can no longer see it.
-      this.broadcastNoteReorg(updated);
+      this.broadcastNoteReorg(updated, columnBefore.get(id));
     }
   }
 
@@ -1939,8 +1952,12 @@ export class BoardRoom extends DurableObject<Env> {
       const updated = this.noteById(id);
       if (updated === null) continue;
       // A move can land a note in a staged column — reorg-aware delivery drops
-      // it from members who can no longer see it.
-      this.broadcastNoteReorg(updated);
+      // it from members who can no longer see it. Only the moved note changed
+      // column; repaired group members stayed where they were.
+      this.broadcastNoteReorg(
+        updated,
+        id === note.id ? note.column_id : undefined,
+      );
     }
     // Moving between columns during write shifts the per-column totals.
     this.broadcastColumnCountsIfWriting();
@@ -3387,6 +3404,15 @@ export class BoardRoom extends DurableObject<Env> {
     );
     const nameOf = (id: string | null): string | null =>
       includeAuthors && id !== null ? (names.get(id) ?? null) : null;
+    // An anonymous board strips note authorship on the wire
+    // (redactNoteForViewer), and the export must not be the one surface that
+    // hands it back — the file is downloadable by any board-id holder and is
+    // meant to be shared. Scoped to note authorship exactly like the live
+    // rule: an action owner and a kudo recipient are deliberate, addressed
+    // assignments, not authorship.
+    const anonymous = this.anonymous();
+    const authorNameOf = (id: string | null): string | null =>
+      anonymous ? null : nameOf(id);
 
     // Privacy: notes are private per-author until the reveal, and the export
     // has no viewer to scope to — so pre-reveal exports carry NO note bodies
@@ -3436,7 +3462,7 @@ export class BoardRoom extends DurableObject<Env> {
             return {
               text: n.text,
               gifUrl: n.gifUrl,
-              authorName: nameOf(n.authorId),
+              authorName: authorNameOf(n.authorId),
               votes: isVotable
                 ? (revealedVotes.tallies[votableId] ?? null)
                 : null,
@@ -3458,7 +3484,7 @@ export class BoardRoom extends DurableObject<Env> {
       kudos: this.allKudos().map((k) => ({
         cardType: k.cardType,
         toName: names.get(k.toId) ?? "someone",
-        fromName: nameOf(k.fromId),
+        fromName: authorNameOf(k.fromId),
         text: k.text,
       })),
     };
@@ -3497,26 +3523,37 @@ export class BoardRoom extends DurableObject<Env> {
   // Anonymized note totals per column (all authors, no ids, no text) — the
   // write-phase "cards exist" signal. Columns with no notes are simply absent
   // (the client reads them as 0).
-  private columnCounts(): Record<string, number> {
+  /** Per-column note totals, minus any column the viewer cannot see. Without
+   *  the hidden filter these counts named every staged column's id and told a
+   *  member how many notes were in it — the one place the staged-column rule
+   *  leaked, because the counts went out through broadcastAll rather than the
+   *  per-recipient filter every other note-bearing event uses. */
+  private columnCounts(
+    hiddenFor: ReadonlySet<string> | null,
+  ): Record<string, number> {
     const counts: Record<string, number> = {};
     for (const row of this.sql
       .exec("SELECT column_id, COUNT(*) AS n FROM notes GROUP BY column_id")
       .toArray()) {
-      counts[String(row.column_id)] = Number(row.n);
+      const columnId = String(row.column_id);
+      if (hiddenFor !== null && hiddenFor.has(columnId)) continue;
+      counts[columnId] = Number(row.n);
     }
     return counts;
   }
 
   // Broadcast fresh counts, but only while writing — the placeholder they feed
   // is a write-phase affordance, and from the reveal on everyone sees the notes
-  // themselves.
+  // themselves. Per recipient, so a staged column never reaches a member.
   private broadcastColumnCountsIfWriting(): void {
     if (this.phase() !== "write") return;
-    this.broadcastAll({
+    const hidden = this.hiddenColumnIds();
+    const seq = this.nextSeq();
+    this.broadcastEach((recipientId) => ({
       type: "board.columnCounts",
-      seq: this.nextSeq(),
-      counts: this.columnCounts(),
-    });
+      seq,
+      counts: this.columnCounts(this.hiddenSetFor(recipientId, hidden)),
+    }));
   }
 
   private buildSync(
@@ -3548,7 +3585,12 @@ export class BoardRoom extends DurableObject<Env> {
           : this.columns().filter((c) => !c.hidden),
       // Anonymized per-column totals only matter while writing; other phases
       // reveal the notes themselves, so send an empty map there.
-      columnCounts: phase === "write" ? this.columnCounts() : {},
+      columnCounts:
+        phase === "write"
+          ? this.columnCounts(
+              this.hiddenSetFor(participant.id, this.hiddenColumnIds()),
+            )
+          : {},
       picker: this.picker(),
       lastSpin: this.activeSpinForSync(),
       votes: this.votesForSync(participant.id, phase),
@@ -3604,28 +3646,34 @@ export class BoardRoom extends DurableObject<Env> {
   // its old position (the note-level analogue of column hide/reveal). Ordinary
   // pre-reveal privacy is unaffected: when the note is NOT in a hidden column,
   // non-viewers get nothing, exactly like broadcastNoteEvent.
-  private broadcastNoteReorg(note: Note): void {
+  /** Fan out a note that may have changed column. A recipient who can still
+   *  see it gets an update; one who could see it BEFORE but not now gets a
+   *  delete so it leaves their board.
+   *
+   *  `previousColumnId` is what makes the delete safe. Without it, a note moved
+   *  between two staged columns produced a note.deleted carrying the id of a
+   *  note the member had never been shown — announcing the existence of
+   *  something inside a column that is supposed to be invisible. */
+  private broadcastNoteReorg(note: Note, previousColumnId?: string): void {
     const phase = this.phase();
     const anonymous = this.anonymous();
     const hidden = this.hiddenColumnIds();
-    const landedHidden = hidden.has(note.columnId);
+    const before: Note = {
+      ...note,
+      columnId: previousColumnId ?? note.columnId,
+    };
     const seq = this.nextSeq();
     this.broadcastEach((recipientId) => {
-      if (
-        noteVisibleTo(
-          note,
-          recipientId,
-          phase,
-          this.hiddenSetFor(recipientId, hidden),
-        )
-      ) {
+      const hiddenFor = this.hiddenSetFor(recipientId, hidden);
+      if (noteVisibleTo(note, recipientId, phase, hiddenFor)) {
         return {
           type: "note.updated",
           seq,
           note: redactNoteForViewer(note, recipientId, anonymous),
         };
       }
-      return landedHidden
+      // Only tell them it is gone if they had it in the first place.
+      return noteVisibleTo(before, recipientId, phase, hiddenFor)
         ? { type: "note.deleted", seq, noteId: note.id }
         : null;
     });

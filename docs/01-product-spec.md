@@ -16,10 +16,10 @@ Retropolis is a **guided, playful, genuinely free** retrospective tool for teams
 
 ## 2. Users & roles
 
-| Role                    | How they get it                                                                                                                 | Capabilities                                                                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Facilitator (admin)** | Creates the board; receives a private admin link (capability URL). Can promote any participant to co-facilitator; can hand off. | Advance/rewind phases, start/pause/extend timer, configure voting, spin the picker, reveal notes/columns, manage participants, export, delete board. |
-| **Participant**         | Opens the share link (or scans the QR code shown next to it), types a display name. No account, no e-mail.                      | Write/edit/delete own notes, react, vote, mark "I'm done", present when picked.                                                                      |
+| Role                    | How they get it                                                                                                                 | Capabilities                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Facilitator (admin)** | Creates the board; receives a private admin link (capability URL). Can promote any participant to co-facilitator; can hand off. | Advance/rewind phases, start/pause/extend timer, configure voting, spin the picker, reveal notes/columns, manage participants, delete board. |
+| **Participant**         | Opens the share link (or scans the QR code shown next to it), types a display name. No account, no e-mail.                      | Write/edit/delete own notes, react, vote, mark "I'm done", present when picked.                                                              |
 
 No user accounts in v1 (decided). Identity per board = self-chosen display name + server-assigned color + a session token in localStorage so a refresh keeps your notes yours. **Facilitator handoff is MVP** — the session must survive the admin's dropped connection (Retrium's lack of this dominated its negative reviews).
 
@@ -91,7 +91,7 @@ Rules: winner is drawn **server-side with `crypto.getRandomValues()` before the 
 
 - Boards persist under their stable URL, readable (archived, read-only) after Close.
 - **Retention (decided)**: boards auto-delete after 90 days (per-board override: keep/extend/delete-now). The board's own alarm does the cleanup — see architecture doc.
-- **Export**: Markdown (paste-ready for Confluence/Slack) + CSV + JSON in v1; includes columns, notes, groups, vote counts, top-N, action items, kudos; **author names excluded by default** (opt-in). PDF snapshot v2. Export-then-purge is the promoted workflow ("keep the best notes, let the personal data die").
+- **Export**: open to any holder of the board link, not facilitator-only — the board id is already a full participant capability and the export carries nothing a participant cannot read on screen (pre-reveal note bodies and staged columns are omitted, tallies stay blind until the reveal, an anonymous board strips note authorship). Markdown (paste-ready for Confluence/Slack) + CSV + JSON in v1; includes columns, notes, groups, vote counts, top-N, action items, kudos; **author names excluded by default** (opt-in). PDF snapshot v2. Export-then-purge is the promoted workflow ("keep the best notes, let the personal data die").
 
 ## 11. i18n & language (decided)
 
