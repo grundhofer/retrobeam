@@ -718,7 +718,12 @@ function NoteComposer({
       />
       {gifUrl !== null ? (
         <div className="relative mt-1 w-fit">
-          <img src={gifUrl} alt="" className="max-h-24 rounded-lg" />
+          <img
+            src={gifUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="max-h-24 rounded-lg"
+          />
           <button
             type="button"
             onClick={() => setGifUrl(null)}

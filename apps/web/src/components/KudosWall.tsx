@@ -89,6 +89,7 @@ export function KudosWall({
                     src={kudo.gifUrl}
                     alt=""
                     loading="lazy"
+                    referrerPolicy="no-referrer"
                     className="max-h-40 w-full rounded-lg object-contain"
                   />
                 ) : null}
@@ -232,7 +233,12 @@ function KudoComposer({
 
       {gifUrl !== null ? (
         <div className="relative w-fit">
-          <img src={gifUrl} alt="" className="max-h-28 rounded-lg" />
+          <img
+            src={gifUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="max-h-28 rounded-lg"
+          />
           <button
             type="button"
             onClick={() => setGifUrl(null)}

@@ -150,20 +150,24 @@ export function BoardCanvas({
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const rect = vp.getBoundingClientRect();
+      // deltaMode is 0 (pixels) in Chromium but 1 (lines) on a Firefox mouse
+      // wheel and 2 (pages) for some devices. Without this the handler still
+      // swallows the scroll but a notch moves ~3px and zooms ~0.6%, so the
+      // canvas reads as broken rather than as unsupported.
+      const unit =
+        event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? rect.height : 1;
+      const deltaX = event.deltaX * unit;
+      const deltaY = event.deltaY * unit;
       setView((v) => {
         if (event.ctrlKey || event.metaKey) {
           const cx = event.clientX - rect.left;
           const cy = event.clientY - rect.top;
-          const zoom = clampZoom(v.zoom * Math.exp(-event.deltaY * 0.002));
+          const zoom = clampZoom(v.zoom * Math.exp(-deltaY * 0.002));
           const wx = (cx - v.panX) / v.zoom;
           const wy = (cy - v.panY) / v.zoom;
           return { zoom, panX: cx - wx * zoom, panY: cy - wy * zoom };
         }
-        return {
-          ...v,
-          panX: v.panX - event.deltaX,
-          panY: v.panY - event.deltaY,
-        };
+        return { ...v, panX: v.panX - deltaX, panY: v.panY - deltaY };
       });
     };
     vp.addEventListener("wheel", onWheel, { passive: false });
@@ -249,6 +253,21 @@ export function BoardCanvas({
     }
     setView((v) => ({ ...v, panX: pan.panX + dx, panY: pan.panY + dy }));
   }
+  // A pointer can be taken away mid-gesture (browser scroll takeover, a touch
+  // interruption, the device sleeping). Without a cancel path the refs keep the
+  // drag alive and the canvas is stuck: every later move re-drags a zone the
+  // user let go of. Discard, never commit — an interrupted gesture has no
+  // intent to record.
+  function onViewportPointerCancel(event: React.PointerEvent) {
+    const zd = zoneDragRef.current;
+    if (zd && event.pointerId === zd.pointerId) {
+      zoneDragRef.current = null;
+      setZoneDrag(null);
+    }
+    const pan = panning.current;
+    if (pan && event.pointerId === pan.pointerId) panning.current = null;
+  }
+
   function onViewportPointerUp(event: React.PointerEvent) {
     const zd = zoneDragRef.current;
     if (zd && event.pointerId === zd.pointerId) {
@@ -347,7 +366,9 @@ export function BoardCanvas({
     setDrag(null);
     const { clientX, clientY } = event;
     let target: { columnId: string; x: number; y: number } | null = null;
-    for (const [columnId, el] of zoneRefs.current) {
+    // Reverse paint order: where zones overlap, the drop must land in the one
+    // the user sees on top, not whichever was registered in the ref map first.
+    for (const [columnId, el] of [...zoneRefs.current].reverse()) {
       const rect = el.getBoundingClientRect(); // on-screen ⇒ zoom/pan-safe
       if (
         clientX >= rect.left &&
@@ -527,6 +548,7 @@ export function BoardCanvas({
         onPointerDown={onViewportPointerDown}
         onPointerMove={onViewportPointerMove}
         onPointerUp={onViewportPointerUp}
+        onPointerCancel={onViewportPointerCancel}
         className="relative h-[72vh] overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-100/40"
         style={{ touchAction: "none" }}
       >
@@ -627,6 +649,7 @@ export function BoardCanvas({
                         onPointerDown={(event) => beginDrag(event, note)}
                         onPointerMove={moveDrag}
                         onPointerUp={(event) => endDrag(event, note)}
+                        onPointerCancel={() => setDrag(null)}
                         style={{
                           position: "absolute",
                           left: `${pos.x * 100}%`,

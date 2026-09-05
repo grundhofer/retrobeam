@@ -101,6 +101,7 @@ export function GifPicker({
                 src={gif.previewUrl}
                 alt=""
                 loading="lazy"
+                referrerPolicy="no-referrer"
                 className="h-24 w-full object-cover"
               />
             </button>
