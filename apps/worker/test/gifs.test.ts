@@ -100,6 +100,77 @@ describe("KLIPY response parsing", () => {
     expect(result.gifs[0]?.height).toBe(360);
   });
 
+  it("reads KLIPY's real v1 shape: envelope + file.<size>.<format>", async () => {
+    // Confirmed against a working KLIPY v1 client (Activepieces): the envelope
+    // is { result, data: { data: [...] } } and each item nests a size bucket
+    // containing a format bucket. The parser this replaced stopped one level
+    // short and returned nothing for every search.
+    const result = await withResponse(
+      200,
+      {
+        result: true,
+        data: {
+          data: [
+            {
+              id: 42,
+              slug: "celebrate",
+              title: "celebrate",
+              file: {
+                hd: {
+                  gif: {
+                    url: "https://media.klipy.com/hd.gif",
+                    width: 498,
+                    height: 280,
+                  },
+                  webp: { url: "https://media.klipy.com/hd.webp" },
+                },
+                sm: {
+                  gif: {
+                    url: "https://media.klipy.com/sm.gif",
+                    width: 220,
+                    height: 124,
+                  },
+                },
+              },
+            },
+          ],
+          current_page: 1,
+          per_page: 24,
+          has_next: false,
+        },
+      },
+      () => searchGifs(env, "celebrate", "en"),
+    );
+    expect(result.failed).toBeFalsy();
+    expect(result.gifs).toHaveLength(1);
+    expect(result.gifs[0]?.id).toBe("42");
+    expect(result.gifs[0]?.url).toBe("https://media.klipy.com/hd.gif");
+    expect(result.gifs[0]?.previewUrl).toBe("https://media.klipy.com/sm.gif");
+    expect(result.gifs[0]?.width).toBe(498);
+    expect(result.gifs[0]?.height).toBe(280);
+  });
+
+  it("forces the safe-content filter under the name KLIPY actually reads", async () => {
+    // `rating` is GIPHY's parameter; KLIPY's v1 surface ignores it silently, so
+    // for as long as that name was sent the filter did nothing at all.
+    let requested = "";
+    const real = globalThis.fetch;
+    globalThis.fetch = ((url: string) => {
+      requested = String(url);
+      return Promise.resolve(new Response(JSON.stringify({ data: [] })));
+    }) as unknown as typeof fetch;
+    try {
+      await searchGifs(env, "party", "de");
+    } finally {
+      globalThis.fetch = real;
+    }
+    expect(requested).toContain("content_filter=g");
+    expect(requested).not.toContain("rating=");
+    // Locale is passed through, and no per-user identifier ever is.
+    expect(requested).toContain("locale=de");
+    expect(requested).not.toContain("customer_id");
+  });
+
   it("reads the singular `file` container too", async () => {
     const result = await withResponse(
       200,

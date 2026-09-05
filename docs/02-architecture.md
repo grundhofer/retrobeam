@@ -39,7 +39,7 @@ Cloudflare Worker (Hono 4)
    ├─ POST /api/boards/:id/duplicate      → structure-only copy, gated on the source admin token
    ├─ GET  /api/boards/:id                → board name/created-at, for the join screen
    ├─ GET  /api/boards/:id/export         → Markdown/CSV/JSON from the board DO
-   ├─ GET  /api/boards/:id/gifs/search    → KLIPY proxy (key server-side, rating forced,
+   ├─ GET  /api/boards/:id/gifs/search    → KLIPY proxy (key server-side, content_filter forced,
    │                                        refused unless THIS board has GIFs on)
    └─ GET  /api/boards/:id/ws             → WebSocket upgrade, routed to ↓
 BoardRoom Durable Object  (one per board · SQLite-backed · jurisdiction "eu")
@@ -155,7 +155,7 @@ Multiple storage ops without `await` batch into one implicit transaction (DO inp
 
 - **Capability URLs**: `boardId` (unguessable, 128-bit) = participant capability; admin token (separate secret, minted at creation) = facilitator capability. **Shipped behaviour: the admin token lives in the creator's `localStorage` only — there is no admin link.** Facilitator rights are therefore bound to one browser profile: clearing storage or switching device loses them, and the only recovery is `admin.role.set` from another facilitator. Promotion grants the ROLE, never the token, so a promoted co-facilitator cannot duplicate the board. Server checks role per message type. Acceptable for internal retros; stated plainly in the spec (not "auth-less by accident").
 - All server-side: phase gates, vote budgets, authorship checks, write-phase redaction, picker draws. The client is untrusted rendering.
-- No IP logging in the app; no analytics SDKs; KLIPY key is a Worker secret; `rating=g|pg` forced server-side.
+- No IP logging in the app; no analytics SDKs; KLIPY key is a Worker secret; `content_filter=g` forced server-side. (It was `rating=pg` until 2026-09-05 — GIPHY's parameter name, which KLIPY's v1 surface ignores, so no filter was applied at all. Two independent working v1 clients confirm `content_filter`; a test now asserts the name.)
 
 ## 10. Testing strategy (a stated requirement — four layers)
 

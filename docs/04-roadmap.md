@@ -51,7 +51,7 @@ Goal: a deployed, tested "hello board" proving every architectural mechanism end
 ## M4 — Delight & shipping: kudos, GIFs, export, i18n, retention
 
 - Appreciation wall (hidden section, Close-phase reveal, card types, read-aloud flow).
-- KLIPY GIF proxy (`rating` forced, cached, attribution, per-board toggle); emoji picker (self-hosted data).
+- KLIPY GIF proxy (`content_filter` forced, cached, attribution, per-board toggle); emoji picker (self-hosted data).
 - Markdown/CSV/JSON export (authors excluded by default); archived read-only board view.
 - DE+EN i18n pass over everything; icebreaker check-in (minimal: random question display).
 - 90-day retention self-delete alarm + delete-now; usage telemetry counter; degradation banner.

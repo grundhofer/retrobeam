@@ -554,7 +554,10 @@ const resources = {
         failed:
           "Die GIF-Suche hat nicht geantwortet. Versuch es gleich nochmal.",
         remove: "GIF entfernen",
-        poweredBy: "Bereitgestellt von KLIPY",
+        // NOT translated: KLIPY's API terms require the literal string
+        // "Powered by KLIPY" (plus their logo, still to be added). An
+        // attribution string is a brand asset, not UI copy.
+        poweredBy: "Powered by KLIPY",
       },
       menu: {
         export: "Export",

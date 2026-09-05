@@ -41,11 +41,25 @@ export async function searchGifs(
     return { configured: Boolean(key), gifs: [] };
   }
 
-  // Rating is forced to workplace-safe server-side; the client can never widen
-  // it. Personalization (customer_id) is deliberately omitted.
+  // Content filtering is forced server-side; the client can never widen it.
+  //
+  // The parameter is `content_filter`, NOT `rating`. `rating` is GIPHY's name,
+  // and KLIPY's v1 surface simply ignores a parameter it does not recognise —
+  // so the filter this comment used to promise was not being applied at all.
+  // Confirmed against a working v1 client (Activepieces' KLIPY piece sends
+  // `content_filter`) and Discourse's Tenor-compatible client (`contentfilter`
+  // on the v2 surface, which is not the one we call).
+  //
+  // "g" rather than "pg": this is a workplace tool whose docs carry a German
+  // works-council playbook, so the stricter of the two documented safe values
+  // is the defensible default. Relaxing it to "pg" is a one-word change.
+  //
+  // Personalization (customer_id) is deliberately omitted — it is optional on
+  // search, and sending a per-user identifier to the provider is exactly what
+  // the privacy notice promises not to do.
   const params = new URLSearchParams({
     q: query,
-    rating: "pg",
+    content_filter: "g",
     locale: locale === "de" ? "de" : "en",
     per_page: "24",
   });
@@ -120,10 +134,14 @@ function extractArray(body: unknown): unknown[] {
   return [];
 }
 
-// KLIPY documents media under `files` (plural) on each result, and separately
-// shows flat `url`/`src` fields — so accept both, plus a `file`/`media`
-// container, rather than betting on one. A variant may itself be a container of
-// formats (`{ gif: {...}, webp: {...} }`), which is why readVariant recurses.
+// KLIPY's real v1 shape, confirmed against a working client: each item carries
+// `file.hd.gif.{url,width,height}` and `file.sm.gif.…`, i.e. TWO levels — a size
+// bucket containing a format bucket — inside an envelope of
+// `{ result, data: { data: [...] } }`. The previous parser stopped one level
+// short and skipped every item, which is why a shape mismatch had to become
+// loud rather than silent. `files`, `media` and a flat item are also accepted,
+// because the published docs and third-party descriptions disagree with each
+// other and betting on one reading is what caused this.
 const FULL_KEYS = ["hd", "lg", "md", "original", "gif", "mp4", "webp"];
 const PREVIEW_KEYS = ["sm", "xs", "tiny", "preview", "thumbnail", "md", "gif"];
 
