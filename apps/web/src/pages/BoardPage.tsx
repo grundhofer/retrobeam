@@ -405,6 +405,10 @@ function Room({
                 </h2>
                 <p className="mt-2 text-zinc-500">{t("done.body")}</p>
               </div>
+              {/* The ROTI result is published exactly once, on leaving the
+                  closing phase — so the archived board is where the room
+                  actually reads it. */}
+              {state.roti.released ? <RotiPoll readOnly /> : null}
               {state.kudos.length > 0 ? (
                 <KudosWall
                   kudos={state.kudos}

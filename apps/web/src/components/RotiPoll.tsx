@@ -8,8 +8,10 @@ import { useBoardStore } from "../store/boardStore.js";
 const SCORES = [1, 2, 3, 4, 5] as const;
 
 // Return On Time Invested — an anonymous 1-5 closing pulse. Individual scores
-// never leave the server; everyone sees the running average.
-export function RotiPoll() {
+// never leave the server, and the average is published once when the poll
+// closes (a running mean would be differenceable, see ROTI_MIN_ANONYMOUS).
+// `readOnly` renders the published result on the archived board.
+export function RotiPoll({ readOnly = false }: { readOnly?: boolean }) {
   const { t } = useTranslation();
   const { send } = useConnection();
   const roti = useBoardStore((store) => store.state.roti);
@@ -24,7 +26,7 @@ export function RotiPoll() {
       </p>
       <p className="text-sm text-zinc-500">{t("roti.question")}</p>
       <div className="flex gap-2">
-        {SCORES.map((score) => (
+        {(readOnly ? [] : SCORES).map((score) => (
           <button
             key={score}
             type="button"
@@ -47,6 +49,12 @@ export function RotiPoll() {
           className="text-sm text-zinc-500 tabular-nums"
         >
           {t("roti.result", { average: roti.average, count: roti.count })}
+        </p>
+      ) : roti.released ? (
+        // Closed with too few answers to summarise anonymously — say so, rather
+        // than leave a promise of an average that will never arrive.
+        <p data-testid="roti-too-few" className="text-xs text-zinc-400">
+          {t("roti.tooFew")}
         </p>
       ) : roti.count > 0 ? (
         <p

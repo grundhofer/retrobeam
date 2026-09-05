@@ -79,18 +79,18 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   await expect(anna.getByTestId("roti-poll")).toBeVisible();
   await expect(ben.getByTestId("roti-poll")).toBeVisible();
 
-  // Below three responses the average is withheld — one or two scores would
-  // deanonymize. Anna rates 5, Ben rates 3: everyone sees a pending count, no
-  // average yet.
+  // While the poll is open only the count moves. A running average would be
+  // differenceable: two consecutive means and their counts recover the marginal
+  // respondent's exact score.
   await anna.getByTestId("roti-5").click();
   await ben.getByTestId("roti-3").click();
   await expect(ben.getByTestId("roti-pending")).toBeVisible();
   await expect(ben.getByTestId("roti-result")).toHaveCount(0);
 
-  // Cara's vote is the third → the anonymous average (4) now appears for all.
   await cara.getByTestId("roti-4").click();
-  await expect(anna.getByTestId("roti-result")).toContainText("4");
-  await expect(ben.getByTestId("roti-result")).toContainText("4");
+  await expect(ben.getByTestId("roti-pending")).toContainText("3");
+  await expect(ben.getByTestId("roti-result")).toHaveCount(0);
+
   // Anna's own selection is highlighted for her; Ben can't tell it was a 5.
   await expect(anna.getByTestId("roti-5")).toHaveAttribute(
     "aria-pressed",
@@ -100,6 +100,11 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
     "aria-pressed",
     "false",
   );
+
+  // Closing the retro publishes the result once — (5 + 3 + 4) / 3 = 4.
+  await anna.getByTestId("phase-next").click();
+  await expect(anna.getByTestId("roti-result")).toContainText("4");
+  await expect(ben.getByTestId("roti-result")).toContainText("4");
 
   await annaContext.close();
   await benContext.close();

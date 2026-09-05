@@ -55,7 +55,7 @@ Dot voting with server-enforced budgets and no running tallies, so nobody piles 
 
 ![The appreciation wall with kudos cards and an anonymous ROTI poll](docs/screenshots/appreciation.png)
 
-Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll — your own score stays private, and the average is withheld until three people have answered so it can't be differenced back to one person.
+Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll — your own score stays private, and the average is published once, when the retro closes. Nobody watches a running mean creep up, because consecutive averages can be subtracted to recover whoever answered last. It stays withheld entirely below three responses.
 
 ## What's in the box
 

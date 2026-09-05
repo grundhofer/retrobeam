@@ -68,7 +68,13 @@ export interface ClientBoardState {
   workingAgreements: string;
   /** ROTI closing poll: anonymous aggregate + the viewer's own score.
    *  average is null until enough people respond to stay anonymous. */
-  roti: { count: number; average: number | null; yourScore: number | null };
+  roti: {
+    count: number;
+    average: number | null;
+    yourScore: number | null;
+    /** the poll is closed and its result published — average will not change */
+    released: boolean;
+  };
   /** epoch-ms auto-delete deadline; null once the admin kept the board */
   retentionAt: number | null;
   /** set once the board is deleted (retention or admin) — client shows a
@@ -98,7 +104,7 @@ export const initialBoardState: ClientBoardState = {
   kudos: [],
   icebreakerId: null,
   workingAgreements: "",
-  roti: { count: 0, average: null, yourScore: null },
+  roti: { count: 0, average: null, yourScore: null, released: false },
   retentionAt: null,
   deleted: false,
   lastSeq: 0,
@@ -248,7 +254,12 @@ export function applyServerEvent(
     case "roti.aggregate":
       return {
         ...state,
-        roti: { ...state.roti, count: event.count, average: event.average },
+        roti: {
+          ...state.roti,
+          count: event.count,
+          average: event.average,
+          released: event.released,
+        },
         lastSeq: seq(state, event.seq),
       };
 

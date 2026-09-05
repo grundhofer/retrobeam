@@ -18,6 +18,14 @@ import { sessionKeySchema } from "./session-key.js";
 
 export const rotiScoreSchema = z.number().int().min(1).max(5);
 
+/** The published ROTI result, persisted once when the poll closes so every
+ *  later read reports the identical pair (see ROTI_MIN_ANONYMOUS). */
+export const rotiReleaseSchema = z.object({
+  count: z.number().int().min(0),
+  average: z.number().nullable(),
+});
+export type RotiRelease = z.infer<typeof rotiReleaseSchema>;
+
 // ---------------------------------------------------------------------------
 // Entities
 // ---------------------------------------------------------------------------
@@ -490,6 +498,9 @@ export const serverEventSchema = z.discriminatedUnion("type", [
       count: z.number(),
       average: z.number().nullable(),
       yourScore: z.number().nullable(),
+      /** the poll has been closed and its result published; no further scores
+       *  are accepted, and `average` will not change again. */
+      released: z.boolean(),
     }),
   }),
 
@@ -686,13 +697,20 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     text: z.string(),
   }),
   // Anonymous ROTI aggregate broadcast to everyone; individual scores never
-  // leave the server (the caster learns only their own via roti.you). average
-  // is null until the response count clears the anonymity threshold.
+  // leave the server (the caster learns only their own via roti.you).
+  //
+  // `average` is null for the entire life of the poll and is published exactly
+  // ONCE, when the board leaves the closing phase (`released: true`). A running
+  // mean re-broadcast per submission is differenceable: from the third
+  // respondent on, n*avg(n) - (n-1)*avg(n-1) recovers an individual 1-5 score
+  // exactly, and one-decimal rounding does not blur it at team scale. It stays
+  // null on release when fewer than ROTI_MIN_ANONYMOUS people answered.
   z.object({
     type: z.literal("roti.aggregate"),
     seq: z.number(),
     count: z.number(),
     average: z.number().nullable(),
+    released: z.boolean(),
   }),
   z.object({ type: z.literal("roti.you"), yourScore: rotiScoreSchema }),
   // The board was deleted (retention expiry or admin delete-now) — the client

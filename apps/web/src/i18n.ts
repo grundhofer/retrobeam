@@ -268,10 +268,11 @@ const resources = {
         question: "Was this retro a good use of your time?",
         result: "Average {{average}} · {{count}} responses",
         pending_one:
-          "{{count}} response · average appears once 3 people answer",
+          "{{count}} response so far · the average is shared when the retro closes",
         pending_other:
-          "{{count}} responses · average appears once 3 people answer",
-        anonymous: "Anonymous — only the average is shared.",
+          "{{count}} responses so far · the average is shared when the retro closes",
+        tooFew: "Too few responses to share an average anonymously.",
+        anonymous: "Anonymous — only the average is shared, once at the end.",
       },
       icebreaker: {
         "one-word": "In one word, how did this sprint feel?",
@@ -584,9 +585,13 @@ const resources = {
         title: "Return on Time Invested",
         question: "War diese Retro deine Zeit wert?",
         result: "Durchschnitt {{average}} · {{count}} Antworten",
-        pending_one: "{{count}} Antwort · Durchschnitt ab 3 Antworten",
-        pending_other: "{{count}} Antworten · Durchschnitt ab 3 Antworten",
-        anonymous: "Anonym — nur der Durchschnitt wird geteilt.",
+        pending_one:
+          "{{count}} Antwort bisher · der Durchschnitt wird zum Abschluss geteilt",
+        pending_other:
+          "{{count}} Antworten bisher · der Durchschnitt wird zum Abschluss geteilt",
+        tooFew: "Zu wenige Antworten, um den Durchschnitt anonym zu teilen.",
+        anonymous:
+          "Anonym — nur der Durchschnitt wird geteilt, einmal am Ende.",
       },
       icebreaker: {
         "one-word": "Beschreibe diesen Sprint in einem Wort.",

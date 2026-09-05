@@ -16,6 +16,7 @@ import {
   pickerKnows,
   pickerStateSchema,
   planJoin,
+  rotiReleaseSchema,
   redactNoteForViewer,
   visibleNotesFor,
   type Action,
@@ -51,14 +52,24 @@ import { generateSecret, randomIndex, safeEqual } from "./ids.js";
 // Boards auto-delete after this window unless the facilitator keeps them.
 export const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
-// ROTI stays anonymous only if the average summarises enough people: with one
-// respondent the average IS that person's score, and with two a co-voter can
-// subtract their own to recover the other's. At three the average leaves at
-// least two unknowns for any single observer, so we withhold it below that.
-// (A determined observer diffing consecutive aggregates as the count ticks up
-// could still infer a marginal voter's score; real-room concurrency and the
-// one-decimal rounding blur that, and it's an acceptable residual for a team
-// retro — the blatant one- and two-voter leaks are what this closes.)
+// ROTI anonymity rests on TWO rules, and the count threshold alone is not one
+// of them.
+//
+// 1. The average is published exactly ONCE, when the board leaves the closing
+//    phase, and the poll is closed for good at that moment. A running mean
+//    re-broadcast on every submission is trivially differenceable: an observer
+//    holding consecutive aggregates computes n*avg(n) - (n-1)*avg(n-1) and
+//    recovers that respondent's integer score. Simulated over random score
+//    vectors, the one-decimal rounding blurs nothing at team scale — positions
+//    4 through 6 are recovered exactly 100% of the time, 7 through 9 about 88%.
+//    Re-scoring leaks outright, since the count holds still while the mean moves.
+// 2. Below this threshold the average is withheld even at release: with one
+//    respondent the average IS that person's score, and with two a co-voter
+//    subtracts their own to recover the other's.
+//
+// Residual, stated plainly: identities are free (any client-minted sessionKey
+// mints a participant), so a determined observer can pad the count. The
+// one-shot release is what actually closes the differencing channel.
 export const ROTI_MIN_ANONYMOUS = 3;
 
 interface KudoRow {
@@ -1255,6 +1266,13 @@ export class BoardRoom extends DurableObject<Env> {
           ? { type: "notes.revealed", seq, notes: newlyVisible }
           : null;
       });
+    }
+
+    // Leaving the closing phase publishes the ROTI result, exactly once, and
+    // closes the poll. Until this moment nobody — facilitator included — has
+    // seen an average, so there is no sequence of aggregates to difference.
+    if (current === "close") {
+      this.releaseRoti();
     }
 
     // Entering close/done: re-push existing kudos so a rewind-then-re-enter
@@ -3147,8 +3165,10 @@ export class BoardRoom extends DurableObject<Env> {
     participant: ParticipantRow,
     cmd: Extract<ClientCommand, { type: "roti.set" }>,
   ): void {
-    // ROTI runs in the closing phase (alongside the appreciation wall).
-    if (this.phase() !== "close") {
+    // ROTI runs in the closing phase (alongside the appreciation wall), and
+    // only until its result is published — a poll does not reopen after its
+    // average is out, or a second release could be differenced against the first.
+    if (this.phase() !== "close" || this.rotiReleased() !== null) {
       this.reject(ws, undefined, "PHASE_LOCKED", "The ROTI poll is closed");
       return;
     }
@@ -3163,28 +3183,65 @@ export class BoardRoom extends DurableObject<Env> {
     // second tab / projector must not show a stale selection), never fanning
     // the individual score to anyone else.
     this.sendRotiYouTo(participant.id, cmd.score);
+    // Only the COUNT moves while the poll is open. See ROTI_MIN_ANONYMOUS.
+    this.broadcastRotiAggregate();
+  }
+
+  /** Everything anyone but the caster may learn about the poll. `average` is
+   *  null until the poll is released, and stays null if too few answered. */
+  private rotiReleased(): { count: number; average: number | null } | null {
+    const raw = this.getMeta("rotiReleased");
+    if (raw === null) return null;
+    try {
+      const parsed = rotiReleaseSchema.safeParse(JSON.parse(raw) as unknown);
+      return parsed.success ? parsed.data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private broadcastRotiAggregate(): void {
     const agg = this.rotiAggregate();
     this.broadcastAll({
       type: "roti.aggregate",
       seq: this.nextSeq(),
       count: agg.count,
       average: agg.average,
+      released: agg.released,
     });
   }
 
-  private rotiAggregate(): { count: number; average: number | null } {
+  /** Publish the result once, on leaving the closing phase, and freeze it. */
+  private releaseRoti(): void {
+    if (this.rotiReleased() !== null) return;
     const row = this.sql
       .exec("SELECT COUNT(*) AS n, COALESCE(AVG(score), 0) AS avg FROM roti")
       .toArray()[0];
     const count = Number(row?.n ?? 0);
-    // Withhold the average until enough people respond to keep it anonymous
-    // (see ROTI_MIN_ANONYMOUS). Below the threshold clients see only the count.
-    // Round to one decimal for a stable, readable average.
+    if (count === 0) return; // nobody answered — nothing to publish or freeze
     const average =
       count < ROTI_MIN_ANONYMOUS
         ? null
         : Math.round(Number(row?.avg ?? 0) * 10) / 10;
-    return { count, average };
+    this.setMeta("rotiReleased", JSON.stringify({ count, average }));
+    this.broadcastRotiAggregate();
+  }
+
+  private rotiAggregate(): {
+    count: number;
+    average: number | null;
+    released: boolean;
+  } {
+    // Once released the figures are frozen, so every later read — a resync, a
+    // late joiner, a rewind — reports the identical pair. While the poll is
+    // open only the count is knowable; the average is withheld from everyone,
+    // including the facilitator (see ROTI_MIN_ANONYMOUS).
+    const released = this.rotiReleased();
+    if (released !== null) return { ...released, released: true };
+    const count = Number(
+      this.sql.exec("SELECT COUNT(*) AS n FROM roti").toArray()[0]?.n ?? 0,
+    );
+    return { count, average: null, released: false };
   }
 
   private myRotiScore(participantId: string): number | null {
