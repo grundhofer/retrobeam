@@ -719,7 +719,12 @@ export const serverEventSchema = z.discriminatedUnion("type", [
 
   z.object({
     type: z.literal("error"),
-    code: z.enum(["BAD_MESSAGE", "NOT_JOINED", "BOARD_NOT_FOUND"]),
+    code: z.enum([
+      "BAD_MESSAGE",
+      "NOT_JOINED",
+      "BOARD_NOT_FOUND",
+      "RATE_LIMIT",
+    ]),
     message: z.string(),
   }),
 ]);

@@ -5,6 +5,9 @@ import { createContext, useContext } from "react";
 import type { ClientCommand, ServerEvent } from "@retropolis/shared";
 
 export interface BoardConnection {
+  /** The board this connection belongs to — board-scoped REST routes (the GIF
+   *  proxy) need it, and the capability lives in the URL either way. */
+  boardId: string;
   send: (command: ClientCommand) => void;
   /** Send a mutating command and optimistically apply its expected outcome(s)
    *  through the shared reducer (seq 0 = local echo). */

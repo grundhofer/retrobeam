@@ -10,7 +10,7 @@ import {
 import { describe, expect, it } from "vitest";
 import type { ServerEvent } from "@retropolis/shared";
 import { boardStub } from "../src/board-stub.js";
-import { connect, createBoard, type TestSocket } from "./helpers.js";
+import { connect, createBoard, ipHeaders, type TestSocket } from "./helpers.js";
 
 let opCounter = 8000;
 function opId(): string {
@@ -422,13 +422,85 @@ describe("kudos wall re-entry", () => {
 
 describe("GIF proxy", () => {
   it("degrades gracefully to empty when no key is configured", async () => {
+    const { boardId } = await createBoard();
     const res = await SELF.fetch(
-      "https://example.com/api/gifs/search?q=celebrate",
+      `https://example.com/api/boards/${boardId}/gifs/search?q=celebrate`,
+      { headers: ipHeaders() },
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { configured: boolean; gifs: unknown[] };
     expect(body.gifs).toEqual([]);
     expect(body.configured).toBe(false); // KLIPY_API_KEY empty in tests
+  });
+
+  it("needs a board capability and honours the board's own GIF switch", async () => {
+    // Unscoped and non-existent ids never reach the provider: the route used to
+    // be an open relay for the operator's search quota.
+    expect(
+      (
+        await SELF.fetch("https://example.com/api/gifs/search?q=x", {
+          headers: ipHeaders(),
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await SELF.fetch(
+          "https://example.com/api/boards/not-a-board/gifs/search?q=x",
+          { headers: ipHeaders() },
+        )
+      ).status,
+    ).toBe(404);
+
+    // A board that switched GIFs off answers exactly like an unconfigured key,
+    // so the search term never leaves the edge and a member learns nothing.
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    admin.socket.send({ type: "admin.gifs.set", enabled: false });
+    await admin.socket.waitFor(
+      (e) => e.type === "config.changed" && !e.config.gifsEnabled,
+    );
+    const off = await SELF.fetch(
+      `https://example.com/api/boards/${boardId}/gifs/search?q=celebrate`,
+      { headers: ipHeaders() },
+    );
+    expect(off.status).toBe(200);
+    expect(await off.json()).toEqual({ configured: false, gifs: [] });
+  });
+});
+
+describe("abuse brakes", () => {
+  it("throttles board creation per client IP", async () => {
+    const headers = { "content-type": "application/json", ...ipHeaders() };
+    const statuses: number[] = [];
+    for (let i = 0; i < 14; i++) {
+      const res = await SELF.fetch("https://example.com/api/boards", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ name: `Flood ${i}` }),
+      });
+      statuses.push(res.status);
+    }
+    // Each accepted call mints a permanent, alarm-armed Durable Object, so an
+    // unthrottled script would spend the account-wide daily allowance.
+    expect(statuses.filter((s) => s === 200).length).toBeLessThanOrEqual(10);
+    expect(statuses).toContain(429);
+    // A different address is unaffected.
+    const other = await SELF.fetch("https://example.com/api/boards", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...ipHeaders() },
+      body: JSON.stringify({ name: "Innocent" }),
+    });
+    expect(other.status).toBe(200);
+  });
+
+  it("refuses an oversized request body", async () => {
+    const res = await SELF.fetch("https://example.com/api/boards", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...ipHeaders() },
+      body: JSON.stringify({ name: "x".repeat(8000) }),
+    });
+    expect(res.status).toBe(413);
   });
 });
 

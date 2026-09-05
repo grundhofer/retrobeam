@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useConnection } from "../lib/connection.js";
 import { searchGifs, type GifResult } from "../lib/gifs.js";
 
 // Search runs through our Worker proxy (key server-side, employee IPs hidden).
@@ -21,6 +22,7 @@ export function GifPicker({
   const [state, setState] = useState<
     "idle" | "loading" | "empty" | "unavailable"
   >("idle");
+  const { boardId } = useConnection();
   const locale = i18n.language.startsWith("de") ? "de" : "en";
   const reqId = useRef(0);
 
@@ -38,7 +40,7 @@ export function GifPicker({
           return;
         }
         setState("loading");
-        void searchGifs(term, locale).then((res) => {
+        void searchGifs(boardId, term, locale).then((res) => {
           if (id !== reqId.current) return; // superseded by a newer search
           if (!res.configured) setState("unavailable");
           else if (res.gifs.length === 0) setState("empty");
@@ -49,7 +51,7 @@ export function GifPicker({
       term === "" ? 0 : 350,
     );
     return () => clearTimeout(timeout);
-  }, [query, locale]);
+  }, [boardId, query, locale]);
 
   return (
     <div className="w-72 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg">

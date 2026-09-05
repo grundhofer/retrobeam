@@ -18,12 +18,18 @@ const gifSearchResponseSchema = z.object({
 });
 export type GifSearchResponse = z.infer<typeof gifSearchResponseSchema>;
 
+// Board-scoped on purpose: the route is rate limited per IP and refuses to
+// call the provider at all when the board has GIFs switched off, so a caller
+// without a board capability cannot spend the operator's search quota.
 export async function searchGifs(
+  boardId: string,
   query: string,
   locale: string,
 ): Promise<GifSearchResponse> {
   const params = new URLSearchParams({ q: query, locale });
-  const response = await fetch(`/api/gifs/search?${params.toString()}`);
+  const response = await fetch(
+    `/api/boards/${boardId}/gifs/search?${params.toString()}`,
+  );
   if (!response.ok) return { configured: false, gifs: [] };
   return gifSearchResponseSchema.parse(await response.json());
 }

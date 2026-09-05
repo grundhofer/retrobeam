@@ -83,7 +83,25 @@ interface KudoRow {
 
 interface SocketAttachment {
   participantId: string | null;
+  /** Token bucket, carried in the attachment so it survives hibernation — the
+   *  DO keeps no in-memory session state by design. `at` is the epoch-ms the
+   *  bucket was last refilled. Absent on sockets from before this shipped. */
+  budget?: { tokens: number; at: number };
 }
+
+// Inbound WebSocket messages bill 20:1, and the free-tier allowance is
+// account-wide: one client at 60 frames a second costs ~1200 billed requests a
+// second, which is the whole day's budget in about eighty seconds — and every
+// board goes down with it until midnight UTC. A generous per-socket bucket
+// costs a legitimate room nothing: a fast typist writing notes, a canvas Tidy,
+// or a reconnect burst are all well inside it.
+const BUCKET_CAPACITY = 120;
+const BUCKET_REFILL_PER_SEC = 8;
+// `resync` is the one command whose cost is unbounded relative to its input —
+// a tiny frame returns the whole filtered board — so it is charged heavily.
+// At capacity that allows a burst of 6 (two rejections in a row legitimately
+// trigger two), settling to a sustained 8/20 = 0.4 snapshots a second.
+const RESYNC_COST = 20;
 
 interface ParticipantRow {
   id: string;
@@ -285,6 +303,16 @@ export class BoardRoom extends DurableObject<Env> {
         this.sql.exec(`ALTER TABLE columns ADD COLUMN ${col} REAL`);
       }
     }
+    // Secondary indexes. Only primary keys existed, so the hottest per-message
+    // predicates were full scans, and SQLite bills rows READ. `votes` is keyed
+    // (target_id, participant_id), which cannot seek by participant alone —
+    // exactly what myVotes and the vote meter do on every cast.
+    this.sql.exec(`
+      CREATE INDEX IF NOT EXISTS notes_by_column ON notes (column_id);
+      CREATE INDEX IF NOT EXISTS notes_by_group ON notes (group_id);
+      CREATE INDEX IF NOT EXISTS votes_by_participant ON votes (participant_id);
+      CREATE INDEX IF NOT EXISTS reactions_by_note ON reactions (note_id);
+    `);
   }
 
   // Called once by the Worker when a board is created (RPC).
@@ -344,6 +372,15 @@ export class BoardRoom extends DurableObject<Env> {
   // RPC: board metadata for the join page; null if never created.
   async info(): Promise<BoardInfo | null> {
     return this.getMeta("id") === null ? null : this.boardInfo();
+  }
+
+  // RPC: may this board's participants search for GIFs? Checked by the proxy
+  // BEFORE a search term leaves the edge, so the per-board opt-out is a
+  // property of the route rather than of client discipline. Deliberately
+  // returns a bare boolean — a missing board is indistinguishable from one
+  // that switched GIFs off.
+  async gifSearchAllowed(): Promise<boolean> {
+    return this.getMeta("id") !== null && this.config().gifsEnabled;
   }
 
   // RPC: structure-only snapshot for duplication — column names+order, board
@@ -429,6 +466,17 @@ export class BoardRoom extends DurableObject<Env> {
       return;
     }
 
+    // Charged before anything is done with the frame, so an over-budget client
+    // pays nothing but the (already-billed) inbound message.
+    if (!this.spendBudget(ws, command.type)) {
+      this.send(ws, {
+        type: "error",
+        code: "RATE_LIMIT",
+        message: "Too many messages — slow down",
+      });
+      return;
+    }
+
     if (command.type === "join") {
       this.handleJoin(ws, command.name, command.sessionKey, command.adminToken);
       return;
@@ -449,6 +497,33 @@ export class BoardRoom extends DurableObject<Env> {
       return;
     }
     this.dispatchCommand(ws, participant, command);
+  }
+
+  /** Token bucket per socket, stored in the attachment so it survives
+   *  hibernation. Returns false when the frame must be dropped. */
+  private spendBudget(ws: WebSocket, type: ClientCommand["type"]): boolean {
+    const attachment = readAttachment(ws);
+    if (attachment === null) return true; // not ours to police
+    const now = Date.now();
+    const previous = attachment.budget ?? { tokens: BUCKET_CAPACITY, at: now };
+    const refilled = Math.min(
+      BUCKET_CAPACITY,
+      previous.tokens + ((now - previous.at) / 1000) * BUCKET_REFILL_PER_SEC,
+    );
+
+    const cost = type === "resync" ? RESYNC_COST : 1;
+    if (refilled < cost) {
+      ws.serializeAttachment({
+        ...attachment,
+        budget: { tokens: refilled, at: now },
+      } satisfies SocketAttachment);
+      return false;
+    }
+    ws.serializeAttachment({
+      ...attachment,
+      budget: { tokens: refilled - cost, at: now },
+    } satisfies SocketAttachment);
+    return true;
   }
 
   private dispatchCommand(

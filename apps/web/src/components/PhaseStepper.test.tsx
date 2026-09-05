@@ -20,6 +20,7 @@ import { PhaseStepper } from "./PhaseStepper.js";
 function harness() {
   const sent: ClientCommand[] = [];
   const connection = {
+    boardId: "a".repeat(32),
     send: (command: ClientCommand) => sent.push(command),
     mutate: (
       command: ClientCommand,
@@ -71,7 +72,11 @@ test("the terminal phase offers no step the server would refuse", async () => {
   const { sent } = harness();
   const screen = await render(
     <ConnectionProvider
-      value={{ send: (c: ClientCommand) => sent.push(c), mutate: () => {} }}
+      value={{
+        boardId: "a".repeat(32),
+        send: (c: ClientCommand) => sent.push(c),
+        mutate: () => {},
+      }}
     >
       <PhaseStepper phase="done" phasePlan={DEFAULT_PHASE_PLAN} isAdmin />
     </ConnectionProvider>,
@@ -87,7 +92,11 @@ test("members get no phase controls at all", async () => {
   const { sent } = harness();
   const screen = await render(
     <ConnectionProvider
-      value={{ send: (c: ClientCommand) => sent.push(c), mutate: () => {} }}
+      value={{
+        boardId: "a".repeat(32),
+        send: (c: ClientCommand) => sent.push(c),
+        mutate: () => {},
+      }}
     >
       <PhaseStepper
         phase="write"

@@ -5,7 +5,7 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "check": "tsc --noEmit",
-    "types": "wrangler types",
+    "types": "wrangler types --strict-vars=false",
     "test": "vitest run"
   },
   "dependencies": {

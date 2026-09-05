@@ -5,6 +5,21 @@ import { SELF } from "cloudflare:test";
 import { expect } from "vitest";
 import { parseServerEvent, type ServerEvent } from "@retropolis/shared";
 
+// The create/duplicate routes are rate limited per client IP. Real requests
+// always carry cf-connecting-ip (Cloudflare sets it at the edge); SELF.fetch
+// does not, so every test would otherwise share one bucket and the suite would
+// throttle itself. Give each caller its own address — the limiter stays fully
+// enforced, and a dedicated test hammers a single IP on purpose.
+let ipCounter = 0;
+export function freshIp(): string {
+  ipCounter += 1;
+  return `203.0.113.${ipCounter % 254}.${Math.floor(ipCounter / 254)}`;
+}
+
+export function ipHeaders(ip = freshIp()): Record<string, string> {
+  return { "cf-connecting-ip": ip };
+}
+
 export async function createBoard(
   name = "Sprint 12",
   options: {
@@ -19,7 +34,7 @@ export async function createBoard(
 }> {
   const response = await SELF.fetch("https://example.com/api/boards", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...ipHeaders() },
     body: JSON.stringify({ name, ...options }),
   });
   expect(response.status).toBe(200);

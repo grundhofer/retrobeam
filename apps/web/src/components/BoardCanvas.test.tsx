@@ -35,12 +35,14 @@ const note: Note = {
   reactions: {},
 };
 
+const BOARD_ID = "a".repeat(32);
+
 // THE free-tier gate: dragging a card must never touch the wire until it lands.
 test("canvas drag commits exactly ONE note.move on drop and ZERO during the move", async () => {
   const mutate = vi.fn();
   const send = vi.fn();
   const screen = await render(
-    <ConnectionProvider value={{ mutate, send }}>
+    <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send }}>
       <BoardCanvas
         columns={[column]}
         notes={[note]}
@@ -112,7 +114,7 @@ test("tidy sends exactly ONE note.moveMany for all movable cards", async () => {
     { ...note, id: "d".repeat(32), text: "three" },
   ];
   const screen = await render(
-    <ConnectionProvider value={{ mutate, send }}>
+    <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send }}>
       <BoardCanvas
         columns={[column]}
         notes={notes}
@@ -146,7 +148,7 @@ async function moveOverCanvas(enabled: boolean) {
   const send = vi.fn();
   const mutate = vi.fn();
   const screen = await render(
-    <ConnectionProvider value={{ mutate, send }}>
+    <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send }}>
       <BoardCanvas
         columns={[column]}
         notes={[]}
@@ -191,7 +193,7 @@ test("double-clicking empty canvas space opens a composer", async () => {
   const mutate = vi.fn();
   const send = vi.fn();
   const screen = await render(
-    <ConnectionProvider value={{ mutate, send }}>
+    <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send }}>
       <BoardCanvas
         columns={[column]}
         notes={[]}

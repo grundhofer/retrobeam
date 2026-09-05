@@ -171,6 +171,7 @@ function Room({
   // is always populated by then.
   const connection = useMemo<BoardConnection>(
     () => ({
+      boardId,
       send: (command: ClientCommand) => socketRef.current?.send(command),
       mutate: (command, optimistic) => {
         const events = Array.isArray(optimistic) ? optimistic : [optimistic];
@@ -178,7 +179,7 @@ function Room({
         socketRef.current?.send(command);
       },
     }),
-    [],
+    [boardId],
   );
 
   useEffect(() => {

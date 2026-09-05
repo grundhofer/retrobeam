@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Hono } from "hono";
+import { Hono, type Context, type Next } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
 import {
   boardLocaleSchema,
@@ -34,84 +35,118 @@ const createBoardRequestSchema = z.object({
 const duplicateBoardRequestSchema = z.object({
   // localized "Copy of …" from the client; falls back to the source name
   name: boardNameSchema.optional(),
-  adminToken: z.string(),
+  // The admin capability is a 128-bit hex secret; anything else cannot be one,
+  // so it is refused before a DO is woken to compare it.
+  adminToken: z.string().regex(/^[0-9a-f]{32}$/),
 });
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.post("/api/boards", async (c) => {
-  const body: unknown = await c.req.json().catch(() => null);
-  const parsed = createBoardRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: "INVALID_REQUEST" }, 400);
-  }
-  const boardId = generateSecret();
-  const adminToken = generateSecret();
-  // Template columns are materialized in the creator's language at creation —
-  // column names are board data, editable afterwards.
-  const columns = templateColumnNames(
-    parsed.data.template,
-    parsed.data.locale,
-  ).map((name, index) => ({ id: generateSecret(), name, order: index }));
-  await boardStub(c.env, boardId).initialize({
-    boardId,
-    name: parsed.data.name,
-    adminToken,
-    columns,
-    // Empty = the client shows a localized default set of agreements until the
-    // facilitator edits them (avoids baking a locale into stored data).
-    workingAgreements: "",
-    layout: parsed.data.layout,
-    // Only overrides the default when the caller opts into the check-in phase.
-    ...(parsed.data.checkin
-      ? { phasePlan: { ...DEFAULT_PHASE_PLAN, checkin: true } }
-      : {}),
-  });
-  return c.json({ boardId, adminToken });
+// Board creation, duplication and GIF search are unauthenticated: creation
+// mints a permanent, alarm-armed Durable Object and GIF search spends the
+// operator's provider quota. The free-tier allowance is account-wide, so one
+// unthrottled script takes every board offline until the counter resets at
+// midnight UTC. Keyed on the client IP, which is all an anonymous product has.
+function rateLimit(pick: (env: Env) => RateLimit) {
+  return async (c: Context<{ Bindings: Env }>, next: Next) => {
+    const key = c.req.header("cf-connecting-ip") ?? "unknown";
+    const { success } = await pick(c.env).limit({ key });
+    if (!success) {
+      return c.json({ error: "RATE_LIMITED" }, 429, { "retry-after": "60" });
+    }
+    await next();
+  };
+}
+
+// Both POST bodies are a handful of short fields; nothing legitimate is large.
+const smallBody = bodyLimit({
+  maxSize: 4 * 1024,
+  onError: (c) => c.json({ error: "PAYLOAD_TOO_LARGE" }, 413),
 });
+
+app.post(
+  "/api/boards",
+  smallBody,
+  rateLimit((env) => env.CREATE_LIMITER),
+  async (c) => {
+    const body: unknown = await c.req.json().catch(() => null);
+    const parsed = createBoardRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: "INVALID_REQUEST" }, 400);
+    }
+    const boardId = generateSecret();
+    const adminToken = generateSecret();
+    // Template columns are materialized in the creator's language at creation —
+    // column names are board data, editable afterwards.
+    const columns = templateColumnNames(
+      parsed.data.template,
+      parsed.data.locale,
+    ).map((name, index) => ({ id: generateSecret(), name, order: index }));
+    await boardStub(c.env, boardId).initialize({
+      boardId,
+      name: parsed.data.name,
+      adminToken,
+      columns,
+      // Empty = the client shows a localized default set of agreements until the
+      // facilitator edits them (avoids baking a locale into stored data).
+      workingAgreements: "",
+      layout: parsed.data.layout,
+      // Only overrides the default when the caller opts into the check-in phase.
+      ...(parsed.data.checkin
+        ? { phasePlan: { ...DEFAULT_PHASE_PLAN, checkin: true } }
+        : {}),
+    });
+    return c.json({ boardId, adminToken });
+  },
+);
 
 // Duplicate a board's STRUCTURE (columns, config, working agreements) into a
 // fresh board — no notes, votes, participants, kudos, or roti carry over.
 // Gated on the source board's admin token (facilitator-only).
-app.post("/api/boards/:id/duplicate", async (c) => {
-  const sourceId = c.req.param("id");
-  if (!isSecretShaped(sourceId)) {
-    return c.json({ error: "BOARD_NOT_FOUND" }, 404);
-  }
-  const body: unknown = await c.req.json().catch(() => null);
-  const parsed = duplicateBoardRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: "INVALID_REQUEST" }, 400);
-  }
-  const snapshot = await boardStub(c.env, sourceId).duplicationSnapshot(
-    parsed.data.adminToken,
-  );
-  // null = board missing OR wrong admin token — 404 either way (the id is the
-  // capability; we don't confirm existence to a non-facilitator).
-  if (snapshot === null) {
-    return c.json({ error: "BOARD_NOT_FOUND" }, 404);
-  }
-  const boardId = generateSecret();
-  const adminToken = generateSecret();
-  // Fresh column ids — the source ids never cross into the copy. Staged
-  // (hidden) columns stay staged so their names are not exposed to the copy.
-  const columns = snapshot.columns.map((column, index) => ({
-    id: generateSecret(),
-    name: column.name,
-    order: index,
-    hidden: column.hidden,
-    rect: column.rect,
-  }));
-  await boardStub(c.env, boardId).initialize({
-    boardId,
-    name: parsed.data.name ?? snapshot.name,
-    adminToken,
-    columns,
-    workingAgreements: snapshot.workingAgreements,
-    config: snapshot.config,
-  });
-  return c.json({ boardId, adminToken });
-});
+app.post(
+  "/api/boards/:id/duplicate",
+  smallBody,
+  rateLimit((env) => env.CREATE_LIMITER),
+  async (c) => {
+    const sourceId = c.req.param("id");
+    if (!isSecretShaped(sourceId)) {
+      return c.json({ error: "BOARD_NOT_FOUND" }, 404);
+    }
+    const body: unknown = await c.req.json().catch(() => null);
+    const parsed = duplicateBoardRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: "INVALID_REQUEST" }, 400);
+    }
+    const snapshot = await boardStub(c.env, sourceId).duplicationSnapshot(
+      parsed.data.adminToken,
+    );
+    // null = board missing OR wrong admin token — 404 either way (the id is the
+    // capability; we don't confirm existence to a non-facilitator).
+    if (snapshot === null) {
+      return c.json({ error: "BOARD_NOT_FOUND" }, 404);
+    }
+    const boardId = generateSecret();
+    const adminToken = generateSecret();
+    // Fresh column ids — the source ids never cross into the copy. Staged
+    // (hidden) columns stay staged so their names are not exposed to the copy.
+    const columns = snapshot.columns.map((column, index) => ({
+      id: generateSecret(),
+      name: column.name,
+      order: index,
+      hidden: column.hidden,
+      rect: column.rect,
+    }));
+    await boardStub(c.env, boardId).initialize({
+      boardId,
+      name: parsed.data.name ?? snapshot.name,
+      adminToken,
+      columns,
+      workingAgreements: snapshot.workingAgreements,
+      config: snapshot.config,
+    });
+    return c.json({ boardId, adminToken });
+  },
+);
 
 app.get("/api/boards/:id", async (c) => {
   const boardId = c.req.param("id");
@@ -154,15 +189,36 @@ app.get("/api/boards/:id/export", async (c) => {
 
 // GIF search proxy — keeps the KLIPY key server-side and hides employee IPs /
 // search terms from the provider. Degrades to empty when no key is configured.
-app.get("/api/gifs/search", async (c) => {
-  const query = c.req.query("q") ?? "";
-  const locale = c.req.query("locale") ?? "en";
-  const result = await searchGifs(c.env, query.slice(0, 100), locale);
-  return c.json(result, 200, {
-    // brief edge cache for repeated popular queries
-    "cache-control": "public, max-age=300",
-  });
-});
+//
+// Board-scoped: the previous unscoped route was an open relay for the
+// operator's provider quota, and it could not honour a board's own GIF opt-out
+// because it had no board to ask. Now a caller needs a board capability, the
+// board's setting is checked BEFORE any search term leaves the edge, and the
+// route is rate limited per IP.
+app.get(
+  "/api/boards/:id/gifs/search",
+  rateLimit((env) => env.GIF_LIMITER),
+  async (c) => {
+    // The middleware chain erases Hono's path-param inference, so default it;
+    // an empty id fails the shape check and 404s like any other bad id.
+    const boardId = c.req.param("id") ?? "";
+    if (!isSecretShaped(boardId)) {
+      return c.json({ error: "BOARD_NOT_FOUND" }, 404);
+    }
+    if (!(await boardStub(c.env, boardId).gifSearchAllowed())) {
+      // Same shape as "no key configured": the picker shows its unavailable
+      // state either way, and a member learns nothing about the board.
+      return c.json({ configured: false, gifs: [] });
+    }
+    const query = c.req.query("q") ?? "";
+    const locale = c.req.query("locale") ?? "en";
+    const result = await searchGifs(c.env, query.slice(0, 100), locale);
+    return c.json(result, 200, {
+      // Private: the response is board-scoped and the URL carries a capability.
+      "cache-control": "private, max-age=60",
+    });
+  },
+);
 
 app.get("/api/boards/:id/ws", async (c) => {
   if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {

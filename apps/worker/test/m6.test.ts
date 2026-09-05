@@ -5,7 +5,7 @@ import { env, runInDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import type { ServerEvent } from "@retropolis/shared";
 import { boardStub } from "../src/board-stub.js";
-import { connect, createBoard, type TestSocket } from "./helpers.js";
+import { connect, createBoard, ipHeaders, type TestSocket } from "./helpers.js";
 
 let opCounter = 30000;
 function opId(): string {
@@ -40,7 +40,12 @@ async function toPhase(socket: TestSocket, phase: string) {
 
 const DUP_URL = (id: string) =>
   `https://example.com/api/boards/${id}/duplicate`;
-const JSON_HEADERS = { "content-type": "application/json" };
+// A function, not a constant: each duplicate POST gets its own client IP so
+// the per-IP create limiter never throttles the suite itself.
+const jsonHeaders = () => ({
+  "content-type": "application/json",
+  ...ipHeaders(),
+});
 
 describe("board duplication", () => {
   it("copies structure (columns, config, agreements) but never content", async () => {
@@ -88,7 +93,7 @@ describe("board duplication", () => {
     // Duplicate over HTTP with the source admin token.
     const res = await SELF.fetch(DUP_URL(boardId), {
       method: "POST",
-      headers: JSON_HEADERS,
+      headers: jsonHeaders(),
       body: JSON.stringify({ name: "Copy of Team Sprint", adminToken }),
     });
     expect(res.status).toBe(200);
@@ -149,7 +154,7 @@ describe("board duplication", () => {
     const { boardId } = await createBoard("Secret");
     const res = await SELF.fetch(DUP_URL(boardId), {
       method: "POST",
-      headers: JSON_HEADERS,
+      headers: jsonHeaders(),
       body: JSON.stringify({ name: "Copy", adminToken: "0".repeat(32) }),
     });
     // Wrong token is indistinguishable from a missing board — 404, no oracle.
@@ -159,14 +164,14 @@ describe("board duplication", () => {
   it("404s for a malformed or never-created source board", async () => {
     const malformed = await SELF.fetch(DUP_URL("not-a-board"), {
       method: "POST",
-      headers: JSON_HEADERS,
+      headers: jsonHeaders(),
       body: JSON.stringify({ name: "Copy", adminToken: "0".repeat(32) }),
     });
     expect(malformed.status).toBe(404);
 
     const ghost = await SELF.fetch(DUP_URL("0".repeat(32)), {
       method: "POST",
-      headers: JSON_HEADERS,
+      headers: jsonHeaders(),
       body: JSON.stringify({ name: "Copy", adminToken: "0".repeat(32) }),
     });
     expect(ghost.status).toBe(404);
@@ -176,7 +181,7 @@ describe("board duplication", () => {
     const { boardId, adminToken } = await createBoard("Original");
     const res = await SELF.fetch(DUP_URL(boardId), {
       method: "POST",
-      headers: JSON_HEADERS,
+      headers: jsonHeaders(),
       body: JSON.stringify({ adminToken }),
     });
     expect(res.status).toBe(200);
@@ -206,7 +211,7 @@ describe("board duplication", () => {
 
     const res = await SELF.fetch(DUP_URL(boardId), {
       method: "POST",
-      headers: JSON_HEADERS,
+      headers: jsonHeaders(),
       body: JSON.stringify({ name: "Copy", adminToken }),
     });
     const copy = (await res.json()) as { boardId: string; adminToken: string };
