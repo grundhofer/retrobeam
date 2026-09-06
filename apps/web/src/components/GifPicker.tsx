@@ -20,7 +20,13 @@ export function GifPicker({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GifResult[]>([]);
   const [state, setState] = useState<
-    "idle" | "loading" | "empty" | "unavailable" | "failed" | "throttled"
+    | "idle"
+    | "loading"
+    | "empty"
+    | "unavailable"
+    | "failed"
+    | "throttled"
+    | "quota"
   >("idle");
   const { boardId } = useConnection();
   const locale = i18n.language.startsWith("de") ? "de" : "en";
@@ -47,7 +53,8 @@ export function GifPicker({
         searchGifs(boardId, term, locale, controller.signal).then(
           (res) => {
             if (id !== reqId.current) return; // superseded by a newer search
-            if (res.throttled) setState("throttled");
+            if (res.quotaExceeded) setState("quota");
+            else if (res.throttled) setState("throttled");
             else if (res.failed) setState("failed");
             else if (!res.configured) setState("unavailable");
             else if (res.gifs.length === 0) setState("empty");
@@ -89,7 +96,14 @@ export function GifPicker({
           ✕
         </button>
       </div>
-      {state === "throttled" ? (
+      {state === "quota" ? (
+        <p
+          data-testid="gif-quota"
+          className="px-1 py-4 text-center text-xs text-zinc-500"
+        >
+          {t("gif.quota")}
+        </p>
+      ) : state === "throttled" ? (
         <p
           data-testid="gif-throttled"
           className="px-1 py-4 text-center text-xs text-zinc-400"

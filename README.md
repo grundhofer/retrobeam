@@ -101,8 +101,12 @@ wrangler secret put KLIPY_API_KEY --name retropolis   # from apps/web
 
 Without it GIF search reports itself as unavailable and everything else works.
 After setting it, search for something in the GIF picker once: the picker
-distinguishes _not configured_, _nothing matched_, and _the lookup failed_, and
-the Worker logs a line naming the response's field names if the provider's shape
+distinguishes _not configured_, _nothing matched_, _the lookup failed_, _the
+board is searching too fast_ (our own budget, clears in seconds) and _the
+provider's quota is spent_ (a KLIPY test key allows 100 searches an hour across
+the whole account, and it clears within the hour). Each of those is a different
+message, because each has different advice; only the first is permanent. The
+Worker logs a line naming the response's field names if the provider's shape
 is not one it can read. If a chosen GIF disappears when the card is saved, the
 media CDN is on a different host than `GIF_HOST_SUFFIX` in
 `apps/worker/wrangler.jsonc` — the log names the host that was refused.

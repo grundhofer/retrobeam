@@ -27,6 +27,13 @@ export interface GifSearchResponse {
    *  the distinction a provider outage or a changed response shape reads to the
    *  user as "no GIFs found", which is the least actionable message possible. */
   failed?: boolean;
+  /** The PROVIDER refused us for quota, not a fault. Distinct from `failed`
+   *  because the recovery time is completely different: a KLIPY test key allows
+   *  100 searches an hour account-wide, so this clears within the hour rather
+   *  than in a few seconds, and telling someone to "try again in a moment" would
+   *  send them back into the same wall. This is the limit a real retro is most
+   *  likely to meet. */
+  quotaExceeded?: boolean;
 }
 
 const KLIPY_BASE = "https://api.klipy.com/api/v1";
@@ -70,6 +77,10 @@ export async function searchGifs(
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(5000),
     });
+    if (response.status === 429) {
+      console.error("[gifs] provider quota exhausted (429)");
+      return { configured: true, gifs: [], failed: true, quotaExceeded: true };
+    }
     if (!response.ok) {
       console.error(`[gifs] provider returned ${response.status}`);
       return { configured: true, gifs: [], failed: true };

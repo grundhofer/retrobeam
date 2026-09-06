@@ -270,12 +270,26 @@ describe("KLIPY response parsing", () => {
     expect(result.gifs).toEqual([]);
   });
 
-  it("reports provider errors rather than swallowing them", async () => {
+  it("names the provider's QUOTA as its own condition, not a fault", async () => {
+    // This is the limit a real retro is most likely to meet: a KLIPY test key
+    // allows 100 searches an hour, account-wide. It must not read as "didn't
+    // respond, try again in a moment" — that sends people straight back into
+    // the same wall. It clears within the hour, and the message says so.
     const result = await withResponse(429, { error: "slow down" }, () =>
       searchGifs(env, "party", "en"),
     );
+    expect(result.quotaExceeded).toBe(true);
     expect(result.failed).toBe(true);
     expect(result.configured).toBe(true);
+    expect(result.gifs).toEqual([]);
+  });
+
+  it("a provider fault is NOT reported as a quota problem", async () => {
+    const result = await withResponse(503, { error: "down" }, () =>
+      searchGifs(env, "party", "en"),
+    );
+    expect(result.failed).toBe(true);
+    expect(result.quotaExceeded).toBeFalsy();
   });
 
   it("refuses non-https media", async () => {

@@ -213,6 +213,8 @@ const resources = {
         unavailable: "GIF search isn't set up for this board.",
         failed: "GIF search didn't respond. Try again in a moment.",
         throttled: "That's a lot of GIF searching! Give it a few seconds.",
+        quota:
+          "We've hit this hour's GIF search limit. It comes back within the hour — the rest of the retro is unaffected.",
         remove: "Remove GIF",
         poweredBy: "Powered by KLIPY",
       },
@@ -555,6 +557,8 @@ const resources = {
         failed:
           "Die GIF-Suche hat nicht geantwortet. Versuch es gleich nochmal.",
         throttled: "Ganz schön viele GIF-Suchen! Gib ihr ein paar Sekunden.",
+        quota:
+          "Das GIF-Limit für diese Stunde ist erreicht. Es kommt innerhalb der Stunde zurück — die Retro läuft normal weiter.",
         remove: "GIF entfernen",
         // NOT translated: KLIPY's API terms require the literal string
         // "Powered by KLIPY" (plus their logo, still to be added). An

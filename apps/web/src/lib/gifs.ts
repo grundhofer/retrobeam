@@ -21,6 +21,8 @@ const gifSearchResponseSchema = z.object({
   /** Too many searches just now — distinct from `failed` because the honest
    *  advice differs: this one really does clear up in a few seconds. */
   throttled: z.boolean().optional(),
+  /** The provider's own quota is spent. Clears within the hour, not seconds. */
+  quotaExceeded: z.boolean().optional(),
 });
 export type GifSearchResponse = z.infer<typeof gifSearchResponseSchema>;
 
