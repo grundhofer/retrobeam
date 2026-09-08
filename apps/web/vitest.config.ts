@@ -11,6 +11,11 @@ import { defineConfig } from "vitest/config";
 // run here; anything socket-shaped is faked behind the BoardSocket interface.
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Browser mode pre-bundles dependencies separately from the test's own React,
+  // and react-router's hooks then run against a second, dispatcher-less copy
+  // ("Cannot read properties of null (reading 'useRef')" the moment a routed
+  // component renders). Deduping pins every importer to one React.
+  resolve: { dedupe: ["react", "react-dom"] },
   test: {
     // .ts as well as .tsx — a non-JSX test (the i18n parity check, socket
     // helpers) was silently invisible to the runner under a .tsx-only glob.

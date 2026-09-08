@@ -29,6 +29,9 @@ export interface BoardCanvasProps {
   editing: Record<string, string>;
   isAdmin: boolean;
   presenterId: string | null;
+  /** authors the presenting round has not reached yet — a facilitator-only
+   *  marker for "the room cannot read this card yet" (null outside the round) */
+  unpresentedAuthorIds: ReadonlySet<string> | null;
   gifsEnabled: boolean;
   /** other participants' live cursors (normalized world position) — only ever
    *  populated while cursorsEnabled */
@@ -83,6 +86,7 @@ export function BoardCanvas({
   phase,
   isAdmin,
   presenterId,
+  unpresentedAuthorIds,
   cursors,
   cursorsEnabled,
 }: BoardCanvasProps) {
@@ -455,7 +459,7 @@ export function BoardCanvas({
   }
 
   // Tidy: arrange the movable cards into a per-zone grid — ONE note.moveMany
-  // frame (never a loop of note.move: inbound frames bill 20:1).
+  // frame (never a loop of note.move: every inbound frame is billed).
   function tidy() {
     const byZone = new Map<string, Note[]>();
     for (const note of notes) {
@@ -671,6 +675,7 @@ export function BoardCanvas({
                           phase={phase}
                           isAdmin={isAdmin}
                           presenterId={presenterId}
+                          unpresentedAuthorIds={unpresentedAuthorIds}
                           draggable={false}
                           onDropNote={() => {}}
                           onUngroup={(n) =>

@@ -5,8 +5,12 @@ import { describe, expect, it } from "vitest";
 import { evictAllDurableObjects } from "cloudflare:test";
 import { connect, createBoard } from "./helpers.js";
 
-// Mirrors BUCKET_CAPACITY in board-room.ts.
+// Mirror the socket budget from board-room.ts. The refill rate matters here as
+// much as the capacity: the bucket tops up while a flood is being served, so an
+// assertion about "how many got through" is only meaningful against the elapsed
+// time.
 const BUCKET_CAPACITY = 120;
+const BUCKET_REFILL_PER_SEC = 8;
 
 describe("board room websocket flow", () => {
   it("join returns a sync snapshot with identity and roster", async () => {
@@ -142,15 +146,17 @@ describe("board room websocket flow", () => {
 
 describe("per-socket message budget", () => {
   it("drops a flood without closing the socket, and recovers", async () => {
-    // Inbound WS messages bill 20:1 against an ACCOUNT-WIDE allowance, so a
-    // buggy or hostile client at browser speed can take every board offline
-    // until midnight UTC. The bucket is generous enough that a fast typist or a
-    // canvas Tidy never notices it.
+    // Inbound WS messages get a 20:1 billing discount, but the allowance is
+    // ACCOUNT-WIDE, so a client looping at machine speed still spends every
+    // board's budget. The bucket caps one socket at 8 frames a second, which no
+    // human interaction approaches — a fast typist or a canvas Tidy never
+    // notices it.
     const { boardId, adminToken } = await createBoard();
     const socket = await connect(boardId);
     socket.send({ type: "join", name: "Anna", adminToken });
     await socket.waitFor((e) => e.type === "sync");
 
+    const floodStartedAt = Date.now();
     for (let i = 0; i < 400; i++) {
       socket.send({ type: "ready.set", ready: i % 2 === 0 });
     }
@@ -159,11 +165,25 @@ describe("per-socket message budget", () => {
     );
     expect(limited.type).toBe("error");
 
-    // Exactly the bucket's capacity was served before the drop — the limit is a
-    // budget, not a kill switch.
-    expect(
-      socket.events.filter((e) => e.type === "ready.changed").length,
-    ).toBeLessThanOrEqual(BUCKET_CAPACITY + 1);
+    // The bucket's capacity was served before the drop — the limit is a budget,
+    // not a kill switch.
+    //
+    // The ceiling has to account for the refill that happens WHILE the flood is
+    // being served: the bucket tops up at BUCKET_REFILL_PER_SEC, and 400 frames
+    // do not arrive instantaneously. A fixed `capacity + 1` silently assumed a
+    // machine fast enough to drain the bucket inside ~100ms; on a CI runner the
+    // same code legitimately served 125 and the suite went red on a stopwatch,
+    // not on a defect.
+    const servedWindowSec = (Date.now() - floodStartedAt) / 1000;
+    const served = socket.events.filter(
+      (e) => e.type === "ready.changed",
+    ).length;
+    expect(served).toBeLessThanOrEqual(
+      BUCKET_CAPACITY + 1 + Math.ceil(servedWindowSec * BUCKET_REFILL_PER_SEC),
+    );
+    // …and a lower bound, so a bucket that refused almost everything could not
+    // pass this test by being broken in the other direction.
+    expect(served).toBeGreaterThanOrEqual(BUCKET_CAPACITY);
 
     // The socket stays usable: a legitimate client that briefly overran must
     // not lose its board. The bucket refills, so an ordinary frame is served

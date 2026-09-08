@@ -165,10 +165,18 @@ describe("board export", () => {
     });
     await admin.socket.waitFor((e) => e.type === "note.created");
     // Reveal before exporting — pre-reveal exports must not carry note bodies.
+    // The export has no viewer to scope to, so it carries what EVERY member may
+    // already read: during the presenting round that is the cards of the people
+    // the rotation has reached, hence the pick.
     admin.socket.send({ type: "admin.phase.set", phase: "present" });
     await admin.socket.waitFor(
       (e) => e.type === "phase.changed" && e.phase === "present",
     );
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: admin.you.id,
+    });
+    await admin.socket.waitFor((e) => e.type === "picker.changed");
 
     const md = await SELF.fetch(
       `https://example.com/api/boards/${boardId}/export?format=md`,
@@ -194,7 +202,7 @@ describe("board export", () => {
     expect(parsed.boardName).toBe("Sprint 50");
   });
 
-  it("404s for unknown boards and 400s for bad formats", async () => {
+  it("404s for unknown boards and 400s for bad formats or scopes", async () => {
     const { boardId } = await createBoard();
     expect(
       (
@@ -210,6 +218,20 @@ describe("board export", () => {
         )
       ).status,
     ).toBe(400);
+    expect(
+      (
+        await SELF.fetch(
+          `https://example.com/api/boards/${boardId}/export?scope=top`,
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await SELF.fetch(
+          `https://example.com/api/boards/${boardId}/export?scope=summary`,
+        )
+      ).status,
+    ).toBe(200);
   });
 
   it("does NOT leak unrevealed notes or blind-vote tallies", async () => {
@@ -267,6 +289,126 @@ describe("board export", () => {
     expect(exportedNote?.votes).toBeNull(); // but the tally stays blind
   });
 
+  it("summarizes to the crowned cards and the action items, and says so in the filename", async () => {
+    const { boardId, adminToken } = await createBoard("Sprint 50");
+    const admin = await joined(boardId, "Anna", adminToken);
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    await advance(admin, ["write"]);
+    const crowned = newId();
+    const ignored = newId();
+    for (const [noteId, text] of [
+      [crowned, "Deploys are slow"],
+      [ignored, "Nobody voted for this"],
+    ] as const) {
+      admin.socket.send({
+        type: "note.create",
+        opId: opId(),
+        noteId,
+        columnId,
+        text,
+      });
+      await admin.socket.waitFor(
+        (e) => e.type === "note.created" && e.note.id === noteId,
+      );
+    }
+    await advance(admin, ["present", "vote"]);
+    admin.socket.send({
+      type: "vote.cast",
+      opId: opId(),
+      targetId: crowned,
+      count: 3,
+    });
+    await admin.socket.waitFor((e) => e.type === "vote.progress");
+
+    // Before the reveal the summary is deliberately empty: it must not be a
+    // way to read the tallies the vote phase keeps blind.
+    const blind = (await (
+      await SELF.fetch(
+        `https://example.com/api/boards/${boardId}/export?format=json&scope=summary`,
+      )
+    ).json()) as { columns: unknown[] };
+    expect(blind.columns).toEqual([]);
+
+    await advance(admin, ["discuss"]);
+    admin.socket.send({
+      type: "action.create",
+      opId: opId(),
+      actionId: newId(),
+      text: "Cache the CI image",
+      ownerId: null,
+    });
+    await admin.socket.waitFor((e) => e.type === "action.created");
+
+    const json = await SELF.fetch(
+      `https://example.com/api/boards/${boardId}/export?format=json&scope=summary`,
+    );
+    expect(json.headers.get("content-disposition")).toContain(
+      "Sprint-50-summary.json",
+    );
+    const summary = (await json.json()) as {
+      columns: { notes: { text: string; crownedRank: number | null }[] }[];
+      actions: { text: string }[];
+      kudos: unknown[];
+    };
+    expect(summary.columns).toHaveLength(1);
+    expect(summary.columns[0]?.notes).toHaveLength(1);
+    expect(summary.columns[0]?.notes[0]?.text).toBe("Deploys are slow");
+    expect(summary.columns[0]?.notes[0]?.crownedRank).toBe(1);
+    expect(summary.actions.map((a) => a.text)).toEqual(["Cache the CI image"]);
+    expect(summary.kudos).toEqual([]);
+
+    // A crowned stack keeps its merged duplicates: the crown sits on the
+    // anchor, but the board shows the whole stack and so must the summary.
+    admin.socket.send({
+      type: "admin.phase.set",
+      phase: "present",
+    });
+    await admin.socket.waitForNext(
+      (e) => e.type === "phase.changed" && e.phase === "present",
+    );
+    const merged = newId();
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId: merged,
+      columnId,
+      text: "CI takes twenty minutes",
+    });
+    await admin.socket.waitFor(
+      (e) => e.type === "note.created" && e.note.id === merged,
+    );
+    admin.socket.send({
+      type: "note.group",
+      opId: opId(),
+      noteId: merged,
+      targetNoteId: crowned,
+    });
+    await admin.socket.waitFor(
+      (e) => e.type === "note.updated" && e.note.id === merged,
+    );
+    await advance(admin, ["vote", "discuss"]);
+
+    const md = await SELF.fetch(
+      `https://example.com/api/boards/${boardId}/export?format=md&scope=summary`,
+    );
+    expect(md.headers.get("content-disposition")).toContain(
+      "Sprint-50-summary.md",
+    );
+    const body = await md.text();
+    expect(body).toContain("Summary (top cards & action items)");
+    expect(body).toContain("Deploys are slow");
+    expect(body).toContain("CI takes twenty minutes"); // the merged duplicate
+    expect(body).not.toContain("Nobody voted for this");
+
+    // The full scope is untouched — same board, both cards, old filename.
+    const full = await SELF.fetch(
+      `https://example.com/api/boards/${boardId}/export?format=md`,
+    );
+    expect(full.headers.get("content-disposition")).toContain("Sprint-50.md");
+    expect(await full.text()).toContain("Nobody voted for this");
+  });
+
   it("exports every stacked note's text, attributing the tally to the anchor only", async () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);
@@ -296,6 +438,11 @@ describe("board export", () => {
       (e) => e.type === "note.created" && e.note.id === b,
     );
     await advance(admin, ["present"]);
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: admin.you.id,
+    });
+    await admin.socket.waitFor((e) => e.type === "picker.changed");
     admin.socket.send({
       type: "note.group",
       opId: opId(),
@@ -466,41 +613,8 @@ describe("GIF proxy", () => {
     );
     expect(off.status).toBe(200);
     expect(await off.json()).toEqual({ configured: false, gifs: [] });
-  });
-});
-
-describe("abuse brakes", () => {
-  it("throttles board creation per client IP", async () => {
-    const headers = { "content-type": "application/json", ...ipHeaders() };
-    const statuses: number[] = [];
-    for (let i = 0; i < 14; i++) {
-      const res = await SELF.fetch("https://example.com/api/boards", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ name: `Flood ${i}` }),
-      });
-      statuses.push(res.status);
-    }
-    // Each accepted call mints a permanent, alarm-armed Durable Object, so an
-    // unthrottled script would spend the account-wide daily allowance.
-    expect(statuses.filter((s) => s === 200).length).toBeLessThanOrEqual(10);
-    expect(statuses).toContain(429);
-    // A different address is unaffected.
-    const other = await SELF.fetch("https://example.com/api/boards", {
-      method: "POST",
-      headers: { "content-type": "application/json", ...ipHeaders() },
-      body: JSON.stringify({ name: "Innocent" }),
-    });
-    expect(other.status).toBe(200);
-  });
-
-  it("refuses an oversized request body", async () => {
-    const res = await SELF.fetch("https://example.com/api/boards", {
-      method: "POST",
-      headers: { "content-type": "application/json", ...ipHeaders() },
-      body: JSON.stringify({ name: "x".repeat(8000) }),
-    });
-    expect(res.status).toBe(413);
+    // Switched off is a 200 with configured:false — permanent, "not set up".
+    // Being merely BUSY must not look like that; see rate-limiter.test.ts.
   });
 });
 

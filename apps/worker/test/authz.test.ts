@@ -208,9 +208,18 @@ describe("authorship", () => {
       text: "Anna's note",
     });
     await admin.socket.waitForNext((e) => e.type === "note.created");
-    // Reveal, so Ben can SEE it — otherwise the refusal would be the write
-    // phase privacy filter rather than the authorship rule under test.
+    // Reveal, so Ben can SEE it — otherwise the refusal would be the privacy
+    // filter rather than the authorship rule under test. In the presenting
+    // phase that takes TWO steps: the phase alone reveals nothing to a member,
+    // the author has to be put on stage.
     admin.socket.send({ type: "admin.phase.set", phase: "present" });
+    await ben.socket.waitForNext(
+      (e) => e.type === "phase.changed" && e.phase === "present",
+    );
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: admin.you.id,
+    });
     await ben.socket.waitForNext((e) => e.type === "notes.revealed");
 
     // Text and existence belong to the author, in every phase.

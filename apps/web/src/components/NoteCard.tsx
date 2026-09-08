@@ -22,8 +22,12 @@ export interface NoteCardProps {
   phase: Phase;
   isAdmin: boolean;
   revealIndex: number;
-  /** current presenter — their notes are spotlighted, others dimmed */
+  /** current presenter — their notes are spotlighted, the rest stepped back */
   presenterId: string | null;
+  /** authors the room has NOT been shown yet, during the presenting round.
+   *  null outside that round. Only a facilitator can ever hold such a card, so
+   *  the marker answers "can the room read this one yet?" at a glance. */
+  unpresentedAuthorIds?: ReadonlySet<string> | null;
   onDropNote: (sourceNoteId: string, target: Note) => void;
   onUngroup: (note: Note) => void;
   /** read-only rendering (the presenter reader): drag/edit/delete/curate off,
@@ -42,6 +46,7 @@ export function NoteCard({
   isAdmin,
   revealIndex,
   presenterId,
+  unpresentedAuthorIds = null,
   onDropNote,
   onUngroup,
   interactive = true,
@@ -68,7 +73,18 @@ export function NoteCard({
   const canDrag =
     interactive && draggable && (canCurate || (phase === "write" && mine));
   const spotlighted = presenterId !== null && note.authorId === presenterId;
-  const dimmed = presenterId !== null && note.authorId !== presenterId;
+  // Stepped back, not hidden: the board is cumulative now, so most cards carry
+  // this and they still have to be readable. A note whose authorship was
+  // stripped (anonymous board) is neither — there is nobody to tell apart, and
+  // dimming every card on the board would just make it unreadable.
+  const dimmed =
+    presenterId !== null &&
+    note.authorId !== null &&
+    note.authorId !== presenterId;
+  const pending =
+    unpresentedAuthorIds !== null &&
+    note.authorId !== null &&
+    unpresentedAuthorIds.has(note.authorId);
 
   function saveEdit(event: React.FormEvent) {
     event.preventDefault();
@@ -138,9 +154,22 @@ export function NoteCard({
         const sourceId = event.dataTransfer.getData(NOTE_DRAG_MIME);
         if (sourceId && sourceId !== note.id) onDropNote(sourceId, note);
       }}
-      className={`reveal-in rounded-xl border bg-white p-3 shadow-sm transition-opacity ${
-        dropHover ? "border-accent ring-2 ring-accent/40" : "border-zinc-200"
-      } ${spotlighted ? "shadow-md ring-2 ring-accent" : ""} ${dimmed ? "opacity-45" : ""} ${
+      data-presenting={spotlighted ? "true" : undefined}
+      data-pending={pending ? "true" : undefined}
+      title={
+        spotlighted
+          ? t("present.spotlight", { name: author?.name ?? "" })
+          : pending
+            ? t("note.notPresented")
+            : undefined
+      }
+      className={`reveal-in rounded-xl bg-white p-3 shadow-sm transition-opacity ${
+        dropHover
+          ? "border border-accent ring-2 ring-accent/40"
+          : pending
+            ? "border border-dashed border-zinc-300"
+            : "border border-zinc-200"
+      } ${spotlighted ? "shadow-md ring-2 ring-accent" : ""} ${dimmed ? "opacity-70" : ""} ${
         canDrag && !editing ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       style={{ animationDelay: `${Math.min(revealIndex, 12) * 45}ms` }}
@@ -173,7 +202,11 @@ export function NoteCard({
         </form>
       ) : (
         <>
-          <p className="text-sm whitespace-pre-wrap text-zinc-800">
+          {/* break-words: the columns are grid tracks now, and a grid item
+              cannot push its track wider — an unbroken 200-character word
+              would simply paint outside it and drag the whole page sideways.
+              The old horizontal scroller clipped that; nothing does now. */}
+          <p className="text-sm break-words whitespace-pre-wrap text-zinc-800">
             {note.text}
           </p>
           {note.gifUrl !== null ? (

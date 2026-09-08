@@ -72,6 +72,18 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   // inherent to appreciation). Anna's kudo must not attribute her as sender.
   expect(body).not.toContain("— Anna");
 
+  // The condensed scope is chosen in the menu, and the link the menu builds is
+  // what the browser downloads — assert the chain, not just the server.
+  await anna.getByTestId("board-menu").click();
+  await anna.getByTestId("export-scope-summary").click();
+  const summaryHref = await anna.getByTestId("export-md").getAttribute("href");
+  expect(summaryHref).toContain("scope=summary");
+  const summary = await anna.request.get(summaryHref ?? "");
+  const summaryBody = await summary.text();
+  expect(summaryBody).toContain("Summary (top cards & action items)");
+  expect(summaryBody).not.toContain("shipped the wheel"); // kudos stay out
+  await anna.getByTestId("board-menu").click();
+
   // Finish and archive: the wall persists read-only on the done screen.
   await anna.getByTestId("phase-next").click();
   await expect(

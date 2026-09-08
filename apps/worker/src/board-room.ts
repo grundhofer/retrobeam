@@ -18,15 +18,21 @@ import {
   pickerKnows,
   pickerStateSchema,
   planJoin,
+  publicReveal,
+  revealFor,
+  rotationExhausted,
   rotiReleaseSchema,
   redactNoteForViewer,
   visibleNotesFor,
+  withAllRevealed,
+  withPresenterRevealed,
   type Action,
   type BoardConfig,
   type BoardInfo,
   type ClientCommand,
   type Column,
   type Note,
+  type NoteReveal,
   type Participant,
   type ParticipantRole,
   type Phase,
@@ -92,12 +98,15 @@ interface SocketAttachment {
   budget?: { tokens: number; at: number };
 }
 
-// Inbound WebSocket messages bill 20:1, and the free-tier allowance is
-// account-wide: one client at 60 frames a second costs ~1200 billed requests a
-// second, which is the whole day's budget in about eighty seconds — and every
-// board goes down with it until midnight UTC. A generous per-socket bucket
-// costs a legitimate room nothing: a fast typist writing notes, a canvas Tidy,
-// or a reconnect burst are all well inside it.
+// Inbound WebSocket messages are billed at a 20:1 DISCOUNT — twenty of them
+// count as one request — but the free-tier allowance is account-wide, so a
+// runaway client still spends everyone's budget. At 1,000 frames a second
+// (trivial for a loop, impossible for a person) that is 50 billed requests a
+// second: the whole 100k daily allowance in about half an hour, and every board
+// goes down with it until midnight UTC. This bucket caps one socket at 8 frames
+// a second, which no human interaction approaches — a fast typist writing
+// notes, a canvas Tidy (one frame), or a reconnect replay are all well inside
+// it, and the burst allowance is fifteen seconds' worth.
 const BUCKET_CAPACITY = 120;
 const BUCKET_REFILL_PER_SEC = 8;
 // `resync` is the one command whose cost is unbounded relative to its input —
@@ -115,6 +124,17 @@ interface ParticipantRow {
   online: number;
   ready: number;
   demoted: number;
+}
+
+// The board-wide half of the visibility gate, resolved once per fan-out: what
+// each ROLE may see right now, plus the hidden-column set. Both roles are
+// carried because a facilitator is NOT simply "sees everything" — before the
+// reveal nobody sees a foreign note, the facilitator included, which is the
+// oldest rule in the product.
+interface RevealSnapshot {
+  memberReveal: NoteReveal;
+  facilitatorReveal: NoteReveal;
+  hidden: ReadonlySet<string>;
 }
 
 interface NoteRow {
@@ -157,12 +177,19 @@ export interface BoardCreation {
 // (protocol.ts) and each serializes to ~138 chars, so a full canvas tidy is
 // ~42 KB. 8 KB used to cut that off at 58 cards — the client had already
 // applied its optimistic echo and never learned the frame was dropped.
-// Billing counts messages (20:1), not bytes, so a larger cap costs nothing;
+// Billing counts messages, not bytes, so a larger cap costs nothing;
 // the cap only exists to refuse absurd frames before paying for JSON.parse.
 const MAX_FRAME_CHARS = 65536;
 
 // Bumped when a migration step is added below the unconditional ones.
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+
+// GIF search budget per board. Generous on purpose: the whole appreciation
+// round is eight people picking a GIF at once, and the picker already debounces
+// at 350 ms. Sixty a minute sustained is far past a real room and still caps
+// what a board capability can spend of the operator's provider quota.
+const GIF_BURST = 60;
+const GIF_PER_SEC = 1;
 
 // Phases in which notes may be created/edited by their author.
 function phaseAllowsWriting(phase: Phase): boolean {
@@ -185,6 +212,10 @@ function detach(label: string, work: Promise<unknown>): void {
 // a handler needs lives in SQLite or in the socket attachment.
 export class BoardRoom extends DurableObject<Env> {
   private readonly sql: SqlStorage;
+  /** GIF search budget for this board. Ephemeral by design — see
+   *  gifSearchAllowed(); an evicted board was idle, so there was nothing to
+   *  throttle. Never persisted: the free tier's write budget belongs to notes. */
+  private gifBudget = { tokens: GIF_BURST, at: 0 };
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -327,6 +358,18 @@ export class BoardRoom extends DurableObject<Env> {
       CREATE INDEX IF NOT EXISTS reactions_by_note ON reactions (note_id);
     `);
 
+    // Presenter-scoped visibility (schemaVersion 2). A board sitting in the
+    // presenting phase when this shipped had every note broadcast to everyone
+    // under the old all-at-once rule; starting to scope it now would take
+    // cards off screens mid-retro — the one thing this feature promises never
+    // to do. Latch it open instead. No other phase needs anything: unrevealed
+    // ones have revealed nothing, and every later phase is never scoped. The
+    // board's NEXT round is scoped normally, because entering the presenting
+    // phase from an unrevealed one starts a fresh round.
+    if (this.getMeta("id") !== null && from < 2 && this.phase() === "present") {
+      this.savePicker(withAllRevealed(this.picker() ?? EMPTY_PICKER));
+    }
+
     // A one-way marker. Steps above stay idempotent and unconditional (they are
     // what brings a pre-marker board up to date); anything added below runs
     // `if (from < N)` and is recorded here. Only write it once the board
@@ -354,7 +397,7 @@ export class BoardRoom extends DurableObject<Env> {
          ('gifsEnabled', ?), ('pickerStyle', ?), ('layout', ?),
          ('cursorsEnabled', ?),
          ('votesPerPerson', ?), ('topN', ?), ('maxPerTarget', ?),
-         ('retentionAt', ?), ('workingAgreements', ?)`,
+         ('retentionAt', ?), ('workingAgreements', ?), ('schemaVersion', ?)`,
       creation.boardId,
       creation.name,
       creation.adminToken,
@@ -372,6 +415,12 @@ export class BoardRoom extends DurableObject<Env> {
       maxPerTarget == null ? "" : String(maxPerTarget),
       String(retentionAt),
       creation.workingAgreements,
+      // Stamped HERE, not by migrate(): the constructor runs before this row
+      // exists, so its version marker is skipped and a board created by this
+      // build would otherwise read as version 0 forever — and take a
+      // back-compat step meant for boards written by an OLDER build the first
+      // time it woke from hibernation.
+      String(SCHEMA_VERSION),
     );
     for (const column of creation.columns) {
       this.sql.exec(
@@ -396,13 +445,30 @@ export class BoardRoom extends DurableObject<Env> {
     return this.getMeta("id") === null ? null : this.boardInfo();
   }
 
-  // RPC: may this board's participants search for GIFs? Checked by the proxy
-  // BEFORE a search term leaves the edge, so the per-board opt-out is a
-  // property of the route rather than of client discipline. Deliberately
-  // returns a bare boolean — a missing board is indistinguishable from one
-  // that switched GIFs off.
-  async gifSearchAllowed(): Promise<boolean> {
-    return this.getMeta("id") !== null && this.config().gifsEnabled;
+  // RPC: may this board's participants search for GIFs RIGHT NOW? Checked by
+  // the proxy BEFORE a search term leaves the edge, so both the per-board
+  // opt-out and its search budget are properties of the route rather than of
+  // client discipline. A missing board reads as "off", like one that switched
+  // GIFs off — there is nothing to protect there, since every member already
+  // receives the board's gifsEnabled flag in their snapshot.
+  //
+  // The budget is per BOARD, which is the right unit: a team behind one office
+  // address would share an IP bucket and throttle each other during the
+  // appreciation round. It rides in memory for the same reason the standalone
+  // limiter does — losing it when an idle board hibernates costs nothing.
+  async gifSearchAllowed(): Promise<"ok" | "off" | "throttled"> {
+    if (this.getMeta("id") === null || !this.config().gifsEnabled) return "off";
+    const now = Date.now();
+    const tokens = Math.min(
+      GIF_BURST,
+      this.gifBudget.tokens + ((now - this.gifBudget.at) / 1000) * GIF_PER_SEC,
+    );
+    this.gifBudget = { tokens: Math.max(0, tokens - 1), at: now };
+    // "off" and "throttled" must NOT collapse into one answer. Off is
+    // permanent and the honest message is "not set up"; throttled is over in
+    // seconds and the honest message is "try again". Telling someone the
+    // feature is unavailable when it is merely busy makes them stop using it.
+    return tokens >= 1 ? "ok" : "throttled";
   }
 
   // RPC: structure-only snapshot for duplication — column names+order, board
@@ -899,15 +965,21 @@ export class BoardRoom extends DurableObject<Env> {
     // Their rejoin re-adds them via the latecomer path (pickerKnows false).
     const picker = this.picker();
     if (picker !== null && picker.remaining.includes(participantId)) {
-      const updated: PickerState = {
+      const before = this.revealNow();
+      let updated: PickerState = {
         ...picker,
         remaining: picker.remaining.filter((id) => id !== participantId),
       };
+      // The last person waiting walking out ends the round like any other
+      // exhaustion — the room must not be left staring at a board only the
+      // facilitator can read because somebody closed a laptop.
+      if (rotationExhausted(updated)) updated = withAllRevealed(updated);
       this.savePicker(updated);
       this.broadcastAll(
         { type: "picker.changed", seq: this.nextSeq(), picker: updated },
         closingSocket,
       );
+      this.broadcastNewlyVisible(before);
     }
   }
 
@@ -935,6 +1007,12 @@ export class BoardRoom extends DurableObject<Env> {
     // Ephemeral, never persisted. NOTE: when the anonymity toggle becomes
     // reachable (per-board setting UI), ghosts on anonymous boards must stop
     // carrying the participant id.
+    //
+    // Write phase only. Ghosts have always been RENDERED only while writing,
+    // but they used to circulate in every phase — and once the presenting
+    // round scopes notes by author, "X is editing in column C" would tell a
+    // member that X holds a card there before X has presented it.
+    if (this.phase() !== "write" && columnId !== null) return;
     this.broadcastAll(
       { type: "presence.editing", participantId: participant.id, columnId },
       ws,
@@ -999,7 +1077,7 @@ export class BoardRoom extends DurableObject<Env> {
       const visible = noteVisibleTo(
         { authorId: existing.author_id, columnId: existing.column_id },
         participant.id,
-        this.phase(),
+        this.revealOf(participant),
         this.hiddenColumnsFor(participant),
       );
       this.reject(
@@ -1059,7 +1137,7 @@ export class BoardRoom extends DurableObject<Env> {
       !noteVisibleTo(
         { authorId: row.author_id, columnId: row.column_id },
         participant.id,
-        this.phase(),
+        this.revealOf(participant),
         this.hiddenColumnsFor(participant),
       )
     ) {
@@ -1129,7 +1207,7 @@ export class BoardRoom extends DurableObject<Env> {
       !noteVisibleTo(
         { authorId: row.author_id, columnId: row.column_id },
         participant.id,
-        this.phase(),
+        this.revealOf(participant),
         this.hiddenColumnsFor(participant),
       )
     ) {
@@ -1177,18 +1255,13 @@ export class BoardRoom extends DurableObject<Env> {
       // Only recipients who could SEE the note learn about its deletion —
       // sending the id of a note hidden from them (foreign pre-reveal, or in a
       // staged column) would leak its existence.
-      const phase = this.phase();
-      const hidden = this.hiddenColumnIds();
-      this.broadcastEach((recipientId) =>
-        noteVisibleTo(
-          note,
-          recipientId,
-          phase,
-          this.hiddenSetFor(recipientId, hidden),
-        )
+      const board = this.revealNow();
+      this.broadcastEach((recipientId) => {
+        const gate = this.gateFor(recipientId, board);
+        return noteVisibleTo(note, recipientId, gate.reveal, gate.hidden)
           ? { type: "note.deleted", seq, noteId: cmd.noteId }
-          : null,
-      );
+          : null;
+      });
     }
     // Deleting during write lowers the anonymized count members see.
     this.broadcastColumnCountsIfWriting();
@@ -1218,7 +1291,7 @@ export class BoardRoom extends DurableObject<Env> {
       !noteVisibleTo(
         { authorId: reactRow.author_id, columnId: reactRow.column_id },
         participant.id,
-        phase,
+        this.revealOf(participant),
         this.hiddenColumnsFor(participant),
       )
     ) {
@@ -1279,6 +1352,11 @@ export class BoardRoom extends DurableObject<Env> {
       return;
     }
 
+    // The gate as it stood BEFORE the phase moved — broadcastNewlyVisible
+    // diffs against it, so every widening (and there are several in this
+    // handler) is delivered by one code path at the end.
+    const before = this.revealNow();
+
     this.setMeta("phase", target);
     this.sql.exec("UPDATE participants SET ready = 0");
     this.sql.exec(
@@ -1327,18 +1405,44 @@ export class BoardRoom extends DurableObject<Env> {
         .toArray()
         .map((row) => String(row.id));
       const existing = this.picker();
-      const base: PickerState = existing ?? {
-        remaining: [],
-        presented: [],
-        current: null,
-        excluded: [],
-      };
+      const base: PickerState = existing ?? EMPTY_PICKER;
       const missing = online.filter((id) => !pickerKnows(base, id));
-      if (existing === null || missing.length > 0) {
-        const picker: PickerState = {
-          ...base,
-          remaining: [...base.remaining, ...missing],
-        };
+      const merged: PickerState = {
+        ...base,
+        remaining: [...base.remaining, ...missing],
+      };
+      // A NEW presenting round, and the one point where the reveal may legally
+      // go backwards: coming from an unrevealed phase, every member's client
+      // has already dropped foreign notes, so clearing takes nothing off any
+      // screen. Guarded on the phase we came FROM — a vote→present rewind is a
+      // step back INTO a round the room is already reading, and re-narrowing
+      // that would retract cards.
+      //
+      // Exhaustion is judged on the MERGED pool, not the old one: a room that
+      // already presented everyone and came back round has nobody left to
+      // stage, so it must start open rather than dark forever — but a fresh
+      // board, whose pool is empty only until the newcomers are folded in, must
+      // not be mistaken for one.
+      //
+      // Whoever still holds the mic is seeded back in: the picker survives a
+      // rewind with `current` intact, and withPresenterRevealed only ever runs
+      // when somebody is DRAWN — so a presenter carried across the reset would
+      // otherwise present to a room that had been shown none of their cards,
+      // and would never get a second chance to be added.
+      const reset = !phaseRevealed(current);
+      const picker: PickerState = reset
+        ? {
+            ...merged,
+            revealed: merged.current === null ? [] : [merged.current],
+            revealedAll: rotationExhausted(merged),
+          }
+        : merged;
+      const changed =
+        existing === null ||
+        missing.length > 0 ||
+        picker.revealed.length !== base.revealed.length ||
+        picker.revealedAll !== base.revealedAll;
+      if (changed) {
         this.savePicker(picker);
         this.broadcastAll({
           type: "picker.changed",
@@ -1348,29 +1452,31 @@ export class BoardRoom extends DurableObject<Env> {
       }
     }
 
-    // Crossing into the revealed world: everyone receives the notes that were
-    // hidden from them. (Rewinds need no event — clients drop foreign notes.)
-    // A staged (hidden) column stays withheld from members even across the
-    // reveal — its notes reach them only when the facilitator reveals it.
-    if (!phaseRevealed(current) && phaseRevealed(target)) {
-      const notes = this.allNotes();
-      const anonymous = this.anonymous();
-      const hidden = this.hiddenColumnIds();
-      const seq = this.nextSeq();
-      this.broadcastEach((recipientId) => {
-        const hiddenFor = this.hiddenSetFor(recipientId, hidden);
-        const newlyVisible = notes
-          .filter(
-            (n) =>
-              n.authorId !== recipientId &&
-              (hiddenFor === null || !hiddenFor.has(n.columnId)),
-          )
-          .map((n) => redactNoteForViewer(n, recipientId, anonymous));
-        return newlyVisible.length > 0
-          ? { type: "notes.revealed", seq, notes: newlyVisible }
-          : null;
-      });
+    // Every revealed phase other than the presenting round hands the whole
+    // board over. Latched on the picker so a later rewind INTO "present"
+    // cannot re-narrow what the room is already reading. Broadcast, not just
+    // saved: the picker is client state, and a latch nobody is told about
+    // would leave every fold disagreeing with the next snapshot.
+    if (phaseRevealed(target) && target !== "present") {
+      const picker = this.picker();
+      if (picker !== null && !picker.revealedAll) {
+        const opened = withAllRevealed(picker);
+        this.savePicker(opened);
+        this.broadcastAll({
+          type: "picker.changed",
+          seq: this.nextSeq(),
+          picker: opened,
+        });
+      }
     }
+
+    // Everything that just became visible, delivered by the one delta helper:
+    // the facilitator receiving the board on entering "present", the room
+    // receiving the rest of it on leaving, and nothing at all on a rewind.
+    // (Rewinds need no un-reveal event — clients drop foreign notes on the way
+    // into an unrevealed phase.) A staged column stays withheld from members
+    // throughout; its notes reach them only when the facilitator reveals it.
+    this.broadcastNewlyVisible(before);
 
     // Leaving the closing phase publishes the ROTI result, exactly once, and
     // closes the poll. Until this moment nobody — facilitator included — has
@@ -1598,6 +1704,7 @@ export class BoardRoom extends DurableObject<Env> {
       this.ack(ws, cmd.opId); // idempotent no-op
       return;
     }
+    const before = this.revealNow();
     this.sql.exec(
       "UPDATE columns SET hidden = ? WHERE id = ?",
       cmd.hidden ? 1 : 0,
@@ -1606,8 +1713,6 @@ export class BoardRoom extends DurableObject<Env> {
     const updated: Column = { ...column, hidden: cmd.hidden };
     const seq = this.nextSeq();
     this.ack(ws, cmd.opId, seq);
-    const phase = this.phase();
-    const anonymous = this.anonymous();
     this.broadcastEach((recipientId) => {
       if (this.participantById(recipientId)?.role === "facilitator") {
         return { type: "column.updated", seq, column: updated };
@@ -1617,31 +1722,22 @@ export class BoardRoom extends DurableObject<Env> {
         : { type: "column.created", seq, column: updated };
     });
     // On reveal, follow the column with the notes now visible to each member
-    // (facilitators already had them). Author/phase/anonymity rules still apply.
-    if (!cmd.hidden) {
-      const columnNotes = this.allNotes().filter(
-        (n) => n.columnId === cmd.columnId,
-      );
-      const notesSeq = this.nextSeq();
-      this.broadcastEach((recipientId) => {
-        if (this.participantById(recipientId)?.role === "facilitator") {
-          return null;
-        }
-        const visible = visibleNotesFor(
-          columnNotes,
-          recipientId,
-          phase,
-          anonymous,
-        );
-        return visible.length > 0
-          ? { type: "notes.revealed", seq: notesSeq, notes: visible }
-          : null;
-      });
-    }
+    // (facilitators already had them). The delta helper decides that, so the
+    // presenting round's own scoping applies here too — revealing a column
+    // mid-rotation must not hand members the cards of authors who have not
+    // presented yet.
+    // `before` was taken ahead of the UPDATE, so it still carries this column
+    // as hidden — exactly the "could you see it a moment ago?" the diff needs.
+    if (!cmd.hidden) this.broadcastNewlyVisible(before);
     // Hiding removes the column's notes from the votable set (reveal restores
     // them); recompute any revealed tallies/crowns so they never reference a
     // hidden note.
     this.reconcileAfterVoteMutation();
+    // And re-send the per-column totals: the reducer's column.deleted case
+    // drops the column but not its count, so a member's folded state kept an
+    // entry keyed by a column they can no longer see — a snapshot disagreement
+    // on a field the symmetry harness compares. Returns early outside write.
+    this.broadcastColumnCountsIfWriting();
   }
 
   // Move/resize a zone on the canvas (facilitator only). Pure layout — the
@@ -1739,14 +1835,25 @@ export class BoardRoom extends DurableObject<Env> {
     }
     const note = this.noteRowById(cmd.noteId);
     const target = this.noteRowById(cmd.targetNoteId);
-    // A note in a column hidden from this member is invisible — treat it (and
-    // any attempt to group into it) like a nonexistent note (existence oracle).
+    // A note this participant cannot see — in a column staged away from them,
+    // or belonging to someone who has not presented yet — is treated like a
+    // nonexistent one, for the note AND for the target it would be grouped
+    // into (existence oracle). This is the one visibility check the compiler
+    // cannot enumerate, because it has to test two notes at once.
     const hidden = this.hiddenColumnsFor(participant);
+    const reveal = this.revealOf(participant);
+    const visible = (row: NoteRow): boolean =>
+      noteVisibleTo(
+        { authorId: row.author_id, columnId: row.column_id },
+        participant.id,
+        reveal,
+        hidden,
+      );
     if (
       note === null ||
       target === null ||
-      (hidden !== null &&
-        (hidden.has(note.column_id) || hidden.has(target.column_id)))
+      !visible(note) ||
+      !visible(target)
     ) {
       this.reject(ws, cmd.opId, "NOT_FOUND", "Note does not exist");
       return;
@@ -1772,8 +1879,14 @@ export class BoardRoom extends DurableObject<Env> {
         groupId,
         target.id,
       );
-      changed.push(target.id);
     }
+    // The target is re-sent either way. When it was already an anchor its row
+    // does not change, but a client whose copy arrived with the groupId
+    // stripped (the anchor was invisible to them) predicted the target's own
+    // id as the new stack and would otherwise keep that phantom until its next
+    // resync. The event is an idempotent upsert, so re-sending costs a frame
+    // and settles it.
+    changed.push(target.id);
     let ord = Number(note.ord);
     if (target.column_id !== note.column_id) {
       // Same per-(column, author) ordering rule as note.move — grouping into
@@ -1844,15 +1957,35 @@ export class BoardRoom extends DurableObject<Env> {
       !noteVisibleTo(
         { authorId: note.author_id, columnId: note.column_id },
         participant.id,
-        phase,
+        this.revealOf(participant),
         this.hiddenColumnsFor(participant),
       )
     ) {
       this.reject(ws, cmd.opId, "NOT_FOUND", "Note does not exist");
       return;
     }
-    if (note.group_id === null) {
-      this.ack(ws, cmd.opId); // idempotent
+    // Decided against the note AS THIS CALLER SEES IT. Their copy of a card
+    // whose stack anchor is invisible to them arrived ungrouped
+    // (redactNoteForViewer), so unstacking it has to look exactly like
+    // unstacking a loose card: an ack that touched nothing. Answering
+    // differently would re-derive, through the side channel of a following
+    // note.updated, the very bit the redaction withholds — that this card is
+    // stacked with one the rotation has not reached.
+    const anchor =
+      note.group_id === null ? null : this.noteRowById(note.group_id);
+    // A dangling anchor (the row is gone) reads as visible on purpose: there is
+    // no note left for the id to name, and the repair below is what clears it.
+    const anchorVisible =
+      note.group_id === null ||
+      anchor === null ||
+      noteVisibleTo(
+        { authorId: anchor.author_id, columnId: anchor.column_id },
+        participant.id,
+        this.revealOf(participant),
+        this.hiddenColumnsFor(participant),
+      );
+    if (note.group_id === null || !anchorVisible) {
+      this.ack(ws, cmd.opId); // idempotent, or a stack this viewer never held
       return;
     }
     const groupId = note.group_id;
@@ -1895,7 +2028,7 @@ export class BoardRoom extends DurableObject<Env> {
       !noteVisibleTo(
         { authorId: note.author_id, columnId: note.column_id },
         participant.id,
-        phase,
+        this.revealOf(participant),
         this.hiddenColumnsFor(participant),
       )
     ) {
@@ -2005,6 +2138,8 @@ export class BoardRoom extends DurableObject<Env> {
       return;
     }
     const hidden = this.hiddenColumnsFor(participant);
+    // Hoisted out of the loop: one reveal for the whole batch, not one per move.
+    const reveal = this.revealOf(participant);
     const movedIds: string[] = [];
     for (const move of cmd.moves) {
       const row = this.noteRowById(move.noteId);
@@ -2014,7 +2149,7 @@ export class BoardRoom extends DurableObject<Env> {
         !noteVisibleTo(
           { authorId: row.author_id, columnId: row.column_id },
           participant.id,
-          phase,
+          reveal,
           hidden,
         ) ||
         // before the reveal you only tidy your own cards
@@ -2117,12 +2252,16 @@ export class BoardRoom extends DurableObject<Env> {
         return;
       }
       // Completing the final presenter — no spin, just the finished state.
-      this.savePicker(picker);
+      // The round is over, so the whole board goes to everyone, including the
+      // cards of people who were excluded or never came online.
+      const before = this.revealNow();
+      this.savePicker(withAllRevealed(picker));
       this.broadcastAll({
         type: "picker.changed",
         seq: this.nextSeq(),
-        picker,
+        picker: withAllRevealed(picker),
       });
+      this.broadcastNewlyVisible(before);
       return;
     }
     // Draw only among people who are actually here; offline ids stay in
@@ -2136,13 +2275,17 @@ export class BoardRoom extends DurableObject<Env> {
     const candidates = picker.remaining.filter((id) => online.has(id));
     const pool = candidates.length > 0 ? candidates : [...picker.remaining];
     const winnerId = pool[randomIndex(pool.length)] as string;
-    picker = {
-      ...picker,
-      // filter the FULL remaining list — the draw pool may be the online
-      // subset, and offline members must stay in the rotation
-      remaining: picker.remaining.filter((id) => id !== winnerId),
-      current: winnerId,
-    };
+    const beforeDraw = this.revealNow();
+    picker = withPresenterRevealed(
+      {
+        ...picker,
+        // filter the FULL remaining list — the draw pool may be the online
+        // subset, and offline members must stay in the rotation
+        remaining: picker.remaining.filter((id) => id !== winnerId),
+        current: winnerId,
+      },
+      winnerId,
+    );
     this.savePicker(picker);
     const seedBuf = new Uint32Array(1);
     crypto.getRandomValues(seedBuf);
@@ -2162,6 +2305,10 @@ export class BoardRoom extends DurableObject<Env> {
       picker,
       ...spin,
     });
+    // AFTER the spin frame on purpose: the winner's cards land behind the
+    // wheel overlay, so they are already there when it lifts. This leaks
+    // nothing early — picker.spun names the winner in plaintext anyway.
+    this.broadcastNewlyVisible(beforeDraw);
   }
 
   private handlePickerSkip(ws: WebSocket, participant: ParticipantRow): void {
@@ -2234,17 +2381,23 @@ export class BoardRoom extends DurableObject<Env> {
         current: null,
       };
     }
-    picker = {
-      ...picker,
-      remaining: picker.remaining.filter((id) => id !== cmd.participantId),
-      current: cmd.participantId,
-    };
+    const before = this.revealNow();
+    picker = withPresenterRevealed(
+      {
+        ...picker,
+        remaining: picker.remaining.filter((id) => id !== cmd.participantId),
+        current: cmd.participantId,
+      },
+      cmd.participantId,
+    );
     this.savePicker(picker);
     this.broadcastAll({
       type: "picker.changed",
       seq: this.nextSeq(),
       picker,
     });
+    // Taking the stage is what hands this person's cards to the room.
+    this.broadcastNewlyVisible(before);
   }
 
   // The person on stage marks their own turn done (member OR facilitator).
@@ -2269,17 +2422,24 @@ export class BoardRoom extends DurableObject<Env> {
       this.reject(ws, undefined, "INVALID", "You are not the one presenting");
       return;
     }
-    const updated: PickerState = {
+    const before = this.revealNow();
+    const stepped: PickerState = {
       ...picker,
       presented: [...picker.presented, picker.current],
       current: null,
     };
+    // The last person stepping off ends the round: the rest of the board goes
+    // to everyone, exactly as the facilitator's "finish round" spin does.
+    const updated = rotationExhausted(stepped)
+      ? withAllRevealed(stepped)
+      : stepped;
     this.savePicker(updated);
     this.broadcastAll({
       type: "picker.changed",
       seq: this.nextSeq(),
       picker: updated,
     });
+    this.broadcastNewlyVisible(before);
   }
 
   private handlePickerPool(
@@ -2304,6 +2464,7 @@ export class BoardRoom extends DurableObject<Env> {
       this.reject(ws, undefined, "INVALID", "The wheel is not set up yet");
       return;
     }
+    const before = this.revealNow();
     let updated: PickerState;
     if (cmd.type === "admin.picker.exclude") {
       if (!picker.remaining.includes(cmd.participantId)) return; // nothing to do
@@ -2330,12 +2491,18 @@ export class BoardRoom extends DurableObject<Env> {
         return; // already in the rotation
       }
     }
+    // Excluding the last person waiting ends the round — otherwise a room whose
+    // facilitator took everyone off the wheel would sit on a board nobody but
+    // the facilitator can read. `include` can only ever add someone to the
+    // pool, so it never narrows what has already been shown.
+    if (rotationExhausted(updated)) updated = withAllRevealed(updated);
     this.savePicker(updated);
     this.broadcastAll({
       type: "picker.changed",
       seq: this.nextSeq(),
       picker: updated,
     });
+    this.broadcastNewlyVisible(before);
   }
 
   private handleRoleSet(
@@ -2391,6 +2558,18 @@ export class BoardRoom extends DurableObject<Env> {
       seq: this.nextSeq(),
       participant: rowToParticipant(updated),
     });
+    // A role change moves this person across the visibility boundary in one
+    // direction or the other: a promotion hands them the cards nobody has
+    // presented yet (and any staged column), a demotion takes them away. There
+    // is no un-reveal event, and the delta helper resolves a recipient's role
+    // from the row it has just changed — so both directions are settled the
+    // same way, by pushing that participant a fresh snapshot. The reducer
+    // replaces state wholesale on sync, so the re-scoped board takes over.
+    for (const socket of this.ctx.getWebSockets()) {
+      if (readAttachment(socket)?.participantId === target.id) {
+        this.send(socket, this.buildSync(updated, updated.session_key));
+      }
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -3408,7 +3587,15 @@ export class BoardRoom extends DurableObject<Env> {
       return null;
     }
     const suffix = (this.env.GIF_HOST_SUFFIX || "klipy.com").toLowerCase();
-    return host === suffix || host.endsWith("." + suffix) ? url : null;
+    if (host === suffix || host.endsWith("." + suffix)) return url;
+    // Silent otherwise: the note saves without its GIF and nobody is told why.
+    // The likely cause is not an attack but a misconfigured GIF_HOST_SUFFIX —
+    // the provider serving media from a CDN host nobody checked — so name the
+    // host that was refused. Never the rest of the URL, which is a search term.
+    console.error(
+      `[gifs] refused media host "${host}" (GIF_HOST_SUFFIX is "${suffix}")`,
+    );
+    return null;
   }
 
   // Staged reveal: the wall is empty until the close phase; anonymous kudos
@@ -3440,12 +3627,15 @@ export class BoardRoom extends DurableObject<Env> {
     const authorNameOf = (id: string | null): string | null =>
       anonymous ? null : nameOf(id);
 
-    // Privacy: notes are private per-author until the reveal, and the export
-    // has no viewer to scope to — so pre-reveal exports carry NO note bodies
-    // (mirrors the write-phase wire rule). Vote tallies stay blind until the
-    // reveal closes (discuss onward), exactly like the live votesForSync.
+    // Privacy: notes are private per-author until the reveal, and during the
+    // presenting round they belong to the authors the rotation has reached —
+    // so the export applies the reveal a viewer with NO identity would get.
+    // Without this the download is a way around the round: the route is open
+    // to any holder of the board id, which every participant has. Vote tallies
+    // stay blind until the reveal closes (discuss onward), exactly like the
+    // live votesForSync.
     const phase = this.phase();
-    const notesRevealed = phaseRevealed(phase);
+    const reveal = publicReveal(phase, this.picker(), anonymous);
     const talliesShown =
       phase === "discuss" || phase === "close" || phase === "done";
     const revealedVotes = talliesShown
@@ -3453,12 +3643,15 @@ export class BoardRoom extends DurableObject<Env> {
       : { tallies: {} as Record<string, number>, topTargetIds: [] as string[] };
 
     const notesByColumn = new Map<string, Note[]>();
-    if (notesRevealed) {
-      for (const note of this.allNotes()) {
-        const list = notesByColumn.get(note.columnId) ?? [];
-        list.push(note);
-        notesByColumn.set(note.columnId, list);
-      }
+    // "" is a viewer who owns nothing: the export is nobody's screen, so it can
+    // only carry what EVERY member may already read.
+    const exported = new Set<string>();
+    for (const note of this.allNotes()) {
+      if (!noteVisibleTo(note, "", reveal)) continue;
+      exported.add(note.id);
+      const list = notesByColumn.get(note.columnId) ?? [];
+      list.push(note);
+      notesByColumn.set(note.columnId, list);
     }
 
     // Hidden (staged) columns are omitted from the export — it has no viewer to
@@ -3493,6 +3686,12 @@ export class BoardRoom extends DurableObject<Env> {
                 ? (revealedVotes.tallies[votableId] ?? null)
                 : null,
               crownedRank: rank >= 0 ? rank + 1 : null,
+              // Same rule as the wire: a stack id is its anchor note's id, so
+              // it is only carried when that anchor is in the file too.
+              groupId:
+                n.groupId !== null && exported.has(n.groupId)
+                  ? n.groupId
+                  : null,
             };
           }),
         };
@@ -3637,7 +3836,7 @@ export class BoardRoom extends DurableObject<Env> {
       notes: visibleNotesFor(
         this.allNotes(),
         participant.id,
-        phase,
+        this.revealOf(participant),
         this.anonymous(),
         hiddenColumns,
       ),
@@ -3650,19 +3849,29 @@ export class BoardRoom extends DurableObject<Env> {
     makeEvent: (note: Note) => ServerEvent,
     note: Note,
   ): void {
-    const phase = this.phase();
+    const board = this.revealNow();
     const anonymous = this.anonymous();
-    const hidden = this.hiddenColumnIds();
-    this.broadcastEach((recipientId) =>
-      noteVisibleTo(
-        note,
-        recipientId,
-        phase,
-        this.hiddenSetFor(recipientId, hidden),
-      )
-        ? makeEvent(redactNoteForViewer(note, recipientId, anonymous))
-        : null,
-    );
+    // The stack's anchor decides whether this recipient may be told the
+    // groupId: the group's id IS the anchor note's id, so a member on the
+    // wrong side of the presenting boundary would otherwise be handed the id
+    // of a card they have not been shown.
+    const anchor = this.anchorOf(note);
+    this.broadcastEach((recipientId) => {
+      const gate = this.gateFor(recipientId, board);
+      if (!noteVisibleTo(note, recipientId, gate.reveal, gate.hidden)) {
+        return null;
+      }
+      return makeEvent(
+        redactNoteForViewer(
+          note,
+          recipientId,
+          anonymous,
+          note.groupId === null ||
+            (anchor !== null &&
+              noteVisibleTo(anchor, recipientId, gate.reveal, gate.hidden)),
+        ),
+      );
+    });
   }
 
   // Fan-out after a move/group that may change a note's COLUMN — and therefore
@@ -3681,25 +3890,32 @@ export class BoardRoom extends DurableObject<Env> {
    *  note the member had never been shown — announcing the existence of
    *  something inside a column that is supposed to be invisible. */
   private broadcastNoteReorg(note: Note, previousColumnId?: string): void {
-    const phase = this.phase();
+    const board = this.revealNow();
     const anonymous = this.anonymous();
-    const hidden = this.hiddenColumnIds();
+    const anchor = this.anchorOf(note);
     const before: Note = {
       ...note,
       columnId: previousColumnId ?? note.columnId,
     };
     const seq = this.nextSeq();
     this.broadcastEach((recipientId) => {
-      const hiddenFor = this.hiddenSetFor(recipientId, hidden);
-      if (noteVisibleTo(note, recipientId, phase, hiddenFor)) {
+      const gate = this.gateFor(recipientId, board);
+      if (noteVisibleTo(note, recipientId, gate.reveal, gate.hidden)) {
         return {
           type: "note.updated",
           seq,
-          note: redactNoteForViewer(note, recipientId, anonymous),
+          note: redactNoteForViewer(
+            note,
+            recipientId,
+            anonymous,
+            note.groupId === null ||
+              (anchor !== null &&
+                noteVisibleTo(anchor, recipientId, gate.reveal, gate.hidden)),
+          ),
         };
       }
       // Only tell them it is gone if they had it in the first place.
-      return noteVisibleTo(before, recipientId, phase, hiddenFor)
+      return noteVisibleTo(before, recipientId, gate.reveal, gate.hidden)
         ? { type: "note.deleted", seq, noteId: note.id }
         : null;
     });
@@ -3715,6 +3931,101 @@ export class BoardRoom extends DurableObject<Env> {
     return this.participantById(recipientId)?.role === "facilitator"
       ? null
       : hidden;
+  }
+
+  // The stack anchor a note hangs off, as the visibility gate needs it. Null
+  // for a loose note AND for a dangling group id — a missing anchor strips the
+  // group, which is the safe answer either way.
+  private anchorOf(note: Note): Pick<Note, "authorId" | "columnId"> | null {
+    if (note.groupId === null) return null;
+    const row = this.noteRowById(note.groupId);
+    return row === null
+      ? null
+      : { authorId: row.author_id, columnId: row.column_id };
+  }
+
+  // Everything the per-recipient gate needs about the BOARD, read once per
+  // fan-out instead of once per recipient.
+  private revealNow(): RevealSnapshot {
+    const phase = this.phase();
+    const picker = this.picker();
+    const anonymous = this.anonymous();
+    return {
+      memberReveal: revealFor(phase, "member", picker, anonymous),
+      facilitatorReveal: revealFor(phase, "facilitator", picker, anonymous),
+      hidden: this.hiddenColumnIds(),
+    };
+  }
+
+  // The reveal for a command handler, which already holds the participant row.
+  private revealOf(participant: ParticipantRow): NoteReveal {
+    return revealFor(
+      this.phase(),
+      participant.role === "facilitator" ? "facilitator" : "member",
+      this.picker(),
+      this.anonymous(),
+    );
+  }
+
+  // The gate for ONE recipient of a fan-out. Both dimensions in one helper
+  // because hiddenSetFor already did the participantById() lookup: splitting
+  // them would double the per-recipient row reads on every note event. An
+  // unknown participant reads as a member — the same fail-closed normalisation
+  // hiddenSetFor already had.
+  private gateFor(
+    recipientId: string,
+    board: RevealSnapshot,
+  ): { reveal: NoteReveal; hidden: ReadonlySet<string> | null } {
+    return this.participantById(recipientId)?.role === "facilitator"
+      ? { reveal: board.facilitatorReveal, hidden: null }
+      : { reveal: board.memberReveal, hidden: board.hidden };
+  }
+
+  // THE only way a viewer's visible set grows. Push every note each recipient
+  // may see NOW and could not see under `before`, decided by the same predicate
+  // that gates every other send — so a widening can neither miss a note nor
+  // send one twice, and a caller cannot forget the burst by writing an `if`
+  // wrong. `before` carries BOTH privacy dimensions, so the same helper serves
+  // the rotation, the phase change, a column reveal and a promotion.
+  //
+  // Callers that widen nothing may call it: the difference is empty, nobody
+  // gets a frame, and not even a seq is spent — nextSeq() is a row WRITE.
+  private broadcastNewlyVisible(before: RevealSnapshot): void {
+    const after = this.revealNow();
+    const notes = this.allNotes();
+    const byId = new Map(notes.map((n) => [n.id, n] as const));
+    const anonymous = this.anonymous();
+    let seq: number | null = null;
+    this.broadcastEach((recipientId) => {
+      const now = this.gateFor(recipientId, after);
+      const was = this.gateFor(recipientId, before);
+      const sees = (n: Note, gate: typeof now): boolean =>
+        noteVisibleTo(n, recipientId, gate.reveal, gate.hidden);
+      // Whether the stack's anchor is visible is part of what a recipient was
+      // told: a note whose anchor they cannot see is delivered ungrouped. So a
+      // widening that uncovers the ANCHOR has to re-send the members of that
+      // stack too, or the client keeps a loose card the next snapshot shows
+      // stacked — and the symmetry gate is exactly the test for that.
+      const anchored = (n: Note, gate: typeof now): boolean => {
+        if (n.groupId === null) return true;
+        const anchor = byId.get(n.groupId);
+        return anchor !== undefined && sees(anchor, gate);
+      };
+      const newly = notes.filter(
+        (n) =>
+          sees(n, now) &&
+          (!sees(n, was) || (anchored(n, now) && !anchored(n, was))),
+      );
+      if (newly.length === 0) return null;
+      seq ??= this.nextSeq();
+      return {
+        type: "notes.revealed",
+        seq,
+        notes: newly.map((n) =>
+          redactNoteForViewer(n, recipientId, anonymous, anchored(n, now)),
+        ),
+      };
+    });
   }
 
   // Per-recipient fan-out: the mapper decides, per participant, which event

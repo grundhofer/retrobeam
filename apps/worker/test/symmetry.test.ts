@@ -175,7 +175,11 @@ describe("stream/snapshot convergence", () => {
       noteId: notes.ben as string,
       targetNoteId: notes.anna as string,
     });
-    await ben.socket.waitForNext(
+    // Waited for on the ADMIN's socket, not Ben's. Ben's own note is stacked
+    // onto Anna's, and Anna is not on stage yet — a stack's id IS its anchor
+    // note's id, so Ben's copy arrives with groupId stripped rather than
+    // naming a card he has not been shown.
+    await admin.socket.waitForNext(
       (e) => e.type === "note.updated" && e.note.groupId !== null,
     );
     admin.socket.send({
@@ -191,6 +195,56 @@ describe("stream/snapshot convergence", () => {
     await ben.socket.waitForNext((e) => e.type === "picker.spun");
     await expectConvergence(ben.socket, "member in present");
     await expectConvergence(admin.socket, "facilitator in present");
+  });
+
+  // The presenting round is the one place a viewer's set grows step by step, so
+  // it is the one place a live stream can drift from a fresh snapshot. Every
+  // move that can widen it appears here, including the two that can retract
+  // rotation state (skip, re-draw) without ever retracting a card.
+  it("present: a hand-off, a skip, a re-draw and a latecomer all converge", async () => {
+    const { boardId, admin, ben, cara, notes } = await boardWith(["present"]);
+
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: cara.you.id,
+    });
+    await ben.socket.waitForNext((e) => e.type === "notes.revealed");
+    await expectConvergence(ben.socket, "member after one hand-off");
+
+    admin.socket.send({ type: "admin.picker.skip" });
+    await ben.socket.waitForNext((e) => e.type === "picker.changed");
+    await expectConvergence(ben.socket, "member after a skip");
+
+    // Same person again: nothing new to send, and nothing may be taken back.
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: cara.you.id,
+    });
+    await ben.socket.waitForNext((e) => e.type === "picker.changed");
+    await expectConvergence(ben.socket, "member after a re-draw");
+
+    // The facilitator stacks across the boundary; Ben's copy arrives ungrouped
+    // until the anchor's author takes the stage, and then it must be re-sent.
+    admin.socket.send({
+      type: "note.group",
+      opId: opId(),
+      noteId: notes.cara as string,
+      targetNoteId: notes.anna as string,
+    });
+    await admin.socket.waitForNext(
+      (e) => e.type === "note.updated" && e.note.id === notes.cara,
+    );
+    await expectConvergence(ben.socket, "member holding a split stack");
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: admin.you.id,
+    });
+    await ben.socket.waitForNext((e) => e.type === "notes.revealed");
+    await expectConvergence(ben.socket, "member once the anchor appears");
+
+    const dan = await joined(boardId, "Dan");
+    await expectConvergence(dan.socket, "latecomer mid-round");
+    await expectConvergence(admin.socket, "facilitator mid-round");
   });
 
   it("vote: blind budgets and the anonymous meter", async () => {

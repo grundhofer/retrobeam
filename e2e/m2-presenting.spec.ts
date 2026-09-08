@@ -43,6 +43,16 @@ test("wheel rotation, presenter focus, grouping and handoff", async ({
   await expect(anna.getByTestId("spin-button")).toBeVisible();
   await expect(ben.getByTestId("spin-button")).toHaveCount(0); // members don't spin
 
+  // The phase alone reveals nothing to a member: Ben still holds only his own
+  // card, while Anna, who moderates the round, holds the whole board.
+  // The hint is the barrier — it only renders once BEN's client is in the
+  // presenting phase, so the negative assertion below cannot pass simply
+  // because the phase change has not landed yet.
+  await expect(ben.getByTestId("present-scope-hint")).toBeVisible();
+  await expect(ben.getByText("Deploys take forever")).toBeVisible();
+  await expect(ben.getByText("Deploys are slow")).toHaveCount(0);
+  await expect(anna.getByTestId("note-card")).toHaveCount(2);
+
   // Spin 1: reduced motion skips the animation; the SAME winner shows on
   // both screens (server-drawn, seed-synced).
   await anna.getByTestId("spin-button").click();
@@ -65,15 +75,21 @@ test("wheel rotation, presenter focus, grouping and handoff", async ({
     firstPresenter,
   );
 
-  // Presenter isolation: once someone holds the mic, every screen shows only
-  // that person's cards; everyone else's are hidden until the round moves on.
+  // The room reads a person's cards when the rotation reaches them — the
+  // speaker's are lifted out, everybody else's are simply not there yet.
   await anna.getByTestId("wheel-winner").waitFor({ state: "hidden" });
   const presenterNote =
     firstPresenter === "Anna" ? "Deploys are slow" : "Deploys take forever";
-  const otherNote =
-    firstPresenter === "Anna" ? "Deploys take forever" : "Deploys are slow";
   await expect(ben.getByText(presenterNote)).toBeVisible();
-  await expect(ben.getByText(otherNote)).toHaveCount(0);
+  await expect(
+    ben.getByTestId("note-card").filter({ hasText: presenterNote }),
+  ).toHaveAttribute("data-presenting", "true");
+  if (firstPresenter === "Anna") {
+    // Ben always keeps his own card; only a foreign author can still be hidden.
+    await expect(ben.getByTestId("note-card")).toHaveCount(2);
+  } else {
+    await expect(ben.getByText("Deploys are slow")).toHaveCount(0);
+  }
 
   // Spin 2: the other person — no repeats.
   const secondPresenter = firstPresenter === "Anna" ? "Ben" : "Anna";
@@ -85,6 +101,12 @@ test("wheel rotation, presenter focus, grouping and handoff", async ({
       timeout: 15_000,
     },
   );
+
+  // Cumulative: the second presenter's cards join the first's, they don't
+  // replace them.
+  await expect(ben.getByTestId("note-card")).toHaveCount(2);
+  await expect(ben.getByText("Deploys are slow")).toBeVisible();
+  await expect(ben.getByText("Deploys take forever")).toBeVisible();
 
   // Completing the final presenter finishes the rotation on all screens.
   await anna.getByTestId("wheel-winner").waitFor({ state: "hidden" });

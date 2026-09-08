@@ -61,10 +61,17 @@ test("write → reveal core loop with two participants", async ({ browser }) => 
   await anna.getByTestId("ready-toggle").click();
   await expect(anna.getByTestId("ready-count")).toContainText("2/2");
 
-  // Reveal: everyone sees everything, author chips included.
+  // Present: the facilitator gets the board straight away, a member gets each
+  // person's cards as the rotation reaches them.
   await anna.getByTestId("phase-next").click();
-  await expect(ben.getByText("Secret note from Anna")).toBeVisible();
   await expect(anna.getByText("Ben's point")).toBeVisible();
+  // Barrier on BEN's page before the negative: the hint only exists in the
+  // presenting phase, so a count of 0 cannot merely mean "the phase change has
+  // not arrived yet".
+  await expect(ben.getByTestId("present-scope-hint")).toBeVisible();
+  await expect(ben.getByText("Secret note from Anna")).toHaveCount(0);
+  await anna.getByTestId("pick-Anna").click();
+  await expect(ben.getByText("Secret note from Anna")).toBeVisible();
 
   // Reactions after reveal, live for the author.
   const annasNoteOnBensScreen = ben
