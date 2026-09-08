@@ -24,19 +24,19 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.45.0",
-    "@tailwindcss/vite": "^4.3.2",
+    "@cloudflare/vite-plugin": "^1.54.4",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
+    "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/browser-playwright": "^4.1.10",
-    "playwright": "^1.61.1",
-    "tailwindcss": "^4.3.2",
+    "playwright": "^1.63.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
     "vitest": "^4.1.10",
-    "vitest-browser-react": "^2.2.0",
-    "wrangler": "^4.111.0"
+    "vitest-browser-react": "^2.3.0",
+    "wrangler": "^4.129.0"
   }
 }
