@@ -7,8 +7,10 @@ import { useNavigate } from "react-router";
 import {
   CURSORS_ACTIVATABLE,
   EXPORT_FORMATS,
+  EXPORT_SCOPES,
   layoutModes,
   pickerStyles,
+  type ExportScope,
   type LayoutMode,
   type PickerStyle,
 } from "@retropolis/shared";
@@ -42,6 +44,7 @@ export function BoardMenu({
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [includeAuthors, setIncludeAuthors] = useState(false);
+  const [scope, setScope] = useState<ExportScope>("all");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
 
@@ -65,6 +68,9 @@ export function BoardMenu({
 
   function exportHref(format: string): string {
     const params = new URLSearchParams({ format });
+    // Only when non-default, so the "everything" URL stays byte-identical to
+    // the one that shipped before scopes existed (same as `authors`).
+    if (scope !== "all") params.set("scope", scope);
     if (includeAuthors) params.set("authors", "true");
     return `/api/boards/${boardId}/export?${params.toString()}`;
   }
@@ -93,6 +99,27 @@ export function BoardMenu({
             <p className="mb-1.5 font-semibold tracking-wide text-zinc-500 uppercase">
               {t("menu.export")}
             </p>
+            <div className="mb-2">
+              <p className="mb-1 text-zinc-600">{t("menu.exportScope")}</p>
+              <div className="flex gap-1.5" role="group">
+                {EXPORT_SCOPES.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    data-testid={`export-scope-${value}`}
+                    aria-pressed={scope === value}
+                    onClick={() => setScope(value)}
+                    className={`flex-1 rounded-lg border px-2 py-1 text-xs font-medium ${
+                      scope === value
+                        ? "border-accent bg-accent/10 text-accent-strong"
+                        : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                    }`}
+                  >
+                    {t(`menu.scope.${value}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
               <input
                 type="checkbox"

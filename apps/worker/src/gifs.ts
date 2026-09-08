@@ -21,6 +21,19 @@ export interface GifResult {
 export interface GifSearchResponse {
   configured: boolean;
   gifs: GifResult[];
+  /** The lookup itself went wrong — provider unreachable, throttled, or a
+   *  response we could not read. Distinct from "GIFs are off for this board"
+   *  (configured: false) and from "nothing matched" (an empty list). Without
+   *  the distinction a provider outage or a changed response shape reads to the
+   *  user as "no GIFs found", which is the least actionable message possible. */
+  failed?: boolean;
+  /** The PROVIDER refused us for quota, not a fault. Distinct from `failed`
+   *  because the recovery time is completely different: a KLIPY test key allows
+   *  100 searches an hour account-wide, so this clears within the hour rather
+   *  than in a few seconds, and telling someone to "try again in a moment" would
+   *  send them back into the same wall. This is the limit a real retro is most
+   *  likely to meet. */
+  quotaExceeded?: boolean;
 }
 
 const KLIPY_BASE = "https://api.klipy.com/api/v1";
@@ -35,11 +48,25 @@ export async function searchGifs(
     return { configured: Boolean(key), gifs: [] };
   }
 
-  // Rating is forced to workplace-safe server-side; the client can never widen
-  // it. Personalization (customer_id) is deliberately omitted.
+  // Content filtering is forced server-side; the client can never widen it.
+  //
+  // The parameter is `content_filter`, NOT `rating`. `rating` is GIPHY's name,
+  // and KLIPY's v1 surface simply ignores a parameter it does not recognise —
+  // so the filter this comment used to promise was not being applied at all.
+  // Confirmed against a working v1 client (Activepieces' KLIPY piece sends
+  // `content_filter`) and Discourse's Tenor-compatible client (`contentfilter`
+  // on the v2 surface, which is not the one we call).
+  //
+  // "g" rather than "pg": this is a workplace tool whose docs carry a German
+  // works-council playbook, so the stricter of the two documented safe values
+  // is the defensible default. Relaxing it to "pg" is a one-word change.
+  //
+  // Personalization (customer_id) is deliberately omitted — it is optional on
+  // search, and sending a per-user identifier to the provider is exactly what
+  // the privacy notice promises not to do.
   const params = new URLSearchParams({
     q: query,
-    rating: "pg",
+    content_filter: "g",
     locale: locale === "de" ? "de" : "en",
     per_page: "24",
   });
@@ -50,13 +77,41 @@ export async function searchGifs(
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(5000),
     });
-    if (!response.ok) return { configured: true, gifs: [] };
+    if (response.status === 429) {
+      console.error("[gifs] provider quota exhausted (429)");
+      return { configured: true, gifs: [], failed: true, quotaExceeded: true };
+    }
+    if (!response.ok) {
+      console.error(`[gifs] provider returned ${response.status}`);
+      return { configured: true, gifs: [], failed: true };
+    }
     const body: unknown = await response.json();
-    return { configured: true, gifs: parseKlipy(body) };
-  } catch {
-    // Provider unreachable / timed out — degrade to empty, never throw.
-    return { configured: true, gifs: [] };
+    const items = extractArray(body);
+    const gifs = parseKlipy(body);
+    // The dangerous case is not a network error, it is a SHAPE change: the
+    // provider answers 200 with a list we cannot read, every item is skipped,
+    // and the picker says "no GIFs found" for every possible search. Say so.
+    if (items.length > 0 && gifs.length === 0) {
+      console.error(
+        `[gifs] parsed 0 of ${items.length} items — provider response shape changed; ` +
+          `first item keys: ${describeKeys(items[0])}`,
+      );
+      return { configured: true, gifs: [], failed: true };
+    }
+    return { configured: true, gifs };
+  } catch (error) {
+    // Provider unreachable / timed out / unparseable — never throw, but never
+    // pretend the search simply found nothing either.
+    console.error("[gifs] search failed", error);
+    return { configured: true, gifs: [], failed: true };
   }
+}
+
+/** Field names only — never values, which would put search results in the log. */
+function describeKeys(item: unknown): string {
+  return typeof item === "object" && item !== null
+    ? Object.keys(item).join(",")
+    : typeof item;
 }
 
 // KLIPY's response shape is Tenor-compatible-ish; parse defensively so a shape
@@ -90,33 +145,62 @@ function extractArray(body: unknown): unknown[] {
   return [];
 }
 
+// KLIPY's real v1 shape, confirmed against a working client: each item carries
+// `file.hd.gif.{url,width,height}` and `file.sm.gif.…`, i.e. TWO levels — a size
+// bucket containing a format bucket — inside an envelope of
+// `{ result, data: { data: [...] } }`. The previous parser stopped one level
+// short and skipped every item, which is why a shape mismatch had to become
+// loud rather than silent. `files`, `media` and a flat item are also accepted,
+// because the published docs and third-party descriptions disagree with each
+// other and betting on one reading is what caused this.
+const FULL_KEYS = ["hd", "lg", "md", "original", "gif", "mp4", "webp"];
+const PREVIEW_KEYS = ["sm", "xs", "tiny", "preview", "thumbnail", "md", "gif"];
+
 function pickMedia(
   record: Record<string, unknown>,
 ): Omit<GifResult, "id"> | null {
-  const file = record.file ?? record.media ?? record;
-  if (typeof file !== "object" || file === null) return null;
-  const f = file as Record<string, unknown>;
-  const full = readVariant(f.hd ?? f.md ?? f.gif ?? f);
-  const preview = readVariant(f.sm ?? f.xs ?? f.preview ?? f.md ?? f) ?? full;
+  const container = record.files ?? record.file ?? record.media ?? record;
+  if (typeof container !== "object" || container === null) return null;
+  const f = container as Record<string, unknown>;
+  const full = readVariant(f, FULL_KEYS) ?? readVariant(record, FULL_KEYS);
+  const preview = readVariant(f, PREVIEW_KEYS) ?? full;
   if (full === null) return null;
   return {
     url: full.url,
     previewUrl: preview?.url ?? full.url,
-    width: full.width,
-    height: full.height,
+    width: full.width || 0,
+    height: full.height || 0,
   };
 }
 
+interface Variant {
+  url: string;
+  width: number;
+  height: number;
+}
+
+/** Find the first https URL in `value`, trying the named keys in order and
+ *  descending one level into each — a variant is often a container of formats
+ *  rather than a leaf. Bounded depth on purpose: this is untrusted input. */
 function readVariant(
   value: unknown,
-): { url: string; width: number; height: number } | null {
-  if (typeof value !== "object" || value === null) return null;
+  keys: string[],
+  depth = 0,
+): Variant | null {
+  if (typeof value !== "object" || value === null || depth > 2) return null;
   const v = value as Record<string, unknown>;
-  const url = v.url ?? v.gif ?? v.src;
-  if (typeof url !== "string" || !/^https:\/\//.test(url)) return null;
-  return {
-    url,
-    width: Number(v.width ?? 0) || 0,
-    height: Number(v.height ?? 0) || 0,
-  };
+
+  const direct = v.url ?? v.gif ?? v.src ?? v.proxy_src;
+  if (typeof direct === "string" && direct.startsWith("https://")) {
+    return {
+      url: direct,
+      width: Number(v.width ?? 0) || 0,
+      height: Number(v.height ?? 0) || 0,
+    };
+  }
+  for (const key of keys) {
+    const found = readVariant(v[key], keys, depth + 1);
+    if (found !== null) return found;
+  }
+  return null;
 }

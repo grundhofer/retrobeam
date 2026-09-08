@@ -278,7 +278,7 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     y: z.number().min(0).max(1).optional(),
   }),
   // Tidy / arrange-all on the canvas: reposition many cards in ONE message
-  // (never a loop of note.move — inbound frames are billed 20:1). Each move is
+  // (never a loop of note.move — every inbound frame is billed). Each move is
   // a canvas reposition within the card's zone; invalid moves are skipped.
   z.object({
     type: z.literal("note.moveMany"),

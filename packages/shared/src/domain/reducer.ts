@@ -364,11 +364,22 @@ export function applyServerEvent(
       // Ready flags and timers are per-phase; ghosts are per-phase too. On a
       // rewind into an unrevealed phase, foreign notes vanish again — the
       // server stops sending them, and the client must drop what it has.
-      const notes = phaseRevealed(event.phase)
+      const kept = phaseRevealed(event.phase)
         ? state.notes
         : state.notes.filter(
             (n) => n.authorId !== null && n.authorId === state.you?.id,
           );
+      // A stack's id IS its anchor note's id, so a card whose anchor just
+      // vanished is no longer part of a group the viewer can see. The server
+      // strips the same groupId when it rebuilds this snapshot (it never sends
+      // an id for a note the viewer does not hold), so dropping it here is what
+      // keeps a fold equal to a fresh sync.
+      const keptIds = new Set(kept.map((n) => n.id));
+      const notes = kept.map((n) =>
+        n.groupId !== null && !keptIds.has(n.groupId)
+          ? { ...n, groupId: null }
+          : n,
+      );
       // Rewinding into the vote phase makes voting blind again: tallies and
       // crowns vanish until the next reveal. The discussion focus is per-phase.
       const votes =

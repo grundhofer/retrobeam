@@ -16,16 +16,22 @@
         "name": "BOARD_ROOM",
         "class_name": "BoardRoom",
       },
+      {
+        "name": "RATE_LIMITER",
+        "class_name": "RateLimiter",
+      },
     ],
   },
+  // KLIPY_API_KEY is deliberately NOT here. A binding name cannot be both a var
+  // and a secret — declaring it empty made `wrangler secret put KLIPY_API_KEY`
+  // fail with "Binding name already in use", so the documented way to switch
+  // GIF search on did not work. It is a secret only; its type is declared in
+  // src/env.d.ts, and absent means GIF search reports itself unavailable.
   "vars": {
-    // GIF search key. Empty = GIF search degrades to "unavailable". In
-    // production set it as a secret (`wrangler secret put KLIPY_API_KEY`),
-    // which overrides this at runtime.
-    "KLIPY_API_KEY": "",
     // Stored gif URLs must be https on this host (or a subdomain) — stops a
     // malicious client planting an arbitrary external <img> tracking beacon.
-    // Set to your GIF provider's media host if it differs from the default.
+    // Verified 2026-09-05: KLIPY serves media from static.klipy.com, which this
+    // suffix covers. Set it to your provider's media host if you swap provider.
     "GIF_HOST_SUFFIX": "klipy.com",
   },
   // Per-IP brakes. Board creation and duplication are unauthenticated and each
@@ -50,6 +56,12 @@
       // SQLite-backed is the only DO type available on the free plan.
       "new_sqlite_classes": ["BoardRoom"],
     },
+    {
+      "tag": "v2",
+      // SQLite-backed because that is the only class type the free plan
+      // offers; the limiter itself keeps no storage (see rate-limiter.ts).
+      "new_sqlite_classes": ["RateLimiter"],
+    },
   ],
   "observability": {
     "enabled": true,
@@ -72,12 +84,15 @@
             "name": "BOARD_ROOM",
             "class_name": "BoardRoom",
           },
+          {
+            "name": "RATE_LIMITER",
+            "class_name": "RateLimiter",
+          },
         ],
       },
       // wrangler does NOT inherit top-level vars or bindings into a named
       // environment — they have to be repeated or they are simply absent.
       "vars": {
-        "KLIPY_API_KEY": "",
         "GIF_HOST_SUFFIX": "klipy.com",
       },
       "ratelimits": [

@@ -22,6 +22,9 @@ export interface PresenceRailProps {
   picker: PickerState | null;
   you: Participant;
   isAdmin: boolean;
+  /** the presenting round is actually pacing the reveal — false on an anonymous
+   *  board (never scoped) and once the board has been handed over */
+  scopedRound?: boolean;
 }
 
 // The rail wears three hats depending on the phase, but always as ONE list:
@@ -46,6 +49,7 @@ export function PresenceRail({
   picker,
   you,
   isAdmin,
+  scopedRound = false,
 }: PresenceRailProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -89,11 +93,17 @@ export function PresenceRail({
   const youArePresenting = mode === "present" && picker?.current === you.id;
 
   return (
+    // Bounded on purpose: a sticky card with no max height and no scroller
+    // parks its lower bays — the ready toggle and "done presenting" — below the
+    // fold of a viewport that never scrolls them back. The roster scrolls, the
+    // button bays stay pinned. lg:min-h-0 is what makes that work: a flex
+    // child's automatic min-height refuses to shrink below its content, which
+    // is exactly how an unbounded list defeats a max-height parent.
     <aside
       aria-label={t("board.participants")}
-      className="w-full self-start rounded-2xl border border-zinc-200 bg-white shadow-sm lg:sticky lg:top-4 lg:w-72 lg:shrink-0"
+      className="w-full self-start rounded-2xl border border-zinc-200 bg-white shadow-sm lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100dvh-2rem)] lg:w-72 lg:shrink-0 lg:flex-col"
     >
-      <div className="flex items-baseline justify-between px-3 py-2.5">
+      <div className="flex items-baseline justify-between px-3 py-2.5 lg:shrink-0">
         <h2 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">
           {t("board.participants")}
         </h2>
@@ -108,7 +118,7 @@ export function PresenceRail({
       </div>
 
       {mode === "present" && isAdmin && !finished && spinLabel !== null ? (
-        <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 px-3 py-2 lg:shrink-0">
           <button
             type="button"
             data-testid="spin-button"
@@ -131,7 +141,7 @@ export function PresenceRail({
       ) : null}
 
       {mode === "present" && finished ? (
-        <div className="border-t border-zinc-100 px-3 py-2.5">
+        <div className="border-t border-zinc-100 px-3 py-2.5 lg:shrink-0">
           <span
             data-testid="picker-finished"
             className="text-sm font-medium text-accent-strong"
@@ -141,7 +151,11 @@ export function PresenceRail({
         </div>
       ) : null}
 
-      <ul className="flex flex-col gap-0.5 px-1.5 py-1.5" aria-live="polite">
+      <ul
+        data-testid="rail-list"
+        className="flex flex-col gap-0.5 px-1.5 py-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain"
+        aria-live="polite"
+      >
         {roster.map((p) => (
           <PresenceRow
             key={p.id}
@@ -157,7 +171,7 @@ export function PresenceRail({
       </ul>
 
       {mode === "ready" ? (
-        <div className="border-t border-zinc-100 px-3 pt-2.5 pb-3">
+        <div className="border-t border-zinc-100 px-3 pt-2.5 pb-3 lg:shrink-0">
           <p className="mb-1.5 flex items-center gap-1.5 text-xs text-zinc-400">
             <span
               aria-hidden="true"
@@ -183,7 +197,7 @@ export function PresenceRail({
       ) : null}
 
       {youArePresenting ? (
-        <div className="border-t border-zinc-100 px-3 pt-2.5 pb-3">
+        <div className="border-t border-zinc-100 px-3 pt-2.5 pb-3 lg:shrink-0">
           <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-accent-strong">
             🎤 {t("rail.youPresenting")}
           </p>
@@ -197,9 +211,20 @@ export function PresenceRail({
           </button>
         </div>
       ) : mode === "present" && !isAdmin && !finished ? (
-        <div className="border-t border-zinc-100 px-3 py-2.5">
+        <div className="border-t border-zinc-100 px-3 py-2.5 lg:shrink-0">
           <p className="text-xs text-zinc-400">{t("rail.waiting")}</p>
         </div>
+      ) : null}
+
+      {/* Without a word about it, a scoped board reads as "where did the cards
+          go?" — the room sees each person's cards as the round reaches them. */}
+      {mode === "present" && scopedRound ? (
+        <p
+          data-testid="present-scope-hint"
+          className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-400 lg:shrink-0"
+        >
+          {isAdmin ? t("present.scoped.facilitator") : t("present.scoped.hint")}
+        </p>
       ) : null}
     </aside>
   );

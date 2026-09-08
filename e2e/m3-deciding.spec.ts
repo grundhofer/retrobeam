@@ -83,6 +83,19 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await expect(ben.getByTestId("discuss-chip-1")).toContainText("Slow deploys");
   await expect(ben.getByTestId("discuss-chip-1")).toContainText("4●");
 
+  // The discussion phase is where the board is narrowest — it pays 320px for
+  // the action list. Every column must still be on screen: they used to be
+  // clipped inside a scroll container with no visible scrollbar, which read as
+  // "the participant panel is covering the board". toBeVisible() would NOT
+  // catch that (it ignores overflow clipping), so assert the viewport.
+  const columnCount = await anna.getByTestId("board-column").count();
+  expect(columnCount).toBe(3);
+  for (let i = 0; i < columnCount; i++) {
+    await expect(anna.getByTestId("board-column").nth(i)).toBeInViewport({
+      ratio: 0.9,
+    });
+  }
+
   // Synced focus: Anna clicks the first queue chip, Ben's board dims the rest.
   await anna.getByTestId("discuss-chip-1").click();
   await expect(ben.getByTestId("discuss-chip-1")).toHaveClass(/bg-accent/);

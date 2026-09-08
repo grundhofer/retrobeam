@@ -14,6 +14,8 @@ All six build milestones are complete, deployed to production (https://retropoli
 - **M5 — Facilitation rituals**: opening check-in phase (24-question icebreaker bank with facilitator shuffle, all localized DE/EN; dismissible Prime Directive; live-editable working agreements) and a closing anonymous ROTI poll (own score private to the caster's sockets; the average is withheld until three people respond so it can't be differenced back to an individual).
 - **M6 — Fast-follows**: a facilitator-selectable slot-machine picker skin (same server draw, seed-deterministic reels, identical winner on every client); staged/hidden columns (a column and all its notes withheld from members across every path — snapshot, live wire, phase reveal, presence, vote tallies, discussion focus, export, and all reject-code oracles); and board duplication (structure only — columns/config/agreements clone into a fresh board, no notes/participants/votes, staged columns stay staged). Adversarial review fixed 7 defects incl. three existence-oracles and a move-into-hidden stale-card transition.
 
+- **v1.3 — the presenting round, and the board that fits**: the reveal became presenter-scoped (a participant is handed a person's cards when the rotation stages them, cumulatively, with the speaker's highlighted; the facilitator holds the board throughout and sees which cards the room cannot read yet; the round ending — or any later phase — opens everything). Enforced server-side across the live wire, the snapshot, every reject-code oracle and the export, with an append-only reveal set on the picker so a skip can never take a card back, and stack ids withheld while their anchor is unseen. Anonymous boards are deliberately exempt: scoping by author would attribute every note. Alongside it, the board columns stopped being a horizontal scroller with no affordance (they wrap into a responsive grid — the discussion phase used to show 1 of 4 columns on a 1280 laptop), the participant rail no longer doubles the roster in the discussion phase, its sticky card is bounded so a large roster cannot park its buttons off-screen, and the export gained a **summary scope** (crowned cards + action items).
+
 **Follow-ups before wider launch** (not blocking): register the domain (`getretropolis.de` recommended), enable CI auto-deploy secrets, set `KLIPY_API_KEY` (+ `GIF_HOST_SUFFIX`) to turn on live GIF search, and start the Betriebsrat conversation (see `05-privacy-gdpr.md`).
 
 ## Original milestone plan (for reference)
@@ -51,7 +53,7 @@ Goal: a deployed, tested "hello board" proving every architectural mechanism end
 ## M4 — Delight & shipping: kudos, GIFs, export, i18n, retention
 
 - Appreciation wall (hidden section, Close-phase reveal, card types, read-aloud flow).
-- KLIPY GIF proxy (`rating` forced, cached, attribution, per-board toggle); emoji picker (self-hosted data).
+- KLIPY GIF proxy (`content_filter` forced, cached, attribution, per-board toggle); emoji picker (self-hosted data).
 - Markdown/CSV/JSON export (authors excluded by default); archived read-only board view.
 - DE+EN i18n pass over everything; icebreaker check-in (minimal: random question display).
 - 90-day retention self-delete alarm + delete-now; usage telemetry counter; degradation banner.

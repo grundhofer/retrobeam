@@ -107,6 +107,7 @@ const resources = {
         save: "Save",
         cancel: "Cancel",
         ghostWriting: "{{name}} is writing…",
+        notPresented: "Not presented yet",
       },
       column: {
         addColumn: "Add column",
@@ -154,6 +155,11 @@ const resources = {
           count_one: "{{count}} card",
           count_other: "{{count}} cards",
           empty: "No cards in this zone.",
+        },
+        spotlight: "{{name}} is presenting this card",
+        scoped: {
+          hint: "You'll see each person's cards as they present.",
+          facilitator: "Only you can see the cards nobody has presented yet.",
         },
       },
       group: {
@@ -212,11 +218,19 @@ const resources = {
         hint: "Type to search for a GIF.",
         unavailable: "GIF search isn't set up for this board.",
         failed: "GIF search didn't respond. Try again in a moment.",
+        throttled: "That's a lot of GIF searching! Give it a few seconds.",
+        quota:
+          "We've hit this hour's GIF search limit. It comes back within the hour — the rest of the retro is unaffected.",
         remove: "Remove GIF",
         poweredBy: "Powered by KLIPY",
       },
       menu: {
         export: "Export",
+        exportScope: "Scope",
+        scope: {
+          all: "Everything",
+          summary: "Summary",
+        },
         includeAuthors: "Include author names",
         settings: "Board settings",
         gifsEnabled: "Allow GIFs",
@@ -446,6 +460,7 @@ const resources = {
         save: "Speichern",
         cancel: "Abbrechen",
         ghostWriting: "{{name}} schreibt…",
+        notPresented: "Noch nicht vorgestellt",
       },
       column: {
         addColumn: "Spalte hinzufügen",
@@ -493,6 +508,12 @@ const resources = {
           count_one: "{{count}} Karte",
           count_other: "{{count}} Karten",
           empty: "Keine Karten in dieser Zone.",
+        },
+        spotlight: "{{name}} stellt diese Karte gerade vor",
+        scoped: {
+          hint: "Du siehst die Karten der anderen, sobald sie vorgestellt werden.",
+          facilitator:
+            "Nur du siehst die Karten, die noch niemand vorgestellt hat.",
         },
       },
       group: {
@@ -553,11 +574,22 @@ const resources = {
         unavailable: "GIF-Suche ist für dieses Board nicht eingerichtet.",
         failed:
           "Die GIF-Suche hat nicht geantwortet. Versuch es gleich nochmal.",
+        throttled: "Ganz schön viele GIF-Suchen! Gib ihr ein paar Sekunden.",
+        quota:
+          "Das GIF-Limit für diese Stunde ist erreicht. Es kommt innerhalb der Stunde zurück — die Retro läuft normal weiter.",
         remove: "GIF entfernen",
-        poweredBy: "Bereitgestellt von KLIPY",
+        // NOT translated: KLIPY's API terms require the literal string
+        // "Powered by KLIPY" (plus their logo, still to be added). An
+        // attribution string is a brand asset, not UI copy.
+        poweredBy: "Powered by KLIPY",
       },
       menu: {
         export: "Export",
+        exportScope: "Umfang",
+        scope: {
+          all: "Alles",
+          summary: "Zusammenfassung",
+        },
         includeAuthors: "Namen der Autor:innen einschließen",
         settings: "Board-Einstellungen",
         gifsEnabled: "GIFs erlauben",

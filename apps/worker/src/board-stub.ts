@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type { BoardRoom } from "./board-room.js";
+import type { RateLimiter } from "./rate-limiter.js";
 
 let jurisdictionSupported: boolean | null = null;
 
@@ -30,6 +31,13 @@ function boardNamespace(env: Env): DurableObjectNamespace<BoardRoom> {
     }
     throw error;
   }
+}
+
+/** The single rate-limiter instance. One object, so its counts are exact; not
+ *  jurisdiction-pinned because it holds no personal data — only ephemeral
+ *  per-address counters that never touch disk. */
+export function limiterStub(env: Env): DurableObjectStub<RateLimiter> {
+  return env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName("global"));
 }
 
 export function boardStub(

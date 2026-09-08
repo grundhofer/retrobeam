@@ -17,6 +17,32 @@ export const pickerStateSchema = z.object({
   /** deliberately taken off the wheel by the facilitator — reconnects and
    *  latecomer auto-adds must not undo this (defaulted for older boards) */
   excluded: z.array(z.string()).default([]),
+  /** Authors whose cards the ROOM has already been shown in the current
+   *  presenting round. A PRIVACY fact, not rotation bookkeeping — never
+   *  conflate the two:
+   *
+   *  `presented` is what the wheel has completed, and it can go BACKWARDS.
+   *  admin.picker.skip returns the current presenter to `remaining` without
+   *  ever adding them here, so a visible set derived from (presented ∪ current)
+   *  would make cards the room had already read go dark again — the server
+   *  would have to un-send notes it had already broadcast, and there is no
+   *  un-reveal event. Within a round this list only ever grows.
+   *
+   *  It is cleared at exactly one point: entering `present` from an unrevealed
+   *  phase, which starts a new round. Every member's client has dropped foreign
+   *  notes on the way into that phase already, so clearing takes nothing off
+   *  any screen. (Defaulted [] for boards written before presenter-scoped
+   *  visibility; a board that was mid-round when this shipped is opened once
+   *  by the schemaVersion 2 migration rather than guessed at on every read.) */
+  revealed: z.array(z.string()).default([]),
+  /** The round has handed the whole board over: everyone sees everything.
+   *  Latched rather than recomputed, because every predicate that could
+   *  express it is retractable — `rotationExhausted` goes false again the
+   *  moment a latecomer is appended to `remaining`, and `pickerFinished` is
+   *  false for a room where everybody was excluded. It is latched on the way
+   *  OUT of `present` too, so a vote→present rewind cannot re-narrow a board
+   *  the room is already reading. (Defaulted false for older boards.) */
+  revealedAll: z.boolean().default(false),
 });
 export type PickerState = z.infer<typeof pickerStateSchema>;
 
@@ -25,6 +51,8 @@ export const EMPTY_PICKER: PickerState = {
   presented: [],
   current: null,
   excluded: [],
+  revealed: [],
+  revealedAll: false,
 };
 
 export function pickerFinished(picker: PickerState): boolean {
@@ -45,6 +73,44 @@ export function pickerKnows(
     picker.presented.includes(participantId) ||
     picker.excluded.includes(participantId)
   );
+}
+
+// Authors the room has already been shown this round.
+//
+// Deliberately NOT folding in `presented` and `current`. Both survive a rewind
+// out of the presenting phase and back (a documented property of the
+// rotation), so a set derived from them could never be cleared — the second
+// round on a board would start with everybody's new cards already visible,
+// which is the very thing the round reset exists to prevent. A board written
+// before this field is handled once, by the schemaVersion 2 migration, not by
+// guessing on every read.
+export function revealedAuthors(picker: PickerState): ReadonlySet<string> {
+  return new Set(picker.revealed);
+}
+
+// The rotation can put nobody new on stage: nobody waiting, nobody holding the
+// mic. Deliberately NOT pickerFinished, which additionally requires that
+// somebody actually presented because it drives the confetti. For visibility
+// the celebration is irrelevant: if nothing can still be staged there is
+// nothing left to withhold, and a room whose facilitator excluded everyone
+// would otherwise never see a single card.
+export function rotationExhausted(picker: PickerState): boolean {
+  return picker.remaining.length === 0 && picker.current === null;
+}
+
+// Append-only. Returns the SAME object when nothing changed, so a caller can
+// skip the persist and the fan-out on a reference check.
+export function withPresenterRevealed(
+  picker: PickerState,
+  participantId: string,
+): PickerState {
+  if (picker.revealed.includes(participantId)) return picker;
+  return { ...picker, revealed: [...picker.revealed, participantId] };
+}
+
+// Latches the whole-board reveal. One-way for the life of the round.
+export function withAllRevealed(picker: PickerState): PickerState {
+  return picker.revealedAll ? picker : { ...picker, revealedAll: true };
 }
 
 export const WHEEL_SPIN_MS = 4500;
