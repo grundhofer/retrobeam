@@ -145,6 +145,85 @@ test("wheel rotation, presenter focus, grouping and handoff", async ({
   await benContext.close();
 });
 
+// The facilitator shares their screen in the call, so "one card at a time" has
+// to be a property of the ROOM, not of the moderator's browser: the remote
+// participants must land on the same card at the same moment.
+test("focus mode walks the presenter's cards on every screen", async ({
+  browser,
+}) => {
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
+  const anna = await annaContext.newPage();
+  await anna.goto("/");
+  await anna.getByRole("textbox").fill("Sprint 46 retro");
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  const boardUrl = anna.url();
+  await join(anna, "Anna");
+
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(boardUrl);
+  await join(ben, "Ben");
+
+  // Anna writes two cards; Ben writes one, so the rotation has two people.
+  await anna.getByTestId("phase-next").click();
+  const annaComposer = anna
+    .getByPlaceholder(/write a note|notiz schreiben/i)
+    .first();
+  await annaComposer.fill("First card");
+  await annaComposer.press("Enter");
+  await annaComposer.fill("Second card");
+  await annaComposer.press("Enter");
+  const benComposer = ben
+    .getByPlaceholder(/write a note|notiz schreiben/i)
+    .first();
+  await benComposer.fill("Ben's only card");
+  await benComposer.press("Enter");
+
+  await anna.getByTestId("phase-next").click(); // present
+  await anna.getByTestId("focus-mode-toggle").click();
+  // Members see the state too — otherwise "where did the cards go?" has no
+  // answer on screen.
+  await expect(ben.getByTestId("focus-mode-state")).toBeVisible();
+
+  // Put Anna on stage deliberately rather than spinning, so the assertions do
+  // not depend on the draw.
+  await anna.getByTestId("pick-Anna").click();
+  await expect(anna.getByTestId("presenter-banner")).toContainText("Anna");
+
+  // ONE card, centred, and the server picked the first one — no click needed
+  // to start the walkthrough.
+  await expect(anna.getByTestId("present-stage")).toBeVisible();
+  await expect(anna.getByTestId("present-stage")).toContainText("First card");
+  await expect(ben.getByTestId("present-stage")).toContainText("First card");
+
+  // Ben follows Anna's "next" without touching anything himself.
+  await expect(anna.getByTestId("present-next")).toContainText(
+    /next card|nächste karte/i,
+  );
+  await anna.getByTestId("present-next").click();
+  await expect(anna.getByTestId("present-stage")).toContainText("Second card");
+  await expect(ben.getByTestId("present-stage")).toContainText("Second card");
+
+  // On the LAST card the button stops offering another card and offers the
+  // next person instead — which is what actually happens next.
+  await expect(anna.getByTestId("present-next")).not.toContainText(
+    /next card|nächste karte/i,
+  );
+  await anna.getByTestId("present-next").click();
+  await expect(anna.getByTestId("presenter-banner")).toContainText("Ben", {
+    timeout: 15_000,
+  });
+  await expect(ben.getByTestId("present-stage")).toContainText(
+    "Ben's only card",
+  );
+
+  await annaContext.close();
+  await benContext.close();
+});
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();

@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Participant } from "@retropolis/shared";
+import { nameInitials, type Participant } from "@retropolis/shared";
 import { useConnection } from "../lib/connection.js";
 
 export interface AvatarRowProps {
@@ -54,7 +54,7 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
             } ${participant.online ? "" : "opacity-35"} ${isAdmin ? "cursor-pointer" : ""}`}
             style={{ backgroundColor: participant.color }}
           >
-            {initials(participant.name)}
+            {nameInitials(participant.name)}
             {/* Two people can share initials, a disabled button is not
                 reachable by keyboard, and its title is not reliably announced —
                 so the name and the presence state live here as real content.
@@ -101,11 +101,4 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
       ))}
     </div>
   );
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? "?";
-  const second = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
-  return (first + second).toUpperCase();
 }

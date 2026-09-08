@@ -4,11 +4,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  nameGraphemes,
+  nameMonogram,
   SLOT_REELS,
   slotReel,
   WHEEL_HOLD_MS,
   wheelTargetRotation,
   type Participant,
+  type PickerStyle,
   type WheelSpin,
 } from "@retropolis/shared";
 import { burstConfetti } from "../lib/confetti.js";
@@ -73,18 +76,15 @@ function SpinScene({
   return (
     <div
       data-testid="wheel-overlay"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-zinc-900/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-zinc-900/75 backdrop-blur-sm"
     >
       {!reducedMotion ? (
-        pickerStyle === "slots" ? (
-          <SlotMachine
-            spin={spin}
-            roster={roster}
-            clockOffsetMs={clockOffsetMs}
-          />
-        ) : (
-          <Wheel spin={spin} roster={roster} clockOffsetMs={clockOffsetMs} />
-        )
+        <PickerSkin
+          style={pickerStyle}
+          spin={spin}
+          roster={roster}
+          clockOffsetMs={clockOffsetMs}
+        />
       ) : null}
       <div aria-live="polite" className="min-h-16 text-center">
         {landed && winner ? (
@@ -103,6 +103,73 @@ function SpinScene({
       </div>
     </div>
   );
+}
+
+// An exhaustive switch with NO default clause, so adding a style to
+// `pickerStyles` fails the build here instead of silently rendering the wheel.
+// That is what makes "we can add more later" true rather than aspirational.
+function PickerSkin({
+  style,
+  spin,
+  roster,
+  clockOffsetMs,
+}: {
+  style: PickerStyle;
+  spin: WheelSpin;
+  roster: Participant[];
+  clockOffsetMs: number;
+}) {
+  switch (style) {
+    case "slots":
+      return (
+        <SlotMachine
+          spin={spin}
+          roster={roster}
+          clockOffsetMs={clockOffsetMs}
+        />
+      );
+    case "wheel":
+      return (
+        <Wheel spin={spin} roster={roster} clockOffsetMs={clockOffsetMs} />
+      );
+  }
+}
+
+// --- wheel geometry -------------------------------------------------------
+// One place for the numbers, because the label layout and the rim have to
+// agree: a name is written ALONG its radius (hub → rim), so what bounds its
+// length is a distance, not the segment's arc — which is the whole reason
+// names no longer have to be cut off.
+const RIM_OUTER = 138; // outer bezel
+const FACE = 126; // coloured segments
+const LABEL_OUTER = 116; // where a name ends, just inside the rim
+const LABEL_INNER = 38; // where it may start, clear of the hub
+const LABEL_SPAN = LABEL_OUTER - LABEL_INNER;
+const LABEL_MAX_PX = 17;
+const LABEL_MIN_PX = 8.5;
+// A semibold Latin sans averages ~0.55em per character. CJK, Hangul and emoji
+// are full-width — roughly 1em — and using the Latin figure for them
+// under-measures a name by about half, which is exactly how a label overruns.
+// Worse, the textLength backstop below would never fire, because it was
+// computed from the same wrong number.
+const LATIN_EM = 0.55;
+const WIDE_EM = 1;
+const WIDE =
+  /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|\p{Extended_Pictographic}/u;
+
+/** Name width in em units, measured per grapheme. */
+function labelWidthEm(graphemes: readonly string[]): number {
+  let em = 0;
+  for (const g of graphemes) em += WIDE.test(g) ? WIDE_EM : LATIN_EM;
+  return em;
+}
+
+function labelSize(widthEm: number, count: number): number {
+  const byLength = LABEL_SPAN / Math.max(0.5, widthEm);
+  // A tall glyph must also fit ACROSS the segment at the label's inner end,
+  // where the wedge is narrowest — otherwise 15 names on one wheel collide.
+  const byWedge = ((2 * Math.PI * LABEL_INNER) / count) * 0.78;
+  return Math.max(LABEL_MIN_PX, Math.min(LABEL_MAX_PX, byLength, byWedge));
 }
 
 function Wheel({
@@ -137,10 +204,45 @@ function Wheel({
 
   return (
     <svg
-      viewBox="-120 -120 240 240"
-      className="size-72 drop-shadow-2xl"
+      data-testid="wheel"
+      viewBox="-150 -150 300 300"
+      // Bounded by the SHORTER viewport axis, not just by breakpoint: the
+      // overlay is a fixed, unscrollable column (wheel + winner card), so a
+      // fixed 27rem clipped the winner off a phone in landscape.
+      className="w-[min(27rem,88vw,62dvh)] drop-shadow-2xl"
       aria-hidden="true"
     >
+      <defs>
+        {/* Depth without touching the segment colours: a light sheen towards
+            the top-left and a soft vignette at the rim, both painted OVER the
+            wedges so every participant colour keeps its identity. */}
+        <radialGradient id="wheel-sheen" cx="35%" cy="28%" r="78%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.38" />
+          <stop offset="45%" stopColor="#ffffff" stopOpacity="0.06" />
+          <stop offset="82%" stopColor="#000000" stopOpacity="0.04" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.22" />
+        </radialGradient>
+        <linearGradient id="wheel-rim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fdfdfd" />
+          <stop offset="50%" stopColor="#d7dbe2" />
+          <stop offset="100%" stopColor="#a7aeb9" />
+        </linearGradient>
+        <linearGradient id="wheel-hub" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#dfe3e9" />
+        </linearGradient>
+      </defs>
+
+      {/* Bezel — static, so it does not spin with the face. */}
+      <circle r={RIM_OUTER} fill="url(#wheel-rim)" />
+      <circle
+        r={RIM_OUTER - 5}
+        fill="none"
+        stroke="#20242C"
+        strokeOpacity="0.14"
+        strokeWidth="1.5"
+      />
+
       <g
         style={{
           transform: `rotate(${rotation}deg)`,
@@ -150,43 +252,108 @@ function Wheel({
               : undefined,
         }}
       >
-        <circle r="110" fill="#ffffff" />
+        <circle r={FACE} fill="#ffffff" />
         {spin.pool.map((participantId, index) => {
           const participant = roster.find((p) => p.id === participantId);
           const color = participant?.color ?? "#9AA1AD";
           const name = participant?.name ?? "?";
           const midAngle = index * segment + segment / 2 - 90;
+          // Left-hand segments would render their radial label upside down;
+          // mirroring about the label's outer end fixes the reading direction
+          // without moving the text off its own wedge.
+          //
+          // Computed in the RESTING frame (midAngle + target), not the
+          // unrotated one. The wheel comes to a stop at `target`, which is
+          // never a multiple of 360 — so deciding the flip pre-rotation left
+          // roughly half the names upside down once it stopped, the winner's
+          // own included, which is the one everybody reads for the 2.6s hold.
+          const restAngle = midAngle + target;
+          const flipped = Math.cos((restAngle * Math.PI) / 180) < 0;
+          // Measured in GRAPHEMES, not UTF-16 units: "Christian 🤖".length is
+          // 12 for 11 characters, and code units are the unit that produced
+          // the "C?" bug in the first place.
+          const widthEm = labelWidthEm(nameGraphemes(name));
+          const fontSize = labelSize(widthEm, count);
+          // The chosen size normally fits; when a very long name would still
+          // overrun, textLength condenses it into the span rather than
+          // clipping it. Either way the WHOLE name is on the wheel.
+          const estimated = widthEm * fontSize;
           return (
             <g key={participantId}>
               {count === 1 ? (
-                <circle r="110" fill={color} />
+                <circle r={FACE} fill={color} />
               ) : (
                 <path
-                  d={segmentPath(index, count, 110)}
+                  d={segmentPath(index, count, FACE)}
                   fill={color}
                   stroke="#ffffff"
                   strokeWidth="2"
+                  strokeLinejoin="round"
                 />
               )}
-              <text
-                x={Math.cos((midAngle * Math.PI) / 180) * 68}
-                y={Math.sin((midAngle * Math.PI) / 180) * 68}
-                transform={`rotate(${midAngle + 90} ${Math.cos((midAngle * Math.PI) / 180) * 68} ${Math.sin((midAngle * Math.PI) / 180) * 68})`}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill="#ffffff"
-                fontSize="13"
-                fontWeight="600"
-              >
-                {name.length > 10 ? `${name.slice(0, 9)}…` : name}
-              </text>
+              <g transform={`rotate(${midAngle})`}>
+                <text
+                  transform={
+                    flipped ? `rotate(180 ${LABEL_OUTER} 0)` : undefined
+                  }
+                  x={LABEL_OUTER}
+                  y={0}
+                  textAnchor={flipped ? "start" : "end"}
+                  dominantBaseline="central"
+                  fill="#ffffff"
+                  fontSize={fontSize}
+                  fontWeight="600"
+                  // A painted outline rather than an feDropShadow: up to a
+                  // dozen filter regions re-rasterising every frame of a 4.5s
+                  // transform transition is the one real frame-drop risk here,
+                  // and the outline reads the same against a mid-tone wedge.
+                  paintOrder="stroke"
+                  stroke="#00000055"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                  {...(estimated > LABEL_SPAN
+                    ? {
+                        textLength: LABEL_SPAN,
+                        lengthAdjust: "spacingAndGlyphs" as const,
+                      }
+                    : {})}
+                >
+                  {name}
+                </text>
+              </g>
             </g>
           );
         })}
-        <circle r="14" fill="#ffffff" />
       </g>
-      {/* pointer at the top */}
-      <path d="M -12 -122 L 12 -122 L 0 -96 Z" fill="#20242C" />
+
+      {/* Sheen sits OUTSIDE the rotating group: the light source is fixed, like
+          the bezel above it. A specular highlight that orbits with the face
+          reads as a rotating lamp rather than a spinning disc. */}
+      <circle r={FACE} fill="url(#wheel-sheen)" pointerEvents="none" />
+
+      {/* Hub, drawn after the face so it caps the wedge tips. */}
+      <circle r="21" fill="#20242C" fillOpacity="0.10" />
+      <circle r="18" fill="url(#wheel-hub)" />
+      <circle
+        r="18"
+        fill="none"
+        stroke="#20242C"
+        strokeOpacity="0.16"
+        strokeWidth="1.5"
+      />
+      <circle r="5" fill="#20242C" fillOpacity="0.22" />
+
+      {/* Pointer at the top, overlapping the bezel so it reads as a physical
+          flapper rather than a floating triangle. */}
+      <g>
+        <path
+          d={`M -13 ${-RIM_OUTER - 9} L 13 ${-RIM_OUTER - 9} L 0 ${-RIM_OUTER + 17} Z`}
+          fill="#20242C"
+          stroke="#ffffff"
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+        />
+      </g>
     </svg>
   );
 }
@@ -292,7 +459,7 @@ function Reel({
                 className="flex size-12 items-center justify-center rounded-full text-lg font-semibold text-white"
                 style={{ backgroundColor: color }}
               >
-                {name.slice(0, 1).toUpperCase()}
+                {nameMonogram(name)}
               </span>
             </div>
           );

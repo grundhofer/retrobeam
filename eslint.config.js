@@ -4,6 +4,7 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
+import globals from "globals";
 
 export default tseslint.config(
   {
@@ -43,6 +44,12 @@ export default tseslint.config(
     files: ["apps/web/src/**/*.{ts,tsx}"],
     plugins: { "react-hooks": reactHooks },
     rules: reactHooks.configs.recommended.rules,
+  },
+  // Build scripts run in Node, not in a browser or in workerd — without this
+  // js.configs.recommended's no-undef flags `process`, `console` and `URL`.
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: { globals: globals.node },
   },
   {
     rules: {

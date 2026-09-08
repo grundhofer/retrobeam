@@ -7,6 +7,7 @@ import { page } from "vitest/browser";
 import type {
   ClientCommand,
   Column,
+  Note,
   Participant,
   ServerEvent,
 } from "@retropolis/shared";
@@ -39,7 +40,32 @@ const you: Participant = {
   online: true,
 };
 
-function view() {
+const ben: Participant = {
+  id: "b".repeat(32),
+  name: "Ben",
+  color: "#1971C2",
+  role: "member",
+  online: true,
+};
+
+function note(id: string, columnId: string, order: number): Note {
+  return {
+    id: id.repeat(32),
+    columnId,
+    authorId: you.id,
+    text: `note ${id}`,
+    gifUrl: null,
+    order,
+    x: null,
+    y: null,
+    groupId: null,
+    reactions: {},
+  };
+}
+
+function view(
+  overrides: Partial<React.ComponentProps<typeof BoardColumns>> = {},
+) {
   const connection = {
     boardId: "a".repeat(32),
     send: (_command: ClientCommand) => {},
@@ -57,7 +83,7 @@ function view() {
           columns={columns}
           notes={[]}
           columnCounts={{}}
-          roster={[you]}
+          roster={[you, ben]}
           you={you}
           phase="discuss"
           editing={{}}
@@ -72,9 +98,11 @@ function view() {
             talliesShown: true,
             tallies: {},
             topTargetIds: [],
+            voters: null,
             focusId: null,
           }}
           gifsEnabled={false}
+          {...overrides}
         />
       </div>
     </ConnectionProvider>
@@ -98,4 +126,106 @@ test("every column stays inside the board at a starved width", async () => {
   }
   // Nothing is parked in horizontal overflow any more — the columns wrap.
   expect(strip.scrollWidth).toBeLessThanOrEqual(strip.clientWidth + 1);
+});
+
+// The reported annoyance: every card that landed in a column — your own, and a
+// colleague's ghost — was inserted ABOVE the composer and pushed the textarea
+// (and the caret in it) one card height further down. The fix is a DOM-order
+// one, so the assertion has to be on DOM order.
+test("the composer and the in-progress ghosts stay above the finished cards", async () => {
+  const columnId = columns[0]!.id;
+  const screen = await render(
+    view({
+      phase: "write",
+      notes: [note("1", columnId, 1), note("2", columnId, 2)],
+      editing: { [ben.id]: columnId },
+      columnCounts: { [columnId]: 5 },
+    }),
+  );
+
+  const column = screen.getByTestId("board-column").first().element();
+  const rows = [...column.querySelectorAll("[data-testid]")].filter((el) => {
+    const id = el.getAttribute("data-testid") ?? "";
+    return (
+      id.startsWith("composer-") || id === "ghost-card" || id === "note-card"
+    );
+  });
+  const kinds = rows.map((el) => {
+    const id = el.getAttribute("data-testid") ?? "";
+    return id.startsWith("composer-") ? "composer" : id;
+  });
+  expect(kinds[0]).toBe("composer");
+  expect(kinds[1]).toBe("ghost-card");
+  expect(kinds.slice(2).every((kind) => kind === "note-card")).toBe(true);
+
+  // Newest-first while writing: your last card sits directly under the box you
+  // are typing in, rather than drifting to the bottom of a growing column.
+  const cards = screen.getByTestId("note-card").elements();
+  expect(cards[0]?.textContent).toContain("note 2");
+});
+
+// The write-phase flip must not leak into a phase the room READS: presenting,
+// stacking and the export all follow the ascending order.
+test("a revealed phase keeps the ascending reading order", async () => {
+  const columnId = columns[0]!.id;
+  const screen = await render(
+    view({
+      phase: "present",
+      notes: [note("1", columnId, 1), note("2", columnId, 2)],
+    }),
+  );
+  const cards = screen.getByTestId("note-card").elements();
+  expect(cards[0]?.textContent).toContain("note 1");
+});
+
+// "It should be visible what you voted for and who voted for what." Two halves:
+// your own dots need no server work at all, the voter chips ride the gated
+// reveal — so the null case (a blind board) is asserted alongside.
+test("the reveal shows your own dots, and the voters when the board names them", async () => {
+  const columnId = columns[0]!.id;
+  const target = note("1", columnId, 1);
+  const blind = await render(
+    view({
+      phase: "discuss",
+      notes: [target],
+      deciding: {
+        voteActive: false,
+        mine: { [target.id]: 2 },
+        remaining: 0,
+        maxPerTarget: null,
+        talliesShown: true,
+        tallies: { [target.id]: 3 },
+        topTargetIds: [target.id],
+        voters: null,
+        focusId: null,
+      },
+    }),
+  );
+  await expect.element(blind.getByTestId("your-vote")).toBeVisible();
+  expect(blind.getByTestId("voter-Ben").elements()).toHaveLength(0);
+  await blind.unmount();
+
+  const named = await render(
+    view({
+      phase: "discuss",
+      notes: [target],
+      deciding: {
+        voteActive: false,
+        mine: { [target.id]: 2 },
+        remaining: 0,
+        maxPerTarget: null,
+        talliesShown: true,
+        tallies: { [target.id]: 3 },
+        topTargetIds: [target.id],
+        voters: { [target.id]: { [you.id]: 2, [ben.id]: 1 } },
+        focusId: null,
+      },
+    }),
+  );
+  await expect.element(named.getByTestId("voter-Anna")).toBeVisible();
+  await expect.element(named.getByTestId("voter-Ben")).toBeVisible();
+  // A voter id with no roster row is skipped, never rendered as raw hex.
+  expect(
+    named.getByTestId("board-column").first().element().textContent,
+  ).not.toContain(you.id);
 });

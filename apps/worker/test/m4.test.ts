@@ -8,7 +8,7 @@ import {
   SELF,
 } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import type { ServerEvent } from "@retropolis/shared";
+import { KUDO_EVERYONE, type ServerEvent } from "@retropolis/shared";
 import { boardStub } from "../src/board-stub.js";
 import { connect, createBoard, ipHeaders, type TestSocket } from "./helpers.js";
 
@@ -117,6 +117,69 @@ describe("appreciation wall", () => {
     expect(cara.sync.kudos).toHaveLength(2);
   });
 
+  // The composer leaves the sender out of its picker, but that is convenience.
+  // The rule belongs to the server, so it is tested against the wire.
+  it("a kudo addressed to yourself is refused; one to everyone is not", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    await advance(admin, ["write", "present", "vote", "discuss", "close"]);
+
+    admin.socket.send({
+      type: "kudo.create",
+      opId: opId(),
+      kudoId: newId(),
+      cardType: "great-job",
+      toId: admin.you.id,
+      text: "self five",
+      anonymous: false,
+    });
+    const refused = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("INVALID");
+    // Nothing reached the room.
+    expect(ben.socket.events.some((e) => e.type === "kudo.created")).toBe(
+      false,
+    );
+
+    // An unknown-but-well-formed recipient must STILL be a NOT_FOUND: the
+    // sentinel branch must not swallow the existence check.
+    admin.socket.send({
+      type: "kudo.create",
+      opId: opId(),
+      kudoId: newId(),
+      cardType: "great-job",
+      toId: "f".repeat(32),
+      text: "ghost",
+      anonymous: false,
+    });
+    const missing = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (missing.type !== "reject") throw new Error("unreachable");
+    expect(missing.code).toBe("NOT_FOUND");
+
+    // "Thanks to all" is addressed to the room, and includes the sender the
+    // way any toast does — so it is accepted.
+    const allId = newId();
+    admin.socket.send({
+      type: "kudo.create",
+      opId: opId(),
+      kudoId: allId,
+      cardType: "thank-you",
+      toId: KUDO_EVERYONE,
+      text: "thanks everyone",
+      anonymous: false,
+    });
+    const created = await ben.socket.waitFor(
+      (e) => e.type === "kudo.created" && e.kudo.id === allId,
+    );
+    if (created.type !== "kudo.created") throw new Error("unreachable");
+    expect(created.kudo.toId).toBe(KUDO_EVERYONE);
+
+    // It survives persistence and the staged reveal, not just the broadcast.
+    const cara = await joined(boardId, "Cara");
+    expect(cara.sync.kudos.map((k) => k.toId)).toContain(KUDO_EVERYONE);
+  });
+
   it("kudos are hidden again on rewind out of close", async () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);
@@ -126,8 +189,10 @@ describe("appreciation wall", () => {
       opId: opId(),
       kudoId: newId(),
       cardType: "well-done",
-      toId: admin.you.id,
-      text: "self five",
+      // Addressed to the room — a kudo to yourself is refused (see the
+      // self-kudo test above); the staging rule under test is unaffected.
+      toId: KUDO_EVERYONE,
+      text: "well played all",
       anonymous: false,
     });
     await admin.socket.waitFor((e) => e.type === "kudo.created");
@@ -211,10 +276,13 @@ describe("board export", () => {
         )
       ).status,
     ).toBe(404);
+    // The route renders md/csv/json/pdf. JPEG is NOT one of them and must stay
+    // a 400: a Worker has no canvas, so the browser draws that one itself —
+    // answering 200 here would hand back a text body with an image filename.
     expect(
       (
         await SELF.fetch(
-          `https://example.com/api/boards/${boardId}/export?format=pdf`,
+          `https://example.com/api/boards/${boardId}/export?format=jpeg`,
         )
       ).status,
     ).toBe(400);
@@ -232,6 +300,44 @@ describe("board export", () => {
         )
       ).status,
     ).toBe(200);
+  });
+
+  it("renders a real PDF from the same snapshot the markdown comes from", async () => {
+    const { boardId, adminToken } = await createBoard("Sprint 52");
+    const admin = await joined(boardId, "Anna", adminToken);
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    await advance(admin, ["write"]);
+    const noteId = newId();
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId,
+      columnId,
+      // German, on purpose: the PDF encodes WinAnsi, and umlauts are the whole
+      // reason that encoding was chosen over raw ASCII.
+      text: "Rückblick über Größen",
+    });
+    await admin.socket.waitFor((e) => e.type === "note.created");
+    await advance(admin, ["present"]);
+    admin.socket.send({ type: "admin.picker.spin" });
+    await admin.socket.waitFor((e) => e.type === "picker.spun");
+
+    const response = await SELF.fetch(
+      `https://example.com/api/boards/${boardId}/export?format=pdf`,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/pdf");
+    expect(response.headers.get("content-disposition")).toContain(
+      "Sprint-52.pdf",
+    );
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    // A real PDF, not a string that happens to be served as one.
+    expect(String.fromCharCode(...bytes.slice(0, 7))).toBe("%PDF-1.");
+    expect(String.fromCharCode(...bytes.slice(-6))).toContain("%%EOF");
+    // The umlauts survive as single CP1252 bytes (ü = 0xFC, ö = 0xF6).
+    const body = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+    expect(body).toContain("R\xfcckblick \xfcber Gr\xf6\xdfen");
   });
 
   it("does NOT leak unrevealed notes or blind-vote tallies", async () => {
@@ -287,6 +393,40 @@ describe("board export", () => {
       .find((n) => n.text === "Ben's private draft");
     expect(exportedNote).toBeDefined(); // note revealed
     expect(exportedNote?.votes).toBeNull(); // but the tally stays blind
+  });
+
+  it("renders a kudo addressed to the room as Everyone, not as someone", async () => {
+    const { boardId, adminToken } = await createBoard("Sprint 51");
+    const admin = await joined(boardId, "Anna", adminToken);
+    await advance(admin, ["write", "present", "vote", "discuss", "close"]);
+    admin.socket.send({
+      type: "kudo.create",
+      opId: opId(),
+      kudoId: newId(),
+      cardType: "thank-you",
+      toId: KUDO_EVERYONE,
+      text: "great sprint",
+      anonymous: false,
+    });
+    await admin.socket.waitFor((e) => e.type === "kudo.created");
+
+    const md = await (
+      await SELF.fetch(
+        `https://example.com/api/boards/${boardId}/export?format=md`,
+      )
+    ).text();
+    // The sentinel is resolved server-side into a display name, so the file
+    // never leaks the raw "everyone" token — and never falls back to the
+    // "someone" the unknown-recipient path uses.
+    expect(md).toContain("→ Everyone");
+    expect(md).not.toContain("→ someone");
+
+    const json = (await (
+      await SELF.fetch(
+        `https://example.com/api/boards/${boardId}/export?format=json`,
+      )
+    ).json()) as { kudos: { toName: string }[] };
+    expect(json.kudos[0]?.toName).toBe("Everyone");
   });
 
   it("summarizes to the crowned cards and the action items, and says so in the filename", async () => {

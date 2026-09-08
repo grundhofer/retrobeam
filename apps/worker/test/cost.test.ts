@@ -12,6 +12,7 @@
 
 import { env, runInDurableObject } from "cloudflare:test";
 import { expect, it } from "vitest";
+import { KUDO_EVERYONE } from "@retropolis/shared";
 import { boardStub } from "../src/board-stub.js";
 import { connect, createBoard, type TestSocket } from "./helpers.js";
 
@@ -163,7 +164,8 @@ it("one full retro stays well inside a day's free-tier budget", async () => {
       opId: opId(),
       kudoId: newId(),
       cardType: "great-job",
-      toId: admin.you.id,
+      // To the room: `everyone` includes the admin, and a self-kudo is refused.
+      toId: KUDO_EVERYONE,
       text: "nice work",
       anonymous: false,
     });

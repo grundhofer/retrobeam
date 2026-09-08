@@ -5,9 +5,11 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   pickerFinished,
+  pickerStyles,
   WHEEL_HOLD_MS,
   type Participant,
   type Phase,
+  type PickerStyle,
   type PickerState,
 } from "@retropolis/shared";
 import { burstConfetti } from "../lib/confetti.js";
@@ -25,6 +27,8 @@ export interface PresenceRailProps {
   /** the presenting round is actually pacing the reveal — false on an anonymous
    *  board (never scoped) and once the board has been handed over */
   scopedRound?: boolean;
+  /** current draw skin — the facilitator switches it from the cockpit */
+  pickerStyle?: PickerStyle;
 }
 
 // The rail wears three hats depending on the phase, but always as ONE list:
@@ -50,6 +54,7 @@ export function PresenceRail({
   you,
   isAdmin,
   scopedRound = false,
+  pickerStyle = "wheel",
 }: PresenceRailProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -140,6 +145,21 @@ export function PresenceRail({
         </div>
       ) : null}
 
+      {/* The draw's SKIN, right beside the button that runs it — the one place
+          a facilitator is actually looking when choosing between a wheel and a
+          slot machine. A <select> rather than a button pair, so a third and
+          fourth style cost a line in `pickerStyles` and not a row of chips in
+          a 288px rail.
+          Its own bay rather than inside the cockpit above: that block hides
+          itself once the rotation is exhausted, and the skin is a board
+          setting — a facilitator setting up the next round must still be able
+          to change it. */}
+      {mode === "present" && isAdmin ? (
+        <div className="flex items-center gap-2 border-t border-zinc-100 px-3 py-2 lg:shrink-0">
+          <PickerStyleSelect style={pickerStyle} disabled={spinning} />
+        </div>
+      ) : null}
+
       {mode === "present" && finished ? (
         <div className="border-t border-zinc-100 px-3 py-2.5 lg:shrink-0">
           <span
@@ -227,6 +247,43 @@ export function PresenceRail({
         </p>
       ) : null}
     </aside>
+  );
+}
+
+// The draw skin picker. Sends the same admin.picker.style command the board
+// menu used to own; the menu no longer carries a second copy of it, because two
+// controls for one setting is how they drift.
+function PickerStyleSelect({
+  style,
+  disabled,
+}: {
+  style: PickerStyle;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const { send } = useConnection();
+  return (
+    <label className="flex items-center gap-2 text-xs text-zinc-400">
+      {t("menu.pickerStyle")}
+      <select
+        data-testid="picker-style"
+        value={style}
+        disabled={disabled}
+        onChange={(event) =>
+          send({
+            type: "admin.picker.style",
+            style: event.target.value as PickerStyle,
+          })
+        }
+        className="rounded-lg border border-zinc-200 bg-white px-1.5 py-1 text-xs text-zinc-600 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40"
+      >
+        {pickerStyles.map((value) => (
+          <option key={value} value={value}>
+            {t(`menu.picker.${value}`)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

@@ -18,6 +18,7 @@ import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
 import { BoardMenu } from "../components/BoardMenu.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
+import { FocusToggle } from "../components/FocusToggle.js";
 import { CheckinPanel } from "../components/CheckinPanel.js";
 import { DiscussBar } from "../components/DiscussBar.js";
 import { KudosWall } from "../components/KudosWall.js";
@@ -34,7 +35,7 @@ import { TimerPanel } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
 import { fetchBoardInfo } from "../lib/api.js";
-import { playTimerChime, soundEnabled } from "../lib/beep.js";
+import { playTimerChime, soundEnabled, unlockAudio } from "../lib/beep.js";
 import { ConnectionProvider, type BoardConnection } from "../lib/connection.js";
 import {
   ensureSessionKey,
@@ -126,6 +127,9 @@ function JoinGate({
     const trimmed = name.trim();
     if (trimmed === "") return;
     saveDisplayName(trimmed);
+    // Start the audio context while the join click is still on the stack — the
+    // autoplay policy will not let us open one later, when the timer ends.
+    unlockAudio();
     onJoin(trimmed);
   }
 
@@ -192,6 +196,8 @@ function Room({
   // rather than state: nothing renders from it, and a re-render must not lose
   // an entry that is waiting on a round trip.
   const rejectHandlers = useRef(new Map<string, () => void>());
+  // Last time the timer chime actually played — see the timer.ended handler.
+  const lastChimeAt = useRef(0);
 
   const connection = useMemo<BoardConnection>(
     () => ({
@@ -232,7 +238,16 @@ function Room({
           setClockOffset(event.serverNow - Date.now());
         }
         if (event.type === "timer.ended" && soundEnabled()) {
-          playTimerChime();
+          // The DO broadcasts timer.ended BEFORE clearing the deadline and
+          // leans on an at-least-once alarm retry re-broadcasting it. The
+          // reducer is idempotent, but a chime is not — and seq is explicitly
+          // not a dedupe key (see reducer.ts). While sound was off by default
+          // the duplicate was inaudible; now it would ring twice.
+          const at = Date.now();
+          if (at - lastChimeAt.current > 3000) {
+            lastChimeAt.current = at;
+            playTimerChime();
+          }
         }
         if (event.type === "board.deleted") {
           // The board is gone — stop reconnecting (the DO would 404 anyway).
@@ -300,7 +315,21 @@ function Room({
   const presenterId =
     state.phase === "present" ? (state.picker?.current ?? null) : null;
   const layout = config?.layout ?? "columns";
-  const surface = boardSurface(layout, state.phase, presenterId !== null);
+  // The facilitator's presentation switch: non-active cards are hidden rather
+  // than dimmed. Purely a rendering decision — the server sends the same cards
+  // either way, so flipping it back restores the board instantly.
+  const focusMode = config?.focusMode ?? false;
+  const surface = boardSurface(
+    layout,
+    state.phase,
+    presenterId !== null,
+    focusMode,
+    // Anonymity is what decides whether the presenter reader can work at all —
+    // boardSurface owns that rule so the canvas path obeys it too. The focus
+    // switch still bites in the discussion phase, which selects cards by
+    // target id and does not care who wrote what.
+    config?.anonymous ?? false,
+  );
   const presenter =
     presenterId !== null
       ? (state.roster.find((p) => p.id === presenterId) ?? null)
@@ -416,7 +445,9 @@ function Room({
               isAdmin={isAdmin}
               gifsEnabled={gifsEnabled}
               cursorsEnabled={config?.cursorsEnabled ?? false}
-              pickerStyle={config?.pickerStyle ?? "wheel"}
+              voterNamesEnabled={config?.voterNamesEnabled ?? false}
+              anonymous={config?.anonymous ?? false}
+              phase={state.phase}
               layout={layout}
               retentionAt={state.retentionAt}
             />
@@ -438,6 +469,16 @@ function Room({
         {!inLobby && state.phase !== "done" ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-100 bg-white/60 px-6 py-2">
             <TimerPanel timer={state.timer} isAdmin={isAdmin} />
+            {/* Top-centre, in the phase strip rather than the header: every
+                other phase-scoped control lives here, and the header already
+                has one primary element (the phase stepper). Only where it
+                bites — presenting a person's cards, and walking the crowned
+                ones in the discussion. */}
+            {state.phase === "present" || state.phase === "discuss" ? (
+              <div className="mx-auto">
+                <FocusToggle focusMode={focusMode} isAdmin={isAdmin} />
+              </div>
+            ) : null}
             {/* Ready lives in the presence rail for the board phases; check-in
                 has no rail, so keep the inline toggle there. */}
             {state.phase === "checkin" ? (
@@ -552,6 +593,9 @@ function Room({
                     phase={state.phase}
                     isAdmin={isAdmin}
                     presenter={presenter}
+                    spotlightId={state.spotlightId}
+                    focusMode={focusMode}
+                    picker={state.picker}
                   />
                 ) : (
                   <BoardColumns
@@ -576,8 +620,10 @@ function Room({
                       talliesShown,
                       tallies: state.votes.tallies,
                       topTargetIds: state.votes.topTargetIds,
+                      voters: state.votes.voters,
                       focusId: state.discussFocusId,
                     }}
+                    focusMode={focusMode}
                     gifsEnabled={gifsEnabled}
                   />
                 )}
@@ -604,6 +650,7 @@ function Room({
                   you={you}
                   isAdmin={isAdmin}
                   scopedRound={scopedRound}
+                  pickerStyle={config?.pickerStyle ?? "wheel"}
                 />
               )}
             </div>

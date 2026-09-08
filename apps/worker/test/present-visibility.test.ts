@@ -532,3 +532,197 @@ describe("presenter-scoped visibility", () => {
     expect(rejoined.sync.notes.map((n) => n.text)).toContain("legacy card");
   });
 });
+
+// The facilitator-driven walkthrough. It carries a NOTE ID on the wire, and a
+// note id is a secret in this codebase — so every test here is really about
+// who is allowed to be told which id.
+describe("the presenting walkthrough", () => {
+  it("stages the presenter's first card automatically, in board order", async () => {
+    const { anna, ben, notes } = await round();
+    await stage(anna, ben.you.id);
+    // Seeded by the server, so the common path needs no click — and no click
+    // means no rejected click, which is what would cost the facilitator their
+    // rate-limit budget.
+    const spot = await anna.socket.waitFor(
+      (e) => e.type === "spotlight.changed",
+    );
+    if (spot.type !== "spotlight.changed") throw new Error("unreachable");
+    expect(spot.targetId).toBe(notes.ben);
+    expect((await resync(anna)).spotlightId).toBe(notes.ben);
+    // Ben has been handed his own card all along, so he is told the id too.
+    expect((await resync(ben)).spotlightId).toBe(notes.ben);
+  });
+
+  it("puts every screen on the same card — that is the whole point", async () => {
+    const { anna, ben, cara, notes } = await round();
+    await stage(anna, ben.you.id);
+    // Taking the stage hands Ben's cards to the room, so everyone is entitled
+    // to the id and everyone gets it: the facilitator shares a screen, but a
+    // remote participant must not be left looking at a different card.
+    for (const person of [anna, ben, cara]) {
+      const sync = await resync(person);
+      expect(sync.spotlightId).toBe(notes.ben);
+      expect(sync.notes.some((n) => n.id === sync.spotlightId)).toBe(true);
+    }
+  });
+
+  it("refuses a card that is not the current presenter's", async () => {
+    const { anna, ben, notes } = await round();
+    await stage(anna, ben.you.id);
+    anna.socket.send({ type: "admin.spotlight.set", targetId: notes.cara });
+    const refused = await anna.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("INVALID");
+    // The stage did not move.
+    expect((await resync(anna)).spotlightId).toBe(notes.ben);
+  });
+
+  it("refuses a card inside a staged column, exactly like the discussion focus", async () => {
+    const { anna, ben, columnId, notes } = await round();
+    await stage(anna, ben.you.id);
+    anna.socket.send({
+      type: "admin.column.setHidden",
+      opId: opId(),
+      columnId,
+      hidden: true,
+    });
+    await anna.socket.waitForNext((e) => e.type === "column.updated");
+    // Hiding the column under the staged card takes it off every screen…
+    expect((await resync(anna)).spotlightId).toBeNull();
+    // …and it cannot be put back on while the column is staged.
+    anna.socket.send({ type: "admin.spotlight.set", targetId: notes.ben });
+    const refused = await anna.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("NOT_FOUND");
+  });
+
+  it("clears the stage when the mic is handed back", async () => {
+    const { anna, ben } = await round();
+    await stage(anna, ben.you.id);
+    expect((await resync(anna)).spotlightId).not.toBeNull();
+    ben.socket.send({ type: "picker.done" });
+    await anna.socket.waitForNext((e) => e.type === "picker.changed");
+    // Nobody is presenting, so nothing may be on stage.
+    expect((await resync(anna)).spotlightId).toBeNull();
+  });
+
+  it("clears the stage on a phase change, without needing a broadcast", async () => {
+    const { anna, ben } = await round();
+    await stage(anna, ben.you.id);
+    await toPhase(anna.socket, "vote");
+    expect((await resync(anna)).spotlightId).toBeNull();
+    // And the walkthrough is refused outside the presenting phase.
+    anna.socket.send({ type: "admin.spotlight.set", targetId: null });
+    const refused = await anna.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("PHASE_LOCKED");
+  });
+
+  it("survives a deleted card rather than stranding a dangling id", async () => {
+    const { anna, ben, notes } = await round();
+    await stage(anna, ben.you.id);
+    anna.socket.send({
+      type: "note.delete",
+      opId: opId(),
+      noteId: notes.ben,
+    });
+    await anna.socket.waitForNext((e) => e.type === "note.deleted");
+    expect((await resync(anna)).spotlightId).toBeNull();
+  });
+
+  it("never stages a card on an anonymous board", async () => {
+    const { boardId, anna, ben } = await round();
+    // Anonymity is not reachable from the UI yet; force the row, because the
+    // point is that the walkthrough must refuse it rather than rely on a
+    // button being hidden.
+    await runInDurableObject(boardStub(env, boardId), (_i, state) => {
+      state.storage.sql.exec(
+        "INSERT INTO board_meta (key, value) VALUES ('anonymous', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
+      );
+    });
+    await stage(anna, ben.you.id);
+    // The spotlight is a NOTE ID and picker.spun names the presenter in the
+    // clear — the pair would reconstruct the authorship the board promised to
+    // strip. So nothing is staged, for anyone, and nothing rides the wire.
+    expect((await resync(anna)).spotlightId).toBeNull();
+    expect((await resync(ben)).spotlightId).toBeNull();
+    expect(
+      ben.socket.events.some(
+        (e) => e.type === "spotlight.changed" && e.targetId !== null,
+      ),
+    ).toBe(false);
+
+    // And it cannot be driven by hand either.
+    anna.socket.send({ type: "admin.spotlight.set", targetId: null });
+    const refused = await anna.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("INVALID");
+  });
+
+  it("follows the staged card when a move carries it into a staged column", async () => {
+    const { anna, ben, columnId, otherColumn, notes } = await round();
+    await stage(anna, ben.you.id);
+    expect((await resync(anna)).spotlightId).toBe(notes.ben);
+    // Stage the OTHER column first, then move the spotlighted card into it:
+    // the card is withdrawn from every member, so the stage has to let go too.
+    anna.socket.send({
+      type: "admin.column.setHidden",
+      opId: opId(),
+      columnId: otherColumn,
+      hidden: true,
+    });
+    await anna.socket.waitForNext((e) => e.type === "column.updated");
+    expect((await resync(anna)).spotlightId).toBe(notes.ben);
+
+    anna.socket.send({
+      type: "note.move",
+      opId: opId(),
+      noteId: notes.ben,
+      columnId: otherColumn,
+    });
+    await anna.socket.waitForNext((e) => e.type === "ack");
+    expect((await resync(anna)).spotlightId).toBeNull();
+    // Not just the snapshot: connected clients were told, so a folded state
+    // and a fresh sync agree.
+    expect(
+      ben.socket.events.some(
+        (e) => e.type === "spotlight.changed" && e.targetId === null,
+      ),
+    ).toBe(true);
+    expect(columnId).not.toBe(otherColumn);
+  });
+
+  it("lets go of the stage when the whole column is deleted", async () => {
+    const { anna, ben, columnId, notes } = await round();
+    await stage(anna, ben.you.id);
+    expect((await resync(anna)).spotlightId).toBe(notes.ben);
+    anna.socket.send({
+      type: "admin.column.delete",
+      opId: opId(),
+      columnId,
+    });
+    await anna.socket.waitForNext((e) => e.type === "column.deleted");
+    expect((await resync(anna)).spotlightId).toBeNull();
+    // Told, not merely true on a re-read: a folded client must agree with a
+    // fresh sync without one.
+    expect(
+      ben.socket.events.some(
+        (e) => e.type === "spotlight.changed" && e.targetId === null,
+      ),
+    ).toBe(true);
+  });
+
+  it("focus mode changes no visibility whatsoever", async () => {
+    const { anna, ben } = await round();
+    const before = texts(await resync(ben));
+    anna.socket.send({ type: "admin.focus.set", enabled: true });
+    const changed = await ben.socket.waitFor(
+      (e) => e.type === "config.changed",
+    );
+    if (changed.type !== "config.changed") throw new Error("unreachable");
+    expect(changed.config.focusMode).toBe(true);
+    // The switch is a RENDER flag. If it ever started filtering server-side,
+    // turning it off would need an un-reveal event, which does not exist.
+    expect(texts(await resync(ben))).toEqual(before);
+  });
+});

@@ -79,7 +79,11 @@ function sampleFor(type: string, columnId: string, participantId: string) {
       return { type, targetId: hexId() };
     case "admin.gifs.set":
     case "admin.cursors.set":
+    case "admin.voterNames.set":
+    case "admin.focus.set":
       return { type, enabled: false };
+    case "admin.spotlight.set":
+      return { type, targetId: hexId() };
     case "admin.agreements.set":
       return { type, text: "Be kind" };
     default:

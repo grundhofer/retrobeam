@@ -82,8 +82,9 @@ function comparable(state: ClientBoardState) {
   const { votersDone: _done, votersTotal: _total, ...blindVotes } = votes;
   // Collections are compared as content, not as arrays: the reducer appends in
   // arrival order while a snapshot comes back in query order, and every render
-  // path sorts by (order, id) before drawing. What must agree is WHICH entities
-  // exist and what they hold.
+  // path sorts by (order, id) before drawing (the write phase draws that same
+  // key descending, so the composer stays put — still a pure render decision).
+  // What must agree is WHICH entities exist and what they hold.
   const byId = <T extends { id: string }>(items: readonly T[]) =>
     [...items].sort((a, b) => a.id.localeCompare(b.id));
   const collections = {

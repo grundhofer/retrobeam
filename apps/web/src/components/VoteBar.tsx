@@ -45,6 +45,17 @@ export function VoteBar({
       >
         {t("vote.meter", { done: votes.votersDone, total: votes.votersTotal })}
       </span>
+      {/* The consent surface. People must know BEFORE they spend a dot whether
+          their name will be attached to it — which is also why the setting is
+          frozen from the discussion phase on. Shown to everyone, not just the
+          facilitator: the person it affects is the voter. */}
+      <span data-testid="vote-privacy" className="text-sm text-zinc-500">
+        {t(
+          config.voterNamesEnabled && !config.anonymous
+            ? "vote.namesShown"
+            : "vote.namesBlind",
+        )}
+      </span>
       {isAdmin ? <VoteSettings config={config} /> : null}
     </div>
   );

@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { KudoCardType } from "../protocol.js";
+import { z } from "zod";
+import { kudoCardTypeSchema, type KudoCardType } from "../protocol.js";
+import { toPdf } from "./pdf.js";
 
 // Structured board snapshot for export. Author names are only ever included
 // when the exporter opts in — the depersonalized form is the default (the
@@ -19,6 +21,11 @@ export interface ExportNote {
    *  null when the anchor itself is not in this export (the id would name a
    *  note the file does not contain). */
   groupId: string | null;
+  /** Who voted for this card, when the board reveals voter names AND the
+   *  exporter opted into author names. Null everywhere else — including on
+   *  every default (`?authors=` absent) download, which is what keeps the
+   *  shareable file free of personal names. */
+  voterNames: string[] | null;
 }
 
 export interface ExportColumn {
@@ -46,6 +53,46 @@ export interface BoardExport {
   actions: ExportAction[];
   kudos: ExportKudo[];
 }
+
+// The client draws the JPEG from this route's JSON, and every response the SPA
+// reads is zod-parsed. The explicit `z.ZodType<BoardExport>` annotation is the
+// point: it makes tsc keep the schema and the hand-written interface in
+// lockstep, so nobody can add a field to one and not the other.
+export const boardExportSchema: z.ZodType<BoardExport> = z.object({
+  boardName: z.string(),
+  createdAt: z.number(),
+  columns: z.array(
+    z.object({
+      name: z.string(),
+      notes: z.array(
+        z.object({
+          text: z.string(),
+          gifUrl: z.string().nullable(),
+          authorName: z.string().nullable(),
+          votes: z.number().nullable(),
+          crownedRank: z.number().nullable(),
+          groupId: z.string().nullable(),
+          voterNames: z.array(z.string()).nullable(),
+        }),
+      ),
+    }),
+  ),
+  actions: z.array(
+    z.object({
+      text: z.string(),
+      ownerName: z.string().nullable(),
+      done: z.boolean(),
+    }),
+  ),
+  kudos: z.array(
+    z.object({
+      cardType: kudoCardTypeSchema,
+      toName: z.string(),
+      fromName: z.string().nullable(),
+      text: z.string(),
+    }),
+  ),
+});
 
 export const EXPORT_SCOPES = ["all", "summary"] as const;
 export type ExportScope = (typeof EXPORT_SCOPES)[number];
@@ -154,6 +201,8 @@ export function toMarkdown(
       const meta: string[] = [];
       if (note.votes !== null && note.votes > 0)
         meta.push(`${note.votes} votes`);
+      if (note.voterNames !== null && note.voterNames.length > 0)
+        meta.push(`voted by ${note.voterNames.join(", ")}`);
       if (note.authorName !== null) meta.push(note.authorName);
       const suffix = meta.length > 0 ? ` _(${meta.join(", ")})_` : "";
       lines.push(`- ${parts.join(" ")}${suffix}`);
@@ -204,7 +253,9 @@ function csvCell(value: string): string {
 
 export function toCsv(data: BoardExport): string {
   const rows: string[][] = [
-    ["section", "column", "text", "votes", "rank", "author", "gif"],
+    // `voters` is APPENDED, never inserted: a consumer reading this file by
+    // column position must keep working.
+    ["section", "column", "text", "votes", "rank", "author", "gif", "voters"],
   ];
   for (const column of data.columns) {
     for (const note of column.notes) {
@@ -216,6 +267,9 @@ export function toCsv(data: BoardExport): string {
         note.crownedRank === null ? "" : String(note.crownedRank),
         note.authorName ?? "",
         note.gifUrl ?? "",
+        // "; " not ",": a comma would need the cell quoted for no gain, and a
+        // semicolon list is what a spreadsheet reader splits on anyway.
+        note.voterNames === null ? "" : note.voterNames.join("; "),
       ]);
     }
   }
@@ -228,6 +282,7 @@ export function toCsv(data: BoardExport): string {
       "",
       action.ownerName ?? "",
       "",
+      "",
     ]);
   }
   for (const kudo of data.kudos) {
@@ -238,6 +293,7 @@ export function toCsv(data: BoardExport): string {
       "",
       "",
       kudo.fromName ?? "",
+      "",
       "",
     ]);
     // recipient goes in the column slot's neighbour — keep it simple: encode in text-adjacent
@@ -251,14 +307,58 @@ export function toJson(data: BoardExport): string {
   return JSON.stringify(data, null, 2);
 }
 
-export const EXPORT_FORMATS = ["md", "csv", "json"] as const;
+// What the EXPORT ROUTE will render. "jpeg" is deliberately absent: a Worker
+// has no canvas and no image encoder, so the picture is drawn by the browser
+// (apps/web/src/lib/exportImage.ts). Adding it here would make `?format=jpeg`
+// answer 200 with whatever the switch below fell through to.
+export const EXPORT_FORMATS = ["md", "csv", "json", "pdf"] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
+// What the MENU offers: the server's list plus the one format the browser
+// renders itself. Two lists, so the menu can still map exactly one array while
+// the route keeps 400-ing on a format it cannot produce.
+export const EXPORT_DOWNLOADS = [...EXPORT_FORMATS, "jpeg"] as const;
+export type ExportDownload = (typeof EXPORT_DOWNLOADS)[number];
+
+// The download's filename. Extracted from the Worker route so the JPEG the
+// browser saves cannot drift from the four the server sends.
+//
+// The scope rides in the name: a facilitator downloads both shapes of the same
+// board seconds apart, and identical names give you "Sprint-50.md" and
+// "Sprint-50 (1).md" — the (1) being the one you have to open to find out
+// which is which. It is also the only place a CSV or a JSON says its scope.
+export function exportFileName(
+  boardName: string,
+  scope: ExportScope,
+  extension: string,
+): string {
+  const safe =
+    boardName.replace(/[^a-z0-9-_]+/gi, "-").replace(/^-+|-+$/g, "") || "retro";
+  return `${safe}${scope === "summary" ? "-summary" : ""}.${extension}`;
+}
+
+// Overloaded rather than widened: three of the four formats are text, and the
+// callers that already destructure a string must keep compiling.
+export function renderExport(
+  format: "md" | "csv" | "json",
+  data: BoardExport,
+  scope?: ExportScope,
+): string;
+export function renderExport(
+  format: "pdf",
+  data: BoardExport,
+  scope?: ExportScope,
+): Uint8Array;
+export function renderExport(
+  format: ExportFormat,
+  data: BoardExport,
+  scope?: ExportScope,
+): string | Uint8Array;
 export function renderExport(
   format: ExportFormat,
   data: BoardExport,
   scope: ExportScope = "all",
-): string {
+): string | Uint8Array {
   // Applied ONCE, here, so all three formats render the same rows — a
   // per-format filter is how a CSV and a Markdown of the same board drift.
   const scoped = scope === "summary" ? summarizeExport(data) : data;
@@ -269,6 +369,8 @@ export function renderExport(
       return toCsv(scoped);
     case "json":
       return toJson(scoped);
+    case "pdf":
+      return toPdf(scoped, scope);
   }
 }
 
@@ -280,5 +382,7 @@ export function exportContentType(format: ExportFormat): string {
       return "text/csv; charset=utf-8";
     case "json":
       return "application/json; charset=utf-8";
+    case "pdf":
+      return "application/pdf"; // binary — no charset
   }
 }

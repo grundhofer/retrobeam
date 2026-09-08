@@ -60,6 +60,9 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await expect(ben.getByTestId("vote-meter")).toContainText("1/2");
   await expect(ben.getByTestId("crown")).toHaveCount(0);
   await expect(ben.getByTestId("tally")).toHaveCount(0);
+  // The names go with them: last round's attribution must not sit on the cards
+  // while the next round's dots are being cast.
+  await expect(ben.getByTestId("voter-Anna")).toHaveCount(0);
   const bensCounts = await ben.getByTestId("vote-count").allInnerTexts();
   expect(bensCounts.every((count) => count.trim() === "0")).toBe(true);
 
@@ -76,6 +79,11 @@ test("blind voting, crowns, discussion queue and action items", async ({
     .getByTestId("vote-plus");
   await benDeploysPlus.click();
   await expect(anna.getByTestId("vote-meter")).toContainText("2/2");
+
+  // Voting is blind, and the bar says so BEFORE anyone spends a dot — that
+  // disclosure is what makes naming the voters afterwards a consented setting
+  // rather than a surprise.
+  await expect(ben.getByTestId("vote-privacy")).toBeVisible();
 
   // Reveal: crowns + tallies on both screens, "Slow deploys" ranks first (4 votes).
   await anna.getByTestId("phase-next").click(); // discuss
@@ -97,9 +105,38 @@ test("blind voting, crowns, discussion queue and action items", async ({
     });
   }
 
+  // After the reveal you can see what YOU voted for — the half of the request
+  // that needs no server work, and which used to vanish with the +/- control.
+  await expect(
+    anna
+      .getByTestId("vote-target")
+      .filter({ hasText: "Slow deploys" })
+      .getByTestId("your-vote"),
+  ).toBeVisible();
+  // …and who voted for what: new boards ship with names on, so Ben can see
+  // that Anna backed the card the room is about to discuss.
+  await expect(
+    ben
+      .getByTestId("vote-target")
+      .filter({ hasText: "Slow deploys" })
+      .getByTestId("voter-Anna"),
+  ).toBeVisible();
+
   // Synced focus: Anna clicks the first queue chip, Ben's board dims the rest.
   await anna.getByTestId("discuss-chip-1").click();
   await expect(ben.getByTestId("discuss-chip-1")).toHaveClass(/bg-accent/);
+
+  // Focus mode: with a card focused, the room sees ONLY that card — the
+  // moderator shares a screen, so the switch hides the rest rather than dimming
+  // it, on every participant's screen and not just the facilitator's.
+  await expect(ben.getByTestId("note-card")).toHaveCount(2);
+  await anna.getByTestId("focus-mode-toggle").click();
+  await expect(ben.getByTestId("note-card")).toHaveCount(1);
+  await expect(ben.getByTestId("note-card")).toContainText("Slow deploys");
+  // And turning it back off restores the board instantly — nothing was
+  // un-sent, so nothing has to be re-fetched.
+  await anna.getByTestId("focus-mode-toggle").click();
+  await expect(ben.getByTestId("note-card")).toHaveCount(2);
 
   // Action item with an owner, live on both screens; Ben checks it off.
   await anna.getByTestId("action-input").fill("Automate the deploy pipeline");

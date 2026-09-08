@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import {
   generateHexId,
   KUDO_CARD_TYPES,
+  KUDO_EVERYONE,
   type Kudo,
   type KudoCardType,
   type Participant,
@@ -77,7 +78,10 @@ export function KudosWall({
                   {canRemove ? <RemoveButton kudoId={kudo.id} /> : null}
                 </div>
                 <p className="font-medium text-zinc-800">
-                  → {to?.name ?? t("kudos.someone")}
+                  →{" "}
+                  {kudo.toId === KUDO_EVERYONE
+                    ? t("kudos.everyone")
+                    : (to?.name ?? t("kudos.someone"))}
                 </p>
                 {kudo.text.trim() !== "" ? (
                   <p className="text-sm whitespace-pre-wrap text-zinc-700">
@@ -140,7 +144,7 @@ function KudoComposer({
   const { mutate } = useConnection();
   const others = roster.filter((p) => p.id !== you.id);
   const [cardType, setCardType] = useState<KudoCardType>("thank-you");
-  const [toId, setToId] = useState<string>(others[0]?.id ?? you.id);
+  const [toId, setToId] = useState<string>(KUDO_EVERYONE);
   const [text, setText] = useState("");
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [anonymous, setAnonymous] = useState(false);
@@ -212,10 +216,15 @@ function KudoComposer({
           onChange={(event) => setToId(event.target.value)}
           className="rounded-lg border border-zinc-200 px-2 py-1 text-sm"
         >
-          {roster.map((p) => (
+          {/* "Everyone" leads the list: thanking the room is the common
+              closing move, and on a one-person board it is the only option.
+              The sender is left OUT rather than greyed out — a disabled
+              "Anna (you)" invites the question, absence answers it. The server
+              refuses a self-kudo anyway, so this is convenience, not the rule. */}
+          <option value={KUDO_EVERYONE}>{t("kudos.everyone")}</option>
+          {others.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
-              {p.id === you.id ? ` (${t("board.you")})` : ""}
             </option>
           ))}
         </select>

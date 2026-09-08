@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Timer } from "@retropolis/shared";
-import { setSoundEnabled, soundEnabled } from "../lib/beep.js";
+import { setSoundEnabled, soundEnabled, unlockAudio } from "../lib/beep.js";
 import { useConnection } from "../lib/connection.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
@@ -103,10 +103,14 @@ export function TimerPanel({
       <button
         type="button"
         onClick={() => {
+          // Un-muting is a gesture: take it to open (or resume) the context,
+          // for the tab that was backgrounded while muted.
+          if (!sound) unlockAudio();
           setSoundEnabled(!sound);
           setSound(!sound);
         }}
         aria-pressed={sound}
+        data-testid="timer-sound"
         aria-label={t("timer.sound")}
         className="rounded px-1 text-sm text-zinc-400 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
       >

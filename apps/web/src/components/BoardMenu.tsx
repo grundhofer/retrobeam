@@ -6,27 +6,32 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import {
   CURSORS_ACTIVATABLE,
-  EXPORT_FORMATS,
+  EXPORT_DOWNLOADS,
   EXPORT_SCOPES,
+  exportFileName,
   layoutModes,
-  pickerStyles,
   type ExportScope,
   type LayoutMode,
-  type PickerStyle,
+  type Phase,
 } from "@retropolis/shared";
 import { useConnection } from "../lib/connection.js";
-import { duplicateBoard } from "../lib/api.js";
+import { duplicateBoard, fetchBoardExport } from "../lib/api.js";
+import { renderBoardImage } from "../lib/exportImage.js";
 import { loadAdminToken, saveAdminToken } from "../lib/session.js";
 
-// Export (anyone) + admin board settings: GIF toggle, picker skin, duplicate,
-// keep, delete-now. Lives in the board header.
+// Export (anyone) + admin board settings: GIF toggle, layout, duplicate, keep,
+// delete-now. Lives in the board header. The picker SKIN deliberately is not
+// here — it sits next to the spin button in the presenting cockpit, where it is
+// used; one setting, one control.
 export function BoardMenu({
   boardId,
   boardName,
   isAdmin,
   gifsEnabled,
   cursorsEnabled,
-  pickerStyle,
+  voterNamesEnabled,
+  anonymous,
+  phase,
   layout,
   retentionAt,
 }: {
@@ -35,7 +40,9 @@ export function BoardMenu({
   isAdmin: boolean;
   gifsEnabled: boolean;
   cursorsEnabled: boolean;
-  pickerStyle: PickerStyle;
+  voterNamesEnabled: boolean;
+  anonymous: boolean;
+  phase: Phase;
   layout: LayoutMode;
   retentionAt: number | null;
 }) {
@@ -47,6 +54,8 @@ export function BoardMenu({
   const [scope, setScope] = useState<ExportScope>("all");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [imaging, setImaging] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   async function duplicate() {
     if (duplicating) return;
@@ -63,6 +72,38 @@ export function BoardMenu({
       void navigate(`/board/${created.boardId}`);
     } catch {
       setDuplicating(false); // stay put; the menu remains usable to retry
+    }
+  }
+
+  // Render the board to a JPEG in this tab and hand it to the browser as a
+  // download. The bytes never leave the machine, and the SNAPSHOT is re-fetched
+  // from the export route rather than read from the board store — see
+  // fetchBoardExport for why that distinction is the whole point.
+  async function downloadImage() {
+    if (imaging) return;
+    setImaging(true);
+    setImageFailed(false);
+    let url: string | null = null;
+    try {
+      const data = await fetchBoardExport(boardId, scope, includeAuthors);
+      const blob = await renderBoardImage(data, scope);
+      url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = exportFileName(data.boardName, scope, "jpg");
+      link.click();
+    } catch {
+      // A silent no-op click is the worst outcome here: the person clicked
+      // "JPEG" and nothing happened, with no way to tell whether it worked.
+      setImageFailed(true);
+    } finally {
+      // Revoke on the next tick — Safari has not started the download yet when
+      // click() returns, and revoking synchronously cancels it.
+      if (url !== null) {
+        const revoke = url;
+        setTimeout(() => URL.revokeObjectURL(revoke), 10_000);
+      }
+      setImaging(false);
     }
   }
 
@@ -129,19 +170,41 @@ export function BoardMenu({
               />
               {t("menu.includeAuthors")}
             </label>
-            <div className="flex gap-2">
-              {EXPORT_FORMATS.map((format) => (
-                <a
-                  key={format}
-                  href={exportHref(format)}
-                  download
-                  data-testid={`export-${format}`}
-                  className="rounded-lg border border-zinc-200 px-3 py-1 font-medium text-zinc-700 hover:bg-zinc-50"
-                >
-                  {format.toUpperCase()}
-                </a>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {EXPORT_DOWNLOADS.map((format) =>
+                // JPEG is not a link: the Worker cannot encode an image, so the
+                // browser draws it from the very same export JSON these links
+                // download. Everything else is a plain <a download> and the
+                // browser does the work.
+                format === "jpeg" ? (
+                  <button
+                    key={format}
+                    type="button"
+                    data-testid="export-jpeg"
+                    disabled={imaging}
+                    onClick={() => void downloadImage()}
+                    className="rounded-lg border border-zinc-200 px-3 py-1 font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    {imaging ? t("menu.rendering") : "JPEG"}
+                  </button>
+                ) : (
+                  <a
+                    key={format}
+                    href={exportHref(format)}
+                    download
+                    data-testid={`export-${format}`}
+                    className="rounded-lg border border-zinc-200 px-3 py-1 font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    {format.toUpperCase()}
+                  </a>
+                ),
+              )}
             </div>
+            {imageFailed ? (
+              <p className="mt-1.5 text-xs text-red-700">
+                {t("menu.imageFailed")}
+              </p>
+            ) : null}
           </div>
 
           {isAdmin ? (
@@ -164,6 +227,38 @@ export function BoardMenu({
                 />
                 {t("menu.gifsEnabled")}
               </label>
+              {/* Whether the reveal names the voters. Disabled rather than
+                  hidden once voting has closed: the lock is part of the
+                  promise — nobody may be de-blinded in a round they already
+                  voted in — and a control that silently vanishes teaches
+                  nothing. The server refuses it either way. */}
+              <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
+                <input
+                  type="checkbox"
+                  checked={voterNamesEnabled && !anonymous}
+                  // The lock is one-way, exactly like the server's: after the
+                  // reveal you may still take names down, never put them up.
+                  disabled={
+                    anonymous || (voterNamesLocked(phase) && !voterNamesEnabled)
+                  }
+                  data-testid="voter-names-toggle"
+                  onChange={(event) =>
+                    send({
+                      type: "admin.voterNames.set",
+                      enabled: event.target.checked,
+                    })
+                  }
+                  className="accent-accent"
+                />
+                {t("menu.voterNamesEnabled")}
+              </label>
+              {anonymous || (voterNamesLocked(phase) && !voterNamesEnabled) ? (
+                <p className="-mt-1 mb-2 text-xs text-zinc-400">
+                  {anonymous
+                    ? t("menu.voterNamesAnonymous")
+                    : t("menu.voterNamesLocked")}
+                </p>
+              ) : null}
               {/* Live cursors are built but activation is disabled for now
                   (they would bill the free tier); flip CURSORS_ACTIVATABLE to
                   bring this toggle back. */}
@@ -203,29 +298,6 @@ export function BoardMenu({
                       }`}
                     >
                       {t(`menu.layoutMode.${mode}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="mb-2">
-                <p className="mb-1 text-zinc-600">{t("menu.pickerStyle")}</p>
-                <div className="flex gap-1.5" role="group">
-                  {pickerStyles.map((style) => (
-                    <button
-                      key={style}
-                      type="button"
-                      data-testid={`picker-style-${style}`}
-                      aria-pressed={pickerStyle === style}
-                      onClick={() =>
-                        send({ type: "admin.picker.style", style })
-                      }
-                      className={`flex-1 rounded-lg border px-2 py-1 font-medium ${
-                        pickerStyle === style
-                          ? "border-accent bg-accent/10 text-accent-strong"
-                          : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                      }`}
-                    >
-                      {t(`menu.picker.${style}`)}
                     </button>
                   ))}
                 </div>
@@ -286,6 +358,20 @@ export function BoardMenu({
         </div>
       ) : null}
     </div>
+  );
+}
+
+// Once voting has started, the setting is frozen: turning names on afterwards
+// would attribute dots that were cast under the blind promise, and nobody can
+// take a dot back. The server draws the line at the first dot; the menu draws
+// it one step earlier, at the vote phase itself, so the control never offers a
+// click the server would refuse.
+function voterNamesLocked(phase: Phase): boolean {
+  return (
+    phase === "vote" ||
+    phase === "discuss" ||
+    phase === "close" ||
+    phase === "done"
   );
 }
 

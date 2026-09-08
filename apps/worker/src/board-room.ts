@@ -11,9 +11,11 @@ import {
   IDLE_TIMER,
   noteVisibleTo,
   parseClientCommand,
+  layoutModeSchema,
   phasePlanSchema,
   phaseRevealed,
   phaseSchema,
+  pickerStyleSchema,
   PROTOCOL_VERSION,
   pickerKnows,
   pickerStateSchema,
@@ -54,6 +56,8 @@ import {
   type ZoneRect,
   ICEBREAKER_IDS,
   icebreakerIdSchema,
+  KUDO_EVERYONE,
+  presenterCardOrder,
   pickIcebreaker,
 } from "@retropolis/shared";
 import { generateSecret, randomIndex, safeEqual } from "./ids.js";
@@ -395,7 +399,7 @@ export class BoardRoom extends DurableObject<Env> {
          ('id', ?), ('name', ?), ('adminToken', ?), ('createdAt', ?), ('seq', '0'),
          ('phase', 'lobby'), ('anonymous', ?), ('phasePlan', ?),
          ('gifsEnabled', ?), ('pickerStyle', ?), ('layout', ?),
-         ('cursorsEnabled', ?),
+         ('cursorsEnabled', ?), ('voterNamesEnabled', ?), ('focusMode', ?),
          ('votesPerPerson', ?), ('topN', ?), ('maxPerTarget', ?),
          ('retentionAt', ?), ('workingAgreements', ?), ('schemaVersion', ?)`,
       creation.boardId,
@@ -410,6 +414,14 @@ export class BoardRoom extends DurableObject<Env> {
       config?.pickerStyle ?? "wheel",
       config?.layout ?? creation.layout ?? "columns",
       config?.cursorsEnabled ? "1" : "0",
+      // ON for a new board — the room discusses a crowned card with the people
+      // who picked it, which is the whole point of crowning it. An anonymous
+      // board never shows names whatever this says (voterNamesShown), and a
+      // board created BEFORE this field stays blind, because it has no row
+      // here and config() reads a missing row as off. A duplicate inherits the
+      // source board's choice.
+      config === undefined || config.voterNamesEnabled ? "1" : "0",
+      config?.focusMode ? "1" : "0",
       String(config?.votesPerPerson ?? DEFAULT_VOTE_CONFIG.votesPerPerson),
       String(config?.topN ?? DEFAULT_VOTE_CONFIG.topN),
       maxPerTarget == null ? "" : String(maxPerTarget),
@@ -722,6 +734,15 @@ export class BoardRoom extends DurableObject<Env> {
         return;
       case "admin.cursors.set":
         this.handleCursorsSet(ws, participant, command);
+        return;
+      case "admin.voterNames.set":
+        this.handleVoterNamesSet(ws, participant, command);
+        return;
+      case "admin.focus.set":
+        this.handleFocusSet(ws, participant, command);
+        return;
+      case "admin.spotlight.set":
+        this.handleSpotlightSet(ws, participant, command);
         return;
       case "presence.cursor":
         this.handleCursor(ws, participant, command);
@@ -1240,6 +1261,8 @@ export class BoardRoom extends DurableObject<Env> {
     // A deleted votable (or a re-anchored stack) may have stranded own-votes,
     // shifted the meter, or dropped a crown/focus — re-sync the room.
     this.reconcileAfterVoteMutation();
+    // The facilitator may delete any card mid-round, the staged one included.
+    this.reconcileSpotlight();
     const seq = this.nextSeq();
     this.ack(ws, cmd.opId, seq);
     for (const id of repairedIds) {
@@ -1362,7 +1385,7 @@ export class BoardRoom extends DurableObject<Env> {
     this.sql.exec(
       // lastSpin too: a reconnect within the wheel's hold window would
       // otherwise replay the animation in whatever phase the board is now in.
-      "DELETE FROM board_meta WHERE key IN ('discussFocus', 'meterState', 'lastSpin')",
+      "DELETE FROM board_meta WHERE key IN ('discussFocus', 'meterState', 'lastSpin', 'spotlight')",
     );
     this.clearTimerMeta();
     // Re-arm for retention (must NOT drop the retention alarm on phase change).
@@ -1377,12 +1400,13 @@ export class BoardRoom extends DurableObject<Env> {
     // Voting closes when the board moves from vote to discuss: everyone gets
     // the tallies and the crowned top-N in one reveal.
     if (current === "vote" && target === "discuss") {
-      const { tallies, topTargetIds } = this.talliesAndTop();
+      const { tallies, topTargetIds, voters } = this.talliesAndTop();
       this.broadcastAll({
         type: "votes.revealed",
         seq: this.nextSeq(),
         tallies,
         topTargetIds,
+        voters,
       });
     }
     if (target === "vote") {
@@ -1663,6 +1687,8 @@ export class BoardRoom extends DurableObject<Env> {
         this.sql.exec("DELETE FROM notes WHERE column_id = ?", cmd.columnId);
         this.sql.exec("DELETE FROM columns WHERE id = ?", cmd.columnId);
         this.reconcileAfterVoteMutation();
+        // Deleting the column purges its notes — the stage must let go of one.
+        this.reconcileSpotlight();
         const seq = this.nextSeq();
         this.ack(ws, cmd.opId, seq);
         const deleted: ServerEvent = {
@@ -1733,6 +1759,8 @@ export class BoardRoom extends DurableObject<Env> {
     // them); recompute any revealed tallies/crowns so they never reference a
     // hidden note.
     this.reconcileAfterVoteMutation();
+    // Staging the column that holds the staged card takes it off every screen.
+    this.reconcileSpotlight();
     // And re-send the per-column totals: the reducer's column.deleted case
     // drops the column but not its count, so a member's folded state kept an
     // entry keyed by a column they can no longer see — a snapshot disagreement
@@ -1929,6 +1957,9 @@ export class BoardRoom extends DurableObject<Env> {
       // reorg-aware delivery drops it from members who can no longer see it.
       this.broadcastNoteReorg(updated, columnBefore.get(id));
     }
+    // …and that move can carry the staged card out of sight, same as a plain
+    // note.move.
+    this.reconcileSpotlight();
   }
 
   private handleNoteUngroup(
@@ -2114,6 +2145,11 @@ export class BoardRoom extends DurableObject<Env> {
         id === note.id ? note.column_id : undefined,
       );
     }
+    // A move can land the STAGED card in a hidden column, which withdraws it
+    // from every member — the stage has to follow, or the stored id keeps
+    // naming a card the room can no longer see (and a fresh sync would
+    // disagree with a folded one).
+    this.reconcileSpotlight();
     // Moving between columns during write shifts the per-column totals.
     this.broadcastColumnCountsIfWriting();
   }
@@ -2262,6 +2298,7 @@ export class BoardRoom extends DurableObject<Env> {
         picker: withAllRevealed(picker),
       });
       this.broadcastNewlyVisible(before);
+      this.setSpotlight(null); // nobody on stage, nothing staged
       return;
     }
     // Draw only among people who are actually here; offline ids stay in
@@ -2309,6 +2346,9 @@ export class BoardRoom extends DurableObject<Env> {
     // wheel overlay, so they are already there when it lifts. This leaks
     // nothing early — picker.spun names the winner in plaintext anyway.
     this.broadcastNewlyVisible(beforeDraw);
+    // LAST, and the order matters: the spotlight names a card, so it must
+    // never precede the frame that hands the recipient that card.
+    this.seedSpotlight(winnerId);
   }
 
   private handlePickerSkip(ws: WebSocket, participant: ParticipantRow): void {
@@ -2337,6 +2377,7 @@ export class BoardRoom extends DurableObject<Env> {
       seq: this.nextSeq(),
       picker: updated,
     });
+    this.setSpotlight(null); // nobody holds the mic any more
   }
 
   // Facilitator hand-picks the next presenter directly (no wheel). Same
@@ -2398,6 +2439,7 @@ export class BoardRoom extends DurableObject<Env> {
     });
     // Taking the stage is what hands this person's cards to the room.
     this.broadcastNewlyVisible(before);
+    this.seedSpotlight(cmd.participantId);
   }
 
   // The person on stage marks their own turn done (member OR facilitator).
@@ -2440,6 +2482,7 @@ export class BoardRoom extends DurableObject<Env> {
       picker: updated,
     });
     this.broadcastNewlyVisible(before);
+    this.setSpotlight(null);
   }
 
   private handlePickerPool(
@@ -2720,12 +2763,13 @@ export class BoardRoom extends DurableObject<Env> {
     } else if (phase === "discuss" || phase === "close") {
       // Changing topN after the reveal re-crowns; keep connected clients in
       // step with what a reconnecting client would compute.
-      const { tallies, topTargetIds } = this.talliesAndTop();
+      const { tallies, topTargetIds, voters } = this.talliesAndTop();
       this.broadcastAll({
         type: "votes.revealed",
         seq: this.nextSeq(),
         tallies,
         topTargetIds,
+        voters,
       });
     }
   }
@@ -2930,6 +2974,7 @@ export class BoardRoom extends DurableObject<Env> {
     votersTotal: number;
     tallies: Record<string, number> | null;
     topTargetIds: string[];
+    voters: Record<string, Record<string, number>> | null;
   } {
     const revealedTallies =
       phase === "discuss" || phase === "close" || phase === "done"
@@ -2940,6 +2985,9 @@ export class BoardRoom extends DurableObject<Env> {
       ...this.meter(),
       tallies: revealedTallies?.tallies ?? null,
       topTargetIds: revealedTallies?.topTargetIds ?? [],
+      // The same phase gate carries the voter map: before the reveal it is
+      // null for everyone, which is what keeps the vote itself blind.
+      voters: revealedTallies?.voters ?? null,
     };
   }
 
@@ -3014,12 +3062,13 @@ export class BoardRoom extends DurableObject<Env> {
           targetId: null,
         });
       }
-      const { tallies, topTargetIds } = this.talliesAndTop();
+      const { tallies, topTargetIds, voters } = this.talliesAndTop();
       this.broadcastAll({
         type: "votes.revealed",
         seq: this.nextSeq(),
         tallies,
         topTargetIds,
+        voters,
       });
     }
   }
@@ -3075,11 +3124,23 @@ export class BoardRoom extends DurableObject<Env> {
     }
   }
 
+  /** True only when the room is meant to see WHO voted. Consulted in exactly
+   *  one place (talliesAndTop) so every emitter — the phase reveal, the
+   *  re-crown, the reconcile, the sync snapshot and the export — inherits it
+   *  rather than each re-deriving the rule. Anonymity wins over the flag: a
+   *  board that strips note authorship must not hand names back through the
+   *  vote surface. */
+  private voterNamesShown(): boolean {
+    return this.config().voterNamesEnabled && !this.anonymous();
+  }
+
   /** Tallies over CURRENT votables only (dangling vote rows are ignored),
-   *  top-N with a stable tiebreak (count desc, id asc). */
+   *  top-N with a stable tiebreak (count desc, id asc). `voters` is the same
+   *  data one level finer, and null whenever the board is blind. */
   private talliesAndTop(): {
     tallies: Record<string, number>;
     topTargetIds: string[];
+    voters: Record<string, Record<string, number>> | null;
   } {
     // Notes in hidden (staged) columns are excluded from the votable set:
     // revealed tallies/crowns are broadcast to EVERYONE, so a hidden note's id
@@ -3093,20 +3154,31 @@ export class BoardRoom extends DurableObject<Env> {
       if (row.group_id === null) votable.add(String(row.id));
       else votable.add(String(row.group_id));
     }
+    // One pass over the raw rows builds BOTH maps. The GROUP BY it replaces
+    // already scanned every row, so this is rows-read neutral — and it is why
+    // the voter map costs no second query.
+    const showVoters = this.voterNamesShown();
     const tallies: Record<string, number> = {};
+    const voters: Record<string, Record<string, number>> = {};
     for (const row of this.sql
-      .exec(
-        "SELECT target_id, SUM(count) AS total FROM votes GROUP BY target_id",
-      )
+      .exec("SELECT target_id, participant_id, count FROM votes")
       .toArray()) {
       const id = String(row.target_id);
-      if (votable.has(id)) tallies[id] = Number(row.total);
+      // The SAME votable filter, which is what keeps a note inside a staged
+      // (hidden) column out of the voter map: this reveal is broadcast to
+      // everyone, so a hidden note's id must never appear in it.
+      if (!votable.has(id)) continue;
+      const count = Number(row.count);
+      tallies[id] = (tallies[id] ?? 0) + count;
+      if (showVoters) {
+        (voters[id] ??= {})[String(row.participant_id)] = count;
+      }
     }
     const topTargetIds = Object.entries(tallies)
       .sort(([idA, a], [idB, b]) => b - a || idA.localeCompare(idB))
       .slice(0, this.config().topN)
       .map(([id]) => id);
-    return { tallies, topTargetIds };
+    return { tallies, topTargetIds, voters: showVoters ? voters : null };
   }
 
   private migrateVotes(from: string, to: string): void {
@@ -3174,9 +3246,24 @@ export class BoardRoom extends DurableObject<Env> {
       );
       return;
     }
-    if (this.participantById(cmd.toId) === null) {
-      this.reject(ws, cmd.opId, "NOT_FOUND", "Recipient does not exist");
-      return;
+    // "Thanks to all" is addressed to the room, not to a roster row — the
+    // sentinel is never a participant id (those are 32-char hex), so it can
+    // never name a real person by accident. An unknown id is still refused:
+    // the existence check moves INTO this branch, it is not replaced by it.
+    if (cmd.toId !== KUDO_EVERYONE) {
+      if (this.participantById(cmd.toId) === null) {
+        this.reject(ws, cmd.opId, "NOT_FOUND", "Recipient does not exist");
+        return;
+      }
+      // Appreciation is for other people. The composer already leaves the
+      // sender out of the picker, so a normal client never gets here — but the
+      // rule is the server's, not the picker's. A kudo to EVERYONE is fine:
+      // "thanks to all" includes you the way any toast does, and refusing it
+      // would make a solo board unable to say thank you at all.
+      if (cmd.toId === participant.id) {
+        this.reject(ws, cmd.opId, "INVALID", "Kudos go to someone else");
+        return;
+      }
     }
     if (this.kudoRowById(cmd.kudoId) !== null) {
       this.ack(ws, cmd.opId); // idempotent retry
@@ -3258,6 +3345,175 @@ export class BoardRoom extends DurableObject<Env> {
       seq: this.nextSeq(),
       config: this.config(),
     });
+  }
+
+  // Whether the post-vote reveal names the voters. Three refusals, and each
+  // one is the point of the feature rather than defensive noise:
+  //  - members cannot set it;
+  //  - an anonymous board cannot, at all: it promised to strip authorship, and
+  //    a named voter list on a small board hands that back through the side
+  //    door;
+  //  - and it is LOCKED once voting has closed. Flipping it on in `discuss`
+  //    would de-blind a round people already voted in believing it was secret,
+  //    with no way for them to take a dot back. That is the failure mode this
+  //    whole feature has to be built around, so it is refused at the door.
+  private handleVoterNamesSet(
+    ws: WebSocket,
+    participant: ParticipantRow,
+    cmd: Extract<ClientCommand, { type: "admin.voterNames.set" }>,
+  ): void {
+    if (participant.role !== "facilitator") {
+      this.reject(
+        ws,
+        undefined,
+        "NOT_ADMIN",
+        "Only the facilitator changes settings",
+      );
+      return;
+    }
+    if (cmd.enabled && this.anonymous()) {
+      this.reject(
+        ws,
+        undefined,
+        "INVALID",
+        "This board is anonymous — votes stay unattributed",
+      );
+      return;
+    }
+    const phase = this.phase();
+    const revealed =
+      phase === "discuss" || phase === "close" || phase === "done";
+    // Any dot already cast freezes the setting too, not just the reveal: the
+    // vote bar tells people whether their name will be attached BEFORE they
+    // spend anything, and flipping it on mid-round would attribute dots cast
+    // under the opposite promise — with no way to take one back.
+    const alreadyVoted =
+      Number(
+        this.sql.exec("SELECT COUNT(*) AS n FROM votes").toArray()[0]?.n ?? 0,
+      ) > 0;
+    // The lock is ONE-WAY. Turning names ON is refused once anyone has voted.
+    // Turning them OFF is always allowed — withdrawing is strictly
+    // privacy-improving, and a facilitator who realises mid-discussion that the
+    // room is uncomfortable must be able to take the names down.
+    if ((revealed || alreadyVoted) && cmd.enabled) {
+      this.reject(
+        ws,
+        undefined,
+        "PHASE_LOCKED",
+        "Voting has started — names cannot be turned on now",
+      );
+      return;
+    }
+    this.setMeta("voterNamesEnabled", cmd.enabled ? "1" : "0");
+    this.broadcastAll({
+      type: "config.changed",
+      seq: this.nextSeq(),
+      config: this.config(),
+    });
+    // Names already on screen have to come down without a reload, so the
+    // reveal is re-broadcast with the recomputed (now null) map.
+    if (revealed) {
+      const { tallies, topTargetIds, voters } = this.talliesAndTop();
+      this.broadcastAll({
+        type: "votes.revealed",
+        seq: this.nextSeq(),
+        tallies,
+        topTargetIds,
+        voters,
+      });
+    }
+  }
+
+  // The render switch. Deliberately does NOT touch what the server sends: there
+  // is no un-reveal event, and "nothing the room has already read may be taken
+  // back" is the invariant the whole presenting round is built on. Hiding is a
+  // property of the screen, so flipping it off restores the board instantly
+  // with no re-reveal burst.
+  private handleFocusSet(
+    ws: WebSocket,
+    participant: ParticipantRow,
+    cmd: Extract<ClientCommand, { type: "admin.focus.set" }>,
+  ): void {
+    if (participant.role !== "facilitator") {
+      this.reject(
+        ws,
+        undefined,
+        "NOT_ADMIN",
+        "Only the facilitator changes settings",
+      );
+      return;
+    }
+    this.setMeta("focusMode", cmd.enabled ? "1" : "0");
+    this.broadcastAll({
+      type: "config.changed",
+      seq: this.nextSeq(),
+      config: this.config(),
+    });
+  }
+
+  // Move the stage to one of the presenter's cards. Every guard is a rule the
+  // feature is made of, and the ROLE check comes first because that is what the
+  // authorization matrix asserts for every admin.* command.
+  private handleSpotlightSet(
+    ws: WebSocket,
+    participant: ParticipantRow,
+    cmd: Extract<ClientCommand, { type: "admin.spotlight.set" }>,
+  ): void {
+    if (participant.role !== "facilitator") {
+      this.reject(
+        ws,
+        undefined,
+        "NOT_ADMIN",
+        "Only the facilitator drives the walkthrough",
+      );
+      return;
+    }
+    if (this.phase() !== "present") {
+      this.reject(
+        ws,
+        undefined,
+        "PHASE_LOCKED",
+        "The walkthrough runs in the presenting phase",
+      );
+      return;
+    }
+    if (!this.spotlightAllowed()) {
+      this.reject(
+        ws,
+        undefined,
+        "INVALID",
+        "This board is anonymous — cards are not walked per person",
+      );
+      return;
+    }
+    if (cmd.targetId === null) {
+      this.setSpotlight(null);
+      return;
+    }
+    const note = this.noteById(cmd.targetId);
+    if (note === null) {
+      this.reject(ws, undefined, "NOT_FOUND", "No such card");
+      return;
+    }
+    // A staged column's cards are the facilitator's alone. Putting one on a
+    // stage the whole room is watching would hand out its id — the same reason
+    // the discussion focus refuses a hidden target.
+    if (this.hiddenColumnIds().has(note.columnId)) {
+      this.reject(ws, undefined, "NOT_FOUND", "No such card");
+      return;
+    }
+    // Only the CURRENT presenter's cards. Anything else would stage a card the
+    // rotation has not reached, which is exactly what the round paces.
+    const picker = this.picker();
+    if (picker === null || picker.current === null) {
+      this.reject(ws, undefined, "INVALID", "Nobody is presenting");
+      return;
+    }
+    if (note.authorId !== picker.current) {
+      this.reject(ws, undefined, "INVALID", "That card is not on stage");
+      return;
+    }
+    this.setSpotlight(cmd.targetId);
   }
 
   private handleCursorsSet(
@@ -3640,7 +3896,25 @@ export class BoardRoom extends DurableObject<Env> {
       phase === "discuss" || phase === "close" || phase === "done";
     const revealedVotes = talliesShown
       ? this.talliesAndTop()
-      : { tallies: {} as Record<string, number>, topTargetIds: [] as string[] };
+      : {
+          tallies: {} as Record<string, number>,
+          topTargetIds: [] as string[],
+          voters: null as Record<string, Record<string, number>> | null,
+        };
+    // Voter names are personal names, so they ride the SAME opt-in as author
+    // names. Without this the default download — the one meant to be pasted
+    // into a team channel — would carry names the live board only shows to
+    // people in the room. talliesAndTop has already applied the anonymity and
+    // facilitator gates; this adds the exporter's.
+    const voterNamesOf = (votableId: string): string[] | null => {
+      if (!includeAuthors || anonymous) return null;
+      const spent = revealedVotes.voters?.[votableId];
+      if (spent === undefined) return null;
+      return Object.keys(spent)
+        .map((id) => names.get(id))
+        .filter((name): name is string => name !== undefined)
+        .sort();
+    };
 
     const notesByColumn = new Map<string, Note[]>();
     // "" is a viewer who owns nothing: the export is nobody's screen, so it can
@@ -3692,6 +3966,9 @@ export class BoardRoom extends DurableObject<Env> {
                 n.groupId !== null && exported.has(n.groupId)
                   ? n.groupId
                   : null,
+              // Only the votable carries them, exactly like the tally — a
+              // stacked member must not repeat its anchor's voters.
+              voterNames: isVotable ? voterNamesOf(votableId) : null,
             };
           }),
         };
@@ -3708,7 +3985,13 @@ export class BoardRoom extends DurableObject<Env> {
       })),
       kudos: this.allKudos().map((k) => ({
         cardType: k.cardType,
-        toName: names.get(k.toId) ?? "someone",
+        // The sentinel names the room, not a roster row. Spelled out in
+        // English beside the existing "someone" fallback — the export file is
+        // English throughout (see KUDO_CARD_LABELS), never translated.
+        toName:
+          k.toId === KUDO_EVERYONE
+            ? "Everyone"
+            : (names.get(k.toId) ?? "someone"),
         fromName: authorNameOf(k.fromId),
         text: k.text,
       })),
@@ -3718,6 +4001,94 @@ export class BoardRoom extends DurableObject<Env> {
   // ---------------------------------------------------------------------
   // snapshots & broadcast plumbing
   // ---------------------------------------------------------------------
+
+  // ---- the presenting walkthrough -------------------------------------
+  // ONE card on stage, driven by the facilitator, followed by every screen.
+  // Stored in board_meta rather than on the instance: the DO hibernates, and a
+  // field parked in memory would evaporate mid-round.
+
+  /** Whether the walkthrough may run at all.
+   *
+   *  NEVER on an anonymous board, and this is the load-bearing gate rather
+   *  than a nicety: the spotlight is a NOTE ID, `picker.spun` names the
+   *  presenter in plaintext, and the pair reconstructs exactly the authorship
+   *  an anonymous board promised to strip — the same reasoning revealFor's
+   *  rule 4 gives for refusing to scope such a board at all. Gated on the
+   *  server, not in the UI, because the leak is on the wire. */
+  private spotlightAllowed(): boolean {
+    return !this.anonymous();
+  }
+
+  private spotlight(): string | null {
+    return this.spotlightAllowed() ? this.getMeta("spotlight") : null;
+  }
+
+  /** The staged card AS THIS VIEWER may see it. A note id is a secret here —
+   *  handing one to somebody the rotation has not reached would name a card
+   *  they were never sent, which is the same class of leak the reorg and
+   *  columnCount filters exist to close. */
+  private spotlightFor(participant: ParticipantRow): string | null {
+    const targetId = this.spotlight();
+    if (targetId === null) return null;
+    const note = this.noteById(targetId);
+    if (note === null) return null;
+    const gate = this.gateFor(participant.id, this.revealNow());
+    return noteVisibleTo(note, participant.id, gate.reveal, gate.hidden)
+      ? targetId
+      : null;
+  }
+
+  /** Per-recipient fan-out, the second lock after the handler's own checks. */
+  private broadcastSpotlight(targetId: string | null): void {
+    const note = targetId === null ? null : this.noteById(targetId);
+    const board = this.revealNow();
+    const seq = this.nextSeq();
+    this.broadcastEach((recipientId) => {
+      const gate = this.gateFor(recipientId, board);
+      const visible =
+        note !== null &&
+        noteVisibleTo(note, recipientId, gate.reveal, gate.hidden);
+      return {
+        type: "spotlight.changed",
+        seq,
+        targetId: visible ? targetId : null,
+      };
+    });
+  }
+
+  private setSpotlight(targetId: string | null): void {
+    // An anonymous board never stages a card, so the id never reaches the
+    // wire — not even the null clear, which would be noise for a feature that
+    // is off. Every caller (spin, pick, skip, done, reconcile) routes here.
+    if (!this.spotlightAllowed()) return;
+    if (targetId === null)
+      this.sql.exec("DELETE FROM board_meta WHERE key = 'spotlight'");
+    else this.setMeta("spotlight", targetId);
+    this.broadcastSpotlight(targetId);
+  }
+
+  /** Put the new presenter's FIRST card on stage, so the common path never
+   *  needs a click to start — and never a rejected one. Silent when they have
+   *  no cards: the stage simply stays empty and the button says "next person". */
+  private seedSpotlight(presenterId: string): void {
+    const order = presenterCardOrder(
+      this.allNotes(),
+      this.columns(),
+      presenterId,
+    );
+    this.setSpotlight(order[0] ?? null);
+  }
+
+  /** The staged card can vanish under the facilitator: they may delete any
+   *  card during the round, and staging its column takes it off every screen.
+   *  Called from both, so a dangling id never survives. */
+  private reconcileSpotlight(): void {
+    const targetId = this.spotlight();
+    if (targetId === null) return;
+    const note = this.noteById(targetId);
+    const hidden = note !== null && this.hiddenColumnIds().has(note.columnId);
+    if (note === null || hidden) this.setSpotlight(null);
+  }
 
   private picker(): PickerState | null {
     const raw = this.getMeta("picker");
@@ -3821,6 +4192,9 @@ export class BoardRoom extends DurableObject<Env> {
       lastSpin: this.activeSpinForSync(),
       votes: this.votesForSync(participant.id, phase),
       discussFocusId: this.getMeta("discussFocus"),
+      // Through the SAME per-viewer filter as the notes below: a member who
+      // was never handed the staged card is told null, not its id.
+      spotlightId: this.spotlightFor(participant),
       actions: this.actions(),
       // Staged reveal: the appreciation wall only appears from the close phase.
       kudos: this.kudosForPhase(phase, participant.id),
@@ -4249,13 +4623,28 @@ export class BoardRoom extends DurableObject<Env> {
       topN: Number(this.getMeta("topN") ?? DEFAULT_VOTE_CONFIG.topN),
       // Default true for boards created before the toggle existed.
       gifsEnabled: this.getMeta("gifsEnabled") !== "0",
-      // Default to the classic wheel for boards created before the skin field.
-      pickerStyle: this.getMeta("pickerStyle") === "slots" ? "slots" : "wheel",
-      // Default to columns for boards created before the layout field.
-      layout: this.getMeta("layout") === "canvas" ? "canvas" : "columns",
+      // Validated against the schema, not a hand-written ternary. The old
+      // `=== "slots" ? "slots" : "wheel"` made the picker's extensibility a
+      // lie: a third style would broadcast correctly live and then silently
+      // revert to the wheel on every reconnect, every sync and every board
+      // duplication. Same fail-safe direction as phase() — an unreadable value
+      // reads as the classic wheel.
+      pickerStyle:
+        pickerStyleSchema.safeParse(this.getMeta("pickerStyle")).data ??
+        "wheel",
+      // Same reasoning as pickerStyle above; columns for boards created
+      // before the layout field, and for anything unreadable.
+      layout:
+        layoutModeSchema.safeParse(this.getMeta("layout")).data ?? "columns",
       // Live cursors are OFF unless a facilitator opted in (protects the free
       // tier); default off for boards created before the field.
       cursorsEnabled: this.getMeta("cursorsEnabled") === "1",
+      // Off for boards created before the field: a round already voted under
+      // the blind promise must not be de-blinded by a deploy. New boards are
+      // seeded with "1" in initialize().
+      voterNamesEnabled: this.getMeta("voterNamesEnabled") === "1",
+      // Default off for boards created before the field.
+      focusMode: this.getMeta("focusMode") === "1",
     };
   }
 
