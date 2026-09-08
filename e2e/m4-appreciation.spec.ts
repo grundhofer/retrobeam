@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test, type Page } from "@playwright/test";
+import { newContext } from "./helpers.js";
 
 // M4 acceptance: the appreciation wall (kudos with anonymity), export, and
 // admin delete-now. Reduced motion for deterministic transitions.
 test("kudos wall, export and delete-now", async ({ browser }) => {
-  const annaContext = await browser.newContext({ reducedMotion: "reduce" });
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await annaContext.newPage();
   await anna.goto("/");
   await anna.getByRole("textbox").fill("Sprint 45 retro");
@@ -17,7 +18,7 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   const boardUrl = anna.url();
   await join(anna, "Anna");
 
-  const benContext = await browser.newContext({ reducedMotion: "reduce" });
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
   const ben = await benContext.newPage();
   await ben.goto(boardUrl);
   await join(ben, "Ben");
@@ -106,7 +107,7 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
 test("GIF search degrades gracefully with no key configured", async ({
   browser,
 }) => {
-  const context = await browser.newContext({ reducedMotion: "reduce" });
+  const context = await newContext(browser, { reducedMotion: "reduce" });
   const page = await context.newPage();
   await page.goto("/");
   await page.getByRole("textbox").fill("Gif board");

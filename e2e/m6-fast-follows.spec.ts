@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test, type Page } from "@playwright/test";
+import { newContext } from "./helpers.js";
 
 // M6 acceptance: the three v1.x fast-follows — staged/hidden columns, board
 // duplication, and the slot-machine picker skin.
@@ -9,7 +10,7 @@ import { expect, test, type Page } from "@playwright/test";
 test("staged columns hide from members and reveal again", async ({
   browser,
 }) => {
-  const annaCtx = await browser.newContext({ reducedMotion: "reduce" });
+  const annaCtx = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await annaCtx.newPage();
   await anna.goto("/");
   await anna.getByRole("textbox").fill("Sprint 47");
@@ -20,7 +21,7 @@ test("staged columns hide from members and reveal again", async ({
   const boardUrl = anna.url();
   await join(anna, "Anna");
 
-  const benCtx = await browser.newContext({ reducedMotion: "reduce" });
+  const benCtx = await newContext(browser, { reducedMotion: "reduce" });
   const ben = await benCtx.newPage();
   await ben.goto(boardUrl);
   await join(ben, "Ben");
@@ -51,7 +52,7 @@ test("staged columns hide from members and reveal again", async ({
 });
 
 test("duplicating a board opens a fresh copy of it", async ({ browser }) => {
-  const ctx = await browser.newContext({ reducedMotion: "reduce" });
+  const ctx = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await ctx.newPage();
   await anna.goto("/");
   await anna.getByRole("textbox").fill("Retro to clone");
@@ -85,7 +86,7 @@ test("duplicating a board opens a fresh copy of it", async ({ browser }) => {
 
 test("slot-machine picker skin spins to a winner", async ({ browser }) => {
   // NOT reduced-motion: we want the reels to actually render.
-  const annaCtx = await browser.newContext();
+  const annaCtx = await newContext(browser);
   const anna = await annaCtx.newPage();
   await anna.goto("/");
   await anna.getByRole("textbox").fill("Sprint 48");
@@ -96,7 +97,7 @@ test("slot-machine picker skin spins to a winner", async ({ browser }) => {
   const boardUrl = anna.url();
   await join(anna, "Anna");
 
-  const benCtx = await browser.newContext();
+  const benCtx = await newContext(browser);
   const ben = await benCtx.newPage();
   await ben.goto(boardUrl);
   await join(ben, "Ben");

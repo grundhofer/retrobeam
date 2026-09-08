@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test, type Page } from "@playwright/test";
+import { newContext } from "./helpers.js";
 
 // Canvas mode: create a freeform board, add a note by double-clicking empty
 // space, then flip live to columns and confirm the note survives.
 test("canvas layout: freeform zones, add-by-double-click, and the live switch", async ({
   browser,
 }) => {
-  const context = await browser.newContext({ reducedMotion: "reduce" });
+  const context = await newContext(browser, { reducedMotion: "reduce" });
   const page = await context.newPage();
   await page.goto("/");
   await page.getByRole("textbox").fill("Canvas retro");

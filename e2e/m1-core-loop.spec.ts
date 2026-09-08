@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test, type Page } from "@playwright/test";
+import { newContext } from "./helpers.js";
 
 // The M1 acceptance flow: private write with ghost cards and ready-check,
 // reveal on phase change, reactions, rewind hiding notes again, and the timer.
 test("write → reveal core loop with two participants", async ({ browser }) => {
-  const annaContext = await browser.newContext();
+  const annaContext = await newContext(browser);
   const anna = await annaContext.newPage();
   await anna.goto("/");
   await anna.getByRole("textbox").fill("Sprint 42 retro");
@@ -17,7 +18,7 @@ test("write → reveal core loop with two participants", async ({ browser }) => 
   const boardUrl = anna.url();
   await join(anna, "Anna");
 
-  const benContext = await browser.newContext();
+  const benContext = await newContext(browser);
   const ben = await benContext.newPage();
   await ben.goto(boardUrl);
   await join(ben, "Ben");
@@ -122,7 +123,7 @@ test("board is created with localized template columns", async ({ page }) => {
 test("a note written while offline is delivered after reconnect", async ({
   browser,
 }) => {
-  const context = await browser.newContext();
+  const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/");
   await page.getByRole("textbox").fill("Offline resilience");
@@ -171,7 +172,7 @@ test("a note in flight when the socket dies survives the reconnect", async ({
   // This covers the harder case the queue never did — the frame was handed to a
   // live socket that then died, so it was neither queued nor acknowledged, and
   // the next snapshot wiped it off the screen along with whatever was typed.
-  const context = await browser.newContext();
+  const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/");
   await page.getByRole("textbox").fill("In-flight resilience");
@@ -233,7 +234,7 @@ test("a refused command is explained instead of vanishing", async ({
   // Every refusal used to be silent: the command vanished, the board quietly
   // resynced, and nothing told the user anything. The composer's own
   // restore-on-reject path rides on the same wiring (mutate's onReject).
-  const context = await browser.newContext();
+  const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/");
   await page.getByRole("textbox").fill("Refusal feedback");

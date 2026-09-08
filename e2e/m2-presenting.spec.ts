@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test, type Page } from "@playwright/test";
+import { newContext } from "./helpers.js";
 
 // M2 acceptance: the wheel picks the same person on every screen, rotates
 // without repeats until everyone presented, grouping syncs, handoff works.
 test("wheel rotation, presenter focus, grouping and handoff", async ({
   browser,
 }) => {
-  const annaContext = await browser.newContext({ reducedMotion: "reduce" });
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await annaContext.newPage();
   await anna.goto("/");
   await anna.getByRole("textbox").fill("Sprint 43 retro");
@@ -19,7 +20,7 @@ test("wheel rotation, presenter focus, grouping and handoff", async ({
   const boardUrl = anna.url();
   await join(anna, "Anna");
 
-  const benContext = await browser.newContext({ reducedMotion: "reduce" });
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
   const ben = await benContext.newPage();
   await ben.goto(boardUrl);
   await join(ben, "Ben");

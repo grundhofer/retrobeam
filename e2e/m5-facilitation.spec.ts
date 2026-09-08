@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test, type Page } from "@playwright/test";
+import { newContext } from "./helpers.js";
 
 // M5 acceptance: the check-in warm-up (icebreaker + shuffle + agreements) and
 // the anonymous ROTI closing poll. Check-in is off by default and has no
@@ -10,7 +11,7 @@ import { expect, test, type Page } from "@playwright/test";
 test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   browser,
 }) => {
-  const annaContext = await browser.newContext({ reducedMotion: "reduce" });
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
   const created = await annaContext.request.post("/api/boards", {
     data: { name: "Sprint 46 retro", checkin: true, locale: "en" },
   });
@@ -33,7 +34,7 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   await anna.goto(boardUrl);
   await join(anna, "Anna");
 
-  const benContext = await browser.newContext({ reducedMotion: "reduce" });
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
   const ben = await benContext.newPage();
   await ben.goto(boardUrl);
   await join(ben, "Ben");
@@ -41,7 +42,7 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
 
   // A third participant — the anonymous ROTI needs three responses before it
   // will reveal an average (see below).
-  const caraContext = await browser.newContext({ reducedMotion: "reduce" });
+  const caraContext = await newContext(browser, { reducedMotion: "reduce" });
   const cara = await caraContext.newPage();
   await cara.goto(boardUrl);
   await join(cara, "Cara");
