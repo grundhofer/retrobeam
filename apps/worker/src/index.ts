@@ -9,12 +9,14 @@ import {
   boardNameSchema,
   DEFAULT_PHASE_PLAN,
   EXPORT_FORMATS,
+  EXPORT_SCOPES,
   layoutModeSchema,
   exportContentType,
   renderExport,
   templateColumnNames,
   templateKeySchema,
   type ExportFormat,
+  type ExportScope,
 } from "@retropolis/shared";
 import { boardStub, limiterStub } from "./board-stub.js";
 import { searchGifs } from "./gifs.js";
@@ -177,12 +179,15 @@ app.get("/api/boards/:id", async (c) => {
 
 // Export a board. Deliberately open to any holder of the board id, not gated on
 // the admin token: the board id IS a full participant capability, and the export
-// carries nothing a participant cannot already read on screen — pre-reveal note
-// bodies and staged columns are omitted, tallies stay blind until the reveal,
-// and an anonymous board strips note authorship. Gating it would mean putting
-// the admin token in a GET URL (history, logs, referrers) for no confidentiality
-// gain. Author names are excluded by default — pass ?authors=true to include
-// them. docs/01 §10 states the same rule.
+// carries nothing a participant cannot already read on screen. That claim is
+// load-bearing, so the DO enforces it literally — the export is built under the
+// reveal a viewer with NO identity would get, which during the presenting round
+// means the cards of the people the rotation has already reached and nothing
+// else. Pre-reveal note bodies and staged columns are omitted, tallies stay
+// blind until the reveal, and an anonymous board strips note authorship.
+// Gating it would mean putting the admin token in a GET URL (history, logs,
+// referrers) for no confidentiality gain. Author names are excluded by default —
+// pass ?authors=true to include them. docs/01 §10 states the same rule.
 app.get("/api/boards/:id/export", async (c) => {
   const boardId = c.req.param("id");
   if (!isSecretShaped(boardId)) {
@@ -192,6 +197,10 @@ app.get("/api/boards/:id/export", async (c) => {
   if (!EXPORT_FORMATS.includes(format)) {
     return c.json({ error: "INVALID_FORMAT" }, 400);
   }
+  const scope = (c.req.query("scope") ?? "all") as ExportScope;
+  if (!EXPORT_SCOPES.includes(scope)) {
+    return c.json({ error: "INVALID_SCOPE" }, 400);
+  }
   const includeAuthors = c.req.query("authors") === "true";
   const data = await boardStub(c.env, boardId).exportBoard(includeAuthors);
   if (data === null) {
@@ -200,10 +209,15 @@ app.get("/api/boards/:id/export", async (c) => {
   const safeName =
     data.boardName.replace(/[^a-z0-9-_]+/gi, "-").replace(/^-+|-+$/g, "") ||
     "retro";
-  return new Response(renderExport(format, data), {
+  // The scope rides in the filename: a facilitator downloads both shapes from
+  // the same board seconds apart, and identical names give you "Sprint-50.md"
+  // and "Sprint-50 (1).md" — the (1) being the one you must open to find out
+  // which is which. It is also the only place a CSV or JSON says its scope.
+  const suffix = scope === "summary" ? "-summary" : "";
+  return new Response(renderExport(format, data, scope), {
     headers: {
       "content-type": exportContentType(format),
-      "content-disposition": `attachment; filename="${safeName}.${format}"`,
+      "content-disposition": `attachment; filename="${safeName}${suffix}.${format}"`,
     },
   });
 });

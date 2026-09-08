@@ -305,6 +305,30 @@ function Room({
     presenterId !== null
       ? (state.roster.find((p) => p.id === presenterId) ?? null)
       : null;
+  // Who the round has NOT reached yet — the facilitator's "the room cannot read
+  // this one yet" marker. Facilitator-only on purpose: a member holds no such
+  // card except their OWN, and marking someone's own cards as unreadable is
+  // exactly backwards. Null once the round has handed the board over, outside
+  // the round entirely, and on an anonymous board, where nothing is scoped and
+  // authorship is stripped anyway.
+  const unpresentedAuthorIds = useMemo(() => {
+    if (!isAdmin || state.phase !== "present" || state.picker === null) {
+      return null;
+    }
+    if (state.picker.revealedAll || (config?.anonymous ?? false)) return null;
+    const shown = new Set(state.picker.revealed);
+    return new Set(
+      state.roster.map((p) => p.id).filter((id) => !shown.has(id)),
+    );
+  }, [isAdmin, config?.anonymous, state.phase, state.picker, state.roster]);
+  // Whether the presenting round is actually pacing the reveal — false on an
+  // anonymous board and once the board has been handed over, so the rail does
+  // not promise a staged reveal that is not happening.
+  const scopedRound =
+    state.phase === "present" &&
+    state.picker !== null &&
+    !state.picker.revealedAll &&
+    !(config?.anonymous ?? false);
 
   const onlineCount = useMemo(
     () => state.roster.filter((p) => p.online).length,
@@ -379,6 +403,13 @@ function Room({
               youId={you.id}
               isAdmin={isAdmin}
             />
+            {/* Only where there is no rail to carry it — otherwise the same
+                count would render twice on one screen. */}
+            {showActions ? (
+              <span className="text-xs text-zinc-400 tabular-nums">
+                {t("rail.online", { count: onlineCount })}
+              </span>
+            ) : null}
             <BoardMenu
               boardId={boardId}
               boardName={state.board?.name ?? board.name}
@@ -505,6 +536,7 @@ function Room({
                     editing={state.editing}
                     isAdmin={isAdmin}
                     presenterId={presenterId}
+                    unpresentedAuthorIds={unpresentedAuthorIds}
                     gifsEnabled={gifsEnabled}
                     cursors={state.cursors}
                     cursorsEnabled={
@@ -532,6 +564,7 @@ function Room({
                     editing={state.editing}
                     isAdmin={isAdmin}
                     presenterId={presenterId}
+                    unpresentedAuthorIds={unpresentedAuthorIds}
                     deciding={{
                       voteActive: state.phase === "vote",
                       mine: state.votes.mine,
@@ -549,6 +582,12 @@ function Room({
                   />
                 )}
               </div>
+              {/* One right-hand column, never two. In the discussion phase the
+                  rail is a heading and a roster list and nothing else (its
+                  ready toggle and picker cockpit are write/vote/present only),
+                  and that roster is already in the header — so 288px of
+                  duplicate was pushing board columns out of view in exactly
+                  the phase that also pays 320px for the action list. */}
               {showActions ? (
                 <ActionsPanel
                   actions={state.actions}
@@ -556,15 +595,17 @@ function Room({
                   you={you}
                   readOnly={false}
                 />
-              ) : null}
-              <PresenceRail
-                phase={state.phase}
-                roster={state.roster}
-                readyIds={state.readyIds}
-                picker={state.picker}
-                you={you}
-                isAdmin={isAdmin}
-              />
+              ) : (
+                <PresenceRail
+                  phase={state.phase}
+                  roster={state.roster}
+                  readyIds={state.readyIds}
+                  picker={state.picker}
+                  you={you}
+                  isAdmin={isAdmin}
+                  scopedRound={scopedRound}
+                />
+              )}
             </div>
           )}
         </main>

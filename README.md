@@ -62,11 +62,12 @@ Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll —
 - **6 templates** — Went well / To improve, Start-Stop-Continue, Mad-Sad-Glad, 4Ls, Sailboat, Starfish — plus custom columns
 - **Two board layouts** — classic columns or a freeform canvas with draggable zones
 - **A real phase flow** — write → present → vote → discuss → close, rewindable, and every step can be switched off for a shorter retro
+- **One person at a time** — when the writing stops the board doesn't fall open. The wheel picks who presents, and the room is handed that person's cards as their turn comes, with the speaker's highlighted. Nothing shown is ever taken back, and once everyone has presented the whole board is open.
 - **Facilitation kit** — an optional opening check-in with 24 localized icebreakers, the Prime Directive, live-editable working agreements, and a shared timer with a chime
 - **Grouping** — drag cards into stacks; votes and reactions come along
 - **Staged columns** — prepare a column and reveal it to the room when you're ready
 - **Emoji reactions and GIFs**, and confetti where it's earned
-- **Exports** — Markdown, CSV, JSON. Author names are excluded by default.
+- **Exports** — Markdown, CSV, JSON, in two scopes: everything, or a summary of the crowned cards and the action items. Author names are excluded by default.
 - **Board duplication** — clone the structure for next sprint, nothing else
 - **German and English** throughout, switchable mid-retro
 
@@ -79,6 +80,7 @@ The write phase is private because retros only work when people say the awkward 
 - **EU data residency** — every board lives in an EU-jurisdiction Durable Object, pinned at creation.
 - **Boards auto-delete after 90 days**, or immediately when you say so.
 - **Anonymity where it matters** — kudos, the ROTI poll, and the voting meter.
+- **Cards travel with their turn** — during the presenting round the server sends a participant only what the room has already been shown. The facilitator, who runs the round, does see the whole board — that is the one place the moderator sees more than the team, and `docs/05` says so plainly.
 
 If you need to bring this past a German works council, [`docs/05-privacy-gdpr.md`](docs/05-privacy-gdpr.md) has the §87 BetrVG playbook, the data inventory and the sub-processor list already written up.
 

@@ -55,6 +55,17 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
             style={{ backgroundColor: participant.color }}
           >
             {initials(participant.name)}
+            {/* Two people can share initials, a disabled button is not
+                reachable by keyboard, and its title is not reliably announced —
+                so the name and the presence state live here as real content.
+                In the discussion phase this row IS the roster: the participant
+                rail steps aside there for the action list. The ROLE stays out
+                of it — the ring and the title carry it, and the facilitator
+                badge is counted elsewhere. */}
+            <span className="sr-only">
+              {participant.name}
+              {participant.online ? "" : ` · ${t("board.offline")}`}
+            </span>
           </button>
           {openId === participant.id && isAdmin ? (
             <span className="absolute top-9 right-0 z-40 w-max rounded-lg border border-zinc-200 bg-white p-1 shadow-lg">

@@ -70,6 +70,18 @@ async function presentingBoard() {
   return { boardId, adminToken, admin, ben };
 }
 
+// The presenting round scopes cards by author: a member is handed somebody's
+// notes once the rotation puts that person on stage. The curation tests below
+// are about what happens AFTER that, so they stage the author explicitly.
+async function stageAuthor(
+  admin: { socket: TestSocket },
+  audience: { socket: TestSocket },
+  participantId: string,
+): Promise<void> {
+  admin.socket.send({ type: "admin.picker.pick", participantId });
+  await audience.socket.waitForNext((e) => e.type === "notes.revealed");
+}
+
 async function createNote(
   socket: TestSocket,
   columnId: string,
@@ -635,6 +647,7 @@ describe("grouping & moving", () => {
     if (!columnId) throw new Error("setup");
     const a = await createNote(admin.socket, columnId, "dup A");
     const b = await createNote(ben.socket, columnId, "dup B");
+    await stageAuthor(admin, ben, admin.you.id);
 
     ben.socket.send({
       type: "note.group",
@@ -690,6 +703,19 @@ describe("grouping & moving", () => {
     const [col1, col2] = admin.sync.columns;
     if (!col1 || !col2) throw new Error("setup");
     const noteId = await createNote(admin.socket, col1.id, "movable");
+
+    // Before Anna is on stage the card does not exist for Ben at all — the
+    // refusal is the existence oracle, not the authorship rule.
+    ben.socket.send({
+      type: "note.move",
+      opId: opId(),
+      noteId,
+      columnId: col2.id,
+    });
+    const unstaged = await ben.socket.waitForNext((e) => e.type === "reject");
+    if (unstaged.type !== "reject") throw new Error("unreachable");
+    expect(unstaged.code).toBe("NOT_FOUND");
+    await stageAuthor(admin, ben, admin.you.id);
 
     // After reveal: Ben may move Anna's note (collective curation).
     ben.socket.send({

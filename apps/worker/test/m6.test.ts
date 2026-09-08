@@ -585,7 +585,19 @@ describe("staged / hidden columns", () => {
       text: "staged idea",
     });
     await admin.socket.waitFor((e) => e.type === "note.created");
-    await toPhase(admin.socket, "present"); // revealed
+    // Anna has to be on stage before the column is revealed: the two privacy
+    // dimensions compose by AND, so un-hiding a column hands a member only the
+    // cards of authors the rotation has already reached. (The negative half —
+    // an author it has NOT reached — is the test below.)
+    admin.socket.send({ type: "admin.phase.set", phase: "present" });
+    await ben.socket.waitForNext(
+      (e) => e.type === "phase.changed" && e.phase === "present",
+    );
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: admin.you.id,
+    });
+    await admin.socket.waitForNext((e) => e.type === "picker.changed");
 
     // Reveal: Ben gets the column, then its now-visible notes.
     admin.socket.send({
@@ -604,7 +616,77 @@ describe("staged / hidden columns", () => {
         e.type === "notes.revealed" &&
         e.notes.some((n) => n.columnId === colId),
     );
-    expect(revealed.type).toBe("notes.revealed");
+    if (revealed.type !== "notes.revealed") throw new Error("unreachable");
+    expect(revealed.notes.map((n) => n.text)).toContain("staged idea");
+  });
+
+  it("a staged column revealed mid-round still withholds unpresented cards", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    const cara = await joined(boardId, "Cara");
+    const colId = newId();
+    admin.socket.send({
+      type: "admin.column.create",
+      opId: opId(),
+      columnId: colId,
+      name: "Secret",
+    });
+    await admin.socket.waitFor((e) => e.type === "column.created");
+    await toWrite(admin.socket);
+    // Both write into the column BEFORE it is staged away.
+    for (const [who, text] of [
+      [admin, "anna in the column"],
+      [cara, "cara in the column"],
+    ] as const) {
+      who.socket.send({
+        type: "note.create",
+        opId: opId(),
+        noteId: newId(),
+        columnId: colId,
+        text,
+      });
+      await who.socket.waitFor(
+        (e) => e.type === "note.created" && e.note.text === text,
+      );
+    }
+    admin.socket.send({
+      type: "admin.column.setHidden",
+      opId: opId(),
+      columnId: colId,
+      hidden: true,
+    });
+    await ben.socket.waitFor(
+      (e) => e.type === "column.deleted" && e.columnId === colId,
+    );
+    admin.socket.send({ type: "admin.phase.set", phase: "present" });
+    await ben.socket.waitForNext(
+      (e) => e.type === "phase.changed" && e.phase === "present",
+    );
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: admin.you.id,
+    });
+    await admin.socket.waitForNext((e) => e.type === "picker.changed");
+
+    admin.socket.send({
+      type: "admin.column.setHidden",
+      opId: opId(),
+      columnId: colId,
+      hidden: false,
+    });
+    const revealed = await ben.socket.waitFor(
+      (e) =>
+        e.type === "notes.revealed" &&
+        e.notes.some((n) => n.columnId === colId),
+    );
+    if (revealed.type !== "notes.revealed") throw new Error("unreachable");
+    // Anna is on stage, Cara is not — the two privacy dimensions compose by
+    // AND, so un-hiding a column is not a way around the rotation.
+    expect(revealed.notes.map((n) => n.text)).toEqual(["anna in the column"]);
+    expect(JSON.stringify(ben.socket.events)).not.toContain(
+      "cara in the column",
+    );
   });
 
   it("treats a hidden column like a missing one for members (no existence oracle)", async () => {

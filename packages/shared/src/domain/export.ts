@@ -12,6 +12,13 @@ export interface ExportNote {
   authorName: string | null;
   votes: number | null;
   crownedRank: number | null;
+  /** The stack this card belongs to, identified by its anchor. Only the anchor
+   *  carries the tally and the crown, so without this a reader cannot tell a
+   *  three-card stack from three unrelated notes — and the summary could not
+   *  keep a crowned stack's merged duplicates. Null for a loose card, and also
+   *  null when the anchor itself is not in this export (the id would name a
+   *  note the file does not contain). */
+  groupId: string | null;
 }
 
 export interface ExportColumn {
@@ -40,6 +47,67 @@ export interface BoardExport {
   kudos: ExportKudo[];
 }
 
+export const EXPORT_SCOPES = ["all", "summary"] as const;
+export type ExportScope = (typeof EXPORT_SCOPES)[number];
+
+// The condensed keepsake: the cards the board itself crowned (👑 — the vote
+// round's top-N) plus the action items. A pure projection of the SAME snapshot
+// the full export renders, so every server-side gate that shaped it — no note
+// bodies before the reveal, tallies blind until discuss, staged columns
+// dropped, author names opt-in — is INHERITED rather than re-implemented. The
+// projection can only remove rows, never add one, so the summary can never
+// surface something the full export hides. `crownedRank` is the same value the
+// board draws its crown from, so "top cards" cannot drift from what the team
+// saw on screen.
+//
+// Kudos are deliberately left out: the ask was "top cards + action items", and
+// a kudo names its recipient unconditionally — it is the one name `?authors=`
+// cannot suppress. Without it the default summary carries no personal names at
+// all, which is what makes it safe to paste into a team channel.
+export function summarizeExport(data: BoardExport): BoardExport {
+  const columns = data.columns
+    .map((column) => {
+      // A crowned STACK is one top theme with several cards under it: the crown
+      // and the tally sit on the anchor, but the merged duplicates are text the
+      // team wrote and the board shows them together. Dropping them would make
+      // the summary say less than the board did.
+      const crownedStacks = new Set(
+        column.notes
+          .filter((note) => note.crownedRank !== null && note.groupId !== null)
+          .map((note) => note.groupId as string),
+      );
+      return {
+        name: column.name,
+        notes: column.notes
+          // filter copies first, so the sort never touches the caller's array —
+          // the same snapshot is rendered again when a second format is fetched.
+          .filter(
+            (note) =>
+              note.crownedRank !== null ||
+              (note.groupId !== null && crownedStacks.has(note.groupId)),
+          )
+          // Rank order, not the full export's stack adjacency; a stack's
+          // members follow their anchor, which carries the rank they sort by.
+          .sort(
+            (a, b) =>
+              (a.crownedRank ?? Number.MAX_SAFE_INTEGER) -
+                (b.crownedRank ?? Number.MAX_SAFE_INTEGER) ||
+              (a.crownedRank === null ? 1 : -1),
+          ),
+      };
+    })
+    // A column with nothing crowned is dropped whole — rendering it as
+    // "_(no notes)_" would claim it was empty, which it was not.
+    .filter((column) => column.notes.length > 0);
+  return {
+    boardName: data.boardName,
+    createdAt: data.createdAt,
+    columns,
+    actions: data.actions,
+    kudos: [],
+  };
+}
+
 export const KUDO_CARD_LABELS: Record<KudoCardType, string> = {
   "thank-you": "Thank you",
   "great-job": "Great job",
@@ -53,14 +121,25 @@ function isoDate(epochMs: number): string {
   return new Date(epochMs).toISOString().slice(0, 10);
 }
 
-export function toMarkdown(data: BoardExport): string {
+export function toMarkdown(
+  data: BoardExport,
+  scope: ExportScope = "all",
+): string {
   const lines: string[] = [];
   lines.push(
     `# ${data.boardName}`,
     "",
-    `_Retrospective · ${isoDate(data.createdAt)}_`,
+    scope === "summary"
+      ? `_Retrospective · ${isoDate(data.createdAt)} · Summary (top cards & action items)_`
+      : `_Retrospective · ${isoDate(data.createdAt)}_`,
     "",
   );
+
+  // A summary with nothing crowned is a real state — nobody voted, or the vote
+  // has not been revealed yet — and must not read as a broken file.
+  if (scope === "summary" && data.columns.length === 0) {
+    lines.push("_No top cards yet._", "");
+  }
 
   for (const column of data.columns) {
     lines.push(`## ${column.name}`, "");
@@ -83,8 +162,11 @@ export function toMarkdown(data: BoardExport): string {
     lines.push("");
   }
 
-  if (data.actions.length > 0) {
+  // In summary scope the action items are half the promised document, so their
+  // absence is a fact worth recording rather than a silently missing heading.
+  if (data.actions.length > 0 || scope === "summary") {
     lines.push("## Action items", "");
+    if (data.actions.length === 0) lines.push("_(no action items)_");
     for (const action of data.actions) {
       const owner =
         action.ownerName !== null ? ` — **${action.ownerName}**` : "";
@@ -172,14 +254,21 @@ export function toJson(data: BoardExport): string {
 export const EXPORT_FORMATS = ["md", "csv", "json"] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
-export function renderExport(format: ExportFormat, data: BoardExport): string {
+export function renderExport(
+  format: ExportFormat,
+  data: BoardExport,
+  scope: ExportScope = "all",
+): string {
+  // Applied ONCE, here, so all three formats render the same rows — a
+  // per-format filter is how a CSV and a Markdown of the same board drift.
+  const scoped = scope === "summary" ? summarizeExport(data) : data;
   switch (format) {
     case "md":
-      return toMarkdown(data);
+      return toMarkdown(scoped, scope);
     case "csv":
-      return toCsv(data);
+      return toCsv(scoped);
     case "json":
-      return toJson(data);
+      return toJson(scoped);
   }
 }
 
