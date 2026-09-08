@@ -40,7 +40,9 @@ jobs:
       - run: pnpm build && test -f apps/web/dist/client/index.html
       - run: pnpm --filter @retropolis/shared test
       - run: pnpm --filter @retropolis/worker test
-      - run: pnpm exec playwright install chromium --with-deps
+      # One install feeds BOTH the component tests and the e2e run — the root
+      # @playwright/test and apps/web's playwright resolve to the same version.
+      - run: pnpm exec playwright install chromium firefox webkit --with-deps
       - run: pnpm --filter @retropolis/web test
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7

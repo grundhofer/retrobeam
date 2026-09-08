@@ -23,7 +23,7 @@ export const rotiScoreSchema = z.number().int().min(1).max(5);
  *  running the OLD build — it is told the server's version in `sync` and can
  *  offer a reload rather than quietly misbehaving. Never used to refuse a
  *  connection: locking someone out mid-retro is worse than a stale tab. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** The published ROTI result, persisted once when the poll closes so every
  *  later read reports the identical pair (see ROTI_MIN_ANONYMOUS). */
@@ -79,6 +79,22 @@ export const boardConfigSchema = z.object({
    *  eat the Cloudflare free tier; a facilitator opts in). Defaulted so older
    *  boards parse as off. */
   cursorsEnabled: z.boolean().default(false),
+  /** Attach voter names to the revealed result, so the room can discuss a card
+   *  with the people who picked it. Voting itself stays blind either way — the
+   *  names only ever ride the post-vote reveal.
+   *
+   *  The zod default is FALSE and that is load-bearing: a board persisted
+   *  before this field existed has no stored value, and de-blinding a round
+   *  people already cast their dots in is the one thing this must never do.
+   *  New boards are created with it ON (see the DO's initialize()) — that is
+   *  where the product default lives. Always off on an anonymous board. */
+  voterNamesEnabled: z.boolean().default(false),
+  /** Presentation mode: cards that are NOT on stage are hidden rather than
+   *  dimmed, so a shared screen shows the room one card at a time. Purely a
+   *  rendering flag — the server delivers the identical note set either way,
+   *  because there is no un-reveal event and nothing the room has already read
+   *  may be taken back off its screens. Defaulted so older boards parse as off. */
+  focusMode: z.boolean().default(false),
 });
 export type BoardConfig = z.infer<typeof boardConfigSchema>;
 
@@ -138,7 +154,8 @@ export const noteSchema = z.object({
 export type Note = z.infer<typeof noteSchema>;
 
 // Appreciation wall (product spec §7): Management-3.0-style kudo cards
-// addressed to a named teammate, revealed as the closing finale.
+// addressed to a named teammate — or to the whole room (KUDO_EVERYONE) —
+// revealed as the closing finale. Never to the sender themselves.
 export const KUDO_CARD_TYPES = [
   "thank-you",
   "great-job",
@@ -149,11 +166,21 @@ export const KUDO_CARD_TYPES = [
 export const kudoCardTypeSchema = z.enum(KUDO_CARD_TYPES);
 export type KudoCardType = z.infer<typeof kudoCardTypeSchema>;
 
+/** Sentinel recipient for a kudo addressed to the whole room ("thanks to all").
+ *  Safe as a magic string BECAUSE participant ids are server-minted 32-char hex
+ *  — "everyone" can never be one, so it cannot collide with a roster row.
+ *  Chosen over a nullable toId (the DO stores to_id as TEXT NOT NULL and
+ *  migrate() can only ADD columns) and over a new boolean field: a new required
+ *  key in kudoSchema makes a stale tab's parseServerEvent drop every frame that
+ *  carries a kudo — including every sync — for a purely cosmetic gain. */
+export const KUDO_EVERYONE = "everyone";
+
 export const kudoTextSchema = z.string().trim().max(300);
 
 export const kudoSchema = z.object({
   id: hexIdSchema,
   cardType: kudoCardTypeSchema,
+  // a participant id, or KUDO_EVERYONE
   toId: z.string(),
   // null = anonymous sender, or redacted for viewers on an anonymous board
   fromId: z.string().nullable(),
@@ -399,6 +426,15 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
   // The person currently presenting marks themselves done (member OR
   // facilitator) — completes their turn and hands control back to the wheel.
   z.object({ type: z.literal("picker.done") }),
+  // The facilitator walks the presenter's cards one at a time and every screen
+  // follows — they share a screen in the call, but a remote participant must
+  // not be left behind. A TARGET ID, never an index: a member's copy of the
+  // board is not the facilitator's, so the same ordinal would land on a
+  // different card on a different screen.
+  z.object({
+    type: z.literal("admin.spotlight.set"),
+    targetId: hexIdSchema.nullable(),
+  }),
   z.object({
     type: z.literal("admin.picker.style"),
     style: pickerStyleSchema,
@@ -429,6 +465,7 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     opId: hexIdSchema,
     kudoId: hexIdSchema,
     cardType: kudoCardTypeSchema,
+    // a participant id, or KUDO_EVERYONE
     toId: z.string(),
     text: kudoTextSchema,
     gifUrl: gifUrlSchema.nullable().optional(),
@@ -442,6 +479,15 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
 
   z.object({ type: z.literal("admin.gifs.set"), enabled: z.boolean() }),
   z.object({ type: z.literal("admin.cursors.set"), enabled: z.boolean() }),
+  // Whether the post-vote reveal carries voter names. Refused on an anonymous
+  // board, and refused once voting has closed — nobody may be de-blinded after
+  // the fact, in a round they cast their dots believing was secret.
+  z.object({ type: z.literal("admin.voterNames.set"), enabled: z.boolean() }),
+  // The one switch the facilitator flips to go from "everything on screen" to
+  // "one card at a time" — during presenting and during the discussion of the
+  // crowned cards. It changes what every screen RENDERS, never what the server
+  // has already sent.
+  z.object({ type: z.literal("admin.focus.set"), enabled: z.boolean() }),
   // Retention: keep the board (clear the 90-day auto-delete) or delete it now.
   z.object({ type: z.literal("admin.board.keep") }),
   z.object({ type: z.literal("admin.board.delete") }),
@@ -520,8 +566,21 @@ export const serverEventSchema = z.discriminatedUnion("type", [
       /** revealed tallies — null during (and before) the vote phase */
       tallies: z.record(z.string(), z.number()).nullable(),
       topTargetIds: z.array(z.string()),
+      /** who spent which dots, per target (targetId -> participantId -> count).
+       *  null whenever the board is blind: before the reveal, on an anonymous
+       *  board, and on any board whose facilitator turned names off. `null`
+       *  rather than `{}` so "blind" stays distinguishable from "revealed, and
+       *  nobody voted". When non-null, sum(voters[t]) === tallies[t]. */
+      voters: z
+        .record(z.string(), z.record(z.string(), z.number()))
+        .nullable()
+        .default(null),
     }),
     discussFocusId: hexIdSchema.nullable(),
+    /** the card the facilitator has on stage in the presenting round; null when
+     *  nothing is staged AND for any viewer who may not see that card.
+     *  Defaulted so a snapshot from an older server still parses. */
+    spotlightId: hexIdSchema.nullable().default(null),
     actions: z.array(actionSchema),
     // Kudos are only populated in the close/done phases (staged reveal).
     kudos: z.array(kudoSchema),
@@ -659,9 +718,23 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     seq: z.number(),
     tallies: z.record(z.string(), z.number()),
     topTargetIds: z.array(z.string()),
+    /** see sync.votes.voters. Re-broadcast (with null) when a facilitator
+     *  turns names off, so names already on screen are withdrawn live. */
+    voters: z
+      .record(z.string(), z.record(z.string(), z.number()))
+      .nullable()
+      .default(null),
   }),
   z.object({
     type: z.literal("discuss.focus"),
+    seq: z.number(),
+    targetId: hexIdSchema.nullable(),
+  }),
+  // Which of the presenter's cards is on stage. Fanned out PER RECIPIENT like
+  // every other note-bearing frame: a viewer who may not see that card is told
+  // null, never handed an id for a card they were not sent.
+  z.object({
+    type: z.literal("spotlight.changed"),
     seq: z.number(),
     targetId: hexIdSchema.nullable(),
   }),

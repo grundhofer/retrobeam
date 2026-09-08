@@ -64,6 +64,8 @@ const sync: ServerEvent = {
     pickerStyle: "wheel",
     layout: "columns",
     cursorsEnabled: false,
+    voterNamesEnabled: false,
+    focusMode: false,
   },
   phase: "write",
   timer: { endsAt: null, pausedRemainingMs: null },
@@ -81,8 +83,10 @@ const sync: ServerEvent = {
     votersTotal: 0,
     tallies: null,
     topTargetIds: [],
+    voters: null,
   },
   discussFocusId: null,
+  spotlightId: null,
   actions: [],
   kudos: [],
   icebreakerId: null,
@@ -368,6 +372,30 @@ describe("picker & roster", () => {
 });
 
 describe("voting & discussion", () => {
+  it("a later votes.revealed withdraws voter names rather than merging them", () => {
+    // Turning voter names off re-broadcasts the reveal with voters null. If the
+    // reducer merged instead of overwriting, the names would stay on screen
+    // until a reload — a privacy regression nobody in the room can see.
+    const named = applyServerEvent(afterSync(), {
+      type: "votes.revealed",
+      seq: 9,
+      tallies: { [column.id]: 2 },
+      topTargetIds: [column.id],
+      voters: { [column.id]: { [anna.id]: 2 } },
+    });
+    expect(named.votes.voters).toEqual({ [column.id]: { [anna.id]: 2 } });
+
+    const withdrawn = applyServerEvent(named, {
+      type: "votes.revealed",
+      seq: 10,
+      tallies: { [column.id]: 2 },
+      topTargetIds: [column.id],
+      voters: null,
+    });
+    expect(withdrawn.votes.voters).toBeNull();
+    expect(withdrawn.votes.tallies).toEqual({ [column.id]: 2 });
+  });
+
   it("vote.progress tracks only your own votes; votes.revealed brings tallies", () => {
     let state = afterSync();
     state = applyServerEvent(state, {
@@ -382,6 +410,7 @@ describe("voting & discussion", () => {
       seq: 6,
       tallies: { [column.id]: 5 },
       topTargetIds: [column.id],
+      voters: null,
     });
     expect(state.votes.tallies?.[column.id]).toBe(5);
     expect(state.votes.topTargetIds).toEqual([column.id]);
@@ -394,6 +423,7 @@ describe("voting & discussion", () => {
       seq: 6,
       tallies: { [column.id]: 5 },
       topTargetIds: [column.id],
+      voters: null,
     });
     state = applyServerEvent(state, {
       type: "discuss.focus",

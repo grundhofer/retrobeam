@@ -31,7 +31,9 @@ function view() {
           isAdmin={false}
           gifsEnabled
           cursorsEnabled={false}
-          pickerStyle="wheel"
+          voterNamesEnabled={false}
+          anonymous={false}
+          phase="write"
           layout="columns"
           retentionAt={null}
         />
@@ -42,7 +44,16 @@ function view() {
 
 test("the export scope reaches the download links, and everything is the default", async () => {
   const screen = await render(view());
-  await screen.getByTestId("board-menu").click();
+  // Two barriers, both load-bearing under the three-engine run. Firefox needs
+  // the trigger to be really interactive before the click counts, and it has
+  // not committed the menu's React re-render by the time `href()` below reads
+  // `.element()` synchronously — that read has no retry of its own.
+  const trigger = screen.getByTestId("board-menu");
+  await expect.element(trigger).toBeVisible();
+  await trigger.click();
+  // `href()` below reads `.element()` synchronously — no retry of its own — so
+  // the menu's React re-render has to be committed before we get there.
+  await expect.element(screen.getByTestId("export-md")).toBeVisible();
 
   const href = () =>
     screen.getByTestId("export-md").element().getAttribute("href") ?? "";

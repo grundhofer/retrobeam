@@ -28,24 +28,43 @@ export function clampUnit(n: number): number {
   return Math.min(1, Math.max(0, n));
 }
 
-// Which surface the main board area renders. The raw canvas is confined to the
-// write phase and the between-presenters overview; everything that must be
-// read / highlighted / voted / discussed routes to a structured surface, which
-// is what keeps every later-phase feature working and stays readable.
+// Which surface the main board area renders. Two decisions, in order: focus
+// mode wins whenever somebody is on stage (one card, centered, on every
+// screen); otherwise the raw canvas is confined to the write phase and the
+// between-presenters overview, and everything that must be read / highlighted /
+// voted / discussed routes to a structured surface — which is what keeps every
+// later-phase feature working and stays readable.
 export type BoardSurface = "columns" | "canvas" | "focus";
 
 export function boardSurface(
   layout: LayoutMode,
   phase: Phase,
   hasPresenter: boolean,
+  focusMode: boolean,
+  anonymous: boolean,
 ): BoardSurface {
+  // The presenter reader picks cards by author, and an ANONYMOUS board strips
+  // authorship from every foreign note — so a member routed there would face
+  // an empty screen. Anonymity also turns presenter scoping off entirely
+  // (revealFor rule 4), so there is no per-person round to read in the first
+  // place. One guard, before either branch that can return "focus".
+  const reader = hasPresenter && !anonymous;
+  // Focus mode routes ANY board with someone on stage to the centered reader —
+  // a columns board included. That is the whole point of the switch: the
+  // facilitator shares their screen, and the room should be looking at one
+  // card, not hunting it in a grid. Checked before the columns early-return.
+  //
+  // Required, not defaulted: a defaulted argument fails silently at whichever
+  // call site the change missed, and the compiler can enumerate them (the same
+  // reasoning NoteReveal gives in notes.ts).
+  if (phase === "present" && reader && focusMode) return "focus";
   if (layout === "columns") return "columns";
   switch (phase) {
     case "write":
       return "canvas";
     case "present":
       // Someone on stage → the focused reader; nobody yet → calm canvas overview.
-      return hasPresenter ? "focus" : "canvas";
+      return reader ? "focus" : "canvas";
     default:
       // vote / discuss (and any structured phase) read specific cards → columns.
       return "columns";

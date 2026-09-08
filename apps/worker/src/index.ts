@@ -12,6 +12,7 @@ import {
   EXPORT_SCOPES,
   layoutModeSchema,
   exportContentType,
+  exportFileName,
   renderExport,
   templateColumnNames,
   templateKeySchema,
@@ -188,6 +189,11 @@ app.get("/api/boards/:id", async (c) => {
 // Gating it would mean putting the admin token in a GET URL (history, logs,
 // referrers) for no confidentiality gain. Author names are excluded by default —
 // pass ?authors=true to include them. docs/01 §10 states the same rule.
+//
+// The PDF is rendered from that SAME snapshot under that same reveal, so every
+// gate above is inherited rather than re-implemented. JPEG is deliberately not
+// a value this route accepts: a Worker has no canvas, so the picture is drawn
+// by the browser from this route's JSON — see apps/web/src/lib/exportImage.ts.
 app.get("/api/boards/:id/export", async (c) => {
   const boardId = c.req.param("id");
   if (!isSecretShaped(boardId)) {
@@ -206,18 +212,11 @@ app.get("/api/boards/:id/export", async (c) => {
   if (data === null) {
     return c.json({ error: "BOARD_NOT_FOUND" }, 404);
   }
-  const safeName =
-    data.boardName.replace(/[^a-z0-9-_]+/gi, "-").replace(/^-+|-+$/g, "") ||
-    "retro";
-  // The scope rides in the filename: a facilitator downloads both shapes from
-  // the same board seconds apart, and identical names give you "Sprint-50.md"
-  // and "Sprint-50 (1).md" — the (1) being the one you must open to find out
-  // which is which. It is also the only place a CSV or JSON says its scope.
-  const suffix = scope === "summary" ? "-summary" : "";
+  const filename = exportFileName(data.boardName, scope, format);
   return new Response(renderExport(format, data, scope), {
     headers: {
       "content-type": exportContentType(format),
-      "content-disposition": `attachment; filename="${safeName}${suffix}.${format}"`,
+      "content-disposition": `attachment; filename="${filename}"`,
     },
   });
 });

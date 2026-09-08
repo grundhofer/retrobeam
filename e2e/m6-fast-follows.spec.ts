@@ -102,18 +102,12 @@ test("slot-machine picker skin spins to a winner", async ({ browser }) => {
   await ben.goto(boardUrl);
   await join(ben, "Ben");
 
-  // Switch the picker skin to slots, then close the menu.
-  await anna.getByTestId("board-menu").click();
-  await anna.getByTestId("picker-style-slots").click();
-  await expect(anna.getByTestId("picker-style-slots")).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await anna.getByTestId("board-menu").click();
-
-  // Into the present phase (write → present) and spin.
+  // Into the present phase (write → present); the skin lives in the presenting
+  // cockpit, right beside the spin button.
   await anna.getByTestId("phase-next").click();
   await anna.getByTestId("phase-next").click();
+  await anna.getByTestId("picker-style").selectOption("slots");
+  await expect(anna.getByTestId("picker-style")).toHaveValue("slots");
   await anna.getByTestId("spin-button").click();
 
   // The slot machine renders, and every screen lands on the same winner.

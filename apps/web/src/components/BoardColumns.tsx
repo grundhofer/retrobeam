@@ -19,7 +19,8 @@ import { NOTE_DRAG_MIME, NoteCard } from "./NoteCard.js";
 
 export interface DecidingState {
   voteActive: boolean;
-  /** your own votes (blind voting — nobody else's ever reach the client) */
+  /** your own votes. The vote itself is blind — nobody else's reach the client
+   *  until the reveal, and then only if the board shows voter names. */
   mine: Record<string, number>;
   remaining: number;
   maxPerTarget: number | null;
@@ -27,6 +28,10 @@ export interface DecidingState {
   talliesShown: boolean;
   tallies: Record<string, number> | null;
   topTargetIds: string[];
+  /** who voted for each target (targetId -> participantId -> dots); null while
+   *  blind — before the reveal, on anonymous boards, and wherever the
+   *  facilitator turned names off */
+  voters: Record<string, Record<string, number>> | null;
   focusId: string | null;
 }
 
@@ -46,6 +51,10 @@ export interface BoardColumnsProps {
    *  marker for "the room cannot read this card yet" (null outside the round) */
   unpresentedAuthorIds: ReadonlySet<string> | null;
   deciding: DecidingState;
+  /** presentation mode: cards that are not on stage are hidden rather than
+   *  dimmed. Optional-with-default so existing call sites and tests that
+   *  enumerate every prop keep compiling. */
+  focusMode?: boolean;
   gifsEnabled: boolean;
 }
 
@@ -241,6 +250,7 @@ function BoardColumn({
   presenterId,
   unpresentedAuthorIds,
   deciding,
+  focusMode = false,
   gifsEnabled,
   onDropNote,
   onUngroup,
@@ -268,9 +278,21 @@ function BoardColumn({
 
   // order is per-author (pre-reveal privacy: a global counter would leak the
   // hidden note count), so ties across authors are broken by id for stability.
+  //
+  // While WRITING the list runs newest-first, and the composer sits above it
+  // (below): a column you keep adding to otherwise pushed your last card
+  // further from the box you are typing in with every note, and a card that
+  // someone else finished landed on top of yours. Only the write phase is
+  // flipped — from the reveal on, the board is being READ, and presenting,
+  // stacking and the export all follow the same ascending order the room sees.
+  const newestFirst = phase === "write";
   const columnNotes = notes
     .filter((note) => note.columnId === column.id)
-    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+    .sort((a, b) =>
+      newestFirst
+        ? b.order - a.order || b.id.localeCompare(a.id)
+        : a.order - b.order || a.id.localeCompare(b.id),
+    );
 
   // Write-phase "cards exist" signal: how many of the column's cards belong to
   // OTHER people. Before the reveal the client only holds its own notes, so
@@ -356,6 +378,21 @@ function BoardColumn({
       { type: "column.updated", seq: 0, column: { ...column, hidden } },
     );
   }
+
+  // Focus mode in the DISCUSSION phase: show the room only what it is talking
+  // about. With a card focused that is the focused votable; otherwise it is the
+  // crowned top-N — which is the "only show the top cards" half of the ask.
+  // Deliberately NOT applied while voting: the whole point of that phase is
+  // that every card is votable, and there are no top cards yet (voting is
+  // blind, so topTargetIds is empty until the reveal).
+  const focusVisible: ((targetId: string) => boolean) | null =
+    focusMode && phase === "discuss"
+      ? deciding.focusId !== null
+        ? (targetId) => targetId === deciding.focusId
+        : deciding.topTargetIds.length > 0
+          ? (targetId) => deciding.topTargetIds.includes(targetId)
+          : null
+      : null;
 
   const cardProps = {
     roster,
@@ -466,13 +503,53 @@ function BoardColumn({
       </header>
 
       <div className="flex flex-col gap-2">
+        {/* The composer is PINNED ABOVE the cards: the card you are writing has
+            to stay in view while the column fills up around you, and a
+            teammate finishing one in the same column must not shove your input
+            down the page. No new cards while somebody holds the mic — the room
+            is reading, not writing. */}
+        {phaseAllowsComposer(phase) && presenterId === null ? (
+          <NoteComposer
+            columnId={column.id}
+            you={you}
+            notes={columnNotes}
+            gifsEnabled={gifsEnabled}
+          />
+        ) : null}
+        {/* In-progress work sits together at the top: your own composer, then
+            the colleagues writing in this column right now. For a viewer who is
+            NOT the writer, a ghost IS the card being written, so the same rule
+            — being written above, finished below — has to hold for them too. */}
+        {ghosts.map((ghost) => (
+          <div
+            key={ghost.id}
+            data-testid="ghost-card"
+            className="rounded-xl border border-dashed border-zinc-200 bg-white/60 p-3"
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className="size-2.5 animate-pulse rounded-full"
+                style={{ backgroundColor: ghost.color }}
+              />
+              <span className="text-xs text-zinc-400">
+                {t("note.ghostWriting", { name: ghost.name })}
+              </span>
+            </div>
+            <div className="mt-2 space-y-1.5">
+              <div className="h-2 w-4/5 animate-pulse rounded bg-zinc-100" />
+              <div className="h-2 w-3/5 animate-pulse rounded bg-zinc-100" />
+            </div>
+          </div>
+        ))}
         {items.map((item, index) => {
           const targetId = item.kind === "note" ? item.note.id : item.groupId;
+          if (focusVisible !== null && !focusVisible(targetId)) return null;
           return (
             <TargetFrame
               key={targetId}
               targetId={targetId}
               deciding={deciding}
+              roster={roster}
               onVote={onVote}
             >
               {item.kind === "note" ? (
@@ -504,27 +581,6 @@ function BoardColumn({
         {phase === "present" && presenterId !== null && items.length === 0 ? (
           <p className="px-1 py-6 text-center text-sm text-zinc-300">—</p>
         ) : null}
-        {ghosts.map((ghost) => (
-          <div
-            key={ghost.id}
-            data-testid="ghost-card"
-            className="rounded-xl border border-dashed border-zinc-200 bg-white/60 p-3"
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="size-2.5 animate-pulse rounded-full"
-                style={{ backgroundColor: ghost.color }}
-              />
-              <span className="text-xs text-zinc-400">
-                {t("note.ghostWriting", { name: ghost.name })}
-              </span>
-            </div>
-            <div className="mt-2 space-y-1.5">
-              <div className="h-2 w-4/5 animate-pulse rounded bg-zinc-100" />
-              <div className="h-2 w-3/5 animate-pulse rounded bg-zinc-100" />
-            </div>
-          </div>
-        ))}
         {othersCardCount > 0 ? (
           <div
             data-testid="team-cards"
@@ -539,16 +595,6 @@ function BoardColumn({
             </p>
           </div>
         ) : null}
-        {/* No new cards while somebody holds the mic — the room is reading,
-            not writing. */}
-        {phaseAllowsComposer(phase) && presenterId === null ? (
-          <NoteComposer
-            columnId={column.id}
-            you={you}
-            notes={columnNotes}
-            gifsEnabled={gifsEnabled}
-          />
-        ) : null}
       </div>
     </section>
   );
@@ -559,11 +605,13 @@ function BoardColumn({
 function TargetFrame({
   targetId,
   deciding,
+  roster,
   onVote,
   children,
 }: {
   targetId: string;
   deciding: DecidingState;
+  roster: Participant[];
   onVote: (targetId: string, delta: 1 | -1) => void;
   children: React.ReactNode;
 }) {
@@ -575,6 +623,20 @@ function TargetFrame({
   const tally = deciding.talliesShown
     ? deciding.tallies?.[targetId]
     : undefined;
+  const voterChips = Object.entries(deciding.voters?.[targetId] ?? {})
+    .map(([participantId, count]) => ({
+      participant: roster.find((p) => p.id === participantId),
+      count,
+    }))
+    .filter(
+      (entry): entry is { participant: Participant; count: number } =>
+        entry.participant !== undefined,
+    )
+    .sort(
+      (a, b) =>
+        b.count - a.count ||
+        a.participant.name.localeCompare(b.participant.name),
+    );
   const plusDisabled =
     deciding.remaining <= 0 ||
     (deciding.maxPerTarget !== null && myCount >= deciding.maxPerTarget);
@@ -586,8 +648,9 @@ function TargetFrame({
         focused ? "ring-2 ring-accent ring-offset-2" : ""
       } ${dim ? "opacity-40" : ""}`}
     >
-      {deciding.talliesShown && (rank >= 0 || tally !== undefined) ? (
-        <div className="mb-1 flex items-center gap-1.5 px-1">
+      {deciding.talliesShown &&
+      (rank >= 0 || tally !== undefined || myCount > 0) ? (
+        <div className="mb-1 flex flex-wrap items-center gap-1.5 px-1">
           {rank >= 0 ? (
             <span
               data-testid="crown"
@@ -604,6 +667,45 @@ function TargetFrame({
               {tally} ●
             </span>
           ) : null}
+          {/* Your own dots, after the reveal. This half of "show what was
+              voted for" needs no server work at all — `mine` already survives
+              into discuss; it was simply never drawn once the +/- control
+              disappeared, so you could no longer tell which cards were yours. */}
+          {myCount > 0 ? (
+            <span
+              data-testid="your-vote"
+              className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent-strong tabular-nums"
+            >
+              {t("vote.yours", { count: myCount })}
+            </span>
+          ) : null}
+          {/* And who else did — only when the board reveals names. An id with
+              no roster row is skipped rather than rendered raw.
+              Each chip is LABELLED: read aloud, a bare name beside a card is
+              indistinguishable from the card's own text. */}
+          {voterChips.map((voter) => (
+            <span
+              key={voter.participant.id}
+              data-testid={`voter-${voter.participant.name}`}
+              aria-label={t("vote.voterLabel", {
+                name: voter.participant.name,
+                count: voter.count,
+              })}
+              className="flex items-center gap-1 rounded-full border border-zinc-200 px-1.5 py-0.5 text-xs text-zinc-600"
+            >
+              <span
+                aria-hidden="true"
+                className="size-2 rounded-full"
+                style={{ backgroundColor: voter.participant.color }}
+              />
+              {voter.count > 1
+                ? t("vote.voterMulti", {
+                    name: voter.participant.name,
+                    count: voter.count,
+                  })
+                : voter.participant.name}
+            </span>
+          ))}
         </div>
       ) : null}
       {children}
@@ -673,7 +775,8 @@ function NoteComposer({
   // button, clamped to the viewport.
   const [gifAnchor, setGifAnchor] = useState<{
     left: number;
-    bottom: number;
+    top?: number;
+    bottom?: number;
   } | null>(null);
 
   function toggleGif() {
@@ -684,10 +787,20 @@ function NoteComposer({
     const rect = gifButtonRef.current?.getBoundingClientRect();
     if (rect) {
       const width = 288; // GifPicker is w-72
-      setGifAnchor({
-        left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
-        bottom: window.innerHeight - rect.top + 6,
-      });
+      const height = 330; // w-72 search row + max-h-64 grid + attribution
+      const left = Math.max(
+        8,
+        Math.min(rect.left, window.innerWidth - width - 8),
+      );
+      // Above the button by default — but the composer now sits directly under
+      // the column header, and a `position: fixed` picker that grows past the
+      // top of the viewport is unreachable (nothing can scroll a fixed
+      // element back into view). When there is no room above, flip below.
+      setGifAnchor(
+        rect.top >= height + 8
+          ? { left, bottom: window.innerHeight - rect.top + 6 }
+          : { left, top: rect.bottom + 6 },
+      );
     }
     setGifOpen(true);
   }
@@ -813,6 +926,7 @@ function NoteComposer({
                       className="absolute"
                       style={{
                         left: gifAnchor.left,
+                        top: gifAnchor.top,
                         bottom: gifAnchor.bottom,
                       }}
                     >

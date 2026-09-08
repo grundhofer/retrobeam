@@ -39,7 +39,7 @@ Default flow (60-min defaults, phases marked _(opt)_ are skippable per board):
 | 6   | **Discuss**                    | 15 min       | Voting closes → cards auto-sort by votes → the **top N** (admin-configured) are visually crowned and walked one at a time. Action items with an owner are captured.                                                                                                                                                                               |
 | 7   | **Close**                      | 5 min        | **Appreciation wall** revealed (see §7) and read aloud. Optional anonymous ROTI poll (v2). Board archives; export offered.                                                                                                                                                                                                                        |
 
-Timer behavior: visible to all, color warning near the end, optional sound, pause / +1 min extension. Timeouts are **soft** — a signal, never an input lock (TeamRetro pattern; locking is the top facilitation complaint elsewhere).
+Timer behavior: visible to all, color warning near the end, a chime at zero (on by default, muted per person in one click), pause / +1 min extension. Timeouts are **soft** — a signal, never an input lock (TeamRetro pattern; locking is the top facilitation complaint elsewhere).
 
 ## 4. Boards & templates
 
@@ -61,14 +61,14 @@ Timer behavior: visible to all, color warning near the end, optional sound, paus
 ## 6. Voting
 
 - Admin configures **votes per person** (default 3; heuristic hint in UI: ~√(number of cards)) and optionally **max votes per card**.
-- **Blind by design** (no free competitor combines all three): vote counts hidden during voting · uniform dot rendering (no colors betraying who voted) · admin sees only an anonymous progress meter ("7/9 have used all votes").
+- **Blind by design** (no free competitor combines all three): vote counts hidden during voting · uniform dot rendering (no colors betraying who voted) · admin sees only an anonymous progress meter ("7/9 have used all votes"). Blindness covers the VOTE itself and is never negotiable. What the **result** carries is a per-board choice: the facilitator can attach voter names to the reveal so a crowned card is discussed with the people who picked it. That switch is off for every board created before it existed, impossible on an anonymous board, disclosed in the vote bar before anyone spends a dot, and one-way once voting closes — names can be withdrawn afterwards, never added.
 - Voting closes → server computes tallies + **top N** → cards crowned, discussion queue walks them one at a time. Votes are rejected server-side when over budget or out of phase.
 
 ## 7. Appreciation wall ("thank you" section)
 
 Optional final section, hidden until the Close phase (staged reveal — the surprise finale):
 
-- Cards are **addressed to a named teammate**, with Management-3.0-style card types (Thank You · Great Job · Well Done · Congratulations · Totally Awesome) + free text + GIF/emoji.
+- Cards are **addressed to a named teammate or to the whole room ("Everyone")** — never to the sender themselves, with Management-3.0-style card types (Thank You · Great Job · Well Done · Congratulations · Totally Awesome) + free text + GIF/emoji.
 - Optionally anonymous senders. Read aloud in Close. Included in the export.
 - v2: per-person kudos history across a team's boards.
 
@@ -82,7 +82,7 @@ One shared abstraction, three skins (see architecture doc §6 for the sync proto
 
 Rules: the rotation is also what paces the reveal — a person's cards reach the room when the rotation puts them on stage (§5). Winner is drawn **server-side with `crypto.getRandomValues()` before the animation starts** (decide first, animate second — the wheelofnames.com fairness model; a one-line "how picks work" note builds trust). Winner auto-moves from pool to a visible ordered **pick history** (doubles as meeting progress). Admin controls: re-spin, skip/defer, remove person, add latecomer, manual pick. No engineered near-misses — organic deceleration only. Everyone watches the _same_ animation land on the _same_ name.
 
-**Accessibility**: `prefers-reduced-motion` → instant crossfade to the winner from the same server payload; `aria-live="polite"` announces "Ana presents next, 4 remaining"; the textual pick history is the accessible source of truth (canvas is invisible to screen readers); sounds off by default.
+**Accessibility**: `prefers-reduced-motion` → instant crossfade to the winner from the same server payload; `aria-live="polite"` announces "Ana presents next, 4 remaining"; the textual pick history is the accessible source of truth (canvas is invisible to screen readers); the picker itself is silent — the timer chime is the product's only sound.
 
 ## 9. GIFs & emoji
 
@@ -93,8 +93,8 @@ Rules: the rotation is also what paces the reveal — a person's cards reach the
 
 - Boards persist under their stable URL, readable (archived, read-only) after Close.
 - **Retention (decided)**: boards auto-delete after 90 days (per-board override: keep/extend/delete-now). The board's own alarm does the cleanup — see architecture doc.
-- **Export**: open to any holder of the board link, not facilitator-only — the board id is already a full participant capability and the export carries nothing a participant cannot read on screen. That claim is enforced literally: the file is built under the reveal a viewer with no identity would get, so mid-round it carries only the cards the rotation has already reached, pre-reveal note bodies and staged columns are omitted, tallies stay blind until the reveal, and an anonymous board strips note authorship. Markdown (paste-ready for Confluence/Slack) + CSV + JSON in v1; includes columns, notes, groups, vote counts, top-N, action items, kudos; **author names excluded by default** (opt-in). PDF snapshot v2. Export-then-purge is the promoted workflow ("keep the best notes, let the personal data die").
-- **Two export scopes**: _everything_ (the full board) and a _summary_ — the cards the board itself crowned (👑, the vote round's top-N) plus the action items, with the appreciation wall left out. A crowned _stack_ carries its merged duplicates into the summary: the crown sits on the anchor, but the board shows the whole pile and so does the file. Fetched mid-round, a summary is empty by design — the tallies are still blind, so nothing is crowned yet, and the file says so rather than looking broken. The summary is a pure projection of the same snapshot, so it can only ever drop rows, never surface something the full export hides; with author names off (the default) it contains no personal names at all, which is what makes it safe to paste into a team channel. Chosen in the board menu; both scopes available in all three formats.
+- **Export**: open to any holder of the board link, not facilitator-only — the board id is already a full participant capability and the export carries nothing a participant cannot read on screen. That claim is enforced literally: the file is built under the reveal a viewer with no identity would get, so mid-round it carries only the cards the rotation has already reached, pre-reveal note bodies and staged columns are omitted, tallies stay blind until the reveal, and an anonymous board strips note authorship. Markdown (paste-ready for Confluence/Slack) + CSV + JSON + PDF from the board itself, plus a JPEG the browser renders from the same snapshot; includes columns, notes, groups, vote counts, top-N, action items, kudos; **author names excluded by default** (opt-in, and voter names ride that same opt-in). The PDF is written by hand against the standard Helvetica fonts and WinAnsi-encoded, so German umlauts survive but emoji cannot — it prints `#1` where the other formats print 👑1. Export-then-purge is the promoted workflow ("keep the best notes, let the personal data die").
+- **Two export scopes**: _everything_ (the full board) and a _summary_ — the cards the board itself crowned (👑, the vote round's top-N) plus the action items, with the appreciation wall left out. A crowned _stack_ carries its merged duplicates into the summary: the crown sits on the anchor, but the board shows the whole pile and so does the file. Fetched mid-round, a summary is empty by design — the tallies are still blind, so nothing is crowned yet, and the file says so rather than looking broken. The summary is a pure projection of the same snapshot, so it can only ever drop rows, never surface something the full export hides; with author names off (the default) it contains no personal names at all, which is what makes it safe to paste into a team channel. Chosen in the board menu; both scopes available in every format.
 
 ## 11. i18n & language (decided)
 
@@ -106,17 +106,17 @@ German + English from day one. All strings externalized; language auto-detected,
 2. **A phase stepper is always visible** — everyone knows where in the retro they are and what comes next. This is the single biggest complaint-fixer vs. EasyRetro/GoRetro's settings-toggle chaos.
 3. **Clean, minimal surface; playfulness in moments, not decoration.** Generous whitespace, calm neutral palette with one accent, sticky notes as the only colorful element. Delight is reserved for events: the reveal stagger, the wheel, confetti when the pool empties. No mascots, no clutter. (Skip list: whiteboard shapes, drawing tools, 30k icon libraries.)
 4. **Zero-friction entry**: share link or QR code → type a name → you're in. Under 10 seconds.
-5. **Motion respects `prefers-reduced-motion` everywhere**; sounds off by default (open offices, calls).
+5. **Motion respects `prefers-reduced-motion` everywhere**; the timer chime is ON by default and muted per person in one click from the timer panel. It used to be off by default for open offices and calls — but a timer nobody hears is a timer that failed, and the mute button beside the countdown serves that case without costing every other room the signal.
 6. **Explain in place**: template "when to use" one-liners, vote-count heuristic hint, "how picks work" fairness note. No manual.
 7. Responsive web; no native apps (no competitor has them either).
 
 ## 13. Feature cut lines
 
-**MVP (v1.0):** board create/join via link + QR · 6 templates + custom columns · phase machine with timer (pause/+1 min/sound) · private write with ghost cards + roster presence · ready-check · reveal (all/per-column) · presenting via wheel + rotation tracking + synced presenter focus · drag grouping with unmerge · blind voting + top-N crowning · action items (per board) · appreciation wall · emoji reactions + picker · GIFs via KLIPY proxy + per-board toggle · facilitator handoff · Markdown/CSV/JSON export · DE+EN · 90-day auto-delete · reduced-motion + aria-live a11y.
+**MVP (v1.0):** board create/join via link + QR · 6 templates + custom columns · phase machine with timer (pause/+1 min/sound) · private write with ghost cards + roster presence · ready-check · reveal (all/per-column) · presenting via wheel + rotation tracking + synced presenter focus · drag grouping with unmerge · blind voting + top-N crowning · action items (per board) · appreciation wall · emoji reactions + picker · GIFs via KLIPY proxy + per-board toggle · facilitator handoff · Markdown/CSV/JSON/PDF export (plus a JPEG rendered in the browser) · DE+EN · 90-day auto-delete · reduced-motion + aria-live a11y.
 
 **v1.x:** slot machine skin · icebreaker question bank (~100 questions DE/EN) + weather-report check-in · hidden/staged columns as a general feature · working-agreements pinned card · board duplication.
 
-**v2:** team spaces (named team → action-item carry-over into next retro, kudos history, board list) · ROTI closing poll with trend · Lean Coffee + Team Health Check board types · lotto machine · pixel cursors in group/discuss phases · PDF export · multi-round voting · parking lot · safety check (anonymous 1–5).
+**v2:** team spaces (named team → action-item carry-over into next retro, kudos history, board list) · ROTI closing poll with trend · Lean Coffee + Team Health Check board types · lotto machine · pixel cursors in group/discuss phases · multi-round voting · parking lot · safety check (anonymous 1–5).
 
 **Later:** AI grouping suggestions (suggest-only, never auto-apply) + AI summary · Jira/Slack push · async mode · E2E encryption option · template import/export.
 

@@ -67,7 +67,7 @@ Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll —
 - **Grouping** — drag cards into stacks; votes and reactions come along
 - **Staged columns** — prepare a column and reveal it to the room when you're ready
 - **Emoji reactions and GIFs**, and confetti where it's earned
-- **Exports** — Markdown, CSV, JSON, in two scopes: everything, or a summary of the crowned cards and the action items. Author names are excluded by default.
+- **Exports** — Markdown, CSV, JSON and PDF from the board itself, plus a JPEG the browser renders from the same snapshot, in two scopes: everything, or a summary of the crowned cards and the action items. Author names are excluded by default.
 - **Board duplication** — clone the structure for next sprint, nothing else
 - **German and English** throughout, switchable mid-retro
 
@@ -125,8 +125,8 @@ pnpm dev          # SPA + Worker + BoardRoom DO in real workerd, one command
 ```sh
 pnpm --filter @retropolis/shared test   # 1. pure domain logic (node)
 pnpm --filter @retropolis/worker test   # 2. Worker + DO in workerd, incl. WebSocket flows
-pnpm --filter @retropolis/web test      # 3. components in real Chromium
-pnpm test:e2e                           # 4. Playwright multi-context e2e
+pnpm --filter @retropolis/web test      # 3. components in Chromium + WebKit
+pnpm test:e2e                           # 4. e2e in Chromium, Firefox and WebKit
 pnpm check && pnpm lint                 # types + lint
 ```
 

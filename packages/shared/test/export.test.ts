@@ -26,6 +26,7 @@ const sample: BoardExport = {
           votes: 4,
           crownedRank: 1,
           groupId: null,
+          voterNames: null,
         },
         {
           text: "Line one\nline two",
@@ -34,6 +35,7 @@ const sample: BoardExport = {
           votes: 0,
           crownedRank: null,
           groupId: null,
+          voterNames: null,
         },
         // Crowned, and deliberately AFTER rank 1 in the array so the summary's
         // rank sort is actually exercised rather than accidentally satisfied.
@@ -44,6 +46,7 @@ const sample: BoardExport = {
           votes: 1,
           crownedRank: 3,
           groupId: null,
+          voterNames: null,
         },
       ],
     },
@@ -93,7 +96,7 @@ describe("toCsv", () => {
   const csv = toCsv(sample);
   it("has a header and quotes cells with commas/newlines", () => {
     expect(csv.split("\r\n")[0]).toBe(
-      "section,column,text,votes,rank,author,gif",
+      "section,column,text,votes,rank,author,gif,voters",
     );
     expect(csv).toContain('"Line one\nline two"');
   });
@@ -116,6 +119,7 @@ describe("toCsv", () => {
               votes: null,
               crownedRank: null,
               groupId: null,
+              voterNames: null,
             },
           ],
         },
@@ -149,6 +153,7 @@ describe("toCsv", () => {
               votes: null,
               crownedRank: null,
               groupId: null,
+              voterNames: null,
             },
           ],
         },
@@ -201,6 +206,7 @@ describe("summarizeExport", () => {
               votes: 3,
               crownedRank: 1,
               groupId: anchor,
+              voterNames: null,
             },
             {
               text: "duplicate idea",
@@ -209,6 +215,7 @@ describe("summarizeExport", () => {
               votes: null,
               crownedRank: null,
               groupId: anchor,
+              voterNames: null,
             },
             {
               text: "unrelated and uncrowned",
@@ -217,6 +224,7 @@ describe("summarizeExport", () => {
               votes: null,
               crownedRank: null,
               groupId: null,
+              voterNames: null,
             },
           ],
         },
@@ -287,7 +295,7 @@ describe("summary scope", () => {
   it("reuses the CSV row shape unchanged, minus the kudo rows", () => {
     const csv = renderExport("csv", sample, "summary");
     expect(csv.split("\r\n")[0]).toBe(
-      "section,column,text,votes,rank,author,gif",
+      "section,column,text,votes,rank,author,gif,voters",
     );
     expect(csv).not.toContain("kudo,");
     // header + 2 crowned notes + 2 actions + trailing terminator

@@ -24,6 +24,9 @@ export interface VotesState {
   /** null while blind (vote phase and earlier) */
   tallies: Record<string, number> | null;
   topTargetIds: string[];
+  /** who spent which dots, per target — null whenever the board is blind
+   *  (before the reveal, anonymous boards, and boards with names turned off) */
+  voters: Record<string, Record<string, number>> | null;
 }
 
 export const EMPTY_VOTES: VotesState = {
@@ -32,6 +35,7 @@ export const EMPTY_VOTES: VotesState = {
   votersTotal: 0,
   tallies: null,
   topTargetIds: [],
+  voters: null,
 };
 
 export interface ClientBoardState {
@@ -60,6 +64,9 @@ export interface ClientBoardState {
   lastSpin: WheelSpin | null;
   votes: VotesState;
   discussFocusId: string | null;
+  /** the card the facilitator has on stage in the presenting round; null when
+   *  nothing is staged, or when this viewer may not see it */
+  spotlightId: string | null;
   actions: Action[];
   /** appreciation wall — populated only from the close phase on */
   kudos: Kudo[];
@@ -103,6 +110,7 @@ export const initialBoardState: ClientBoardState = {
   lastSpin: null,
   votes: EMPTY_VOTES,
   discussFocusId: null,
+  spotlightId: null,
   actions: [],
   kudos: [],
   icebreakerId: null,
@@ -140,6 +148,7 @@ export function applyServerEvent(
         lastSpin: event.lastSpin,
         votes: event.votes,
         discussFocusId: event.discussFocusId,
+        spotlightId: event.spotlightId,
         actions: event.actions,
         kudos: event.kudos,
         icebreakerId: event.icebreakerId,
@@ -193,6 +202,10 @@ export function applyServerEvent(
           ...state.votes,
           tallies: event.tallies,
           topTargetIds: event.topTargetIds,
+          // Overwrite, never merge: turning voter names off re-broadcasts this
+          // event with voters null, and that is how names already on screen
+          // are withdrawn without a reload.
+          voters: event.voters,
         },
         lastSeq: seq(state, event.seq),
       };
@@ -201,6 +214,13 @@ export function applyServerEvent(
       return {
         ...state,
         discussFocusId: event.targetId,
+        lastSeq: seq(state, event.seq),
+      };
+
+    case "spotlight.changed":
+      return {
+        ...state,
+        spotlightId: event.targetId,
         lastSeq: seq(state, event.seq),
       };
 
@@ -384,7 +404,7 @@ export function applyServerEvent(
       // crowns vanish until the next reveal. The discussion focus is per-phase.
       const votes =
         event.phase === "vote" || !phaseRevealed(event.phase)
-          ? { ...state.votes, tallies: null, topTargetIds: [] }
+          ? { ...state.votes, tallies: null, topTargetIds: [], voters: null }
           : state.votes;
       // The appreciation wall is a staged reveal — leaving close/done hides it
       // again (the server stops sending kudos outside those phases).
@@ -404,6 +424,10 @@ export function applyServerEvent(
         lastSpin: null, // the picker itself persists across phase changes
         votes,
         discussFocusId: null,
+        // The server clears the stored spotlight in the same DELETE as the
+        // discussion focus and does not broadcast it, so this line is what
+        // keeps a fold equal to a fresh sync.
+        spotlightId: null,
         kudos,
         lastSeq: seq(state, event.seq),
       };

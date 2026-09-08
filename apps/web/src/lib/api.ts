@@ -1,7 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { boardInfoSchema, type BoardInfo } from "@retropolis/shared";
+import {
+  boardExportSchema,
+  boardInfoSchema,
+  type BoardExport,
+  type BoardInfo,
+  type ExportScope,
+} from "@retropolis/shared";
 import { z } from "zod";
 
 const createBoardResponseSchema = z.object({
@@ -65,4 +71,29 @@ export async function fetchBoardInfo(boardId: string): Promise<BoardLookup> {
     // Offline, DNS, a parse failure — all "ask again later", never "gone".
     return { status: "error" };
   }
+}
+
+// The board snapshot the JPEG is drawn from.
+//
+// It re-fetches the EXPORT endpoint rather than reading the local board store,
+// and that is the whole security story of the image export: a facilitator's
+// client state is REVEAL_ALL — it holds every pre-reveal note and every staged
+// column — while this route renders the intersection of what every member may
+// already see. Drawing the picture from the store would put cards into a
+// shareable file that the board itself refuses to show the room.
+export async function fetchBoardExport(
+  boardId: string,
+  scope: ExportScope,
+  includeAuthors: boolean,
+): Promise<BoardExport> {
+  // The SAME query string the download links build, so the picture and the
+  // files can never disagree about what they contain.
+  const params = new URLSearchParams({ format: "json" });
+  if (scope !== "all") params.set("scope", scope);
+  if (includeAuthors) params.set("authors", "true");
+  const response = await fetch(
+    `/api/boards/${boardId}/export?${params.toString()}`,
+  );
+  if (!response.ok) throw new Error(`export failed: ${response.status}`);
+  return boardExportSchema.parse(await response.json());
 }

@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { env, runInDurableObject } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import type { ServerEvent } from "@retropolis/shared";
+import { boardStub } from "../src/board-stub.js";
 import { connect, createBoard, type TestSocket } from "./helpers.js";
 
 let opCounter = 5000;
@@ -115,6 +117,7 @@ describe("blind voting", () => {
     );
     if (sync.type !== "sync") throw new Error("unreachable");
     expect(sync.votes.tallies).toBeNull();
+    expect(sync.votes.voters).toBeNull();
     expect(sync.votes.mine).toEqual({ [noteB]: 1 });
     expect(JSON.stringify(sync.votes)).not.toContain(noteA);
   });
@@ -213,6 +216,190 @@ describe("blind voting", () => {
 
     cast(admin.socket, noteB, 1); // the stack's group id IS noteB's id
     await admin.socket.waitFor((e) => e.type === "vote.progress");
+  });
+});
+
+// Naming voters is a deliberate, gated break of the blind-voting promise. Each
+// gate gets its own test, because every one of them is the feature.
+describe("voter names on the reveal", () => {
+  it("a board created before the flag existed stays blind through the reveal", async () => {
+    const { boardId, admin, ben, noteA } = await votingBoard();
+    // Simulate a board persisted before the field: drop the meta row entirely.
+    await runInDurableObject(boardStub(env, boardId), (_instance, state) => {
+      state.storage.sql.exec(
+        "DELETE FROM board_meta WHERE key = 'voterNamesEnabled'",
+      );
+    });
+    castMany(admin.socket, noteA, 2);
+    await admin.socket.waitFor((e) => e.type === "vote.progress");
+    await advanceTo(admin, ["discuss"]);
+    const revealed = await ben.socket.waitFor(
+      (e) => e.type === "votes.revealed",
+    );
+    if (revealed.type !== "votes.revealed") throw new Error("unreachable");
+    expect(revealed.voters).toBeNull();
+
+    ben.socket.send({ type: "resync" });
+    const sync = await ben.socket.waitFor(
+      (e) => e.type === "sync" && e.phase === "discuss",
+    );
+    if (sync.type !== "sync") throw new Error("unreachable");
+    expect(sync.votes.voters).toBeNull();
+  });
+
+  it("names each target's voters, and the sync agrees with the broadcast", async () => {
+    const { admin, ben, noteA, noteB } = await votingBoard();
+    castMany(admin.socket, noteA, 2);
+    await admin.socket.waitFor(
+      (e) => e.type === "vote.progress" && e.yourVotes[noteA] === 2,
+    );
+    cast(ben.socket, noteA, 1);
+    await ben.socket.waitFor(
+      (e) => e.type === "vote.progress" && e.yourVotes[noteA] === 1,
+    );
+    cast(ben.socket, noteB, 1);
+    await ben.socket.waitFor(
+      (e) => e.type === "vote.progress" && e.yourVotes[noteB] === 1,
+    );
+
+    // Nothing leaks WHILE voting: the map is a property of the reveal.
+    ben.socket.send({ type: "resync" });
+    const midVote = await ben.socket.waitFor(
+      (e) => e.type === "sync" && e.phase === "vote",
+    );
+    if (midVote.type !== "sync") throw new Error("unreachable");
+    expect(midVote.votes.voters).toBeNull();
+
+    await advanceTo(admin, ["discuss"]);
+    const revealed = await ben.socket.waitFor(
+      (e) => e.type === "votes.revealed",
+    );
+    if (revealed.type !== "votes.revealed") throw new Error("unreachable");
+    expect(revealed.voters).toEqual({
+      [noteA]: { [admin.you.id]: 2, [ben.you.id]: 1 },
+      [noteB]: { [ben.you.id]: 1 },
+    });
+    // The invariant that makes the map trustworthy: it is the SAME data the
+    // tally is summed from, not a second source that can drift.
+    for (const [targetId, spent] of Object.entries(revealed.voters ?? {})) {
+      const total = Object.values(spent).reduce((sum, n) => sum + n, 0);
+      expect(total).toBe(revealed.tallies[targetId]);
+    }
+
+    ben.socket.send({ type: "resync" });
+    const sync = await ben.socket.waitFor(
+      (e) => e.type === "sync" && e.phase === "discuss",
+    );
+    if (sync.type !== "sync") throw new Error("unreachable");
+    expect(sync.votes.voters).toEqual(revealed.voters);
+  });
+
+  it("a note in a staged column never appears in the voter map", async () => {
+    const { admin, ben, columnId, noteA } = await votingBoard();
+    castMany(admin.socket, noteA, 2);
+    await admin.socket.waitFor((e) => e.type === "vote.progress");
+    admin.socket.send({
+      type: "admin.column.setHidden",
+      opId: opId(),
+      columnId,
+      hidden: true,
+    });
+    await admin.socket.waitFor((e) => e.type === "column.updated");
+
+    await advanceTo(admin, ["discuss"]);
+    // The reveal is broadcast to EVERYONE, so a staged note's id must be
+    // absent from the voter map for the facilitator too — not merely filtered
+    // per recipient.
+    const revealed = await admin.socket.waitFor(
+      (e) => e.type === "votes.revealed",
+    );
+    if (revealed.type !== "votes.revealed") throw new Error("unreachable");
+    expect(revealed.voters).toEqual({});
+    expect(JSON.stringify(revealed)).not.toContain(noteA);
+    expect(ben.socket.events.some((e) => e.type === "votes.revealed")).toBe(
+      true,
+    );
+  });
+
+  it("turning names off during discuss withdraws them without a resync", async () => {
+    const { admin, ben, noteA } = await votingBoard();
+    cast(admin.socket, noteA, 1);
+    await admin.socket.waitFor((e) => e.type === "vote.progress");
+    await advanceTo(admin, ["discuss"]);
+    const named = await ben.socket.waitFor((e) => e.type === "votes.revealed");
+    if (named.type !== "votes.revealed") throw new Error("unreachable");
+    expect(named.voters).not.toBeNull();
+
+    // The lock is one-way: it refuses de-blinding, never withdrawal.
+    admin.socket.send({ type: "admin.voterNames.set", enabled: false });
+    const withdrawn = await ben.socket.waitForNext(
+      (e) => e.type === "votes.revealed",
+    );
+    if (withdrawn.type !== "votes.revealed") throw new Error("unreachable");
+    // Names come down on every screen without anyone reloading, and the
+    // tallies stay — only the attribution is taken back.
+    expect(withdrawn.voters).toBeNull();
+    expect(withdrawn.tallies[noteA]).toBe(1);
+  });
+
+  it("the flag is locked once voting has closed", async () => {
+    const { admin } = await votingBoard();
+    await advanceTo(admin, ["discuss"]);
+    admin.socket.send({ type: "admin.voterNames.set", enabled: true });
+    const refused = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("PHASE_LOCKED");
+  });
+
+  it("the flag is locked as soon as the FIRST dot is cast, not at the reveal", async () => {
+    const { admin, noteA } = await votingBoard();
+    // Before anyone votes it is a normal setting.
+    admin.socket.send({ type: "admin.voterNames.set", enabled: false });
+    await admin.socket.waitFor(
+      (e) => e.type === "config.changed" && !e.config.voterNamesEnabled,
+    );
+
+    cast(admin.socket, noteA, 1);
+    await admin.socket.waitFor((e) => e.type === "vote.progress");
+
+    // Now it is not: that dot was cast under "no names are shown", and there
+    // is no way for the voter to take it back.
+    admin.socket.send({ type: "admin.voterNames.set", enabled: true });
+    const refused = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("PHASE_LOCKED");
+
+    // Turning them OFF stays allowed — withdrawal is always safe.
+    admin.socket.send({ type: "admin.voterNames.set", enabled: false });
+    await admin.socket.waitFor(
+      (e) => e.type === "config.changed" && !e.config.voterNamesEnabled,
+    );
+  });
+
+  it("an anonymous board never attributes a vote, flag or no flag", async () => {
+    const { boardId, admin, ben, noteA } = await votingBoard();
+    // Anonymity is not reachable from the UI yet, so force both rows: the
+    // point is that the FLAG cannot win against it.
+    await runInDurableObject(boardStub(env, boardId), (_instance, state) => {
+      state.storage.sql.exec(
+        "INSERT INTO board_meta (key, value) VALUES ('anonymous', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
+      );
+    });
+    admin.socket.send({ type: "admin.voterNames.set", enabled: true });
+    const refused = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("INVALID");
+
+    cast(admin.socket, noteA, 1);
+    await admin.socket.waitFor((e) => e.type === "vote.progress");
+    await advanceTo(admin, ["discuss"]);
+    const revealed = await ben.socket.waitFor(
+      (e) => e.type === "votes.revealed",
+    );
+    if (revealed.type !== "votes.revealed") throw new Error("unreachable");
+    // Belt and braces: the stored flag is still "1" from initialize(), and
+    // voterNamesShown() is what refuses to honour it.
+    expect(revealed.voters).toBeNull();
   });
 });
 

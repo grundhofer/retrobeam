@@ -13,23 +13,57 @@ import { PHASES, type Phase } from "../src/domain/phases.js";
 describe("boardSurface", () => {
   it("column boards always render columns", () => {
     for (const phase of PHASES) {
-      expect(boardSurface("columns", phase, false)).toBe("columns");
-      expect(boardSurface("columns", phase, true)).toBe("columns");
+      expect(boardSurface("columns", phase, false, false, false)).toBe(
+        "columns",
+      );
+      expect(boardSurface("columns", phase, true, false, false)).toBe(
+        "columns",
+      );
     }
   });
 
   it("canvas boards only show the raw canvas while writing or between presenters", () => {
-    expect(boardSurface("canvas", "write", false)).toBe("canvas");
+    expect(boardSurface("canvas", "write", false, false, false)).toBe("canvas");
     // present with nobody on stage = calm overview; with a presenter = reader
-    expect(boardSurface("canvas", "present", false)).toBe("canvas");
-    expect(boardSurface("canvas", "present", true)).toBe("focus");
+    expect(boardSurface("canvas", "present", false, false, false)).toBe(
+      "canvas",
+    );
+    expect(boardSurface("canvas", "present", true, false, false)).toBe("focus");
+  });
+
+  it("focus mode puts ANY board with someone on stage on the centred reader", () => {
+    // The switch exists for a shared screen: one card at a time, columns board
+    // or canvas. It only bites while somebody actually holds the mic.
+    expect(boardSurface("columns", "present", true, true, false)).toBe("focus");
+    expect(boardSurface("canvas", "present", true, true, false)).toBe("focus");
+    expect(boardSurface("columns", "present", false, true, false)).toBe(
+      "columns",
+    );
+    // …and never outside the presenting round, where the reader has no subject.
+    expect(boardSurface("columns", "discuss", true, true, false)).toBe(
+      "columns",
+    );
+    expect(boardSurface("canvas", "write", false, true, false)).toBe("canvas");
+  });
+
+  it("an anonymous board never reaches the presenter reader", () => {
+    // The reader picks cards by author, and anonymity strips authorship from
+    // every foreign note — routing a member there is a blank screen. This also
+    // covers the canvas path, which reached "focus" without focus mode at all.
+    expect(boardSurface("canvas", "present", true, false, true)).toBe("canvas");
+    expect(boardSurface("canvas", "present", true, true, true)).toBe("canvas");
+    expect(boardSurface("columns", "present", true, true, true)).toBe(
+      "columns",
+    );
   });
 
   it("canvas boards route read/vote/discuss phases to the structured columns", () => {
     const structured: Phase[] = ["vote", "discuss", "close", "done", "lobby"];
     for (const phase of structured) {
-      expect(boardSurface("canvas", phase, false)).toBe("columns");
-      expect(boardSurface("canvas", phase, true)).toBe("columns");
+      expect(boardSurface("canvas", phase, false, false, false)).toBe(
+        "columns",
+      );
+      expect(boardSurface("canvas", phase, true, false, false)).toBe("columns");
     }
   });
 });

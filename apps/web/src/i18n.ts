@@ -157,10 +157,19 @@ const resources = {
           empty: "No cards in this zone.",
         },
         spotlight: "{{name}} is presenting this card",
+        walkthrough: {
+          nextCard: "Next card",
+          position: "Card {{index}} of {{total}}",
+        },
         scoped: {
           hint: "You'll see each person's cards as they present.",
           facilitator: "Only you can see the cards nobody has presented yet.",
         },
+      },
+      focus: {
+        label: "Focus mode",
+        on: "One card at a time",
+        off: "Show every card",
       },
       group: {
         ungroup: "Unstack note",
@@ -177,6 +186,13 @@ const resources = {
         apply: "Apply",
         plus: "Add a vote",
         minus: "Remove a vote",
+        yours_one: "Your vote: {{count}}",
+        yours_other: "Your votes: {{count}}",
+        voterMulti: "{{name}} ×{{count}}",
+        voterLabel_one: "{{name}} gave {{count}} vote",
+        voterLabel_other: "{{name}} gave {{count}} votes",
+        namesShown: "Names are shown with the result.",
+        namesBlind: "Blind vote — no names are shown.",
       },
       discuss: {
         queue: "Discussion",
@@ -201,6 +217,7 @@ const resources = {
         anonymous: "— anonymous",
         anonymousSend: "Send anonymously",
         someone: "someone",
+        everyone: "Everyone",
         remove: "Remove kudo",
         card: {
           "thank-you": "Thank you",
@@ -232,9 +249,14 @@ const resources = {
           summary: "Summary",
         },
         includeAuthors: "Include author names",
+        rendering: "Rendering…",
+        imageFailed: "The image could not be created. Try a smaller scope.",
         settings: "Board settings",
         gifsEnabled: "Allow GIFs",
         cursorsEnabled: "Live cursors (uses more resources)",
+        voterNamesEnabled: "Show who voted (after the reveal)",
+        voterNamesLocked: "Locked once voting has started.",
+        voterNamesAnonymous: "Not available on an anonymous board.",
         layout: "Board layout",
         layoutMode: {
           columns: "Columns",
@@ -510,11 +532,20 @@ const resources = {
           empty: "Keine Karten in dieser Zone.",
         },
         spotlight: "{{name}} stellt diese Karte gerade vor",
+        walkthrough: {
+          nextCard: "Nächste Karte",
+          position: "Karte {{index}} von {{total}}",
+        },
         scoped: {
           hint: "Du siehst die Karten der anderen, sobald sie vorgestellt werden.",
           facilitator:
             "Nur du siehst die Karten, die noch niemand vorgestellt hat.",
         },
+      },
+      focus: {
+        label: "Fokusmodus",
+        on: "Eine Karte nach der anderen",
+        off: "Alle Karten zeigen",
       },
       group: {
         ungroup: "Aus Stapel lösen",
@@ -531,6 +562,13 @@ const resources = {
         apply: "Übernehmen",
         plus: "Stimme hinzufügen",
         minus: "Stimme entfernen",
+        yours_one: "Deine Stimme: {{count}}",
+        yours_other: "Deine Stimmen: {{count}}",
+        voterMulti: "{{name}} ×{{count}}",
+        voterLabel_one: "{{name}} hat {{count}} Stimme gegeben",
+        voterLabel_other: "{{name}} hat {{count}} Stimmen gegeben",
+        namesShown: "Namen werden mit dem Ergebnis gezeigt.",
+        namesBlind: "Geheime Abstimmung — es werden keine Namen gezeigt.",
       },
       discuss: {
         queue: "Diskussion",
@@ -556,6 +594,7 @@ const resources = {
         anonymous: "— anonym",
         anonymousSend: "Anonym senden",
         someone: "jemanden",
+        everyone: "Alle",
         remove: "Kudo entfernen",
         card: {
           "thank-you": "Danke",
@@ -591,9 +630,15 @@ const resources = {
           summary: "Zusammenfassung",
         },
         includeAuthors: "Namen der Autor:innen einschließen",
+        rendering: "Wird erstellt…",
+        imageFailed:
+          "Das Bild konnte nicht erstellt werden. Versuche einen kleineren Umfang.",
         settings: "Board-Einstellungen",
         gifsEnabled: "GIFs erlauben",
         cursorsEnabled: "Live-Cursor (mehr Ressourcen)",
+        voterNamesEnabled: "Zeigen, wer gestimmt hat (nach der Auflösung)",
+        voterNamesLocked: "Ab Beginn der Abstimmung gesperrt.",
+        voterNamesAnonymous: "Auf einem anonymen Board nicht verfügbar.",
         layout: "Board-Layout",
         layoutMode: {
           columns: "Spalten",
