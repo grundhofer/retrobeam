@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   exportContentType,
   renderExport,
+  summarizeExport,
   toCsv,
   toJson,
   toMarkdown,
@@ -24,6 +25,7 @@ const sample: BoardExport = {
           authorName: null,
           votes: 4,
           crownedRank: 1,
+          groupId: null,
         },
         {
           text: "Line one\nline two",
@@ -31,6 +33,17 @@ const sample: BoardExport = {
           authorName: null,
           votes: 0,
           crownedRank: null,
+          groupId: null,
+        },
+        // Crowned, and deliberately AFTER rank 1 in the array so the summary's
+        // rank sort is actually exercised rather than accidentally satisfied.
+        {
+          text: "Demo went smoothly",
+          gifUrl: null,
+          authorName: null,
+          votes: 1,
+          crownedRank: 3,
+          groupId: null,
         },
       ],
     },
@@ -102,6 +115,7 @@ describe("toCsv", () => {
               authorName: null,
               votes: null,
               crownedRank: null,
+              groupId: null,
             },
           ],
         },
@@ -134,6 +148,7 @@ describe("toCsv", () => {
               authorName: null,
               votes: null,
               crownedRank: null,
+              groupId: null,
             },
           ],
         },
@@ -163,5 +178,146 @@ describe("renderExport / content types", () => {
     expect(exportContentType("md")).toContain("text/markdown");
     expect(exportContentType("csv")).toContain("text/csv");
     expect(exportContentType("json")).toContain("application/json");
+  });
+});
+
+describe("summarizeExport", () => {
+  const out = summarizeExport(sample);
+
+  it("keeps a crowned stack's merged duplicates", () => {
+    // The crown and the tally sit on the anchor, but the board shows the whole
+    // stack — a summary that kept only the anchor would say less than the board.
+    const anchor = "a".repeat(32);
+    const stacked = summarizeExport({
+      ...sample,
+      columns: [
+        {
+          name: "Went well",
+          notes: [
+            {
+              text: "anchor idea",
+              gifUrl: null,
+              authorName: null,
+              votes: 3,
+              crownedRank: 1,
+              groupId: anchor,
+            },
+            {
+              text: "duplicate idea",
+              gifUrl: null,
+              authorName: null,
+              votes: null,
+              crownedRank: null,
+              groupId: anchor,
+            },
+            {
+              text: "unrelated and uncrowned",
+              gifUrl: null,
+              authorName: null,
+              votes: null,
+              crownedRank: null,
+              groupId: null,
+            },
+          ],
+        },
+      ],
+    });
+    expect(stacked.columns[0]?.notes.map((n) => n.text)).toEqual([
+      "anchor idea",
+      "duplicate idea",
+    ]);
+  });
+
+  it("keeps only crowned cards, in crown order", () => {
+    expect(out.columns.map((c) => c.name)).toEqual(["Went well"]);
+    expect(out.columns[0]?.notes.map((n) => n.text)).toEqual([
+      "Great teamwork",
+      "Demo went smoothly",
+    ]);
+  });
+
+  it("drops columns with nothing crowned, and the appreciation wall", () => {
+    expect(out.columns.map((c) => c.name)).not.toContain("To improve");
+    expect(out.kudos).toEqual([]);
+    expect(out.actions).toEqual(sample.actions);
+  });
+
+  it("does not mutate the snapshot it projects", () => {
+    // The same snapshot is rendered again when a second format is fetched; a
+    // mutating sort would silently shrink the second file.
+    expect(sample.columns[0]?.notes).toHaveLength(3);
+    expect(sample.columns[0]?.notes[0]?.text).toBe("Great teamwork");
+  });
+});
+
+describe("summary scope", () => {
+  const md = renderExport("md", sample, "summary");
+
+  it("says on its face that it is a summary", () => {
+    expect(md).toContain("Summary (top cards & action items)");
+  });
+
+  it("carries the crowned cards in rank order and nothing else", () => {
+    expect(md).toContain("👑1 Great teamwork _(4 votes)_");
+    expect(md.indexOf("👑1")).toBeLessThan(md.indexOf("👑3"));
+    expect(md).not.toContain("Line one line two");
+    expect(md).not.toContain("## To improve");
+    expect(md).not.toContain("## Appreciation");
+  });
+
+  it("still carries the action items", () => {
+    expect(md).toContain("## Action items");
+    expect(md).toContain("Automate deploys");
+  });
+
+  it("reads as intentional when nothing was crowned", () => {
+    const empty = renderExport(
+      "md",
+      { ...sample, columns: [], actions: [] },
+      "summary",
+    );
+    expect(empty).toContain("_No top cards yet._");
+    expect(empty).toContain("## Action items");
+    expect(empty).toContain("_(no action items)_");
+    expect(renderExport("md", sample, "summary")).not.toContain(
+      "_(no action items)_",
+    );
+  });
+
+  it("reuses the CSV row shape unchanged, minus the kudo rows", () => {
+    const csv = renderExport("csv", sample, "summary");
+    expect(csv.split("\r\n")[0]).toBe(
+      "section,column,text,votes,rank,author,gif",
+    );
+    expect(csv).not.toContain("kudo,");
+    // header + 2 crowned notes + 2 actions + trailing terminator
+    expect(csv.split("\r\n")).toHaveLength(6);
+  });
+
+  it("keeps the JSON keys stable across scopes", () => {
+    const json = JSON.parse(renderExport("json", sample, "summary")) as {
+      kudos: unknown[];
+      columns: { notes: unknown[] }[];
+    };
+    expect(json.kudos).toEqual([]);
+    expect(json.columns).toHaveLength(1);
+    expect(json.columns[0]?.notes).toHaveLength(2);
+  });
+
+  it("leaves the full export unchanged", () => {
+    // The scope argument defaults, so every caller that predates it keeps its
+    // behaviour…
+    expect(renderExport("md", sample, "all")).toBe(renderExport("md", sample));
+    expect(renderExport("csv", sample, "all")).toBe(toCsv(sample));
+    expect(renderExport("json", sample, "all")).toBe(toJson(sample));
+    // …and the full document still carries the plain subtitle and everything
+    // the summary drops. Comparing the two scopes to each other would only
+    // prove they differ, not that the full one is still the old one.
+    const full = renderExport("md", sample, "all");
+    expect(full).toContain("_Retrospective · 2026-07-18_");
+    expect(full).not.toContain("Summary");
+    expect(full).toContain("Line one line two"); // uncrowned
+    expect(full).toContain("## To improve"); // crownless column
+    expect(full).toContain("## Appreciation"); // kudos
   });
 });

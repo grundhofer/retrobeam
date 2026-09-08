@@ -29,6 +29,9 @@ export interface BoardCanvasProps {
   editing: Record<string, string>;
   isAdmin: boolean;
   presenterId: string | null;
+  /** authors the presenting round has not reached yet — a facilitator-only
+   *  marker for "the room cannot read this card yet" (null outside the round) */
+  unpresentedAuthorIds: ReadonlySet<string> | null;
   gifsEnabled: boolean;
   /** other participants' live cursors (normalized world position) — only ever
    *  populated while cursorsEnabled */
@@ -83,6 +86,7 @@ export function BoardCanvas({
   phase,
   isAdmin,
   presenterId,
+  unpresentedAuthorIds,
   cursors,
   cursorsEnabled,
 }: BoardCanvasProps) {
@@ -671,6 +675,7 @@ export function BoardCanvas({
                           phase={phase}
                           isAdmin={isAdmin}
                           presenterId={presenterId}
+                          unpresentedAuthorIds={unpresentedAuthorIds}
                           draggable={false}
                           onDropNote={() => {}}
                           onUngroup={(n) =>

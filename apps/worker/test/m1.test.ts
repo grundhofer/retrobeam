@@ -143,7 +143,7 @@ describe("write-phase privacy (the product's core property)", () => {
     expect(JSON.stringify(ben.socket.events)).not.toContain(noteId);
   });
 
-  it("reveal delivers foreign notes to everyone, then rewind hides them server-side again", async () => {
+  it("entering present reveals nothing until someone takes the stage, and a rewind hides it again", async () => {
     const { boardId, admin } = await boardInPhase("write");
     const ben = await joined(boardId, "Ben");
     const columnId = admin.sync.columns[0]?.id;
@@ -159,6 +159,32 @@ describe("write-phase privacy (the product's core property)", () => {
     await admin.socket.waitForNext((e) => e.type === "ack");
 
     admin.socket.send({ type: "admin.phase.set", phase: "present" });
+    await ben.socket.waitForNext(
+      (e) => e.type === "phase.changed" && e.phase === "present",
+    );
+    // The phase alone hands a member nothing — the room reads a person's cards
+    // when the rotation reaches them, not when the writing stops.
+    ben.socket.send({ type: "resync" });
+    const beforeStage = await ben.socket.waitFor(
+      (e) => e.type === "sync" && e.phase === "present",
+    );
+    if (beforeStage.type !== "sync") throw new Error("unreachable");
+    expect(beforeStage.notes).toHaveLength(0);
+    expect(JSON.stringify(ben.socket.events)).not.toContain("Anna's point");
+
+    // The facilitator, who moderates the round, holds the board throughout.
+    admin.socket.send({ type: "resync" });
+    const adminSync = await admin.socket.waitFor(
+      (e) => e.type === "sync" && e.phase === "present",
+    );
+    if (adminSync.type !== "sync") throw new Error("unreachable");
+    expect(adminSync.notes.map((n) => n.text)).toContain("Anna's point");
+
+    // Taking the stage is what delivers the cards.
+    admin.socket.send({
+      type: "admin.picker.pick",
+      participantId: admin.you.id,
+    });
     const revealed = await ben.socket.waitFor(
       (e) => e.type === "notes.revealed",
     );
@@ -171,7 +197,10 @@ describe("write-phase privacy (the product's core property)", () => {
       (e) => e.type === "phase.changed" && e.phase === "write",
     );
     ben.socket.send({ type: "resync" });
-    const benSync = await ben.socket.waitFor(
+    // waitForNext, not waitFor: Ben's JOIN snapshot was also phase "write", so
+    // scanning the backlog would satisfy this with a snapshot taken before the
+    // note existed and assert nothing at all.
+    const benSync = await ben.socket.waitForNext(
       (e) => e.type === "sync" && e.phase === "write",
     );
     if (benSync.type !== "sync") throw new Error("unreachable");

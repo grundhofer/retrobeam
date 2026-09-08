@@ -53,6 +53,7 @@ test("canvas drag commits exactly ONE note.move on drop and ZERO during the move
         editing={{}}
         isAdmin
         presenterId={null}
+        unpresentedAuthorIds={null}
         gifsEnabled={false}
         cursors={{}}
         cursorsEnabled={false}
@@ -125,6 +126,7 @@ test("tidy sends exactly ONE note.moveMany for all movable cards", async () => {
         editing={{}}
         isAdmin
         presenterId={null}
+        unpresentedAuthorIds={null}
         gifsEnabled={false}
         cursors={{}}
         cursorsEnabled={false}
@@ -159,6 +161,7 @@ async function moveOverCanvas(enabled: boolean) {
         editing={{}}
         isAdmin
         presenterId={null}
+        unpresentedAuthorIds={null}
         gifsEnabled={false}
         cursors={{}}
         cursorsEnabled={enabled}
@@ -204,6 +207,7 @@ test("double-clicking empty canvas space opens a composer", async () => {
         editing={{}}
         isAdmin
         presenterId={null}
+        unpresentedAuthorIds={null}
         gifsEnabled={false}
         cursors={{}}
         cursorsEnabled={false}

@@ -42,6 +42,9 @@ export interface BoardColumnsProps {
   editing: Record<string, string>;
   isAdmin: boolean;
   presenterId: string | null;
+  /** authors the presenting round has not reached yet — a facilitator-only
+   *  marker for "the room cannot read this card yet" (null outside the round) */
+  unpresentedAuthorIds: ReadonlySet<string> | null;
   deciding: DecidingState;
   gifsEnabled: boolean;
 }
@@ -146,20 +149,45 @@ export function BoardColumns(props: BoardColumnsProps) {
   const allowColumnDrop = phase === "write" || phase === "present";
 
   return (
-    <div className="flex items-start gap-4 overflow-x-auto pb-4">
-      {columns.map((column) => (
-        <BoardColumn
-          key={column.id}
-          column={column}
-          {...props}
-          onDropNote={groupNotes}
-          onUngroup={ungroupNote}
-          onMoveToColumn={allowColumnDrop ? moveNote : null}
-          onVote={castVote}
-        />
-      ))}
+    <div className="flex flex-col gap-4 pb-4">
+      {/* Was `flex … overflow-x-auto`: four 288px columns need 1200px, the
+          discussion phase left 576px on a 1280 laptop, and the surplus was
+          clipped by a scroll container with no scrollbar, no fade and no
+          arrows — the cut edge sat flush against the participant card, which
+          is what "the panel covers the columns" actually was. Intrinsic sizing
+          instead: as many tracks as fit at 15rem, each sharing the leftover,
+          wrapping to a second row when they cannot. There is no horizontal
+          overflow left for a column to hide in.
+          `1fr` as the max is load-bearing — auto-fit takes its track count
+          from a definite max, so minmax(13rem,24rem) would resolve to ONE
+          track at 576px. `min(13rem,100%)` keeps a container narrower than
+          208px from re-creating the overflow.
+          13rem rather than 15: a wrapped column starts below the TALLEST one
+          in the row above, so a busy first column can push the fourth a screen
+          down. At 13rem a four-column template fits one row at 1280 in every
+          phase, which is the case this whole change is about. */}
+      <div
+        data-testid="column-strip"
+        className="grid grid-cols-[repeat(auto-fit,minmax(min(13rem,100%),1fr))] items-start gap-4"
+      >
+        {columns.map((column) => (
+          <BoardColumn
+            key={column.id}
+            column={column}
+            {...props}
+            onDropNote={groupNotes}
+            onUngroup={ungroupNote}
+            onMoveToColumn={allowColumnDrop ? moveNote : null}
+            onVote={castVote}
+          />
+        ))}
+      </div>
       {isAdmin ? (
-        <div className="w-64 shrink-0">
+        // Deliberately outside the grid: as a grid item this ghost claims a
+        // whole track, so a facilitator would get four narrow columns where a
+        // member gets three wide ones. A facilitator-only affordance must not
+        // narrow the facilitator's board.
+        <div className="w-64">
           {addingColumn ? (
             <form onSubmit={addColumn} className="flex flex-col gap-2">
               <input
@@ -211,6 +239,7 @@ function BoardColumn({
   editing,
   isAdmin,
   presenterId,
+  unpresentedAuthorIds,
   deciding,
   gifsEnabled,
   onDropNote,
@@ -230,20 +259,17 @@ function BoardColumn({
   const [renameValue, setRenameValue] = useState(column.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  // Presenting isolation: while someone holds the mic, EVERY screen (incl. the
-  // facilitator's, who may be sharing it) shows only that person's cards, so
-  // the room's attention is on the speaker. Between presenters (nobody current)
-  // the full board is back for grouping/overview.
-  const isolating = phase === "present" && presenterId !== null;
+  // Presenting focus is a HIGHLIGHT, not a filter. The board grows as the
+  // rotation moves — the server sends a member the cards of the people it has
+  // already reached and nothing else — so the speaker's cards are lifted out of
+  // what the room has read so far rather than being the only thing on screen.
+  // (It used to filter here, which also blanked an anonymous board entirely:
+  // foreign notes arrive with authorId stripped, so nothing matched.)
 
   // order is per-author (pre-reveal privacy: a global counter would leak the
   // hidden note count), so ties across authors are broken by id for stability.
   const columnNotes = notes
-    .filter(
-      (note) =>
-        note.columnId === column.id &&
-        (!isolating || note.authorId === presenterId),
-    )
+    .filter((note) => note.columnId === column.id)
     .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 
   // Write-phase "cards exist" signal: how many of the column's cards belong to
@@ -266,11 +292,12 @@ function BoardColumn({
       items.push({ kind: "note", note });
     } else if (!seenGroups.has(note.groupId)) {
       seenGroups.add(note.groupId);
-      items.push({
-        kind: "stack",
-        groupId: note.groupId,
-        notes: columnNotes.filter((n) => n.groupId === note.groupId),
-      });
+      const members = columnNotes.filter((n) => n.groupId === note.groupId);
+      // A stack you can only see one card of is not a stack yet — the rest of
+      // it belongs to people the round has not reached. Render the loose card
+      // rather than a "×1" pile.
+      if (members.length < 2) items.push({ kind: "note", note });
+      else items.push({ kind: "stack", groupId: note.groupId, notes: members });
     }
   }
 
@@ -336,13 +363,17 @@ function BoardColumn({
     phase,
     isAdmin,
     presenterId,
+    unpresentedAuthorIds,
     onDropNote,
     onUngroup,
   };
 
   return (
     <section
-      className={`w-72 shrink-0 ${column.hidden ? "opacity-60" : ""}`}
+      data-testid="board-column"
+      // min-w-0: a grid item's automatic minimum is min-content, so one long
+      // unbroken note or column name would blow its track past its share.
+      className={`min-w-0 ${column.hidden ? "opacity-60" : ""}`}
       aria-label={column.name}
       onDragOver={(event) => {
         if (
@@ -467,7 +498,10 @@ function BoardColumn({
             </TargetFrame>
           );
         })}
-        {isolating && items.length === 0 ? (
+        {/* Only while somebody is on stage: between presenters the composer is
+            back, and an empty column with a placeholder above a live input
+            reads as broken. */}
+        {phase === "present" && presenterId !== null && items.length === 0 ? (
           <p className="px-1 py-6 text-center text-sm text-zinc-300">—</p>
         ) : null}
         {ghosts.map((ghost) => (
@@ -505,7 +539,9 @@ function BoardColumn({
             </p>
           </div>
         ) : null}
-        {phaseAllowsComposer(phase) && !isolating ? (
+        {/* No new cards while somebody holds the mic — the room is reading,
+            not writing. */}
+        {phaseAllowsComposer(phase) && presenterId === null ? (
           <NoteComposer
             columnId={column.id}
             you={you}

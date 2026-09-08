@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, it } from "vitest";
+import { EMPTY_PICKER } from "../src/domain/picker.js";
 import { applyServerEvent, initialBoardState } from "../src/domain/reducer.js";
 import type {
   Column,
@@ -216,6 +217,39 @@ describe("phase.changed", () => {
     expect(state.notes).toHaveLength(1);
     expect(state.notes[0]?.authorId).toBe(anna.id);
   });
+
+  it("rewinding also drops a stack id whose anchor just vanished", () => {
+    // A stack's id IS its anchor note's id. The server never sends an id for a
+    // note the viewer does not hold, so its next snapshot has this stripped —
+    // keeping it here is how a fold stops matching a fresh sync.
+    let state = afterSync();
+    state = applyServerEvent(state, {
+      type: "phase.changed",
+      seq: 6,
+      phase: "present",
+    });
+    const anchor = note("e", ben.id, "ben's point");
+    state = applyServerEvent(state, {
+      type: "notes.revealed",
+      seq: 6,
+      notes: [anchor],
+    });
+    state = applyServerEvent(state, {
+      type: "note.updated",
+      seq: 7,
+      note: { ...note("a", anna.id, "anna's point"), groupId: anchor.id },
+    });
+    expect(state.notes.find((n) => n.authorId === anna.id)?.groupId).toBe(
+      anchor.id,
+    );
+    state = applyServerEvent(state, {
+      type: "phase.changed",
+      seq: 8,
+      phase: "write",
+    });
+    expect(state.notes).toHaveLength(1);
+    expect(state.notes[0]?.groupId).toBeNull();
+  });
 });
 
 describe("presence & ready", () => {
@@ -279,10 +313,10 @@ describe("picker & roster", () => {
       type: "picker.spun",
       seq: 6,
       picker: {
+        ...EMPTY_PICKER,
         remaining: [ben.id],
-        presented: [],
         current: anna.id,
-        excluded: [],
+        revealed: [anna.id],
       },
       pool: [anna.id, ben.id],
       winnerId: anna.id,
@@ -299,7 +333,7 @@ describe("picker & roster", () => {
     state = applyServerEvent(state, {
       type: "picker.spun",
       seq: 6,
-      picker: { remaining: [], presented: [], current: anna.id, excluded: [] },
+      picker: { ...EMPTY_PICKER, current: anna.id, revealed: [anna.id] },
       pool: [anna.id],
       winnerId: anna.id,
       seed: 1,

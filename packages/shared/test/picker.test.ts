@@ -7,9 +7,15 @@ import {
   mulberry32,
   pickerFinished,
   pickerKnows,
+  pickerStateSchema,
+  revealedAuthors,
+  rotationExhausted,
   SLOT_REELS,
   slotReel,
   wheelTargetRotation,
+  withAllRevealed,
+  withPresenterRevealed,
+  type PickerState,
 } from "../src/domain/picker.js";
 
 describe("mulberry32", () => {
@@ -122,32 +128,29 @@ describe("picker state helpers", () => {
     expect(pickerFinished(EMPTY_PICKER)).toBe(false);
     expect(
       pickerFinished({
-        remaining: [],
+        ...EMPTY_PICKER,
         presented: ["anna"],
-        current: null,
-        excluded: [],
       }),
     ).toBe(true);
     expect(
       pickerFinished({
+        ...EMPTY_PICKER,
         remaining: ["ben"],
         presented: ["anna"],
-        current: null,
-        excluded: [],
       }),
     ).toBe(false);
     expect(
       pickerFinished({
-        remaining: [],
+        ...EMPTY_PICKER,
         presented: ["anna"],
         current: "ben",
-        excluded: [],
       }),
     ).toBe(false);
   });
 
   it("pickerKnows covers all three buckets", () => {
     const picker = {
+      ...EMPTY_PICKER,
       remaining: ["anna"],
       presented: ["ben"],
       current: "cara",
@@ -158,5 +161,67 @@ describe("picker state helpers", () => {
     expect(pickerKnows(picker, "cara")).toBe(true);
     expect(pickerKnows(picker, "dev")).toBe(true); // excluded is still "known"
     expect(pickerKnows(picker, "elle")).toBe(false);
+  });
+});
+
+describe("presenter reveal bookkeeping", () => {
+  it("tracks who the room has been shown, separately from the rotation", () => {
+    // `presented` can go backwards — a skip returns the current presenter to
+    // the pool without ever adding them to it. `revealed` is what the room has
+    // actually read, and it never shrinks inside a round.
+    const staged = withPresenterRevealed(
+      { ...EMPTY_PICKER, remaining: ["ben"], current: "anna" },
+      "anna",
+    );
+    expect(revealedAuthors(staged)).toEqual(new Set(["anna"]));
+    const skipped = { ...staged, remaining: ["ben", "anna"], current: null };
+    expect(revealedAuthors(skipped)).toEqual(new Set(["anna"]));
+  });
+
+  it("does not infer a reveal from the rotation's own bookkeeping", () => {
+    // Both survive a rewind out of the presenting phase, so a set derived from
+    // them could never be cleared and a second round would start wide open.
+    const midRound: PickerState = {
+      ...EMPTY_PICKER,
+      presented: ["ben"],
+      current: "cara",
+    };
+    expect(revealedAuthors(midRound)).toEqual(new Set());
+  });
+
+  it("appending an author already shown returns the same object", () => {
+    const picker = { ...EMPTY_PICKER, revealed: ["anna"] };
+    expect(withPresenterRevealed(picker, "anna")).toBe(picker);
+  });
+
+  it("rotationExhausted covers the room where everybody was excluded", () => {
+    const allExcluded: PickerState = {
+      ...EMPTY_PICKER,
+      excluded: ["anna", "ben"],
+    };
+    // pickerFinished is false here — it wants somebody to celebrate. For
+    // visibility that is irrelevant: nothing can be staged, so nothing is left
+    // to withhold.
+    expect(pickerFinished(allExcluded)).toBe(false);
+    expect(rotationExhausted(allExcluded)).toBe(true);
+    expect(rotationExhausted({ ...EMPTY_PICKER, remaining: ["anna"] })).toBe(
+      false,
+    );
+  });
+
+  it("latches the whole-board reveal one way", () => {
+    const opened = withAllRevealed(EMPTY_PICKER);
+    expect(opened.revealedAll).toBe(true);
+    expect(withAllRevealed(opened)).toBe(opened);
+  });
+
+  it("defaults both fields for a board written before they existed", () => {
+    const legacy = pickerStateSchema.parse({
+      remaining: ["anna"],
+      presented: [],
+      current: null,
+    });
+    expect(legacy.revealed).toEqual([]);
+    expect(legacy.revealedAll).toBe(false);
   });
 });

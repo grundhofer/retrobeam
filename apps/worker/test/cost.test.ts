@@ -108,12 +108,18 @@ it("one full retro stays well inside a day's free-tier budget", async () => {
 
   await toPhase(admin.socket, "present");
   admin.socket.send({ type: "admin.picker.spin" });
-  await admin.socket.waitForNext((e) => e.type === "picker.spun");
+  const spun = await admin.socket.waitForNext((e) => e.type === "picker.spun");
+  if (spun.type !== "picker.spun") throw new Error("unreachable");
+  // React to a card the room can actually read: only the person the wheel put
+  // on stage has had their notes handed out. Each author wrote five notes in a
+  // row, so their block starts at (index × 5).
+  const stage = everyone.findIndex((p) => p.you.id === spun.winnerId);
+  const staged = notes[stage * 5] as string;
   for (const person of everyone.slice(0, 4)) {
     person.socket.send({
       type: "note.react",
       opId: opId(),
-      noteId: notes[0] as string,
+      noteId: staged,
       emoji: "🎉",
       on: true,
     });
