@@ -23,7 +23,7 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   await annaContext.addInitScript(
     (data: { boardId: string; adminToken: string }) => {
       localStorage.setItem(
-        `retropolis.board.${data.boardId}.adminToken`,
+        `retrobeam.board.${data.boardId}.adminToken`,
         data.adminToken,
       );
     },

@@ -1,12 +1,12 @@
-# Retropolis — Product Specification
+# RetroBeam — Product Specification
 
 Status: draft v1 · 2026-07-17 · based on competitive/platform research verified July 2026 (see `03-competitive-analysis.md`)
 
 ## 1. Vision
 
-Retropolis is a **guided, playful, genuinely free** retrospective tool for teams. One facilitator steps the whole room through a clear phase flow; participants write in private, present in a random order picked by a wheel of fortune, vote blind, and end on appreciation. Clean and minimal to look at, with moments of deliberate delight (the spin, the reveal, the confetti).
+RetroBeam is a **guided, playful, genuinely free** retrospective tool for teams. One facilitator steps the whole room through a clear phase flow; participants write in private, present in a random order picked by a wheel of fortune, vote blind, and end on appreciation. Clean and minimal to look at, with moments of deliberate delight (the spin, the reveal, the confetti).
 
-**Positioning — the empty quadrant.** Research across 11 competitors shows the market splits into _guided-but-utilitarian_ tools (Parabol, Retrium, Neatro — repeatedly criticized as joyless) and _playful-but-unguided_ ones (Metro Retro/Spreo — fun, but novices get lost without a phase flow). Nobody occupies **guided + playful**. On top of that, the market has retreated from free (Retrium/TeamRetro/Spreo are trial-only; EasyRetro is down to 1 board/month), and no mainstream tool offers German UI or EU data residency. Retropolis takes all three: guided **and** playful **and** free, hosted in the EU with a German/English UI.
+**Positioning — the empty quadrant.** Research across 11 competitors shows the market splits into _guided-but-utilitarian_ tools (Parabol, Retrium, Neatro — repeatedly criticized as joyless) and _playful-but-unguided_ ones (Metro Retro/Spreo — fun, but novices get lost without a phase flow). Nobody occupies **guided + playful**. On top of that, the market has retreated from free (Retrium/TeamRetro/Spreo are trial-only; EasyRetro is down to 1 board/month), and no mainstream tool offers German UI or EU data residency. RetroBeam takes all three: guided **and** playful **and** free, hosted in the EU with a German/English UI.
 
 **Unique features no competitor has (verified July 2026):**
 
@@ -124,4 +124,8 @@ German + English from day one. All strings externalized; language auto-detected,
 
 ## 14. Naming & domain
 
-`retropolis.de` is **taken** (checked via DENIC RDAP 2026-07-17). Available candidates checked the same day: **`getretropolis.de`** (recommended), `retropolis-app.de`, `retropolis24.de`. Notable taken names: retroboard/retrospace/retrozone/sprintretro/retrohub/retrolab/retroraum/retroplatz.de. One .de domain will be registered (constraint); recommendation: **getretropolis.de** unless a rename is preferred — decide before launch, nothing in the codebase depends on it.
+**`retrobeam.de` is registered** (2026-09-09) and is the product's home.
+
+The project was called _Retropolis_ until then. It was renamed because `retropolis.de` was taken and the fallbacks (`getretropolis.de` and friends) were all compromises. The replacement was chosen against four criteria — free as a `.de`, effortless to pronounce for a German speaker, an English word tied to what the product does, and **no existing name collision**. That last one killed most candidates: `RetroSpark` is already a real-time agile retrospective tool, `RetroLeap` is a LeapFrog emulation firmware on GitHub, `RetroLift` is a Photoshop product, `Everyturn` is a UK mental-health charity, and `Echo`/`Prisma` are taken inside this very category (Echometer) and in the JS ecosystem. `RetroBeam` returned no hits at all.
+
+One caveat worth remembering: "Retro-" is the most crowded prefix in this market — Retrium, EasyRetro, GoRetro, TeamRetro, RetroTool, TeleRetro, Reetro, MetroRetro, Retrotime, Retrospected and retroflow all exist. The second half of the name has to carry the differentiation, which is why a bland one was rejected.

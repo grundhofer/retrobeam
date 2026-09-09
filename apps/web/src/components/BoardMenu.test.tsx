@@ -4,7 +4,7 @@
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
 import { MemoryRouter } from "react-router";
-import type { ClientCommand, ServerEvent } from "@retropolis/shared";
+import type { ClientCommand, ServerEvent } from "@retrobeam/shared";
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
 import { BoardMenu } from "./BoardMenu.js";

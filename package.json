@@ -1,5 +1,5 @@
 {
-  "name": "retropolis",
+  "name": "retrobeam",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-or-later",
@@ -9,8 +9,8 @@
   },
   "packageManager": "pnpm@11.0.9",
   "scripts": {
-    "dev": "pnpm --filter @retropolis/web dev",
-    "build": "pnpm --filter @retropolis/web build",
+    "dev": "pnpm --filter @retrobeam/web dev",
+    "build": "pnpm --filter @retrobeam/web build",
     "check": "pnpm -r run check && tsc -p tsconfig.e2e.json && node scripts/check-tailwind-floor.mjs",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",

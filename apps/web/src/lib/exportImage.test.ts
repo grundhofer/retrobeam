@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test } from "vitest";
-import type { BoardExport, ExportNote } from "@retropolis/shared";
+import type { BoardExport, ExportNote } from "@retrobeam/shared";
 import {
   layoutBoardImage,
   renderBoardImage,

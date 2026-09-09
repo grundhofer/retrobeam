@@ -1,19 +1,19 @@
 <div align="center">
 
-# Retropolis
+# RetroBeam
 
 **Guided, playful, genuinely free retrospectives.**
 
 No accounts. No tracking. German and English. Hosted in the EU.
 
-[**Start a retro →**](https://retropolis.sebastiangrundhoefer.workers.dev) · [How it works](#how-a-retro-runs) · [Self-hosting](#self-hosting)
+[**Start a retro →**](https://retrobeam.sebastiangrundhoefer.workers.dev) · [How it works](#how-a-retro-runs) · [Self-hosting](#self-hosting)
 
-[![CI](https://github.com/grundhofer/retropolis/actions/workflows/ci.yml/badge.svg)](https://github.com/grundhofer/retropolis/actions/workflows/ci.yml)
+[![CI](https://github.com/grundhofer/retrobeam/actions/workflows/ci.yml/badge.svg)](https://github.com/grundhofer/retrobeam/actions/workflows/ci.yml)
 [![License: AGPL v3 or later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
 
 </div>
 
-![A Retropolis board during the write phase: two participants are typing, their notes hidden behind ghost cards](docs/screenshots/write-phase.png)
+![A RetroBeam board during the write phase: two participants are typing, their notes hidden behind ghost cards](docs/screenshots/write-phase.png)
 
 ## Why another retro tool
 
@@ -21,7 +21,7 @@ Retro tools have split into two camps, and neither is much fun. The **guided** o
 
 Meanwhile the market has quietly retreated from free. Retrium, TeamRetro and Spreo are trial-only. EasyRetro is down to one board a month. And almost nobody offers a German UI or keeps your data in the EU.
 
-Retropolis is guided **and** playful **and** free. One facilitator steps the whole room through a clear phase flow. Everyone writes in private, presents in an order picked by a wheel of fortune, votes blind, and ends on appreciation.
+RetroBeam is guided **and** playful **and** free. One facilitator steps the whole room through a clear phase flow. Everyone writes in private, presents in an order picked by a wheel of fortune, votes blind, and ends on appreciation.
 
 ## How a retro runs
 
@@ -86,19 +86,19 @@ If you need to bring this past a German works council, [`docs/05-privacy-gdpr.md
 
 ## Self-hosting
 
-Retropolis runs on the Cloudflare free tier — one Worker plus a SQLite-backed Durable Object per board. There is no database to operate.
+RetroBeam runs on the Cloudflare free tier — one Worker plus a SQLite-backed Durable Object per board. There is no database to operate.
 
 ```sh
-git clone https://github.com/grundhofer/retropolis.git
-cd retropolis
+git clone https://github.com/grundhofer/retrobeam.git
+cd retrobeam
 pnpm install
-pnpm --filter @retropolis/web run deploy   # needs `wrangler login`
+pnpm --filter @retrobeam/web run deploy   # needs `wrangler login`
 ```
 
 Optional: switch on GIF search with a [KLIPY](https://klipy.com/api) key.
 
 ```sh
-wrangler secret put KLIPY_API_KEY --name retropolis   # from apps/web
+wrangler secret put KLIPY_API_KEY --name retrobeam   # from apps/web
 ```
 
 Without it GIF search reports itself as unavailable and everything else works.
@@ -123,9 +123,9 @@ pnpm dev          # SPA + Worker + BoardRoom DO in real workerd, one command
 ### Tests (four layers)
 
 ```sh
-pnpm --filter @retropolis/shared test   # 1. pure domain logic (node)
-pnpm --filter @retropolis/worker test   # 2. Worker + DO in workerd, incl. WebSocket flows
-pnpm --filter @retropolis/web test      # 3. components in Chromium + WebKit
+pnpm --filter @retrobeam/shared test   # 1. pure domain logic (node)
+pnpm --filter @retrobeam/worker test   # 2. Worker + DO in workerd, incl. WebSocket flows
+pnpm --filter @retrobeam/web test      # 3. components in Chromium + WebKit
 pnpm test:e2e                           # 4. e2e in Chromium, Firefox and WebKit
 pnpm check && pnpm lint                 # types + lint
 ```
@@ -143,7 +143,7 @@ Domain logic lives in `packages/shared` as pure functions and is tested there; t
 
 ### Deployment
 
-`pnpm --filter @retropolis/web run deploy` builds and deploys via wrangler (needs `wrangler login`).
+`pnpm --filter @retrobeam/web run deploy` builds and deploys via wrangler (needs `wrangler login`).
 CI deploys are gated: set the repo variable `CLOUDFLARE_DEPLOY=true` plus the
 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets. PR previews go to the
 `preview` environment (separate worker + DO namespace, alias `pr-<number>`).
@@ -163,9 +163,9 @@ Pull requests need a signed [Contributor License Agreement](CLA.md) — a bot ch
 
 Copyright © 2026 Sebastian Grundhöfer.
 
-Retropolis is free software under the **GNU Affero General Public License v3.0 or later** — see
+RetroBeam is free software under the **GNU Affero General Public License v3.0 or later** — see
 [LICENSE](LICENSE). Every source file carries an [SPDX](https://reuse.software) header.
 
-If you run a modified Retropolis and let others reach it over a network, AGPL §13 requires you to
+If you run a modified RetroBeam and let others reach it over a network, AGPL §13 requires you to
 offer those users the source of your version. The licence rationale, the monetisation model it keeps
 open, and the dependency-licence policy are documented in [docs/06-legal.md](docs/06-legal.md).

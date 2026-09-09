@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-const SOUND_KEY = "retropolis.sound";
+const SOUND_KEY = "retrobeam.sound";
 
 // localStorage can throw (Safari private mode, storage disabled), and the mute
 // now fails in the LOUD direction: without a fallback someone clicks 🔕, gets

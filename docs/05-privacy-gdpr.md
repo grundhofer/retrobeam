@@ -1,10 +1,10 @@
-# Retropolis — Privacy, GDPR & Works Council Playbook
+# RetroBeam — Privacy, GDPR & Works Council Playbook
 
 Status: draft v1 · 2026-07-17 · research verified July 2026. This is engineering guidance plus a rollout playbook, **not legal advice** — have the DPO/legal review before launch.
 
 ## 1. Why this document exists
 
-Retropolis is an employee-feedback tool for a German company. Two legal frames apply beyond ordinary GDPR hygiene:
+RetroBeam is an employee-feedback tool for a German company. Two legal frames apply beyond ordinary GDPR hygiene:
 
 - **§87(1) Nr. 6 BetrVG (works council co-determination):** applies to any technical system _objectively capable_ of monitoring employee behavior or performance — capability alone suffices, no monitoring intent needed (settled BAG case law). A tool with live presence, per-person notes, timestamps and vote logs is squarely capable. **Consequence: involve the Betriebsrat before rollout** and target a works agreement (Betriebsvereinbarung). Plan this during development (M1), not at launch. Once introduced with consent, later content changes (new templates etc.) are generally not separately co-determined.
 - **GDPR legal basis:** for a voluntarily used team tool, §26 BDSG / Art. 6(1)(f) GDPR (legitimate interest + genuine voluntariness + works agreement). Employee _consent_ is problematic in employment contexts due to power imbalance — don't build the compliance story on it.

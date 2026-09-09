@@ -1,7 +1,7 @@
 # 06 — License, ownership and trademark
 
 Status: 2026-08-06. This file records the licensing decision, what is already implemented, and what
-must still happen before Retropolis goes public. It is not legal advice — the items under
+must still happen before RetroBeam goes public. It is not legal advice — the items under
 [Open before launch](#open-before-launch) need a lawyer.
 
 ## The decision
@@ -11,11 +11,11 @@ contribution.
 
 Rationale, in order of weight:
 
-1. **It keeps monetisation open.** The rights holder is not bound by the licence they grant. Retropolis
+1. **It keeps monetisation open.** The rights holder is not bound by the licence they grant. RetroBeam
    can be sold as a hosted service and simultaneously offered under a paid commercial exception
    licence to companies that cannot adopt copyleft. This is the Sentry/GitLab pattern.
 2. **It is the strongest defence against a closed-SaaS clone.** AGPL § 13 forces anyone who runs a
-   modified Retropolis over a network to offer their users the source. A competitor either publishes
+   modified RetroBeam over a network to offer their users the source. A competitor either publishes
    their work or buys an exception licence. A permissive licence (MIT, as Scrumlr and Reflect use)
    gives that away for free.
 3. **It matches the positioning.** `01-product-spec.md` sells "genuinely free" against a market that
@@ -116,24 +116,33 @@ audit before each release:
 pnpm -r list --prod --depth Infinity --json   # then check each package's license field
 ```
 
-## Trademark "Retropolis"
+## Trademark "RetroBeam"
 
-### What was found
+### Why the project was renamed
 
-The name is **already in active commercial use** by at least three unrelated software products:
+The product was called **Retropolis** until 2026-09-09. That name was **already in active commercial
+use** by at least three unrelated software products — _The Secret of Retropolis_ and _Retropolis 2:
+Never Say Goodbye_ (VR adventure games by Peanut Button Studio, on Steam and Meta Quest), and
+_Retropolis – Rule the Streets_ (a mobile strategy game by VoidForge, `retropolisgame.com`). Those
+sit in **Nice class 9 (software)** and class 41 (entertainment), and a retro tool needs class 9 and
+class 42 (SaaS): class 9 overlapped literally. Combined with `retropolis.de` being taken, the name
+was replaced rather than defended.
 
-- _The Secret of Retropolis_ and _Retropolis 2: Never Say Goodbye_ — VR adventure games by Peanut
-  Button Studio, sold on Steam and Meta Quest.
-- _Retropolis – Rule the Streets_ — a mobile strategy game by VoidForge, on the App Store and Google
-  Play (`retropolisgame.com`).
+### What was found for "RetroBeam"
 
-These sit in **Nice class 9 (software)** and class 41 (entertainment). A retro tool needs class 9 and
-class 42 (SaaS). **Class 9 overlaps literally**, which is where a conflict would arise.
+A name search on 2026-09-09 returned **no product, company or project called RetroBeam** — not in the
+retrospective/agile category, not in software generally, and not on GitHub. That is the reason it was
+chosen over the alternatives, several of which failed exactly here: `RetroSpark` is itself a
+real-time agile retrospective tool, `RetroLeap` is a LeapFrog emulation firmware with several GitHub
+forks, `RetroLift` is a Photoshop product, and `Everyturn` is a UK mental-health charity.
+
+**A clean name search is still not a clearance search**, and the class-9 exposure that applied to the
+old name applies to any name: the risk was reduced, not removed.
 
 **This is not a clearance search.** The public trademark registers (DPMAregister, TMview, EUIPO
 eSearch, WIPO Global Brand Database) are not machine-readable and Justia blocks automated access, so
-whether any of these products hold _registered_ marks is **unverified**. Do not treat the absence of a
-finding as a clean result.
+whether anyone holds a _registered_ mark on "RetroBeam" is **unverified**. Do not treat the absence
+of a finding as a clean result — run the register search below before printing anything.
 
 ### What to do, in order
 
@@ -167,13 +176,13 @@ finding as a clean result.
 
 ### Even without registration
 
-Using "Retropolis" commercially in Germany creates an **Unternehmenskennzeichen** under § 5 MarkenG,
+Using "RetroBeam" commercially in Germany creates an **Unternehmenskennzeichen** under § 5 MarkenG,
 which gives limited protection from first use. That is weaker than a registered mark — it does not
 survive a third party registering the name — but it means the name is not entirely unprotected in the
 window before filing.
 
 The trademark is worth more than the licence here: it is the one asset a fork cannot take. Anyone may
-fork the AGPL code, but nobody may call their fork Retropolis. That is exactly how Grafana, Redis and
+fork the AGPL code, but nobody may call their fork RetroBeam. That is exactly how Grafana, Redis and
 WordPress protect themselves.
 
 ## Why the CLA matters more than it looks

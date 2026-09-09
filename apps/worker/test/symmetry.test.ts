@@ -7,7 +7,7 @@ import {
   initialBoardState,
   type ClientBoardState,
   type ServerEvent,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { connect, createBoard, type TestSocket } from "./helpers.js";
 
 // The architecture doc's load-bearing claim (docs/02 §5) is that both ends

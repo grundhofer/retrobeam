@@ -1,6 +1,6 @@
 # Contributor License Agreement (CLA)
 
-**Retropolis — Version 1.0, 2026-08-06**
+**RetroBeam — Version 1.0, 2026-08-06**
 
 Rechteinhaber / Rights holder: **Sebastian Grundhöfer** ("der Projektinhaber" / "the Project Owner").
 
@@ -11,10 +11,10 @@ The German version is authoritative; the English translation is provided for con
 
 ## Warum es dieses Dokument gibt
 
-Retropolis ist und bleibt freie Software unter der AGPL-3.0-or-later. Damit das Projekt langfristig
+RetroBeam ist und bleibt freie Software unter der AGPL-3.0-or-later. Damit das Projekt langfristig
 tragfähig bleibt, muss der Projektinhaber den gesamten Code aus einer Hand lizenzieren können — etwa
 um Rechtsverletzungen zu verfolgen, auf eine spätere Version der AGPL zu wechseln oder Unternehmen,
-die Retropolis nicht unter Copyleft einsetzen können, eine kostenpflichtige Ausnahmelizenz anzubieten.
+die RetroBeam nicht unter Copyleft einsetzen können, eine kostenpflichtige Ausnahmelizenz anzubieten.
 Ohne diese Vereinbarung wäre jeder Beitragende Mitrechteinhaber und jede dieser Entscheidungen
 bräuchte die Zustimmung aller.
 
@@ -24,7 +24,7 @@ freien Lizenz verfügbar bleibt. Diese Zusage ist unwiderruflich.
 ## 1. Geltungsbereich
 
 Diese Vereinbarung gilt für jeden „Beitrag": jedes Werk — Quellcode, Dokumentation, Übersetzungen,
-Grafiken, Konfiguration — das du dem Projekt Retropolis bewusst zur Aufnahme übermittelst, gleich ob
+Grafiken, Konfiguration — das du dem Projekt RetroBeam bewusst zur Aufnahme übermittelst, gleich ob
 per Pull Request, Patch, Issue oder auf anderem Weg. Sie gilt für vergangene wie künftige Beiträge.
 
 ## 2. Einräumung von Nutzungsrechten
@@ -59,7 +59,7 @@ und in etwaigen Contributor-Listen bleibt davon unberührt.
 Du erteilst dem Projektinhaber und allen Empfängern der Software eine unwiderrufliche, weltweite,
 unentgeltliche Lizenz an allen dir gehörenden Patentansprüchen, die durch deinen Beitrag allein oder
 in Verbindung mit dem Projekt verletzt würden. Erhebst du gegen jemanden eine Patentklage, die
-behauptet, Retropolis verletze ein Patent, endet die dir nach Ziffer 3 eingeräumte Lizenz.
+behauptet, RetroBeam verletze ein Patent, endet die dir nach Ziffer 3 eingeräumte Lizenz.
 
 ## 6. Deine Zusicherungen
 
@@ -110,7 +110,7 @@ unter `signatures/cla.json` festgehalten. Sie gilt für alle deine künftigen Pu
 
 ## Why this document exists
 
-Retropolis is and remains free software under AGPL-3.0-or-later. For the project to stay viable
+RetroBeam is and remains free software under AGPL-3.0-or-later. For the project to stay viable
 long-term, the Project Owner must be able to license the entire codebase from a single hand — to
 enforce against infringement, to move to a later version of the AGPL, or to offer a paid exception
 licence to companies that cannot adopt copyleft. Without this agreement every contributor would be a
@@ -122,7 +122,7 @@ available under a free licence. That promise is irrevocable.
 ## 1. Scope
 
 This agreement covers every "Contribution": any work — source code, documentation, translations,
-graphics, configuration — that you knowingly submit to the Retropolis project for inclusion, whether
+graphics, configuration — that you knowingly submit to the RetroBeam project for inclusion, whether
 by pull request, patch, issue or otherwise. It applies to past and future contributions alike.
 
 ## 2. Grant of rights
@@ -152,7 +152,7 @@ individual files; attribution in the repository history and in any contributor l
 
 You grant the Project Owner and all recipients of the software an irrevocable, worldwide,
 royalty-free licence under any patent claims you own that would be infringed by your Contribution
-alone or in combination with the project. If you initiate patent litigation alleging that Retropolis
+alone or in combination with the project. If you initiate patent litigation alleging that RetroBeam
 infringes a patent, the licence granted to you under Section 3 terminates.
 
 ## 6. Your representations

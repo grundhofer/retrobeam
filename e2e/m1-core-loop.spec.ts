@@ -144,8 +144,8 @@ test("a note written while offline is delivered after reconnect", async ({
   await context.setOffline(true);
   await page.evaluate(() =>
     (
-      window as unknown as { __retropolisWs?: { reconnect: () => void } }
-    ).__retropolisWs?.reconnect(),
+      window as unknown as { __retrobeamWs?: { reconnect: () => void } }
+    ).__retrobeamWs?.reconnect(),
   );
   await expect(page.getByRole("status")).toBeVisible(); // offline banner
   await composer.fill("Written while offline");
@@ -195,8 +195,8 @@ test("a note in flight when the socket dies survives the reconnect", async ({
     reconnect: () => void;
   };
   await page.evaluate(() => {
-    const ws = (window as unknown as { __retropolisWs?: WsHandle })
-      .__retropolisWs;
+    const ws = (window as unknown as { __retrobeamWs?: WsHandle })
+      .__retrobeamWs;
     if (!ws) return;
     (window as unknown as { __realSend?: WsHandle["send"] }).__realSend =
       ws.send.bind(ws);
@@ -209,8 +209,8 @@ test("a note in flight when the socket dies survives the reconnect", async ({
   // Put the socket back the way it was, then drop it. The frame is gone — it
   // was never written — and only the in-flight replay can recover it.
   await page.evaluate(() => {
-    const ws = (window as unknown as { __retropolisWs?: WsHandle })
-      .__retropolisWs;
+    const ws = (window as unknown as { __retrobeamWs?: WsHandle })
+      .__retrobeamWs;
     const real = (window as unknown as { __realSend?: WsHandle["send"] })
       .__realSend;
     if (ws && real) ws.send = real;
@@ -249,8 +249,8 @@ test("a refused command is explained instead of vanishing", async ({
   // note typed the instant the facilitator moved the room on.
   await page.evaluate(() => {
     const ws = (
-      window as unknown as { __retropolisWs?: { send: (d: string) => void } }
-    ).__retropolisWs;
+      window as unknown as { __retrobeamWs?: { send: (d: string) => void } }
+    ).__retrobeamWs;
     ws?.send(
       JSON.stringify({
         type: "vote.cast",

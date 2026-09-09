@@ -9,7 +9,7 @@ import {
   TEMPLATE_KEYS,
   type LayoutMode,
   type TemplateKey,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { LanguageToggle } from "../components/LanguageToggle.js";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { createBoard } from "../lib/api.js";

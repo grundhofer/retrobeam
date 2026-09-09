@@ -15,7 +15,7 @@ import {
   type Phase,
   type ServerEvent,
   type ZoneRect,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { NoteCard } from "./NoteCard.js";
 

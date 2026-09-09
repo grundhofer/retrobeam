@@ -12,7 +12,7 @@ import {
   type Participant,
   type Phase,
   type ServerEvent,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { GifPicker } from "./GifPicker.js";
 import { NOTE_DRAG_MIME, NoteCard } from "./NoteCard.js";

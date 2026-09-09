@@ -8,7 +8,7 @@ import type {
   Note,
   Participant,
   ServerEvent,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
 import { NoteCard } from "./NoteCard.js";

@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { BoardConfig } from "@retropolis/shared";
+import type { BoardConfig } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
 

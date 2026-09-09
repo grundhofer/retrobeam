@@ -38,7 +38,7 @@ export default defineConfig({
   // vite dev runs the SPA, the Worker and the BoardRoom DO in real workerd —
   // the e2e suite exercises the same runtime that production uses.
   webServer: {
-    command: "pnpm --filter @retropolis/web dev",
+    command: "pnpm --filter @retrobeam/web dev",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
   },

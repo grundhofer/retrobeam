@@ -3,7 +3,7 @@
 
 import { SELF } from "cloudflare:test";
 import { expect } from "vitest";
-import { parseServerEvent, type ServerEvent } from "@retropolis/shared";
+import { parseServerEvent, type ServerEvent } from "@retrobeam/shared";
 
 // The create/duplicate routes are rate limited per client IP. Real requests
 // always carry cf-connecting-ip (Cloudflare sets it at the edge); SELF.fetch

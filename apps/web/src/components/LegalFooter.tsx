@@ -3,7 +3,7 @@
 
 import { useTranslation } from "react-i18next";
 
-const REPO = "https://github.com/grundhofer/retropolis";
+const REPO = "https://github.com/grundhofer/retrobeam";
 
 // AGPL §13 obliges a version reachable over a network to offer its users the
 // Corresponding Source *of that version*; §5(d) obliges the interactive UI to

@@ -1,4 +1,4 @@
-# Retropolis — Project Plan
+# RetroBeam — Project Plan
 
 A guided, playful, genuinely free retrospective tool for teams. Browser-only, realtime, hosted on the Cloudflare free tier, EU data residency, German + English UI.
 
@@ -27,5 +27,5 @@ Created 2026-07-17 from a multi-agent research pass (11 competitor deep-dives, C
 
 ## Open questions (user decision needed before launch, none block development)
 
-1. **Domain/name:** `retropolis.de` is taken. Register **getretropolis.de** (recommended; verified available 2026-07-17), `retropolis-app.de`, `retropolis24.de` — or rename? Only one .de will be registered. **Decide this together with the trademark question:** "Retropolis" is already in commercial use by three unrelated games in Nice class 9 — run the register search in [docs/06-legal.md](docs/06-legal.md) before committing to the name, while the repo is still private and renaming is free.
+1. **Domain/name: settled.** The project was renamed from _Retropolis_ to **RetroBeam** on 2026-09-09 and **`retrobeam.de` is registered**. Retropolis was dropped for two reasons at once: `retropolis.de` was taken, and the name was already in commercial use by three unrelated games in Nice class 9. A name search for "RetroBeam" returned no hits in any category. Still open: it is a name search, not a clearance search — run the register search in [docs/06-legal.md](docs/06-legal.md) before any print or merch spend.
 2. **Works council:** does the company have a Betriebsrat? If yes, start the §87 BetrVG conversation during M1 (see docs/05).

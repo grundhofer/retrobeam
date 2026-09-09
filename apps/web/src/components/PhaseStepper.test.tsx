@@ -7,7 +7,7 @@ import {
   DEFAULT_PHASE_PLAN,
   type ClientCommand,
   type ServerEvent,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
 import { PhaseStepper } from "./PhaseStepper.js";

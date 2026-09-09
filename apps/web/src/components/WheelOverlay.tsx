@@ -13,7 +13,7 @@ import {
   type Participant,
   type PickerStyle,
   type WheelSpin,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { burstConfetti } from "../lib/confetti.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";

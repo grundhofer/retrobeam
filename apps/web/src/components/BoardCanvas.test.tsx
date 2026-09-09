@@ -3,7 +3,7 @@
 
 import { expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import type { Column, Note, Participant } from "@retropolis/shared";
+import type { Column, Note, Participant } from "@retrobeam/shared";
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
 import { BoardCanvas } from "./BoardCanvas.js";

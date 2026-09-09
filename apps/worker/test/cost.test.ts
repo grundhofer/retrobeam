@@ -12,7 +12,7 @@
 
 import { env, runInDurableObject } from "cloudflare:test";
 import { expect, it } from "vitest";
-import { KUDO_EVERYONE } from "@retropolis/shared";
+import { KUDO_EVERYONE } from "@retrobeam/shared";
 import { boardStub } from "../src/board-stub.js";
 import { connect, createBoard, type TestSocket } from "./helpers.js";
 

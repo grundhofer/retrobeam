@@ -8,7 +8,7 @@ import {
   generateHexId,
   type Action,
   type Participant,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 
 export interface ActionsPanelProps {

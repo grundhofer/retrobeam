@@ -24,7 +24,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          path-to-document: https://github.com/grundhofer/retropolis/blob/main/CLA.md
+          path-to-document: https://github.com/grundhofer/retrobeam/blob/main/CLA.md
           # signatures live in this repo, so GITHUB_TOKEN suffices — no PAT needed.
           # the cla-signatures branch must ALREADY EXIST: the action does not
           # create it and fails the check with "Branch cla-signatures not found".
@@ -33,7 +33,7 @@ jobs:
           branch: cla-signatures
           allowlist: grundhofer,dependabot[bot],renovate[bot]
           custom-notsigned-prcomment: |
-            Thanks for the pull request. Retropolis requires a signed [Contributor License Agreement](https://github.com/grundhofer/retropolis/blob/main/CLA.md) before any contribution can be merged — it keeps the project licensable from a single hand, and Section 7 guarantees your contribution stays free forever.
+            Thanks for the pull request. RetroBeam requires a signed [Contributor License Agreement](https://github.com/grundhofer/retrobeam/blob/main/CLA.md) before any contribution can be merged — it keeps the project licensable from a single hand, and Section 7 guarantees your contribution stays free forever.
             Please read it, then post exactly this comment on this PR:
           custom-pr-sign-comment: I have read the CLA Document and I hereby sign the CLA
           custom-allsigned-prcomment: All contributors have signed the CLA. Thanks!

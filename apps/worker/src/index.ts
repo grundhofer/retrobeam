@@ -18,7 +18,7 @@ import {
   templateKeySchema,
   type ExportFormat,
   type ExportScope,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { boardStub, limiterStub } from "./board-stub.js";
 import { searchGifs } from "./gifs.js";
 import { generateSecret, isSecretShaped } from "./ids.js";

@@ -6,7 +6,7 @@ import {
   parseServerEvent,
   type ClientCommand,
   type ServerEvent,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 
 export type ConnectionStatus = "connecting" | "online" | "offline";
 
@@ -139,8 +139,8 @@ export class BoardSocket {
     // (browser offline emulation does not close established WebSockets).
     if (import.meta.env.DEV) {
       (
-        window as unknown as { __retropolisWs?: ReconnectingWebSocket }
-      ).__retropolisWs = this.ws;
+        window as unknown as { __retrobeamWs?: ReconnectingWebSocket }
+      ).__retrobeamWs = this.ws;
     }
   }
 

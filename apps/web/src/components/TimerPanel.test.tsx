@@ -7,12 +7,12 @@ import {
   IDLE_TIMER,
   type ClientCommand,
   type ServerEvent,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
 import { TimerPanel } from "./TimerPanel.js";
 
-const KEY = "retropolis.sound";
+const KEY = "retrobeam.sound";
 
 afterEach(() => localStorage.removeItem(KEY));
 

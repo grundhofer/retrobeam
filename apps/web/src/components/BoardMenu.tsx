@@ -13,7 +13,7 @@ import {
   type ExportScope,
   type LayoutMode,
   type Phase,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { duplicateBoard, fetchBoardExport } from "../lib/api.js";
 import { renderBoardImage } from "../lib/exportImage.js";

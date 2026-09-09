@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Timer } from "@retropolis/shared";
+import type { Timer } from "@retrobeam/shared";
 import { setSoundEnabled, soundEnabled, unlockAudio } from "../lib/beep.js";
 import { useConnection } from "../lib/connection.js";
 import { useNow } from "../lib/useNow.js";

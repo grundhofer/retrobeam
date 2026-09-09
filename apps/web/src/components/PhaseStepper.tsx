@@ -10,7 +10,7 @@ import {
   previousPhase,
   type Phase,
   type PhasePlan,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 
 export interface PhaseStepperProps {

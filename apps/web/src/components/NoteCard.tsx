@@ -10,10 +10,10 @@ import {
   type Note,
   type Participant,
   type Phase,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 
-const NOTE_DRAG_MIME = "application/x-retropolis-note";
+const NOTE_DRAG_MIME = "application/x-retrobeam-note";
 
 export interface NoteCardProps {
   note: Note;
