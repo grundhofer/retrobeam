@@ -38,7 +38,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@retropolis/shared':
+      '@retrobeam/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       canvas-confetti:
@@ -114,7 +114,7 @@ importers:
 
   apps/worker:
     dependencies:
-      '@retropolis/shared':
+      '@retrobeam/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       hono:

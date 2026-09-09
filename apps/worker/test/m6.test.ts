@@ -3,7 +3,7 @@
 
 import { env, runInDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import type { ServerEvent } from "@retropolis/shared";
+import type { ServerEvent } from "@retrobeam/shared";
 import { boardStub } from "../src/board-stub.js";
 import { connect, createBoard, ipHeaders, type TestSocket } from "./helpers.js";
 

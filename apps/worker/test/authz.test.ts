@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, it } from "vitest";
-import { clientCommandSchema, type ServerEvent } from "@retropolis/shared";
+import { clientCommandSchema, type ServerEvent } from "@retrobeam/shared";
 import { connect, createBoard, type TestSocket } from "./helpers.js";
 
 // The authorization matrix exists only as ~20 copy-pasted role checks spread

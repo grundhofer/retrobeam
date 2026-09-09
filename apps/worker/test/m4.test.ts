@@ -8,7 +8,7 @@ import {
   SELF,
 } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { KUDO_EVERYONE, type ServerEvent } from "@retropolis/shared";
+import { KUDO_EVERYONE, type ServerEvent } from "@retrobeam/shared";
 import { boardStub } from "../src/board-stub.js";
 import { connect, createBoard, ipHeaders, type TestSocket } from "./helpers.js";
 

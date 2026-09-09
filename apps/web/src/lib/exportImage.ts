@@ -7,7 +7,7 @@ import {
   type BoardExport,
   type ExportNote,
   type ExportScope,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 
 // A picture of the board, drawn with nothing but a 2D canvas — the one export
 // that can be pasted straight into a chat message instead of downloaded and

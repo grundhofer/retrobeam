@@ -59,7 +59,7 @@ import {
   KUDO_EVERYONE,
   presenterCardOrder,
   pickIcebreaker,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { generateSecret, randomIndex, safeEqual } from "./ids.js";
 
 // Boards auto-delete after this window unless the facilitator keeps them.

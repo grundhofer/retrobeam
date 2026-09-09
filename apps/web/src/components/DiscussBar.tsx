@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useTranslation } from "react-i18next";
-import type { Note } from "@retropolis/shared";
+import type { Note } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 
 export interface DiscussBarProps {

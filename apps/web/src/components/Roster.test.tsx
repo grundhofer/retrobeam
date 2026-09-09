@@ -3,7 +3,7 @@
 
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
-import type { Participant } from "@retropolis/shared";
+import type { Participant } from "@retrobeam/shared";
 import "../i18n.js";
 import { Roster } from "./Roster.js";
 

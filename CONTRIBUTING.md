@@ -1,4 +1,4 @@
-# Contributing to Retropolis
+# Contributing to RetroBeam
 
 Thanks for wanting to help. Two things before code: the CLA, and the scope rule.
 
@@ -14,7 +14,7 @@ I have read the CLA Document and I hereby sign the CLA
 Your signature is recorded in the `cla-signatures` branch (`signatures/cla.json`) and covers all your
 future PRs.
 
-**Why:** Retropolis is AGPL-3.0-or-later and stays that way. The CLA lets the project be licensed
+**Why:** RetroBeam is AGPL-3.0-or-later and stays that way. The CLA lets the project be licensed
 from a single hand, so infringement can be enforced and companies that cannot adopt copyleft can buy
 a commercial exception licence — which is what funds the hosted instance staying free. In exchange,
 Section 7 of the CLA irrevocably guarantees your contribution stays available under a free licence
@@ -25,7 +25,7 @@ have the clearance.
 
 ## 2. Scope: talk before you build
 
-Retropolis has an opinionated plan ([PLAN.md](PLAN.md), [docs/](docs/)) and a deliberately narrow
+RetroBeam has an opinionated plan ([PLAN.md](PLAN.md), [docs/](docs/)) and a deliberately narrow
 product scope. Open an issue before starting anything larger than a bug fix — a PR that does not fit
 the roadmap will be declined no matter how good the code is, and that wastes your time more than mine.
 

@@ -11,7 +11,7 @@ import {
   type BoardInfo,
   type ClientCommand,
   type ServerEvent,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { ActionsPanel } from "../components/ActionsPanel.js";
 import { AvatarRow } from "../components/AvatarRow.js";
 import { BoardCanvas } from "../components/BoardCanvas.js";

@@ -1,5 +1,5 @@
 {
-  "name": "@retropolis/worker",
+  "name": "@retrobeam/worker",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-or-later",
@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@retropolis/shared": "workspace:*",
+    "@retrobeam/shared": "workspace:*",
     "hono": "^4.13.5",
     "zod": "^4.5.4"
   },

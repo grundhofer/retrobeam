@@ -10,7 +10,7 @@ import {
   type Kudo,
   type KudoCardType,
   type Participant,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { EmojiPicker } from "./EmojiPicker.js";
 import { GifPicker } from "./GifPicker.js";

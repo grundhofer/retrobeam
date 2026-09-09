@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { createContext, useContext } from "react";
-import type { ClientCommand, ServerEvent } from "@retropolis/shared";
+import type { ClientCommand, ServerEvent } from "@retrobeam/shared";
 
 export interface BoardConnection {
   /** The board this connection belongs to — board-scoped REST routes (the GIF

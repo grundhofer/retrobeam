@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, it } from "vitest";
-import { ICEBREAKER_IDS, type ServerEvent } from "@retropolis/shared";
+import { ICEBREAKER_IDS, type ServerEvent } from "@retrobeam/shared";
 import { connect, createBoard, type TestSocket } from "./helpers.js";
 
 let opCounter = 12000;

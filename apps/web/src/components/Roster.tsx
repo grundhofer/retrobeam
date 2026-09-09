@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useTranslation } from "react-i18next";
-import type { Participant } from "@retropolis/shared";
+import type { Participant } from "@retrobeam/shared";
 
 export interface RosterProps {
   participants: Participant[];

@@ -13,7 +13,7 @@ import {
 // the stored "1"/"0" IS the compatibility contract with browsers that made a
 // choice under the old default. A test that imported the constant could not
 // catch a rename that silently un-mutes everyone who had opted out.
-const KEY = "retropolis.sound";
+const KEY = "retrobeam.sound";
 
 afterEach(() => localStorage.removeItem(KEY));
 

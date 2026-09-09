@@ -26,7 +26,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Build for the preview environment
-        run: pnpm --filter @retropolis/web build
+        run: pnpm --filter @retrobeam/web build
         env:
           CLOUDFLARE_ENV: preview
           # AGPL §13: the running build must link to its own source
@@ -49,7 +49,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @retropolis/web build
+      - run: pnpm --filter @retrobeam/web build
         env:
           # AGPL §13: the running build must link to its own source
           VITE_COMMIT_SHA: ${{ github.sha }}

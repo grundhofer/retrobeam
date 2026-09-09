@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { nameInitials, type Participant } from "@retropolis/shared";
+import { nameInitials, type Participant } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 
 export interface AvatarRowProps {

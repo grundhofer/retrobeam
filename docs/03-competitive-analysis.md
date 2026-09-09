@@ -10,7 +10,7 @@ The second structural split is guided versus playful. The guided-phase tools (Pa
 
 Third, the German/EU market is underserved. Parabol's English-only UI is a repeatedly cited complaint from international teams. GoRetro hosts data only in US Central — a real problem for GDPR-conscious German buyers. Neatro, Kollabe, and Retrospected have no independent GDPR/SOC 2 attestation. Scrumlr proves the counter-positioning works: "hosted in Germany, GDPR-compliant, no account needed" is essentially its entire pitch, and it has real traction with this audience — but it is feature-thin and its hosted instance offers no persistence guarantee.
 
-Retropolis sits at the intersection all four gaps leave open: guided (an explicit, labeled phase stepper with ready-checks) and playful (GIFs, wheel-of-fortune presenter picker, kudos phase, confetti-grade details) and genuinely free (Cloudflare free-tier economics make "actually free, no board caps" durable rather than a loss-leader to be gutted later) and EU-hosted with a German+English UI and no participant PII (link-only join). No competitor occupies more than two of these positions at once, and the two unique features in the field — a random presenter picker with rotation tracking, and an appreciation phase — are cheap to build.
+RetroBeam sits at the intersection all four gaps leave open: guided (an explicit, labeled phase stepper with ready-checks) and playful (GIFs, wheel-of-fortune presenter picker, kudos phase, confetti-grade details) and genuinely free (Cloudflare free-tier economics make "actually free, no board caps" durable rather than a loss-leader to be gutted later) and EU-hosted with a German+English UI and no participant PII (link-only join). No competitor occupies more than two of these positions at once, and the two unique features in the field — a random presenter picker with rotation tracking, and an appreciation phase — are cheap to build.
 
 ## Feature matrix
 
@@ -60,10 +60,10 @@ Legend: ✓ = full support, partial = limited/paid-gated/undocumented, ✗ = abs
 Everything below is expected by users of any modern retro tool. Shipping without these means losing on fundamentals before differentiators even register.
 
 - **Template library plus fully custom columns.** 8+ formats (Start-Stop-Continue, Mad-Sad-Glad, 4Ls, Sailboat, ...) with rename/recolor/reorder of columns — 11/11 competitors have this.
-- **Private write phase.** Each participant sees only their own notes (hidden or blurred) until the facilitator reveals — 10/11 have it. Retropolis already plans this; it is NOT a differentiator.
+- **Private write phase.** Each participant sees only their own notes (hidden or blurred) until the facilitator reveals — 10/11 have it. RetroBeam already plans this; it is NOT a differentiator.
 - **Anonymity toggle** (show/hide card authors) — 11/11. Best-in-class does it by design: uniform/random note colors, own notes marked by a subtle border (Retrium, Scrumlr).
 - **Zero-signup participant join via plain link** — universal except Parabol and Retrium. Monetize/limit by boards, never by participant count.
-- **Configurable dot voting.** Admin sets votes per person, with vote counts HIDDEN during the voting phase to prevent bandwagoning (EasyRetro, Retrium, TeamRetro, Neatro, GoRetro, Scrumlr, Kollabe all do this) — hidden-during-voting should be the Retropolis default.
+- **Configurable dot voting.** Admin sets votes per person, with vote counts HIDDEN during the voting phase to prevent bandwagoning (EasyRetro, Retrium, TeamRetro, Neatro, GoRetro, Scrumlr, Kollabe all do this) — hidden-during-voting should be the RetroBeam default.
 - **Facilitator-controlled timer visible to all**, with sound alert, pause, and add-a-minute (EasyRetro Jun 2026, Retrium, TeamRetro, Scrumlr). Soft timeout — a signal, not a lock — per TeamRetro.
 - **Drag-and-drop card grouping/merging of duplicates** — 10/11 have it; only retro.tools lacks it and is criticized for it. Not in the original founder feature list — it is mandatory.
 - **Auto-sort cards/columns by vote count when voting closes**, producing the discussion agenda with zero facilitator effort — effectively universal.
@@ -73,16 +73,16 @@ Everything below is expected by users of any modern retro tool. Shipping without
 - **Action items with an owner** — 9/11. Only the two hobby open-source tools lack it, and reviews punish Scrumlr hard for the gap.
 - **Facilitator handoff / promote a co-admin mid-session** — present in most guided tools. Retrium's historical lack of it dominated its negative reviews.
 
-## Where Retropolis wins (differentiators)
+## Where RetroBeam wins (differentiators)
 
 - **Genuinely free, full-featured.** The market has retreated from free: Retrium, TeamRetro, and Spreo are trial-only (verified Jul 2026); GoRetro gutted free late 2025; EasyRetro is down to 1 public board/month; Kollabe's free tier is 4 meetings/month with 7-day history. Spreo's Sept 2024 free-plan removal caused visible backlash and churn. The only real free competitor is Scrumlr, which lacks action items, comments, GIFs, and pickers, and guarantees no persistence. Cloudflare free-tier economics make "actually free, no board caps" a durable moat.
-- **Random presenter picker with rotation tracking.** Only Spreo has any picker (a generic Spinner gadget); ZERO tools track who already presented and repeat until everyone has gone. Retropolis's wheel-of-fortune/lotto machine with automatic exclusion of past presenters is unique in the entire field. Pair it with synced presenter mode so the picked person's card focuses everyone's screen.
+- **Random presenter picker with rotation tracking.** Only Spreo has any picker (a generic Spinner gadget); ZERO tools track who already presented and repeat until everyone has gone. RetroBeam's wheel-of-fortune/lotto machine with automatic exclusion of past presenters is unique in the entire field. Pair it with synced presenter mode so the picked person's card focuses everyone's screen.
 - **Playful + guided is an empty quadrant.** Guided-phase tools (Parabol, Retrium, Neatro) are explicitly criticized as utilitarian/no-fun; the playful tool (Spreo: jukebox, confetti, cursor hats) has no phase state machine and confuses retro novices. An explicit labeled phase stepper (write → reveal → vote → discuss → appreciate) combined with GIFs, wheel, confetti, and sounds is unoccupied.
-- **German/EU trust positioning.** Parabol's English-only UI is a repeatedly cited complaint; GoRetro hosts data only in US Central; Neatro, Kollabe, and Retrospected have no GDPR/SOC 2 attestation. Scrumlr proves "hosted in Germany, GDPR, no account" sells to this audience but is feature-thin. Retropolis: German+English UI, EU data residency (Cloudflare region hints / EU jurisdiction), no participant PII (link-only join) — a marketable trust story competitors can't quickly copy.
+- **German/EU trust positioning.** Parabol's English-only UI is a repeatedly cited complaint; GoRetro hosts data only in US Central; Neatro, Kollabe, and Retrospected have no GDPR/SOC 2 attestation. Scrumlr proves "hosted in Germany, GDPR, no account" sells to this audience but is feature-thin. RetroBeam: German+English UI, EU data residency (Cloudflare region hints / EU jurisdiction), no participant PII (link-only join) — a marketable trust story competitors can't quickly copy.
 - **Appreciation/kudos closing section.** Essentially absent everywhere — TeamRetro has kudos only as a comment type; no tool has an end-on-positives PHASE. Cheap to build (a final column/phase revealed last — Scrumlr's hidden-column trick shows the mechanic) and emotionally sticky.
-- **Presence + private-write done together.** Retrium's blur-not-hide (see THAT colleagues write, not WHAT) plus sidebar activity indicators, and TeamRetro's typing indicators beside avatars — none of the free/playful tools have this. Blurred ghost cards + typing dots + ready-count during the hidden write phase delivers Retropolis's planned live presence without breaking privacy.
+- **Presence + private-write done together.** Retrium's blur-not-hide (see THAT colleagues write, not WHAT) plus sidebar activity indicators, and TeamRetro's typing indicators beside avatars — none of the free/playful tools have this. Blurred ghost cards + typing dots + ready-count during the hidden write phase delivers RetroBeam's planned live presence without breaking privacy.
 - **Explicit phase state machine with optional ready-check auto-advance.** EasyRetro, GoRetro, and Scrumlr all make facilitators hand-flip settings toggles (documented misconfiguration pain); Kollabe's Apr 2026 auto-advance-when-all-ready is the freshest pattern. One big "next phase" button plus optional auto-advance directly serves "extremely easy to understand".
-- **Admin-configured top-N highlight.** Only TeamRetro offers a "top-N voted" discussion filter; Retropolis's planned "admin sets how many top-voted cards get highlighted" is near-unique. Implement as: voting closes → top N cards visually crowned → discussion queue walks them one at a time.
+- **Admin-configured top-N highlight.** Only TeamRetro offers a "top-N voted" discussion filter; RetroBeam's planned "admin sets how many top-voted cards get highlighted" is near-unique. Implement as: voting closes → top N cards visually crowned → discussion queue walks them one at a time.
 - **Blind-by-design voting.** Combine hidden vote counts during voting (table stakes) with uniform dot colors and a facilitator-only anonymous progress meter ("7/9 have used all votes" — Neatro). No free tool combines all three.
 
 ## What we deliberately skip
@@ -97,7 +97,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 - **Drawing/annotation on cards, whiteboard shapes/connectors/icon libraries.** Whiteboard feature-weight (Spreo's 30k icons) directly opposes "clean, minimal"; GIFs and emoji already cover expressiveness.
 - **Native mobile apps.** Every competitor is responsive-web only; match that.
 - **Cross-board analytics/sentiment dashboards.** Enterprise feature with weak love even where it exists (EasyRetro analytics criticized, Neatro's promised analytics never shipped). Board history plus export suffices.
-- **Integrations (Jira/Trello/ADO/Slack) at MVP.** Every integration is a maintenance treadmill; Scrumlr thrives with zero integrations in Retropolis's exact target segment. Markdown/CSV export is the 80% solution until v2+.
+- **Integrations (Jira/Trello/ADO/Slack) at MVP.** Every integration is a maintenance treadmill; Scrumlr thrives with zero integrations in RetroBeam's exact target segment. Markdown/CSV export is the 80% solution until v2+.
 - **Built-in video/audio chat.** No competitor has it; teams already sit in Teams/Meet/Zoom.
 
 ## Competitor profiles
@@ -112,7 +112,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 
 **Worth borrowing:**
 
-- "Hide vote count" during voting — blind dot-voting prevents bandwagoning; make this the Retropolis default
+- "Hide vote count" during voting — blind dot-voting prevents bandwagoning; make this the RetroBeam default
 - Vote limits configurable per column, not just per board
 - Timer with escalating color warnings, sound, pause/resume, and "+1 minute" (Jun 2026)
 - Hide/reveal whole columns — lets the facilitator stage the board (fits an appreciation column revealed last)
@@ -145,7 +145,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 
 **Weaknesses:**
 
-- English-only UI — repeatedly cited by international/German teams; a direct opening for Retropolis
+- English-only UI — repeatedly cited by international/German teams; a direct opening for RetroBeam
 - Rigid linear flow; participants sometimes start grouping prematurely, disrupting reflection
 - Little fun factor: no GIFs, sounds, or playful pickers
 - Free tier gaps: no health checks, only 2 custom templates, 30-day history
@@ -161,7 +161,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 
 **Worth borrowing:**
 
-- Blur (not hide) others' notes during write, plus sidebar "active now" indicators — exactly Retropolis's planned presence + private-write combo
+- Blur (not hide) others' notes during write, plus sidebar "active now" indicators — exactly RetroBeam's planned presence + private-write combo
 - Hard ready-gate on voting: can't advance until every participant has voted
 - Anonymity through design: randomized note colors, subtle private marker on own notes, uniform vote-dot colors
 - Discuss phase leaves the column board and shows one top-voted topic at a time
@@ -173,7 +173,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 - No free tier; price seen as high, and per-room cost multiplies across teams
 - Vote count imposed by formula, not facilitator-configurable
 - No AI features, exports limited to CSV/TXT, Jira export transfers only the action-item title
-- No fun/energizer mechanics at all — the exact playful gap Retropolis targets
+- No fun/energizer mechanics at all — the exact playful gap RetroBeam targets
 - Historical inability to hand off facilitator mid-meeting shaped its negative reviews (now addressed)
 
 ### TeamRetro
@@ -187,7 +187,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 **Worth borrowing:**
 
 - Soft timers: timeout is a signal, not a lock; optional background music during the write phase
-- "I'M FINISHED" checkmarks on avatars — directly reusable for Retropolis phase control
+- "I'M FINISHED" checkmarks on avatars — directly reusable for RetroBeam phase control
 - Two-level reveal control: hide IDEAS until next phase AND hide VOTES until next phase, as separate toggles
 - Open-actions phase at the START of each retro — closes the loop; the single biggest driver of retro value
 - Parking lot with automatic carry-over
@@ -214,7 +214,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 - Reveal granularity: per-note author reveal + Show All + host Force Reveal; one-at-a-time reveal explicitly framed as anti-anchoring
 - "Hide Identities" anonymity is deliberately irreversible — a strong trust guarantee German teams will appreciate
 - Versioned voting rounds (new round locks previous results) — vote topics, then vote actions
-- Playfulness as first-class gadgets: Spinner, Jukebox playing music to all participants, confetti — direct validation of Retropolis's wheel/lotto idea
+- Playfulness as first-class gadgets: Spinner, Jukebox playing music to all participants, confetti — direct validation of RetroBeam's wheel/lotto idea
 - Host can restrict which tools participants may use per phase
 - Export with per-column selection incl. votes; HTML/Markdown tuned for Confluence/Notion pasting
 
@@ -260,7 +260,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 
 **Worth borrowing:**
 
-- Joker cards: auto-generated discussion prompts from real team data — Retropolis could ship a lightweight canned/randomized prompt-card version
+- Joker cards: auto-generated discussion prompts from real team data — RetroBeam could ship a lightweight canned/randomized prompt-card version
 - Persistent action-item backlog that rolls unfinished items into the next retro
 - One-click happiness/morale check (1-5) at close with a trend line
 - Auto-generated meeting recap (top cards, participation, action items) as a one-click artifact
@@ -276,7 +276,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 
 ### Scrumlr
 
-**Positioning:** The German open-source benchmark: MIT-licensed, entirely free (no paid tier exists), registration-less with generated animal-name avatars, GDPR-compliant and hosted in Germany by inovex. Its trust-through-locality pitch is exactly Retropolis's target audience.
+**Positioning:** The German open-source benchmark: MIT-licensed, entirely free (no paid tier exists), registration-less with generated animal-name avatars, GDPR-compliant and hosted in Germany by inovex. Its trust-through-locality pitch is exactly RetroBeam's target audience.
 
 **Free tier / pricing:** Everything is free; no monetization. Self-hostable via Docker Compose/Kubernetes (Go + React).
 
@@ -317,7 +317,7 @@ Everything below is expected by users of any modern retro tool. Shipping without
 
 **Weaknesses:**
 
-- No random picker despite playful positioning — the gap Retropolis's wheel fills
+- No random picker despite playful positioning — the gap RetroBeam's wheel fills
 - No documented hard private-write phase; dot-voting reportedly not independently configurable
 - No advertised SOC 2 / ISO 27001 / GDPR posture — a real concern for German/EU customers
 - Solo-founder risk; retro module younger than the poker core; almost no third-party review footprint (independent score 5.5/10)

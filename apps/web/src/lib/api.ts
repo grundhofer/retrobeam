@@ -7,7 +7,7 @@ import {
   type BoardExport,
   type BoardInfo,
   type ExportScope,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { z } from "zod";
 
 const createBoardResponseSchema = z.object({

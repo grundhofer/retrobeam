@@ -1,4 +1,4 @@
-# Retropolis — Architecture & Tech Stack
+# RetroBeam — Architecture & Tech Stack
 
 Status: **as-built for v1.2** (reconciled 2026-09-05 after a full review) · originally
 drafted 2026-07-17, when every version/limit claim below was verified against primary
@@ -62,7 +62,7 @@ Decisions that follow from research, each load-bearing:
 ## 3. Repository layout
 
 ```
-retropolis/
+retrobeam/
 ├─ apps/
 │  ├─ web/        React SPA (Vite)
 │  └─ worker/     Hono worker + BoardRoom DO (wrangler)

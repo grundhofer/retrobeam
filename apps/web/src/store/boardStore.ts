@@ -7,7 +7,7 @@ import {
   initialBoardState,
   type ClientBoardState,
   type ServerEvent,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import type { ConnectionStatus } from "../lib/socket.js";
 
 /** A message shown once and then forgotten — a refused command, a degraded

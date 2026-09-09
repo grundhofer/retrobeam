@@ -38,12 +38,12 @@ jobs:
       # The first production build used to happen inside the deploy job, so a
       # broken Rollup pass or an unresolvable dynamic import merged green.
       - run: pnpm build && test -f apps/web/dist/client/index.html
-      - run: pnpm --filter @retropolis/shared test
-      - run: pnpm --filter @retropolis/worker test
+      - run: pnpm --filter @retrobeam/shared test
+      - run: pnpm --filter @retrobeam/worker test
       # One install feeds BOTH the component tests and the e2e run — the root
       # @playwright/test and apps/web's playwright resolve to the same version.
       - run: pnpm exec playwright install chromium firefox webkit --with-deps
-      - run: pnpm --filter @retropolis/web test
+      - run: pnpm --filter @retrobeam/web test
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()

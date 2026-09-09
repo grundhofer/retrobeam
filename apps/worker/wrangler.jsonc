@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "retropolis",
+  "name": "retrobeam",
   "main": "./src/index.ts",
   "compatibility_date": "2026-07-01",
   "assets": {
@@ -75,7 +75,7 @@
     },
   },
   "env": {
-    // PR previews deploy here (worker "retropolis-preview") so preview builds
+    // PR previews deploy here (worker "retrobeam-preview") so preview builds
     // get their own DO namespace and can never touch production boards.
     "preview": {
       "durable_objects": {

@@ -41,7 +41,7 @@ test("both notices resolve into the repository", async () => {
   expect(links).toHaveLength(2);
   for (const link of links) {
     expect(link.getAttribute("href")).toContain(
-      "github.com/grundhofer/retropolis",
+      "github.com/grundhofer/retrobeam",
     );
   }
   expect(links[0]?.getAttribute("href")).toContain("/LICENSE");

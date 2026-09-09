@@ -11,7 +11,7 @@ import {
   type Phase,
   type PickerStyle,
   type PickerState,
-} from "@retropolis/shared";
+} from "@retrobeam/shared";
 import { burstConfetti } from "../lib/confetti.js";
 import { useConnection } from "../lib/connection.js";
 import { useNow } from "../lib/useNow.js";

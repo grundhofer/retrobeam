@@ -4,13 +4,13 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-const LANG_KEY = "retropolis.lang";
+const LANG_KEY = "retrobeam.lang";
 
 const resources = {
   en: {
     translation: {
       app: {
-        name: "Retropolis",
+        name: "RetroBeam",
         tagline: "Retros your team will look forward to.",
       },
       home: {
@@ -365,7 +365,7 @@ const resources = {
         dismiss: "Dismiss",
       },
       update: {
-        available: "A newer version of Retropolis is running on the server.",
+        available: "A newer version of RetroBeam is running on the server.",
         reload: "Reload",
       },
       error: {
@@ -384,7 +384,7 @@ const resources = {
   de: {
     translation: {
       app: {
-        name: "Retropolis",
+        name: "RetroBeam",
         tagline: "Retros, auf die sich dein Team freut.",
       },
       home: {
@@ -750,7 +750,7 @@ const resources = {
         dismiss: "Schließen",
       },
       update: {
-        available: "Auf dem Server läuft eine neuere Version von Retropolis.",
+        available: "Auf dem Server läuft eine neuere Version von RetroBeam.",
         reload: "Neu laden",
       },
       error: {

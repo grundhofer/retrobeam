@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { generateSessionKey, SESSION_KEY_PATTERN } from "@retropolis/shared";
+import { generateSessionKey, SESSION_KEY_PATTERN } from "@retrobeam/shared";
 
 // Per-board capability and identity storage. Everything lives in
 // localStorage: no accounts, no cookies (decided — see docs/01 §2).
 // localStorage can throw (Safari private mode, storage disabled); the
 // in-memory fallback keeps at least the current page session consistent.
-const NAME_KEY = "retropolis.name";
+const NAME_KEY = "retrobeam.name";
 
 const memoryFallback = new Map<string, string>();
 
@@ -40,7 +40,7 @@ export function saveDisplayName(name: string): void {
 // retried join (lost sync, reconnect, refresh) always reclaims the same
 // participant instead of creating an offline ghost.
 export function ensureSessionKey(boardId: string): string {
-  const key = `retropolis.board.${boardId}.sessionKey`;
+  const key = `retrobeam.board.${boardId}.sessionKey`;
   const stored = read(key);
   if (stored !== null && SESSION_KEY_PATTERN.test(stored)) return stored;
   const fresh = generateSessionKey();
@@ -49,13 +49,13 @@ export function ensureSessionKey(boardId: string): string {
 }
 
 export function saveSessionKey(boardId: string, sessionKey: string): void {
-  write(`retropolis.board.${boardId}.sessionKey`, sessionKey);
+  write(`retrobeam.board.${boardId}.sessionKey`, sessionKey);
 }
 
 export function loadAdminToken(boardId: string): string | null {
-  return read(`retropolis.board.${boardId}.adminToken`);
+  return read(`retrobeam.board.${boardId}.adminToken`);
 }
 
 export function saveAdminToken(boardId: string, adminToken: string): void {
-  write(`retropolis.board.${boardId}.adminToken`, adminToken);
+  write(`retrobeam.board.${boardId}.adminToken`, adminToken);
 }
