@@ -91,6 +91,13 @@
     // PR previews deploy here (worker "retrobeam-preview") so preview builds
     // get their own DO namespace and can never touch production boards.
     "preview": {
+      // EMPTY ON PURPOSE, and load-bearing. `routes` is inherited by named
+      // environments, so without this the preview Worker claims the
+      // PRODUCTION custom domain — and because previews deliberately get their
+      // own Durable Object namespace, retrobeam.de would start answering from
+      // an empty board store. Every real retro would look deleted.
+      // A preview is reached through its own workers.dev/preview-alias URL.
+      "routes": [],
       "durable_objects": {
         "bindings": [
           {

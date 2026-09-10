@@ -31,6 +31,12 @@ jobs:
           CLOUDFLARE_ENV: preview
           # AGPL §13: the running build must link to its own source
           VITE_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+      # `versions upload` cannot create a Worker, only add a version to one that
+      # already exists ("You cannot upload a new version of a Worker that does
+      # not yet exist"). The retrobeam-preview Worker was therefore bootstrapped
+      # once by hand with a plain `wrangler deploy` of the preview build. If the
+      # preview Worker is ever deleted, this job starts failing again and the
+      # fix is to run that bootstrap once more — not to change this line.
       - name: Upload preview version (alias pr-<number>)
         working-directory: apps/web
         run: pnpm exec wrangler versions upload --preview-alias pr-${{ github.event.number }}
