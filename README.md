@@ -6,7 +6,7 @@
 
 No accounts. No tracking. German and English. Hosted in the EU.
 
-[**Start a retro →**](https://retrobeam.sebastiangrundhoefer.workers.dev) · [How it works](#how-a-retro-runs) · [Self-hosting](#self-hosting)
+[**Start a retro →**](https://retrobeam.de) · [How it works](#how-a-retro-runs) · [Self-hosting](#self-hosting)
 
 [![CI](https://github.com/grundhofer/retrobeam/actions/workflows/ci.yml/badge.svg)](https://github.com/grundhofer/retrobeam/actions/workflows/ci.yml)
 [![License: AGPL v3 or later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)

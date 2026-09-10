@@ -4,7 +4,7 @@ Status: **M0–M6 shipped, v1.2 live** · updated 2026-07-19. Milestones are sco
 
 ## Shipped — v1.2 (M0–M6)
 
-All six build milestones are complete, deployed to production (https://retrobeam.sebastiangrundhoefer.workers.dev), and each passed a multi-agent adversarial review. **200 tests** across four layers (86 shared domain · 98 worker-in-workerd · 2 component · 14 multi-context e2e).
+All six build milestones are complete, deployed to production (https://retrobeam.de), and each passed a multi-agent adversarial review. **200 tests** across four layers (86 shared domain · 98 worker-in-workerd · 2 component · 14 multi-context e2e).
 
 - **M0 — Walking skeleton**: monorepo, EU-jurisdiction BoardRoom DO, WebSocket hibernation, live roster, all four test layers + CI.
 - **M1 — Core loop**: 6 templates, private write phase (server-side redaction), ghost cards, ready-check, phase machine, DO-alarm timer, reveal.
@@ -16,7 +16,7 @@ All six build milestones are complete, deployed to production (https://retrobeam
 
 - **v1.3 — the presenting round, and the board that fits**: the reveal became presenter-scoped (a participant is handed a person's cards when the rotation stages them, cumulatively, with the speaker's highlighted; the facilitator holds the board throughout and sees which cards the room cannot read yet; the round ending — or any later phase — opens everything). Enforced server-side across the live wire, the snapshot, every reject-code oracle and the export, with an append-only reveal set on the picker so a skip can never take a card back, and stack ids withheld while their anchor is unseen. Anonymous boards are deliberately exempt: scoping by author would attribute every note. Alongside it, the board columns stopped being a horizontal scroller with no affordance (they wrap into a responsive grid — the discussion phase used to show 1 of 4 columns on a 1280 laptop), the participant rail no longer doubles the roster in the discussion phase, its sticky card is bounded so a large roster cannot park its buttons off-screen, and the export gained a **summary scope** (crowned cards + action items).
 
-**Follow-ups before wider launch** (not blocking): point `retrobeam.de` (registered 2026-09-09) at the Worker, enable CI auto-deploy secrets, set `KLIPY_API_KEY` (+ `GIF_HOST_SUFFIX`) to turn on live GIF search, and start the Betriebsrat conversation (see `05-privacy-gdpr.md`).
+**Follow-ups before wider launch** (not blocking): enable CI auto-deploy secrets, set `KLIPY_API_KEY` (+ `GIF_HOST_SUFFIX`) to turn on live GIF search, and start the Betriebsrat conversation (see `05-privacy-gdpr.md`).
 
 ## Original milestone plan (for reference)
 
@@ -57,7 +57,7 @@ Goal: a deployed, tested "hello board" proving every architectural mechanism end
 - Markdown/CSV/JSON export (authors excluded by default); archived read-only board view.
 - DE+EN i18n pass over everything; icebreaker check-in (minimal: random question display).
 - 90-day retention self-delete alarm + delete-now; usage telemetry counter; degradation banner.
-- A11y + `prefers-reduced-motion` audit; empty/error/reconnect states. **→ v1.0 launch**: connect `retrobeam.de` (registered), Betriebsrat sign-off (see `05-privacy-gdpr.md` — start this conversation during M1, not after M4).
+- A11y + `prefers-reduced-motion` audit; empty/error/reconnect states. **→ v1.0 launch**: Betriebsrat sign-off (see `05-privacy-gdpr.md` — start this conversation during M1, not after M4).
 
 ## v1.x (fast follows)
 

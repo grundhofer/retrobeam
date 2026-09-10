@@ -2,6 +2,19 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "retrobeam",
   "main": "./src/index.ts",
+  // The product's own domain. ONE canonical host on purpose: every capability
+  // this app hands out lives in localStorage (session key, admin token), and
+  // localStorage is per ORIGIN — a facilitator who created a board on the apex
+  // and then opened it on www would arrive as a stranger without their own
+  // admin rights. www is therefore a redirect at the edge, never a second
+  // custom domain.
+  "routes": [{ "pattern": "retrobeam.de", "custom_domain": true }],
+  // Load-bearing: declaring ANY route switches the workers.dev subdomain off
+  // by default, and the first deploy of the route above took production down
+  // with it (the custom domain could not attach because the zone still held an
+  // imported A record). Keeping workers.dev alive means a failed or pending
+  // custom domain can never again leave the app with no reachable origin.
+  "workers_dev": true,
   "compatibility_date": "2026-07-01",
   "assets": {
     // In dev/build the Vite plugin replaces this with the SPA client build;
