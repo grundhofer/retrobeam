@@ -14,7 +14,7 @@ const resources = {
         tagline: "Retros your team will look forward to.",
       },
       home: {
-        title: "Start a retro board",
+        title: "Create a retro board",
         boardName: "Board name",
         boardNamePlaceholder: "Sprint 42 retro",
         template: "Template",
@@ -379,8 +379,9 @@ const resources = {
       landing: {
         kicker: "Retrospectives for teams",
         lede: "Guided retrospectives in the browser — one person facilitates, everyone writes in private first, and a wheel decides who presents. Free, no ads.",
-        cta: "Start a retro",
-        trust: "No accounts · Boards stored in the EU · Open source",
+        cta: "Create a retro board",
+        ctaHint: "Just enter a board name · no account required",
+        trust: "Boards stored in the EU · Open source",
         howTitle: "How a retro runs",
         steps: {
           share: {
@@ -426,6 +427,11 @@ const resources = {
           },
         },
         faqTitle: "Questions",
+        faqGroups: {
+          basics: "Getting started",
+          privacy: "Privacy and visibility",
+          openSource: "Teams and open source",
+        },
         faq: {
           cost: {
             q: "What does it cost — and where's the catch?",
@@ -479,7 +485,6 @@ const resources = {
         noticeTitle: "Not a commercial service",
         notice:
           "RetroBeam is a personal project by Sebastian Grundhöfer, not a company. Running retrobeam.de is free of charge, with no ads, no tracking and no sale of data; I pay for it myself. The source is free software under the AGPL-3.0 — anyone may run their own instance.",
-        noticeCta: "Start a retro →",
       },
       legal: {
         license: "Free software: AGPL-3.0-or-later",
@@ -501,7 +506,7 @@ const resources = {
         tagline: "Retros, auf die sich dein Team freut.",
       },
       home: {
-        title: "Retro-Board starten",
+        title: "Retro-Board erstellen",
         boardName: "Name des Boards",
         boardNamePlaceholder: "Sprint-42-Retro",
         template: "Vorlage",
@@ -877,8 +882,9 @@ const resources = {
       landing: {
         kicker: "Retrospektiven für Teams",
         lede: "Geführte Retrospektiven im Browser — eine Person moderiert, alle schreiben erst privat, das Glücksrad entscheidet, wer vorstellt. Kostenlos und ohne Werbung.",
-        cta: "Retro starten",
-        trust: "Keine Accounts · Boards in der EU gespeichert · Open Source",
+        cta: "Retro-Board erstellen",
+        ctaHint: "Nur einen Boardnamen eingeben · kein Account nötig",
+        trust: "Boards in der EU gespeichert · Open Source",
         howTitle: "So läuft eine Retro",
         steps: {
           share: {
@@ -925,6 +931,11 @@ const resources = {
           },
         },
         faqTitle: "Fragen",
+        faqGroups: {
+          basics: "Erste Schritte",
+          privacy: "Datenschutz und Sichtbarkeit",
+          openSource: "Teams und Open Source",
+        },
         faq: {
           cost: {
             q: "Was kostet das — und wo ist der Haken?",
@@ -978,7 +989,6 @@ const resources = {
         noticeTitle: "Kein kommerzielles Angebot",
         notice:
           "RetroBeam ist ein privates Projekt von Sebastian Grundhöfer, kein Unternehmen. Der Betrieb von retrobeam.de ist kostenlos, ohne Werbung, ohne Tracking und ohne Verkauf von Daten; die Kosten trage ich selbst. Der Quellcode ist frei unter der AGPL-3.0 — wer mag, betreibt eine eigene Instanz.",
-        noticeCta: "Retro starten →",
       },
       legal: {
         license: "Freie Software: AGPL-3.0-or-later",
