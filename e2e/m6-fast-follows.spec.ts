@@ -12,7 +12,7 @@ test("staged columns hide from members and reveal again", async ({
 }) => {
   const annaCtx = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await annaCtx.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Sprint 47");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -54,7 +54,7 @@ test("staged columns hide from members and reveal again", async ({
 test("duplicating a board opens a fresh copy of it", async ({ browser }) => {
   const ctx = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await ctx.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Retro to clone");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -88,7 +88,7 @@ test("slot-machine picker skin spins to a winner", async ({ browser }) => {
   // NOT reduced-motion: we want the reels to actually render.
   const annaCtx = await newContext(browser);
   const anna = await annaCtx.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Sprint 48");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })

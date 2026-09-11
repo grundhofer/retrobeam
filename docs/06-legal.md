@@ -84,8 +84,21 @@ some other way). Making it public is therefore a launch blocker, not a nice-to-h
      Ask whether the exclusive grant in § 2 survives that review, and whether § 7's reversion clause
      is sufficient consideration.
 3. **Register the trademark** — see below.
-4. **Impressum and Datenschutzerklärung** (§ 5 DDG, Art. 13 GDPR). Separate from licensing, but
-   required before the hosted instance is publicly reachable. See `05-privacy-gdpr.md`.
+4. **Impressum and Datenschutzerklärung** — built 2026-09-11 as `/impressum` and `/datenschutz`
+   (`apps/web/src/content/`), linked from the footer of every screen. Before publication:
+   - `apps/web/src/content/operator.ts` still carries the postal address, e-mail, Cloudflare
+     settings-check date and workers.dev fallback host as bracketed placeholders (rendered
+     highlighted). The deployment workflow rejects them. Fill them in before the pages go public.
+     The governing norm for the imprint is **§ 18 Abs. 1 MStV** (name + ladungsfähige Anschrift
+     for any public offer, commercial or not — a P.O. box does not satisfy it), not § 5 DDG,
+     which only applies once ads or a paid tier exist; the address is required by Art. 13(1)(a)
+     GDPR anyway.
+   - Have the privacy notice reviewed. `07-privacy-notice-review-notes.md` lists the sentences a
+     lawyer should look at. The text itself was checked claim by claim against the code.
+   - The landing page's "not a commercial service" line describes the operation of retrobeam.de
+     today, deliberately not the licence and not the future — so it does not contradict the
+     monetisation model above. It does mean the § 5 MarkenG route below is not open while that
+     line is true: an unregistered mark needs use in the course of trade.
 5. **GitHub Actions billing.** CI has not run since 2026-07-25 — every run fails with _"the job was
    not started because recent account payments have failed or your spending limit needs to be
    increased"_. The CLA workflow is therefore inert until this is fixed. Making the repository public

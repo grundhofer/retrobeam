@@ -373,11 +373,124 @@ const resources = {
         body: "The board itself is safe — it lives on the server. Reloading rejoins it.",
         reload: "Reload the board",
       },
+      site: {
+        nav: "Site",
+      },
+      landing: {
+        kicker: "Retrospectives for teams",
+        lede: "Guided retrospectives in the browser — one person facilitates, everyone writes in private first, and a wheel decides who presents. Free, no ads.",
+        cta: "Start a retro",
+        trust: "No accounts · Boards stored in the EU · Open source",
+        howTitle: "How a retro runs",
+        steps: {
+          share: {
+            title: "Share a link.",
+            text: "Create a board, drop the link in your team chat, type a name — you're in.",
+          },
+          write: {
+            title: "Write in private, then present.",
+            text: "Nobody sees anyone else's notes until the wheel calls that person up.",
+          },
+          decide: {
+            title: "Vote, discuss, say thanks.",
+            text: "Vote blind, discuss the top cards, capture action items as you go — and end on kudos.",
+          },
+        },
+        preview: {
+          label: "Example: a board during the write phase",
+          boardName: "Sprint 42",
+          note1: "Pairing on Thursday found the bug in twenty minutes.",
+          note2: "The review queue is too long again.",
+          note3: "Daily review slot at 11:00",
+          author1: "Mira",
+          author2: "Mira",
+          author3: "Mira",
+        },
+        whyTitle: "Why RetroBeam",
+        why: {
+          private: {
+            title: "Private means private.",
+            text: "Other people's notes don't leave the server until it's their turn — not just hidden in the browser.",
+          },
+          nothing: {
+            title: "Nothing to manage.",
+            text: "No accounts, no tracking, no seat licences; by default, boards delete themselves after 90 days.",
+          },
+          guided: {
+            title: "Guided, and still fun.",
+            text: "A phase stepper walks the room through the retro; the wheel and the confetti do the moments.",
+          },
+          languages: {
+            title: "German and English.",
+            text: "Switchable mid-retro; boards are stored in EU data centres.",
+          },
+        },
+        faqTitle: "Questions",
+        faq: {
+          cost: {
+            q: "What does it cost — and where's the catch?",
+            a: "Nothing: no paid plans, no ads, no board caps. The catch: RetroBeam runs on Cloudflare's free tier, which has a daily budget for the whole instance. If an unusual number of teams run retros on the same day it can run dry — it resets at midnight UTC, and if you can't risk that, self-host.",
+          },
+          account: {
+            q: "Do I need an account, or install anything?",
+            a: "No. Open the link, type a name, you're in — no accounts, no e-mail, no extension. It runs in current browsers; it's tested with Chromium, Firefox and WebKit.",
+          },
+          where: {
+            q: "Where does the data live?",
+            a: "Each board lives in its own Cloudflare Durable Object, pinned to the EU when it's created: persistent board storage and the BoardRoom logic stay in EU data centres. To be plain about it: Cloudflare is a US company, and your connection and some request handling run through the nearest Cloudflare edge, which can be outside the EU. The privacy notice lists the sub-processors.",
+          },
+          howLong: {
+            q: "How long is it kept?",
+            a: "90 days from creation, then the board deletes itself. The facilitator can delete it right away at any time — or deliberately keep it, and then no clock runs. Our suggestion: export at the end, then delete; exports leave names out by default.",
+          },
+          whoReads: {
+            q: "Who can read my notes, and when?",
+            a: "During the write phase, nobody — the facilitator included: the server never sends other people's notes to your browser. During the presenting round the room gets a person's cards from visible columns when the wheel calls them up. After that everyone with the link sees the shared board; columns the facilitator keeps hidden remain facilitator-only. The link is the only key, so only hand it to your team.",
+          },
+          facilitator: {
+            q: "Does the facilitator see more than the team?",
+            a: "Not in the write phase. In the presenting round, yes: the facilitator sees the whole board from the start, names included, because they run the round and need to see what's still to come. Once everyone has presented, everyone sees the same visible columns; any columns the facilitator keeps hidden remain facilitator-only.",
+          },
+          hideAuthors: {
+            q: "Can I hide who wrote which card?",
+            a: "Not yet. Kudos and the closing ROTI poll can be anonymous, and while voting is open nobody sees who voted for what — but the names on cards can't currently be switched off. Don't plan around it until it ships.",
+          },
+          gifs: {
+            q: "What about the GIFs?",
+            a: "GIF search goes through KLIPY, a US provider; search terms pass through our server, so KLIPY sees neither your IP address nor who's searching. The images themselves, though, load in your browser straight from KLIPY's CDN — and that CDN does see your IP address. To avoid that, ask the facilitator to switch GIFs off before anyone adds one. This prevents searches and new GIFs; GIFs already on the board keep loading from KLIPY until they are removed.",
+          },
+          selfHost: {
+            q: "Can I self-host it?",
+            a: "Yes. It's one Cloudflare Worker plus one Durable Object per board, with no separate database service to run, and it works on their free tier for you too; the README on GitHub has the steps. GIF search needs your own KLIPY key — without one it's simply off.",
+          },
+          license: {
+            q: "What's the licence?",
+            a: "AGPL-3.0-or-later. You may use, change and pass on RetroBeam; if you run a modified version for other people over a network, you have to offer those people the source. The source of the exact version running here is linked in the footer.",
+          },
+          commercial: {
+            q: "Is this a commercial service?",
+            a: "No. RetroBeam is one person's private project — no company behind it, no paid plans, no ads, and no data is sold. The infrastructure uses Cloudflare's free tier; I pay the remaining costs, such as the domain, myself.",
+          },
+          work: {
+            q: "Can I use this at work — and what about the works council?",
+            a: "Technically and licence-wise, yes; whether your company signs off is your company's call. In Germany a tool with live presence and per-person notes falls under co-determination (§ 87 (1) no. 6 BetrVG) — so talk to the works council before, not after; the data inventory, the sub-processors and the facilitator caveat are written up for exactly that in docs/05 in the repository. To be honest: retrobeam.de comes with no contract, no guarantees and no data-processing agreement — if you need those, self-host.",
+          },
+        },
+        noticeTitle: "Not a commercial service",
+        notice:
+          "RetroBeam is a personal project by Sebastian Grundhöfer, not a company. Running retrobeam.de is free of charge, with no ads, no tracking and no sale of data; I pay for it myself. The source is free software under the AGPL-3.0 — anyone may run their own instance.",
+        noticeCta: "Start a retro →",
+      },
       legal: {
         license: "Free software: AGPL-3.0-or-later",
         redistribute: "Redistribution and modification permitted, no warranty.",
         source: "Source code",
         sourceVersion: "Source code of the version running here",
+        privacy: "Privacy",
+        privacyTitle: "Privacy notice",
+        imprint: "Imprint",
+        imprintTitle: "Imprint",
+        updated: "Last updated:",
       },
     },
   },
@@ -758,11 +871,125 @@ const resources = {
         body: "Das Board selbst ist sicher — es liegt auf dem Server. Neu laden verbindet dich wieder.",
         reload: "Board neu laden",
       },
+      site: {
+        nav: "Website",
+      },
+      landing: {
+        kicker: "Retrospektiven für Teams",
+        lede: "Geführte Retrospektiven im Browser — eine Person moderiert, alle schreiben erst privat, das Glücksrad entscheidet, wer vorstellt. Kostenlos und ohne Werbung.",
+        cta: "Retro starten",
+        trust: "Keine Accounts · Boards in der EU gespeichert · Open Source",
+        howTitle: "So läuft eine Retro",
+        steps: {
+          share: {
+            title: "Link teilen.",
+            text: "Board erstellen, Link in den Team-Chat, Namen eintippen — drin.",
+          },
+          write: {
+            title: "Privat schreiben, dann vorstellen.",
+            text: "Niemand sieht fremde Notizen, bis das Glücksrad die Person aufruft, die als Nächstes dran ist.",
+          },
+          decide: {
+            title: "Abstimmen, diskutieren, danke sagen.",
+            text: "Verdeckt abstimmen, die Top-Karten diskutieren, Action Items nebenbei festhalten — und mit Kudos enden.",
+          },
+        },
+        preview: {
+          label: "Beispiel: ein Board in der Schreibphase",
+          boardName: "Sprint 42",
+          note1:
+            "Pairing am Donnerstag hat den Bug in zwanzig Minuten gefunden.",
+          note2: "Die Review-Queue ist wieder zu lang.",
+          note3: "Täglicher Review-Slot um 11 Uhr",
+          author1: "Mira",
+          author2: "Mira",
+          author3: "Mira",
+        },
+        whyTitle: "Warum RetroBeam",
+        why: {
+          private: {
+            title: "Privat heißt privat.",
+            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind — nicht nur im Browser versteckt.",
+          },
+          nothing: {
+            title: "Nichts zu verwalten.",
+            text: "Kein Account, kein Tracking, keine Sitzlizenzen; standardmäßig löschen sich Boards nach 90 Tagen von selbst.",
+          },
+          guided: {
+            title: "Geführt, und trotzdem Spaß.",
+            text: "Ein Phasen-Stepper führt durch die Retro; Glücksrad und Konfetti sorgen für die Momente.",
+          },
+          languages: {
+            title: "Deutsch und Englisch.",
+            text: "Mitten in der Retro umschaltbar; Boards liegen in EU-Rechenzentren.",
+          },
+        },
+        faqTitle: "Fragen",
+        faq: {
+          cost: {
+            q: "Was kostet das — und wo ist der Haken?",
+            a: "Nichts: keine Bezahlpläne, keine Werbung, keine Board-Obergrenze. Der Haken: RetroBeam läuft auf dem kostenlosen Tarif von Cloudflare, und der hat ein Tageskontingent für die ganze Instanz. Wenn an einem Tag ungewöhnlich viele Teams Retro machen, kann es knapp werden — ab Mitternacht UTC geht es weiter, und wer das nicht riskieren will, hostet selbst.",
+          },
+          account: {
+            q: "Brauche ich einen Account oder muss ich etwas installieren?",
+            a: "Nein. Link öffnen, Namen eintippen, drin — keine Accounts, keine E-Mail-Abfrage, keine Erweiterung. Es läuft in aktuellen Browsern; getestet wird mit Chromium, Firefox und WebKit.",
+          },
+          where: {
+            q: "Wo liegen die Daten?",
+            a: "Jedes Board liegt in einem eigenen Cloudflare Durable Object, das beim Erstellen auf die EU festgelegt wird: Dauerhafter Board-Speicher und BoardRoom-Logik bleiben in EU-Rechenzentren. Offen gesagt: Cloudflare ist ein US-Unternehmen, und deine Verbindung sowie Teile der Anfrageverarbeitung laufen über den nächstgelegenen Cloudflare-Knoten, der außerhalb der EU liegen kann. Die Auftragsverarbeiter stehen in der Datenschutzerklärung.",
+          },
+          howLong: {
+            q: "Wie lange bleiben die Daten?",
+            a: "90 Tage ab Erstellung, dann löscht sich das Board von selbst. Die Moderation kann es jederzeit sofort löschen — oder ausdrücklich behalten, dann läuft keine Frist mehr. Empfehlung: Am Ende exportieren, dann löschen; der Export lässt Namen standardmäßig weg.",
+          },
+          whoReads: {
+            q: "Wer kann meine Notizen lesen — und wann?",
+            a: "In der Schreibphase niemand, auch nicht die Moderation: Der Server schickt fremde Notizen gar nicht erst an andere Browser. In der Vorstellrunde bekommt das Team die Karten einer Person aus den sichtbaren Spalten, sobald das Glücksrad sie aufruft. Danach sehen alle mit dem Link das freigegebene Board; Spalten, die die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar. Der Link ist der einzige Schlüssel, also gib ihn nur deinem Team.",
+          },
+          facilitator: {
+            q: "Sieht die Moderation mehr als das Team?",
+            a: "In der Schreibphase nicht. In der Vorstellrunde ja: Die Moderation sieht von Anfang an das ganze Board, samt Namen, weil sie die Runde leitet und wissen muss, was noch kommt. Sobald alle vorgestellt haben, sehen alle dieselben sichtbaren Spalten; Spalten, welche die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar.",
+          },
+          hideAuthors: {
+            q: "Kann ich ausblenden, wer welche Karte geschrieben hat?",
+            a: "Noch nicht. Kudos und die ROTI-Umfrage am Ende kannst du anonym abgeben, und während der Abstimmung sieht niemand, wer wofür gestimmt hat — aber die Namen an den Karten lassen sich derzeit nicht abschalten. Plane nicht damit, bis es da ist.",
+          },
+          gifs: {
+            q: "Was ist mit den GIFs?",
+            a: "Die GIF-Suche läuft über KLIPY, einen US-Anbieter; Suchbegriffe gehen über unseren Server, KLIPY sieht also weder deine IP-Adresse noch wer sucht. Die Bilder selbst lädt dein Browser aber direkt von KLIPYs CDN — und dabei sieht deren CDN deine IP-Adresse. Wer das vermeiden will, lässt GIFs von der Moderation abschalten, bevor jemand eines einfügt. Das verhindert Suchen und neue GIFs; bereits eingefügte GIFs werden bis zum Entfernen weiter von KLIPY geladen.",
+          },
+          selfHost: {
+            q: "Kann ich RetroBeam selbst hosten?",
+            a: "Ja. Es ist ein Cloudflare Worker plus ein Durable Object pro Board, ohne separaten Datenbankdienst, und läuft auch bei dir auf dem kostenlosen Tarif; die Schritte stehen im README auf GitHub. Für die GIF-Suche brauchst du einen eigenen KLIPY-Schlüssel — ohne ihn ist sie einfach aus.",
+          },
+          license: {
+            q: "Unter welcher Lizenz steht der Code?",
+            a: "AGPL-3.0-or-later. Du darfst RetroBeam nutzen, verändern und weitergeben; wer eine veränderte Version für andere über das Netz betreibt, muss diesen Personen den Quelltext anbieten. Der Quelltext der Version, die gerade hier läuft, ist im Footer verlinkt.",
+          },
+          commercial: {
+            q: "Ist das ein kommerzielles Angebot?",
+            a: "Nein. RetroBeam ist das private Projekt einer Person — keine Firma dahinter, keine Bezahlpläne, keine Werbung, und es werden keine Daten verkauft. Die Infrastruktur läuft auf Cloudflares kostenlosem Tarif; die übrigen Kosten, etwa für die Domain, trage ich selbst.",
+          },
+          work: {
+            q: "Darf ich das im Unternehmen einsetzen — und was sagt der Betriebsrat?",
+            a: "Technisch und lizenzrechtlich ja; ob dein Unternehmen es freigibt, entscheidet dein Unternehmen. In Deutschland fällt ein Tool mit Live-Anwesenheit und Notizen pro Person unter die Mitbestimmung (§ 87 Abs. 1 Nr. 6 BetrVG) — sprich den Betriebsrat also vorher an; die Datenaufstellung, die Auftragsverarbeiter und die Sache mit der Moderation stehen in docs/05 im Repository. Ehrlicherweise: Für retrobeam.de gibt es keinen Vertrag, keine Zusagen und keinen Auftragsverarbeitungsvertrag — wer das braucht, hostet selbst.",
+          },
+        },
+        noticeTitle: "Kein kommerzielles Angebot",
+        notice:
+          "RetroBeam ist ein privates Projekt von Sebastian Grundhöfer, kein Unternehmen. Der Betrieb von retrobeam.de ist kostenlos, ohne Werbung, ohne Tracking und ohne Verkauf von Daten; die Kosten trage ich selbst. Der Quellcode ist frei unter der AGPL-3.0 — wer mag, betreibt eine eigene Instanz.",
+        noticeCta: "Retro starten →",
+      },
       legal: {
         license: "Freie Software: AGPL-3.0-or-later",
         redistribute: "Weitergabe und Änderung erlaubt, ohne Gewährleistung.",
         source: "Quelltext",
         sourceVersion: "Quelltext der hier laufenden Version",
+        privacy: "Datenschutz",
+        privacyTitle: "Datenschutzerklärung",
+        imprint: "Impressum",
+        imprintTitle: "Impressum",
+        updated: "Stand:",
       },
     },
   },

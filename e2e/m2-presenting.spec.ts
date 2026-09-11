@@ -11,7 +11,7 @@ test("wheel rotation, presenter focus, grouping and handoff", async ({
 }) => {
   const annaContext = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await annaContext.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Sprint 43 retro");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -153,7 +153,7 @@ test("focus mode walks the presenter's cards on every screen", async ({
 }) => {
   const annaContext = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await annaContext.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Sprint 46 retro");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })

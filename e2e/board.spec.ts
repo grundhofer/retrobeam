@@ -11,7 +11,7 @@ test("two participants meet on a board and see each other live", async ({
   // Anna creates the board (fresh context = fresh localStorage).
   const annaContext = await newContext(browser);
   const anna = await annaContext.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Sprint 42 retro");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -58,7 +58,7 @@ test("a refresh keeps identity: no duplicate participant", async ({
 }) => {
   const context = await newContext(browser);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/new");
   await page.getByRole("textbox").fill("Refresh test");
   await page
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -82,4 +82,10 @@ test("an unknown board id shows the not-found page", async ({ page }) => {
   await expect(
     page.getByText(/board not found|board nicht gefunden/i),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", {
+      name: /create a new board|neues board erstellen/i,
+    }),
+  ).toHaveAttribute("href", "/new");
+  await expect(page.getByTestId("legal-footer")).toBeVisible();
 });

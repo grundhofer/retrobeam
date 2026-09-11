@@ -366,25 +366,31 @@ function Room({
 
   if (state.deleted) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-zinc-50 px-6 text-center">
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {t("deleted.title")}
-        </h1>
-        <p className="text-zinc-500">{t("deleted.body")}</p>
-        <Link
-          to="/"
-          className="text-accent underline underline-offset-4 hover:text-accent-strong"
-        >
-          {t("notFound.home")}
-        </Link>
+      <div className="flex min-h-dvh flex-col bg-zinc-50">
+        <main className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+          <h1 className="text-2xl font-semibold text-zinc-900">
+            {t("deleted.title")}
+          </h1>
+          <p className="text-zinc-500">{t("deleted.body")}</p>
+          <Link
+            to="/new"
+            className="text-accent underline underline-offset-4 hover:text-accent-strong"
+          >
+            {t("notFound.home")}
+          </Link>
+        </main>
+        <LegalFooter />
       </div>
     );
   }
 
   if (you === null || phasePlan === undefined) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-zinc-50 text-zinc-400">
-        {t("status.connecting")}
+      <div className="flex min-h-dvh flex-col bg-zinc-50">
+        <main className="flex flex-1 items-center justify-center text-zinc-600">
+          {t("status.connecting")}
+        </main>
+        <LegalFooter openLegalLinksInNewTab />
       </div>
     );
   }
@@ -656,7 +662,7 @@ function Room({
             </div>
           )}
         </main>
-        <LegalFooter />
+        <LegalFooter openLegalLinksInNewTab />
       </div>
     </ConnectionProvider>
   );
@@ -665,21 +671,24 @@ function Room({
 function LookupFailed({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
   return (
-    <div
-      data-testid="lookup-failed"
-      className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-zinc-50 px-6 text-center"
-    >
-      <h1 className="text-2xl font-semibold text-zinc-900">
-        {t("lookupFailed.title")}
-      </h1>
-      <p className="max-w-prose text-zinc-500">{t("lookupFailed.body")}</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+    <div className="flex min-h-dvh flex-col bg-zinc-50">
+      <main
+        data-testid="lookup-failed"
+        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
       >
-        {t("lookupFailed.retry")}
-      </button>
+        <h1 className="text-2xl font-semibold text-zinc-900">
+          {t("lookupFailed.title")}
+        </h1>
+        <p className="max-w-prose text-zinc-500">{t("lookupFailed.body")}</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("lookupFailed.retry")}
+        </button>
+      </main>
+      <LegalFooter />
     </div>
   );
 }
@@ -687,17 +696,20 @@ function LookupFailed({ onRetry }: { onRetry: () => void }) {
 function NotFound() {
   const { t } = useTranslation();
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-zinc-50 px-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">
-        {t("notFound.title")}
-      </h1>
-      <p className="text-zinc-500">{t("notFound.body")}</p>
-      <Link
-        to="/"
-        className="text-accent underline underline-offset-4 hover:text-accent-strong"
-      >
-        {t("notFound.home")}
-      </Link>
+    <div className="flex min-h-dvh flex-col bg-zinc-50">
+      <main className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+        <h1 className="text-2xl font-semibold text-zinc-900">
+          {t("notFound.title")}
+        </h1>
+        <p className="text-zinc-500">{t("notFound.body")}</p>
+        <Link
+          to="/new"
+          className="text-accent underline underline-offset-4 hover:text-accent-strong"
+        >
+          {t("notFound.home")}
+        </Link>
+      </main>
+      <LegalFooter />
     </div>
   );
 }

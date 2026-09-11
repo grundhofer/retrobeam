@@ -12,7 +12,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
 }) => {
   const annaContext = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await annaContext.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Sprint 44 retro");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })
