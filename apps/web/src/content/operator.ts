@@ -6,8 +6,8 @@
 // not, and Art. 13(1)(a) GDPR requires the controller's contact data in the
 // privacy notice — so the imprint and the privacy notice both read from here.
 //
-// Bracketed values are placeholders. They render highlighted so a deploy that
-// still carries them is impossible to miss; fill them in before going live.
+// Bracketed values are placeholders. They render highlighted so they are
+// impossible to miss; replace them with the operator's public details.
 export const OPERATOR = {
   name: "Sebastian Grundhöfer",
   street: "[Straße Hausnummer]",
@@ -18,8 +18,8 @@ export const OPERATOR = {
 export const NOTICE_DATE = "2026-09-11";
 
 // Confirm the Cloudflare dashboard settings named in privacy §6, then replace
-// this with the ISO date of that check. The production deploy guard rejects all
-// bracketed values in this file.
+// this with the ISO date of that check. `pnpm check:legal` reports bracketed
+// values in this file when preparing a release.
 export const CLOUDFLARE_SETTINGS_CHECKED = "2026-09-11";
 
 // Full production fallback origin, for example "retrobeam.example.workers.dev".

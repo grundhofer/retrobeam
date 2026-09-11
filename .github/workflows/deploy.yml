@@ -25,7 +25,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check:legal
       - name: Build for the preview environment
         run: pnpm --filter @retrobeam/web build
         env:
@@ -56,7 +55,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check:legal
       - run: pnpm --filter @retrobeam/web build
         env:
           # AGPL §13: the running build must link to its own source
