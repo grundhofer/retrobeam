@@ -88,7 +88,7 @@ export function HomePage() {
                   </option>
                 ))}
               </select>
-              <span className="text-sm text-zinc-400">
+              <span className="text-sm text-zinc-500">
                 {t(`template.${template}.hint`)}
               </span>
             </label>
@@ -114,7 +114,7 @@ export function HomePage() {
                   </button>
                 ))}
               </div>
-              <span className="text-sm text-zinc-400">
+              <span className="text-sm text-zinc-500">
                 {t(`home.layoutHint.${layout}`)}
               </span>
             </div>

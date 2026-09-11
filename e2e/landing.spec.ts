@@ -4,8 +4,8 @@
 import { expect, test } from "@playwright/test";
 import { newContext } from "./helpers.js";
 
-// The landing page has one job: get a visitor to the create form. One hero,
-// exactly one call to action, and the form that already works at /new.
+// The landing page has one job: get a visitor to the create form. The hero
+// shows the product and leads straight to the form that already works at /new.
 test("the landing page invites to try and leads to the create form", async ({
   browser,
 }) => {
@@ -15,6 +15,13 @@ test("the landing page invites to try and leads to the create form", async ({
 
   await expect(page.getByTestId("landing-hero")).toBeVisible();
   await expect(page.getByTestId("landing-cta")).toHaveCount(1);
+  await expect(
+    page.getByTestId("landing-hero").getByTestId("board-preview"),
+  ).toBeVisible();
+  await expect(page.getByTestId("landing-bottom-cta")).toHaveAttribute(
+    "href",
+    "/new",
+  );
   await page.getByTestId("landing-cta").click();
 
   await expect(page).toHaveURL(/\/new$/);
@@ -22,6 +29,25 @@ test("the landing page invites to try and leads to the create form", async ({
   await expect(
     page.getByRole("button", { name: /create board|board erstellen/i }),
   ).toBeVisible();
+
+  await context.close();
+});
+
+test("the landing page fits a mobile viewport", async ({ browser }) => {
+  const context = await newContext(browser, {
+    viewport: { width: 375, height: 812 },
+  });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  await expect(page.getByTestId("landing-cta")).toBeVisible();
+  await expect(
+    page.getByTestId("landing-hero").getByTestId("board-preview"),
+  ).toBeVisible();
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
 
   await context.close();
 });
