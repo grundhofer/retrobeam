@@ -11,7 +11,7 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
 }) => {
   const context = await newContext(browser, { reducedMotion: "reduce" });
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/new");
   await page.getByRole("textbox").fill("Canvas retro");
   await page.getByTestId("home-layout-canvas").click();
   await page

@@ -7,7 +7,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "VITE_COMMIT_SHA=$(git rev-parse HEAD) vite build && wrangler deploy",
+    "deploy": "node ../../scripts/check-legal-placeholders.mjs && VITE_COMMIT_SHA=$(git rev-parse HEAD) vite build && wrangler deploy",
     "check": "tsc --noEmit",
     "test": "vitest run"
   },

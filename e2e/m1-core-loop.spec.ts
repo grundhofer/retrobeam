@@ -9,7 +9,7 @@ import { newContext } from "./helpers.js";
 test("write → reveal core loop with two participants", async ({ browser }) => {
   const annaContext = await newContext(browser);
   const anna = await annaContext.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Sprint 42 retro");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -104,7 +104,7 @@ test("write → reveal core loop with two participants", async ({ browser }) => 
 });
 
 test("board is created with localized template columns", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/new");
   await page.getByRole("textbox").fill("Template check");
   await page
     .getByLabel(/template|vorlage/i)
@@ -125,7 +125,7 @@ test("a note written while offline is delivered after reconnect", async ({
 }) => {
   const context = await newContext(browser);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/new");
   await page.getByRole("textbox").fill("Offline resilience");
   await page
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -174,7 +174,7 @@ test("a note in flight when the socket dies survives the reconnect", async ({
   // the next snapshot wiped it off the screen along with whatever was typed.
   const context = await newContext(browser);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/new");
   await page.getByRole("textbox").fill("In-flight resilience");
   await page
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -236,7 +236,7 @@ test("a refused command is explained instead of vanishing", async ({
   // restore-on-reject path rides on the same wiring (mutate's onReject).
   const context = await newContext(browser);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/new");
   await page.getByRole("textbox").fill("Refusal feedback");
   await page
     .getByRole("button", { name: /create board|board erstellen/i })

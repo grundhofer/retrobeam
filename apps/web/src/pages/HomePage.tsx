@@ -10,8 +10,8 @@ import {
   type LayoutMode,
   type TemplateKey,
 } from "@retrobeam/shared";
-import { LanguageToggle } from "../components/LanguageToggle.js";
 import { LegalFooter } from "../components/LegalFooter.js";
+import { SiteHeader } from "../components/SiteHeader.js";
 import { createBoard } from "../lib/api.js";
 import { saveAdminToken } from "../lib/session.js";
 
@@ -47,10 +47,7 @@ export function HomePage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
-      <header className="flex items-center justify-between px-6 py-4">
-        <span className="font-semibold text-zinc-800">{t("app.name")}</span>
-        <LanguageToggle />
-      </header>
+      <SiteHeader />
       <main className="flex flex-1 items-center justify-center px-6 pb-24">
         <div className="w-full max-w-md">
           <h1 className="text-2xl font-semibold text-zinc-900">

@@ -9,7 +9,7 @@ import { newContext } from "./helpers.js";
 test("kudos wall, export and delete-now", async ({ browser }) => {
   const annaContext = await newContext(browser, { reducedMotion: "reduce" });
   const anna = await annaContext.newPage();
-  await anna.goto("/");
+  await anna.goto("/new");
   await anna.getByRole("textbox").fill("Sprint 45 retro");
   await anna
     .getByRole("button", { name: /create board|board erstellen/i })
@@ -138,6 +138,12 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   await expect(ben.getByText(/board deleted|board gelöscht/i)).toBeVisible({
     timeout: 15_000,
   });
+  await expect(
+    ben.getByRole("link", {
+      name: /create a new board|neues board erstellen/i,
+    }),
+  ).toHaveAttribute("href", "/new");
+  await expect(ben.getByTestId("legal-footer")).toBeVisible();
 
   await annaContext.close();
   await benContext.close();
@@ -148,7 +154,7 @@ test("GIF search degrades gracefully with no key configured", async ({
 }) => {
   const context = await newContext(browser, { reducedMotion: "reduce" });
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/new");
   await page.getByRole("textbox").fill("Gif board");
   await page
     .getByRole("button", { name: /create board|board erstellen/i })

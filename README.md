@@ -4,7 +4,7 @@
 
 **Guided, playful, genuinely free retrospectives.**
 
-No accounts. No tracking. German and English. Hosted in the EU.
+No accounts. No tracking. German and English. Boards stored in the EU.
 
 [**Start a retro →**](https://retrobeam.de) · [How it works](#how-a-retro-runs) · [Self-hosting](#self-hosting)
 
@@ -62,7 +62,7 @@ Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll —
 - **6 templates** — Went well / To improve, Start-Stop-Continue, Mad-Sad-Glad, 4Ls, Sailboat, Starfish — plus custom columns
 - **Two board layouts** — classic columns or a freeform canvas with draggable zones
 - **A real phase flow** — write → present → vote → discuss → close, rewindable, and every step can be switched off for a shorter retro
-- **One person at a time** — when the writing stops the board doesn't fall open. The wheel picks who presents, and the room is handed that person's cards as their turn comes, with the speaker's highlighted. Nothing shown is ever taken back, and once everyone has presented the whole board is open.
+- **One person at a time** — when the writing stops the board doesn't fall open. The wheel picks who presents, and the room is handed that person's cards as their turn comes, with the speaker's highlighted. Nothing shown is ever taken back, and once everyone has presented all non-hidden cards are open to the room.
 - **Facilitation kit** — an optional opening check-in with 24 localized icebreakers, the Prime Directive, live-editable working agreements, and a shared timer with a chime
 - **Grouping** — drag cards into stacks; votes and reactions come along
 - **Staged columns** — prepare a column and reveal it to the room when you're ready
@@ -76,11 +76,11 @@ Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll —
 The write phase is private because retros only work when people say the awkward thing. That principle runs through the rest too:
 
 - **No accounts, ever.** No email, no password, no profile to delete later.
-- **No tracking**, no analytics, no third-party requests you didn't ask for.
-- **EU data residency** — every board lives in an EU-jurisdiction Durable Object, pinned at creation.
-- **Boards auto-delete after 90 days**, or immediately when you say so.
+- **No tracking or analytics.** The optional exception to an otherwise first-party page is GIF media: once someone adds a GIF, viewers load it from KLIPY's CDN; `docs/05` spells out the IP-address caveat.
+- **EU board-data residency** — every board lives in an EU-jurisdiction Durable Object, pinned at creation.
+- **Boards auto-delete after 90 days by default**; the facilitator can keep one or delete it immediately.
 - **Anonymity where it matters** — kudos, the ROTI poll, and the voting meter.
-- **Cards travel with their turn** — during the presenting round the server sends a participant only what the room has already been shown. The facilitator, who runs the round, does see the whole board — that is the one place the moderator sees more than the team, and `docs/05` says so plainly.
+- **Cards travel with their turn** — during the presenting round the server sends a participant only what the room has already been shown in visible columns. The facilitator, who runs the round, sees the whole board; that includes cards still waiting for their turn and any columns kept hidden from members. `docs/05` says both differences plainly.
 
 If you need to bring this past a German works council, [`docs/05-privacy-gdpr.md`](docs/05-privacy-gdpr.md) has the §87 BetrVG playbook, the data inventory and the sub-processor list already written up.
 
@@ -94,6 +94,10 @@ cd retrobeam
 pnpm install
 pnpm --filter @retrobeam/web run deploy   # needs `wrangler login`
 ```
+
+Before the first deployment, replace the bracketed operator, contact and host
+values in `apps/web/src/content/operator.ts`; the deploy command deliberately
+stops while any of them remain.
 
 Optional: switch on GIF search with a [KLIPY](https://klipy.com/api) key.
 
