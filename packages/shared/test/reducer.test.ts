@@ -75,6 +75,7 @@ const sync: ServerEvent = {
   columns: [column],
   notes: [note("a", anna.id, "mine")],
   columnCounts: {},
+  canvasOccupancy: [],
   picker: null,
   lastSpin: null,
   votes: {

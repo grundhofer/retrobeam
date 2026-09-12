@@ -404,11 +404,17 @@ describe("staged / hidden columns", () => {
     if (counts.type !== "board.columnCounts") throw new Error("unreachable");
     expect(counts.counts[col0]).toBeUndefined();
     expect(counts.counts[col1]).toBe(1);
+    expect(counts.canvasOccupancy.some((slot) => slot.columnId === col0)).toBe(
+      false,
+    );
 
     // …and no counts frame he ever received mentions the staged column.
     for (const event of ben.socket.events) {
       if (event.type !== "board.columnCounts") continue;
       expect(Object.keys(event.counts)).not.toContain(col0);
+      expect(event.canvasOccupancy.map((slot) => slot.columnId)).not.toContain(
+        col0,
+      );
     }
     // The snapshot agrees; the facilitator still sees both.
     ben.socket.send({ type: "resync" });
@@ -417,6 +423,9 @@ describe("staged / hidden columns", () => {
     );
     if (benSync.type !== "sync") throw new Error("unreachable");
     expect(Object.keys(benSync.columnCounts)).not.toContain(col0);
+    expect(benSync.canvasOccupancy.map((slot) => slot.columnId)).not.toContain(
+      col0,
+    );
     admin.socket.send({ type: "resync" });
     const adminSync = await admin.socket.waitFor(
       (e) =>

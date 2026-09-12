@@ -580,6 +580,7 @@ function Room({
                     columns={state.columns}
                     notes={state.notes}
                     columnCounts={state.columnCounts}
+                    canvasOccupancy={state.canvasOccupancy}
                     roster={state.roster}
                     you={you}
                     phase={state.phase}

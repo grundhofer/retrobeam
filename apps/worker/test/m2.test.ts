@@ -308,6 +308,12 @@ describe("write-phase card counts", () => {
     );
     if (counts.type !== "board.columnCounts") throw new Error("unreachable");
     expect(counts.counts[columnId]).toBe(1);
+    expect(counts.canvasOccupancy).toHaveLength(1);
+    expect(Object.keys(counts.canvasOccupancy[0]!).sort()).toEqual([
+      "columnId",
+      "x",
+      "y",
+    ]);
     // The note body never crossed to Ben.
     expect(ben.socket.events.some((e) => e.type === "note.created")).toBe(
       false,
@@ -318,7 +324,43 @@ describe("write-phase card counts", () => {
     const bumped = await admin.socket.waitFor(
       (e) => e.type === "board.columnCounts" && (e.counts[columnId] ?? 0) === 2,
     );
-    expect(bumped.type).toBe("board.columnCounts");
+    if (bumped.type !== "board.columnCounts") throw new Error("unreachable");
+    // Each viewer receives only the other person's anonymous position; their
+    // own full note is already present in their private note stream.
+    expect(bumped.canvasOccupancy).toHaveLength(1);
+  });
+
+  it("updates anonymous occupancy when a private canvas note moves", async () => {
+    const { boardId, adminToken } = await createBoard("Canvas", {
+      layout: "canvas",
+    });
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    await toPhase(admin.socket, "write");
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    const noteId = await createNote(admin.socket, columnId, "secret");
+    await ben.socket.waitFor(
+      (e) => e.type === "board.columnCounts" && e.canvasOccupancy.length === 1,
+    );
+
+    admin.socket.send({
+      type: "note.move",
+      opId: opId(),
+      noteId,
+      columnId,
+      x: 0.2,
+      y: 0.3,
+    });
+    const moved = await ben.socket.waitForNext(
+      (e) =>
+        e.type === "board.columnCounts" &&
+        e.canvasOccupancy.some(
+          (slot) =>
+            slot.columnId === columnId && slot.x === 0.2 && slot.y === 0.3,
+        ),
+    );
+    expect(moved.type).toBe("board.columnCounts");
   });
 });
 
@@ -531,7 +573,7 @@ describe("canvas layout & positions", () => {
   });
 
   it("a full-size moveMany fits the inbound frame limit", async () => {
-    // The canvas Tidy button sends ONE moveMany covering every movable card.
+    // Legacy clients may send ONE moveMany covering every movable card.
     // The schema allows 300 moves (~138 chars each); the DO's frame guard used
     // to cut in at ~58, refusing a legal frame with an opId-less BAD_MESSAGE
     // while the client had already applied its optimistic echo.

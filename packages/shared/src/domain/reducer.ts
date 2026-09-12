@@ -5,6 +5,7 @@ import type {
   Action,
   BoardConfig,
   BoardInfo,
+  CanvasOccupancy,
   Column,
   Kudo,
   Note,
@@ -53,6 +54,8 @@ export interface ClientBoardState {
    *  subtracts its own notes to render "N cards from the team". Empty outside
    *  the write phase. */
   columnCounts: Record<string, number>;
+  /** anonymous positions of other people's write-phase canvas cards */
+  canvasOccupancy: CanvasOccupancy[];
   /** ghost cards: participantId -> columnId they are currently writing in */
   editing: Record<string, string>;
   /** live cursors: participantId -> normalized world position (only while the
@@ -104,6 +107,7 @@ export const initialBoardState: ClientBoardState = {
   columns: [],
   notes: [],
   columnCounts: {},
+  canvasOccupancy: [],
   editing: {},
   cursors: {},
   picker: null,
@@ -142,6 +146,7 @@ export function applyServerEvent(
         columns: event.columns,
         notes: event.notes,
         columnCounts: event.columnCounts,
+        canvasOccupancy: event.canvasOccupancy,
         editing: {},
         cursors: {},
         picker: event.picker,
@@ -377,6 +382,7 @@ export function applyServerEvent(
       return {
         ...state,
         columnCounts: event.counts,
+        canvasOccupancy: event.canvasOccupancy,
         lastSeq: seq(state, event.seq),
       };
 
@@ -417,6 +423,7 @@ export function applyServerEvent(
         // Per-column counts are a write-phase signal; the server re-broadcasts
         // fresh ones on entering write, so drop any stale set on every change.
         columnCounts: {},
+        canvasOccupancy: [],
         readyIds: [],
         editing: {},
         cursors: {},

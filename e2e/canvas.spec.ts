@@ -18,15 +18,21 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
     .getByRole("button", { name: /create board|board erstellen/i })
     .click();
   await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  const boardUrl = page.url();
   await join(page, "Anna");
+
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(boardUrl);
+  await join(ben, "Ben");
 
   // Start the retro → the write phase renders the CANVAS (zones), not columns.
   await page.getByTestId("phase-next").click();
   const zones = page.getByTestId(/^zone-/);
   await expect(zones.first()).toBeVisible();
   await expect(page.getByTestId(/^composer-/)).toHaveCount(0);
-  // Canvas tools: tidy + zoom controls.
-  await expect(page.getByTestId("canvas-tidy")).toBeVisible();
+  // The canvas keeps only its zoom controls; auto-tidy was removed.
+  await expect(page.getByTestId("canvas-tidy")).toHaveCount(0);
   await expect(page.getByTestId("canvas-viewport")).toBeVisible();
 
   // Double-click empty canvas space → an inline composer at that spot.
@@ -37,6 +43,31 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
   await composer.press("Enter");
   await expect(page.getByText("Freeform idea")).toBeVisible();
 
+  // Ben cannot read Anna's private card, but sees its occupied footprint.
+  const occupied = ben.getByTestId("canvas-occupancy");
+  await expect(occupied).toBeVisible();
+  await expect(ben.getByText("Freeform idea")).toHaveCount(0);
+
+  // Choosing the same point snaps Ben's card to the nearest free slot instead
+  // of stacking it on Anna's hidden card.
+  const benZone = ben.getByTestId(/^zone-/).first();
+  await benZone.dblclick({ position: { x: 130, y: 130 } });
+  const benComposer = ben.getByTestId("canvas-composer");
+  await benComposer.fill("Another idea");
+  await benComposer.press("Enter");
+  const benCard = ben.getByTestId("note-card");
+  await expect(benCard).toContainText("Another idea");
+  const occupiedBox = await occupied.boundingBox();
+  const benCardBox = await benCard.boundingBox();
+  expect(occupiedBox).not.toBeNull();
+  expect(benCardBox).not.toBeNull();
+  const overlaps =
+    occupiedBox!.x < benCardBox!.x + benCardBox!.width &&
+    occupiedBox!.x + occupiedBox!.width > benCardBox!.x &&
+    occupiedBox!.y < benCardBox!.y + benCardBox!.height &&
+    occupiedBox!.y + occupiedBox!.height > benCardBox!.y;
+  expect(overlaps).toBe(false);
+
   // Flip live to columns via the board menu → the column composer returns and
   // the note is still there (positions are ignored, not lost).
   await page.getByTestId("board-menu").click();
@@ -45,6 +76,7 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
   await expect(page.getByTestId(/^composer-/).first()).toBeVisible();
   await expect(page.getByText("Freeform idea")).toBeVisible();
 
+  await benContext.close();
   await context.close();
 });
 

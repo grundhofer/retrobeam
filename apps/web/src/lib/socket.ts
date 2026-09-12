@@ -29,7 +29,7 @@ const PONG_TIMEOUT_MS = HEARTBEAT_INTERVAL_MS * 2;
 // of stale frames. Kept comfortably BELOW the server's per-socket
 // budget (120 with an 8/s refill): a flush larger than that bucket would be
 // partly refused, which would lose exactly the offline work the queue exists to
-// protect. Well past any real burst — a canvas Tidy is one frame.
+// protect. Well past any real burst — a legacy canvas batch is one frame.
 const MAX_QUEUED = 50;
 
 /** Commands the server can safely be told twice. Everything the client replays

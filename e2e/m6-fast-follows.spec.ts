@@ -108,6 +108,9 @@ test("slot-machine picker skin spins to a winner", async ({ browser }) => {
   await anna.getByTestId("phase-next").click();
   await anna.getByTestId("picker-style").selectOption("slots");
   await expect(anna.getByTestId("picker-style")).toHaveValue("slots");
+  await expect(anna.getByTestId("spin-button")).toContainText(
+    /Slots starten|Start slots/,
+  );
   await anna.getByTestId("spin-button").click();
 
   // The slot machine renders, and every screen lands on the same winner.

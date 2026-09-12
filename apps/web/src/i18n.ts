@@ -122,6 +122,7 @@ const resources = {
       },
       picker: {
         spin: "Spin the wheel",
+        startSlots: "Start slots",
         next: "Next person",
         finishRound: "Finish the round",
         presenting: "{{name}} is presenting",
@@ -143,7 +144,7 @@ const resources = {
       },
       canvas: {
         hint: "Double-click to add a note",
-        tidy: "Tidy up",
+        occupied: "Occupied by another note",
         zoomIn: "Zoom in",
         zoomOut: "Zoom out",
         fit: "Fit to screen",
@@ -617,6 +618,7 @@ const resources = {
       },
       picker: {
         spin: "Rad drehen",
+        startSlots: "Slots starten",
         next: "Nächste Person",
         finishRound: "Runde abschließen",
         presenting: "{{name}} präsentiert",
@@ -638,7 +640,7 @@ const resources = {
       },
       canvas: {
         hint: "Doppelklick zum Hinzufügen",
-        tidy: "Aufräumen",
+        occupied: "Durch eine andere Notiz belegt",
         zoomIn: "Vergrößern",
         zoomOut: "Verkleinern",
         fit: "An Fenster anpassen",

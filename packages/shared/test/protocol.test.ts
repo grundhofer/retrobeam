@@ -155,6 +155,8 @@ describe("parseServerEvent", () => {
       }),
     );
     expect(event?.type).toBe("sync");
+    if (event?.type !== "sync") throw new Error("unreachable");
+    expect(event.canvasOccupancy).toEqual([]);
   });
 
   it("rejects events with a bad shape", () => {

@@ -23,7 +23,7 @@ export const rotiScoreSchema = z.number().int().min(1).max(5);
  *  running the OLD build — it is told the server's version in `sync` and can
  *  offer a reload rather than quietly misbehaving. Never used to refuse a
  *  connection: locking someone out mid-retro is worse than a stale tab. */
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 /** The published ROTI result, persisted once when the poll closes so every
  *  later read reports the identical pair (see ROTI_MIN_ANONYMOUS). */
@@ -152,6 +152,16 @@ export const noteSchema = z.object({
   reactions: z.record(z.string(), z.array(z.string())),
 });
 export type Note = z.infer<typeof noteSchema>;
+
+// A write-phase canvas placeholder. It deliberately carries neither a note id,
+// author nor content: teammates can avoid occupied space without learning who
+// wrote what (or linking a placeholder to the later reveal).
+export const canvasOccupancySchema = z.object({
+  columnId: hexIdSchema,
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+});
+export type CanvasOccupancy = z.infer<typeof canvasOccupancySchema>;
 
 // Appreciation wall (product spec §7): Management-3.0-style kudo cards
 // addressed to a named teammate — or to the whole room (KUDO_EVERYONE) —
@@ -553,6 +563,8 @@ export const serverEventSchema = z.discriminatedUnion("type", [
      *  anonymized "N cards from the team" placeholder. Defaulted so older
      *  snapshots parse. */
     columnCounts: z.record(z.string(), z.number()).default({}),
+    /** positions of foreign write-phase cards, stripped of ids and content */
+    canvasOccupancy: z.array(canvasOccupancySchema).default([]),
     picker: pickerStateSchema.nullable(),
     /** the spin currently animating, if any — survives reconnect syncs */
     lastSpin: wheelSpinSchema.nullable(),
@@ -664,6 +676,7 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     type: z.literal("board.columnCounts"),
     seq: z.number(),
     counts: z.record(z.string(), z.number()),
+    canvasOccupancy: z.array(canvasOccupancySchema).default([]),
   }),
 
   z.object({

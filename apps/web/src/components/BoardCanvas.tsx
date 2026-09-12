@@ -9,11 +9,11 @@ import {
   defaultZoneRect,
   generateHexId,
   scatterPos,
+  type CanvasOccupancy,
   type Column,
   type Note,
   type Participant,
   type Phase,
-  type ServerEvent,
   type ZoneRect,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
@@ -23,6 +23,7 @@ export interface BoardCanvasProps {
   columns: Column[];
   notes: Note[];
   columnCounts: Record<string, number>;
+  canvasOccupancy: CanvasOccupancy[];
   roster: Participant[];
   you: Participant;
   phase: Phase;
@@ -72,6 +73,57 @@ const MAX_ZOOM = 2;
 // dominant Cloudflare Durable Objects cost.
 const CURSOR_INTERVAL_MS = 1_000;
 const CURSOR_MIN_DISTANCE_PX = 10;
+const CARD_WIDTH_PX = 176;
+const CARD_HEIGHT_PX = 112;
+const CARD_GAP_PX = 12;
+
+interface CanvasPoint {
+  x: number;
+  y: number;
+}
+
+// Keep a freeform drop close to the pointer, but snap it to the nearest open
+// slot when another visible or privacy-safe placeholder already occupies it.
+// null means the zone is genuinely full at the card footprint we reserve.
+export function nearestOpenCanvasPosition(
+  preferred: CanvasPoint,
+  occupied: readonly CanvasPoint[],
+  separationX: number,
+  separationY: number,
+): CanvasPoint | null {
+  const dx = Math.min(1, Math.max(0.01, separationX));
+  const dy = Math.min(1, Math.max(0.01, separationY));
+  const halfX = Math.min(0.5, dx / 2);
+  const halfY = Math.min(0.5, dy / 2);
+  const clampPoint = (point: CanvasPoint): CanvasPoint => ({
+    x: Math.min(1 - halfX, Math.max(halfX, point.x)),
+    y: Math.min(1 - halfY, Math.max(halfY, point.y)),
+  });
+  const overlaps = (point: CanvasPoint) =>
+    occupied.some(
+      (other) =>
+        Math.abs(point.x - other.x) < dx && Math.abs(point.y - other.y) < dy,
+    );
+
+  const wanted = clampPoint(preferred);
+  if (!overlaps(wanted)) return wanted;
+
+  const cols = Math.max(1, Math.floor(1 / dx));
+  const rows = Math.max(1, Math.floor(1 / dy));
+  const candidates: CanvasPoint[] = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      candidates.push({ x: (col + 0.5) / cols, y: (row + 0.5) / rows });
+    }
+  }
+  candidates.sort(
+    (a, b) =>
+      (a.x - wanted.x) ** 2 +
+      (a.y - wanted.y) ** 2 -
+      ((b.x - wanted.x) ** 2 + (b.y - wanted.y) ** 2),
+  );
+  return candidates.find((candidate) => !overlaps(candidate)) ?? null;
+}
 
 function clampZoom(z: number): number {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
@@ -86,6 +138,7 @@ export function BoardCanvas({
   columns,
   notes,
   columnCounts,
+  canvasOccupancy,
   roster,
   you,
   phase,
@@ -364,6 +417,31 @@ export function BoardCanvas({
     if (note.x !== null && note.y !== null) return { x: note.x, y: note.y };
     return scatterPos(note.id);
   }
+  function openPosition(
+    columnId: string,
+    preferred: CanvasPoint,
+    excludedNoteId?: string,
+  ): CanvasPoint | null {
+    const zone = zoneRefs.current.get(columnId);
+    if (!zone) return preferred;
+    const box = zone.getBoundingClientRect();
+    const occupied = [
+      ...notes
+        .filter(
+          (note) => note.columnId === columnId && note.id !== excludedNoteId,
+        )
+        .map(positionOf),
+      ...canvasOccupancy
+        .filter((slot) => slot.columnId === columnId)
+        .map(({ x, y }) => ({ x, y })),
+    ];
+    return nearestOpenCanvasPosition(
+      preferred,
+      occupied,
+      ((CARD_WIDTH_PX + CARD_GAP_PX) * view.zoom) / box.width,
+      ((CARD_HEIGHT_PX + CARD_GAP_PX) * view.zoom) / box.height,
+    );
+  }
   function canMove(note: Note): boolean {
     return (
       phase === "present" || (phase === "write" && note.authorId === you.id)
@@ -415,6 +493,13 @@ export function BoardCanvas({
       }
     }
     if (target === null) return;
+    const open = openPosition(
+      target.columnId,
+      { x: target.x, y: target.y },
+      note.id,
+    );
+    if (open === null) return;
+    target = { ...target, ...open };
     if (
       target.columnId === note.columnId &&
       note.x === target.x &&
@@ -449,6 +534,8 @@ export function BoardCanvas({
   function createNote(columnId: string, x: number, y: number, text: string) {
     const trimmed = text.trim();
     if (trimmed === "") return;
+    const open = openPosition(columnId, { x, y });
+    if (open === null) return;
     const noteId = generateHexId();
     const own = notes.filter(
       (n) => n.columnId === columnId && n.authorId === you.id,
@@ -462,8 +549,8 @@ export function BoardCanvas({
         columnId,
         text: trimmed,
         gifUrl: null,
-        x,
-        y,
+        x: open.x,
+        y: open.y,
       },
       {
         type: "note.created",
@@ -475,8 +562,8 @@ export function BoardCanvas({
           text: trimmed,
           gifUrl: null,
           order,
-          x,
-          y,
+          x: open.x,
+          y: open.y,
           groupId: null,
           reactions: {},
         },
@@ -484,66 +571,12 @@ export function BoardCanvas({
     );
   }
 
-  // Tidy: arrange the movable cards into a per-zone grid — ONE note.moveMany
-  // frame (never a loop of note.move: every inbound frame is billed).
-  function tidy() {
-    const byZone = new Map<string, Note[]>();
-    for (const note of notes) {
-      if (!canMove(note)) continue;
-      const list = byZone.get(note.columnId);
-      if (list) list.push(note);
-      else byZone.set(note.columnId, [note]);
-    }
-    const moves: Array<{
-      noteId: string;
-      columnId: string;
-      x: number;
-      y: number;
-    }> = [];
-    const echoes: ServerEvent[] = [];
-    const CARD_SLOT = 192;
-    for (const [columnId, zoneNotes] of byZone) {
-      zoneNotes.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
-      const zoneEl = zoneRefs.current.get(columnId);
-      const zoneW = zoneEl
-        ? zoneEl.getBoundingClientRect().width / view.zoom
-        : 320;
-      const cols = Math.max(
-        1,
-        Math.min(zoneNotes.length, Math.floor(zoneW / CARD_SLOT)),
-      );
-      const rows = Math.ceil(zoneNotes.length / cols);
-      zoneNotes.forEach((note, index) => {
-        const col = index % cols;
-        const row = Math.floor(index / cols);
-        const x = (col + 0.5) / cols;
-        const y = 0.06 + ((row + 0.5) / rows) * 0.88;
-        moves.push({ noteId: note.id, columnId, x, y });
-        echoes.push({ type: "note.updated", seq: 0, note: { ...note, x, y } });
-      });
-    }
-    if (moves.length === 0) return;
-    mutate({ type: "note.moveMany", opId: generateHexId(), moves }, echoes);
-  }
-
-  const canTidy = phase === "write" || isAdmin;
-
   return (
     <div className="relative">
       <div
         data-canvas-control
         className="absolute top-2 right-2 z-40 flex items-center gap-1.5"
       >
-        {canTidy ? (
-          <button
-            type="button"
-            data-testid="canvas-tidy"
-            onClick={tidy}
-            className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 shadow-sm hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            🧹 {t("canvas.tidy")}
-          </button>
-        ) : null}
         <div className="flex items-center rounded-lg border border-zinc-200 bg-white text-zinc-600 shadow-sm">
           <button
             type="button"
@@ -670,6 +703,28 @@ export function BoardCanvas({
                   }}
                   className="relative flex-1 overflow-hidden rounded-b-2xl"
                 >
+                  {phase === "write"
+                    ? canvasOccupancy
+                        .filter((slot) => slot.columnId === column.id)
+                        .map((slot, index) => (
+                          <div
+                            key={`${column.id}-${index}`}
+                            data-testid="canvas-occupancy"
+                            aria-label={t("canvas.occupied")}
+                            className="pointer-events-none absolute flex min-h-28 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-100/80 px-3 text-center text-xs font-medium text-zinc-400"
+                            style={{
+                              left: `${slot.x * 100}%`,
+                              top: `${slot.y * 100}%`,
+                              width: "11rem",
+                              transform: "translate(-50%, -50%)",
+                              zIndex: 0,
+                            }}
+                          >
+                            {t("canvas.occupied")}
+                          </div>
+                        ))
+                    : null}
+
                   {zoneNotes.map((note, index) => {
                     const pos = positionOf(note);
                     const dragging = drag?.noteId === note.id;

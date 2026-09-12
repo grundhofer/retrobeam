@@ -4,9 +4,9 @@
 import { expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import type { Column, Note, Participant } from "@retrobeam/shared";
-import "../i18n.js";
+import i18n from "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
-import { BoardCanvas } from "./BoardCanvas.js";
+import { BoardCanvas, nearestOpenCanvasPosition } from "./BoardCanvas.js";
 
 const you: Participant = {
   id: "p1",
@@ -47,6 +47,7 @@ test("canvas drag commits exactly ONE note.move on drop and ZERO during the move
         columns={[column]}
         notes={[note]}
         columnCounts={{}}
+        canvasOccupancy={[]}
         roster={[you]}
         you={you}
         phase="write"
@@ -105,21 +106,16 @@ test("canvas drag commits exactly ONE note.move on drop and ZERO during the move
   expect(command.x).toBeLessThanOrEqual(1);
 });
 
-// Tidy must coalesce into ONE frame, never a loop of note.move.
-test("tidy sends exactly ONE note.moveMany for all movable cards", async () => {
+test("foreign canvas positions render as anonymous occupied cards", async () => {
   const mutate = vi.fn();
   const send = vi.fn();
-  const notes: Note[] = [
-    note,
-    { ...note, id: "b".repeat(32), text: "two" },
-    { ...note, id: "d".repeat(32), text: "three" },
-  ];
   const screen = await render(
     <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send }}>
       <BoardCanvas
         columns={[column]}
-        notes={notes}
-        columnCounts={{}}
+        notes={[note]}
+        columnCounts={{ [column.id]: 2 }}
+        canvasOccupancy={[{ columnId: column.id, x: 0.25, y: 0.25 }]}
         roster={[you]}
         you={you}
         phase="write"
@@ -134,14 +130,23 @@ test("tidy sends exactly ONE note.moveMany for all movable cards", async () => {
     </ConnectionProvider>,
   );
 
-  await screen.getByTestId("canvas-tidy").click();
-  expect(mutate).toHaveBeenCalledTimes(1);
-  const command = mutate.mock.calls[0]?.[0] as {
-    type: string;
-    moves: unknown[];
-  };
-  expect(command.type).toBe("note.moveMany");
-  expect(command.moves).toHaveLength(3);
+  await expect
+    .element(screen.getByTestId("canvas-occupancy"))
+    .toHaveTextContent(i18n.t("canvas.occupied"));
+  expect(document.querySelector("[data-testid='canvas-tidy']")).toBeNull();
+});
+
+test("an occupied drop snaps to the nearest free card position", () => {
+  const open = nearestOpenCanvasPosition(
+    { x: 0.5, y: 0.5 },
+    [{ x: 0.5, y: 0.5 }],
+    0.25,
+    0.2,
+  );
+  expect(open).not.toBeNull();
+  expect(
+    Math.abs(open!.x - 0.5) >= 0.25 || Math.abs(open!.y - 0.5) >= 0.2,
+  ).toBe(true);
 });
 
 // Cursors OFF must produce ZERO traffic on pointer move (the free-tier gate);
@@ -155,6 +160,7 @@ async function moveOverCanvas(enabled: boolean, moves = 1) {
         columns={[column]}
         notes={[]}
         columnCounts={{}}
+        canvasOccupancy={[]}
         roster={[you]}
         you={you}
         phase="write"
@@ -207,6 +213,7 @@ test("double-clicking empty canvas space opens a composer", async () => {
         columns={[column]}
         notes={[]}
         columnCounts={{}}
+        canvasOccupancy={[]}
         roster={[you]}
         you={you}
         phase="write"

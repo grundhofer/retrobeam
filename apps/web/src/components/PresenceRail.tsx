@@ -90,7 +90,9 @@ export function PresenceRail({
       : picker.remaining.length > 0
         ? picker.current !== null || picker.presented.length > 0
           ? t("picker.next")
-          : t("picker.spin")
+          : pickerStyle === "slots"
+            ? t("picker.startSlots")
+            : t("picker.spin")
         : picker.current !== null
           ? t("picker.finishRound")
           : null;
@@ -131,7 +133,7 @@ export function PresenceRail({
             onClick={() => send({ type: "admin.picker.spin" })}
             className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
           >
-            🎡 {spinLabel}
+            {pickerStyle === "slots" ? "🎰" : "🎡"} {spinLabel}
           </button>
           {picker?.current != null ? (
             <button

@@ -149,7 +149,7 @@ describe("per-socket message budget", () => {
     // Inbound WS messages get a 20:1 billing discount, but the allowance is
     // ACCOUNT-WIDE, so a client looping at machine speed still spends every
     // board's budget. The bucket caps one socket at 8 frames a second, which no
-    // human interaction approaches — a fast typist or a canvas Tidy never
+    // human interaction approaches — a fast typist or canvas batch never
     // notices it.
     const { boardId, adminToken } = await createBoard();
     const socket = await connect(boardId);

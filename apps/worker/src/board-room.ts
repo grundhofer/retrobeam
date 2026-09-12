@@ -25,12 +25,14 @@ import {
   rotationExhausted,
   rotiReleaseSchema,
   redactNoteForViewer,
+  scatterPos,
   visibleNotesFor,
   withAllRevealed,
   withPresenterRevealed,
   type Action,
   type BoardConfig,
   type BoardInfo,
+  type CanvasOccupancy,
   type ClientCommand,
   type Column,
   type Note,
@@ -115,7 +117,7 @@ interface SocketAttachment {
 // second: the whole 100k daily allowance in about half an hour, and every board
 // goes down with it until midnight UTC. This bucket caps one socket at 8 frames
 // a second, which no human interaction approaches — a fast typist writing
-// notes, a canvas Tidy (one frame), or a reconnect replay are all well inside
+// notes, a legacy canvas batch move (one frame), or a reconnect replay are all well inside
 // it, and the burst allowance is fifteen seconds' worth.
 const BUCKET_CAPACITY = 120;
 const BUCKET_REFILL_PER_SEC = 8;
@@ -2119,6 +2121,9 @@ export class BoardRoom extends DurableObject<Env> {
       const repositioned = this.noteById(note.id);
       this.ack(ws, cmd.opId);
       if (repositioned !== null) this.broadcastNoteReorg(repositioned);
+      // Teammates do not receive the private note event while writing, but
+      // their anonymous occupied-space placeholders must follow the move.
+      this.broadcastColumnCountsIfWriting();
       return;
     }
     const leftGroup = note.group_id;
@@ -2220,6 +2225,7 @@ export class BoardRoom extends DurableObject<Env> {
       const updated = this.noteById(id);
       if (updated !== null) this.broadcastNoteReorg(updated);
     }
+    if (movedIds.length > 0) this.broadcastColumnCountsIfWriting();
   }
 
   /** Keeps two invariants after a note leaves (or is deleted from) a group:
@@ -4206,18 +4212,46 @@ export class BoardRoom extends DurableObject<Env> {
     return counts;
   }
 
+  // Foreign write-phase notes are represented only by their occupied canvas
+  // position. No stable identifier, author or content crosses the privacy
+  // boundary, so the placeholder cannot be joined to the later reveal.
+  private canvasOccupancyFor(
+    notes: readonly Note[],
+    recipientId: string,
+    hiddenFor: ReadonlySet<string> | null,
+  ): CanvasOccupancy[] {
+    return notes
+      .filter(
+        (note) =>
+          note.authorId !== recipientId &&
+          (hiddenFor === null || !hiddenFor.has(note.columnId)),
+      )
+      .map((note) => {
+        const position =
+          note.x !== null && note.y !== null
+            ? { x: note.x, y: note.y }
+            : scatterPos(note.id);
+        return { columnId: note.columnId, ...position };
+      });
+  }
+
   // Broadcast fresh counts, but only while writing — the placeholder they feed
   // is a write-phase affordance, and from the reveal on everyone sees the notes
   // themselves. Per recipient, so a staged column never reaches a member.
   private broadcastColumnCountsIfWriting(): void {
     if (this.phase() !== "write") return;
     const hidden = this.hiddenColumnIds();
+    const notes = this.allNotes();
     const seq = this.nextSeq();
-    this.broadcastEach((recipientId) => ({
-      type: "board.columnCounts",
-      seq,
-      counts: this.columnCounts(this.hiddenSetFor(recipientId, hidden)),
-    }));
+    this.broadcastEach((recipientId) => {
+      const hiddenFor = this.hiddenSetFor(recipientId, hidden);
+      return {
+        type: "board.columnCounts",
+        seq,
+        counts: this.columnCounts(hiddenFor),
+        canvasOccupancy: this.canvasOccupancyFor(notes, recipientId, hiddenFor),
+      };
+    });
   }
 
   private buildSync(
@@ -4225,6 +4259,7 @@ export class BoardRoom extends DurableObject<Env> {
     sessionKey: string,
   ): ServerEvent {
     const phase = this.phase();
+    const notes = this.allNotes();
     // null for facilitators (they see every column); the hidden-column set for
     // members — gates BOTH the columns array and the notes below.
     const hiddenColumns = this.hiddenColumnsFor(participant);
@@ -4256,6 +4291,10 @@ export class BoardRoom extends DurableObject<Env> {
               this.hiddenSetFor(participant.id, this.hiddenColumnIds()),
             )
           : {},
+      canvasOccupancy:
+        phase === "write"
+          ? this.canvasOccupancyFor(notes, participant.id, hiddenColumns)
+          : [],
       picker: this.picker(),
       lastSpin: this.activeSpinForSync(),
       votes: this.votesForSync(participant.id, phase),
@@ -4276,7 +4315,7 @@ export class BoardRoom extends DurableObject<Env> {
       // The snapshot passes through the SAME visibility filter as live
       // events — including the hidden-column gate — the classic leak path.
       notes: visibleNotesFor(
-        this.allNotes(),
+        notes,
         participant.id,
         this.revealOf(participant),
         this.anonymous(),
