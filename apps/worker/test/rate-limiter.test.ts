@@ -46,6 +46,34 @@ describe("RateLimiter", () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
     expect((await limiter.take(key, 3, 20)).allowed).toBe(true);
   });
+
+  it("leases a persisted UTC-day budget without exceeding its ceiling", async () => {
+    const limiter = limiterStub(env);
+    const key = `daily-${crypto.randomUUID()}`;
+    const today = Date.UTC(2026, 8, 11, 12);
+    expect(await limiter.leaseDaily(key, 3, 5, today)).toEqual({
+      granted: 3,
+      remaining: 2,
+      resetsAt: Date.UTC(2026, 8, 12),
+    });
+    expect(await limiter.leaseDaily(key, 3, 5, today)).toEqual({
+      granted: 2,
+      remaining: 0,
+      resetsAt: Date.UTC(2026, 8, 12),
+    });
+    expect(await limiter.leaseDaily(key, 3, 5, today)).toEqual({
+      granted: 0,
+      remaining: 0,
+      resetsAt: Date.UTC(2026, 8, 12),
+    });
+
+    const tomorrow = Date.UTC(2026, 8, 12, 12);
+    expect(await limiter.leaseDaily(key, 3, 5, tomorrow)).toEqual({
+      granted: 3,
+      remaining: 2,
+      resetsAt: Date.UTC(2026, 8, 13),
+    });
+  });
 });
 
 describe("board creation limit", () => {

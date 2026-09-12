@@ -259,9 +259,8 @@ export function BoardMenu({
                     : t("menu.voterNamesLocked")}
                 </p>
               ) : null}
-              {/* Live cursors are built but activation is disabled for now
-                  (they would bill the free tier); flip CURSORS_ACTIVATABLE to
-                  bring this toggle back. */}
+              {/* Kept behind one emergency feature gate even though the 1 Hz
+                  client throttle and daily server budget normally make it safe. */}
               {CURSORS_ACTIVATABLE ? (
                 <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
                   <input

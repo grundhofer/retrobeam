@@ -8,13 +8,11 @@ import type { Phase } from "./phases.js";
 // freeform canvas where notes are placed into labelled zones. A "zone" is just
 // a column — so voting, grouping, export and the write-phase privacy filter all
 // keep working unchanged; canvas only adds a per-note position.
-// Master gate for live cursors. FALSE = the feature is fully built but cannot
-// be activated at all: the client never sends/renders cursors, the settings
-// toggle is hidden, and the server refuses to enable them. Flip to true (one
-// line) to make cursors reachable again — only when the Cloudflare free-tier
-// cost is acceptable (a paid plan or bounded usage), since cursor streams bill
-// inbound frames.
-export const CURSORS_ACTIVATABLE = false;
+// Master gate for live cursors. Their 1 Hz client throttle and the server's
+// account-wide daily budget make activation safe on the Cloudflare free tier.
+// Keep this explicit so an emergency release can hide and reject the feature
+// with one change while leaving the rest of the canvas intact.
+export const CURSORS_ACTIVATABLE = true;
 
 export const layoutModes = ["columns", "canvas"] as const;
 export const layoutModeSchema = z.enum(layoutModes);

@@ -145,8 +145,8 @@ test("tidy sends exactly ONE note.moveMany for all movable cards", async () => {
 });
 
 // Cursors OFF must produce ZERO traffic on pointer move (the free-tier gate);
-// ON sends a throttled presence.cursor.
-async function moveOverCanvas(enabled: boolean) {
+// ON sends at most one presence.cursor per second.
+async function moveOverCanvas(enabled: boolean, moves = 1) {
   const send = vi.fn();
   const mutate = vi.fn();
   const screen = await render(
@@ -170,26 +170,32 @@ async function moveOverCanvas(enabled: boolean) {
   );
   const vp = screen.getByTestId("canvas-viewport").element();
   const rect = vp.getBoundingClientRect();
-  vp.dispatchEvent(
-    new PointerEvent("pointermove", {
-      pointerId: 1,
-      clientX: rect.left + 60,
-      clientY: rect.top + 60,
-      bubbles: true,
-    }),
-  );
+  for (let i = 0; i < moves; i++) {
+    vp.dispatchEvent(
+      new PointerEvent("pointermove", {
+        pointerId: 1,
+        clientX: rect.left + 60 + i * 20,
+        clientY: rect.top + 60,
+        bubbles: true,
+      }),
+    );
+  }
   await new Promise((resolve) => setTimeout(resolve, 0));
-  return send.mock.calls.some(
+  return send.mock.calls.filter(
     (c) => (c[0] as { type?: string })?.type === "presence.cursor",
-  );
+  ).length;
 }
 
 test("cursors OFF send nothing on pointer move (free-tier gate)", async () => {
-  expect(await moveOverCanvas(false)).toBe(false);
+  expect(await moveOverCanvas(false)).toBe(0);
 });
 
 test("cursors ON send a presence.cursor on pointer move", async () => {
-  expect(await moveOverCanvas(true)).toBe(true);
+  expect(await moveOverCanvas(true)).toBe(1);
+});
+
+test("cursors ON coalesce rapid pointer moves to the 1 Hz budget", async () => {
+  expect(await moveOverCanvas(true, 5)).toBe(1);
 });
 
 test("double-clicking empty canvas space opens a composer", async () => {

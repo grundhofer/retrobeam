@@ -61,6 +61,12 @@ import {
   pickIcebreaker,
 } from "@retrobeam/shared";
 import { generateSecret, randomIndex, safeEqual } from "./ids.js";
+import {
+  CURSOR_BUDGET_KEY,
+  CURSOR_DAILY_MESSAGE_LIMIT,
+  CURSOR_MESSAGE_LEASE_SIZE,
+  type DailyBudgetLease,
+} from "./rate-limiter.js";
 
 // Boards auto-delete after this window unless the facilitator keeps them.
 export const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -216,13 +222,18 @@ function detach(label: string, work: Promise<unknown>): void {
 // a handler needs lives in SQLite or in the socket attachment.
 export class BoardRoom extends DurableObject<Env> {
   private readonly sql: SqlStorage;
+  private readonly bindings: Env;
   /** GIF search budget for this board. Ephemeral by design — see
    *  gifSearchAllowed(); an evicted board was idle, so there was nothing to
    *  throttle. Never persisted: the free tier's write budget belongs to notes. */
   private gifBudget = { tokens: GIF_BURST, at: 0 };
+  /** A prepaid slice of the global daily cursor allowance. Losing unused
+   *  tokens on hibernation is conservative and avoids a central RPC per move. */
+  private cursorLease = 0;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    this.bindings = env;
     this.sql = ctx.storage.sql;
     this.sql.exec(`
       CREATE TABLE IF NOT EXISTS board_meta (
@@ -596,6 +607,10 @@ export class BoardRoom extends DurableObject<Env> {
       });
       return;
     }
+    if (command.type === "presence.cursor") {
+      await this.handleCursor(ws, participant, command);
+      return;
+    }
     this.dispatchCommand(ws, participant, command);
   }
 
@@ -743,9 +758,6 @@ export class BoardRoom extends DurableObject<Env> {
         return;
       case "admin.spotlight.set":
         this.handleSpotlightSet(ws, participant, command);
-        return;
-      case "presence.cursor":
-        this.handleCursor(ws, participant, command);
         return;
       case "admin.board.keep":
         detach("board.keep", this.handleBoardKeep(ws, participant));
@@ -3530,8 +3542,8 @@ export class BoardRoom extends DurableObject<Env> {
       );
       return;
     }
-    // Activation is hard-disabled for now — cursors are prepared but must not
-    // be turnable on (they would bill the free tier). Disabling stays allowed.
+    // Emergency kill switch. Normally true because the 1 Hz client throttle
+    // and the account-wide daily lease budget protect the Free tier.
     if (cmd.enabled && !CURSORS_ACTIVATABLE) {
       this.reject(
         ws,
@@ -3540,6 +3552,22 @@ export class BoardRoom extends DurableObject<Env> {
         "Live cursors are not available yet",
       );
       return;
+    }
+    const blockedUntil = Number(
+      this.getMeta("cursorBudgetBlockedUntil") ?? "0",
+    );
+    if (cmd.enabled && blockedUntil > Date.now()) {
+      this.send(ws, {
+        type: "error",
+        code: "CURSOR_BUDGET",
+        message: "Daily live cursor budget reached",
+      });
+      return;
+    }
+    if (cmd.enabled && blockedUntil !== 0) {
+      this.sql.exec(
+        "DELETE FROM board_meta WHERE key = 'cursorBudgetBlockedUntil'",
+      );
     }
     this.setMeta("cursorsEnabled", cmd.enabled ? "1" : "0");
     this.broadcastAll({
@@ -3553,12 +3581,36 @@ export class BoardRoom extends DurableObject<Env> {
   // enabled cursors (continuous streams would break the free tier) — the gate
   // lives on the server so a rogue client can't stream cursors on a board that
   // opted out. Never persisted; broadcast to everyone but the sender.
-  private handleCursor(
+  private async handleCursor(
     ws: WebSocket,
     participant: ParticipantRow,
     cmd: Extract<ClientCommand, { type: "presence.cursor" }>,
-  ): void {
+  ): Promise<void> {
     if (this.getMeta("cursorsEnabled") !== "1") return;
+    if (this.cursorLease === 0) {
+      let lease: DailyBudgetLease;
+      try {
+        const namespace = this.bindings.RATE_LIMITER;
+        const guard = namespace.get(namespace.idFromName("global"));
+        lease = await guard.leaseDaily(
+          CURSOR_BUDGET_KEY,
+          CURSOR_MESSAGE_LEASE_SIZE,
+          CURSOR_DAILY_MESSAGE_LIMIT,
+        );
+      } catch (error) {
+        // Fail closed: cursor presence is optional, while notes and votes must
+        // retain the account's remaining capacity if the guard is unavailable.
+        console.error("[BoardRoom] cursor budget check failed", error);
+        this.disableCursorsForBudget(nextUtcResetAt());
+        return;
+      }
+      this.cursorLease = lease.granted;
+      if (this.cursorLease === 0) {
+        this.disableCursorsForBudget(lease.resetsAt);
+        return;
+      }
+    }
+    this.cursorLease -= 1;
     this.broadcastAll(
       {
         type: "presence.cursor",
@@ -3568,6 +3620,22 @@ export class BoardRoom extends DurableObject<Env> {
       },
       ws,
     );
+  }
+
+  private disableCursorsForBudget(resetsAt: number): void {
+    if (this.getMeta("cursorsEnabled") !== "1") return;
+    this.setMeta("cursorsEnabled", "0");
+    this.setMeta("cursorBudgetBlockedUntil", String(resetsAt));
+    this.broadcastAll({
+      type: "config.changed",
+      seq: this.nextSeq(),
+      config: this.config(),
+    });
+    this.broadcastAll({
+      type: "error",
+      code: "CURSOR_BUDGET",
+      message: "Daily live cursor budget reached",
+    });
   }
 
   private handlePickerStyleSet(
@@ -4726,6 +4794,11 @@ export class BoardRoom extends DurableObject<Env> {
     this.setMeta("seq", String(next));
     return next;
   }
+}
+
+function nextUtcResetAt(now = Date.now()): number {
+  const dayMs = 24 * 60 * 60 * 1000;
+  return (Math.floor(now / dayMs) + 1) * dayMs;
 }
 
 function rowToParticipant(row: ParticipantRow): Participant {

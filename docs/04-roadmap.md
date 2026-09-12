@@ -65,7 +65,7 @@ Shipped in M6: slot-machine picker skin · staged/hidden columns · board duplic
 
 ## v2 (needs team spaces)
 
-`TeamRoom` DO (named team → board list, action-item carry-over auto-injected as retro phase 2, kudos history) · ROTI trend across sprints (the per-retro poll shipped in M5) · Lean Coffee + Team Health Check board types · lotto-ball machine · pixel cursors (group/discuss phases only, 3–4 Hz) · PDF export · multi-round voting · parking lot · safety check.
+`TeamRoom` DO (named team → board list, action-item carry-over auto-injected as retro phase 2, kudos history) · ROTI trend across sprints (the per-retro poll shipped in M5) · Lean Coffee + Team Health Check board types · lotto-ball machine · multi-round voting · parking lot · safety check. Pixel cursors have shipped as an opt-in 1 Hz canvas feature with an account-wide Free-tier cutoff.
 
 ## Later / research
 

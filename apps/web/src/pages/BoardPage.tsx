@@ -269,6 +269,9 @@ function Room({
         if (event.type === "error" && event.code === "RATE_LIMIT") {
           notify("reject.RATE_LIMIT", "warning");
         }
+        if (event.type === "error" && event.code === "CURSOR_BUDGET") {
+          notify("reject.CURSOR_BUDGET", "warning");
+        }
         if (
           event.type === "reject" ||
           (event.type === "error" &&

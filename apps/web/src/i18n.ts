@@ -253,7 +253,7 @@ const resources = {
         imageFailed: "The image could not be created. Try a smaller scope.",
         settings: "Board settings",
         gifsEnabled: "Allow GIFs",
-        cursorsEnabled: "Live cursors (uses more resources)",
+        cursorsEnabled: "Live cursors (1 update/s)",
         voterNamesEnabled: "Show who voted (after the reveal)",
         voterNamesLocked: "Locked once voting has started.",
         voterNamesAnonymous: "Not available on an anonymous board.",
@@ -362,6 +362,8 @@ const resources = {
         INVALID: "That didn't work — the board has been refreshed.",
         VOTE_BUDGET: "You've used all your votes.",
         RATE_LIMIT: "Too many actions at once. Give it a second.",
+        CURSOR_BUDGET:
+          "Live cursors are paused for today to protect the free-tier budget. Everything else keeps working.",
         dismiss: "Dismiss",
       },
       update: {
@@ -753,7 +755,7 @@ const resources = {
           "Das Bild konnte nicht erstellt werden. Versuche einen kleineren Umfang.",
         settings: "Board-Einstellungen",
         gifsEnabled: "GIFs erlauben",
-        cursorsEnabled: "Live-Cursor (mehr Ressourcen)",
+        cursorsEnabled: "Live-Cursor (1 Aktualisierung/s)",
         voterNamesEnabled: "Zeigen, wer gestimmt hat (nach der Auflösung)",
         voterNamesLocked: "Ab Beginn der Abstimmung gesperrt.",
         voterNamesAnonymous: "Auf einem anonymen Board nicht verfügbar.",
@@ -865,6 +867,8 @@ const resources = {
         INVALID: "Das hat nicht funktioniert — das Board wurde aktualisiert.",
         VOTE_BUDGET: "Du hast alle Stimmen vergeben.",
         RATE_LIMIT: "Zu viele Aktionen auf einmal. Kurz durchatmen.",
+        CURSOR_BUDGET:
+          "Live-Cursor sind zum Schutz des Free-Tier-Budgets für heute pausiert. Alles andere funktioniert weiter.",
         dismiss: "Schließen",
       },
       update: {

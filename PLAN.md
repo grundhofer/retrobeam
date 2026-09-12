@@ -23,7 +23,7 @@ Created 2026-07-17 from a multi-agent research pass (11 competitor deep-dives, C
 4. **Stack:** judge-panel winner — pnpm monorepo · React 19 + Vite 7 + `@cloudflare/vite-plugin` · zustand · Tailwind 4 + shadcn/ui · motion · partysocket · Hono + one SQLite-backed `BoardRoom` DO per board (WebSocket Hibernation API, DO alarms) · zod protocol + pure domain core in `packages/shared` · Vitest 4 (+ pool-workers) + Playwright.
 5. **GIFs:** KLIPY via Worker proxy (Tenor API is dead as of 2026-06-30; GIPHY's free production tier no longer exists).
 6. **Realtime model:** server-authoritative with optimistic ops (Figma model), no CRDT; write-phase privacy enforced server-side by payload omission.
-7. **Presence:** v1 = roster + ghost cards ("Anna is writing in _Went well_"); pixel cursors deferred to v2 (privacy leak during write phase + the #1 free-tier cost driver).
+7. **Presence:** roster + ghost cards ("Anna is writing in _Went well_"); canvas cursors are optional, capped at 1 Hz, and protected by an account-wide daily Free-tier budget.
 
 ## Open questions (user decision needed before launch, none block development)
 

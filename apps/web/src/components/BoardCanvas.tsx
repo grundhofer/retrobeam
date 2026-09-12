@@ -67,6 +67,11 @@ const WORLD_W = 1600;
 const WORLD_H = 1000;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
+// Cursor presence is intentionally coarse: one update per second is enough to
+// show where teammates are working without turning pointer motion into the
+// dominant Cloudflare Durable Objects cost.
+const CURSOR_INTERVAL_MS = 1_000;
+const CURSOR_MIN_DISTANCE_PX = 10;
 
 function clampZoom(z: number): number {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
@@ -94,6 +99,7 @@ export function BoardCanvas({
   const { mutate, send } = useConnection();
   const viewportRef = useRef<HTMLDivElement>(null);
   const lastCursorAt = useRef(0);
+  const lastCursorPoint = useRef<{ x: number; y: number } | null>(null);
   const zoneRefs = useRef<Map<string, HTMLElement>>(new Map());
   const dragOrigin = useRef({ x: 0, y: 0 });
   const zoneDragRef = useRef<ZoneDrag | null>(null);
@@ -210,13 +216,33 @@ export function BoardCanvas({
     };
   }
   function onViewportPointerMove(event: React.PointerEvent) {
-    // Broadcast our cursor (throttled ~5Hz) while cursors are enabled — the
-    // ONLY continuous stream on the board, and it runs only when opted in.
-    if (cursorsEnabled && event.timeStamp - lastCursorAt.current > 200) {
+    // Broadcast our cursor at most once a second, only after meaningful motion
+    // and never from a hidden tab. This is the ONLY continuous stream on the
+    // board, and it runs only when the facilitator opts in.
+    const previousCursor = lastCursorPoint.current;
+    const movedEnough =
+      previousCursor === null ||
+      Math.hypot(
+        event.clientX - previousCursor.x,
+        event.clientY - previousCursor.y,
+      ) >= CURSOR_MIN_DISTANCE_PX;
+    const intervalElapsed =
+      previousCursor === null ||
+      event.timeStamp - lastCursorAt.current >= CURSOR_INTERVAL_MS;
+    if (
+      cursorsEnabled &&
+      document.visibilityState === "visible" &&
+      movedEnough &&
+      intervalElapsed
+    ) {
       const vp = viewportRef.current;
       if (vp) {
         const rect = vp.getBoundingClientRect();
         lastCursorAt.current = event.timeStamp;
+        lastCursorPoint.current = {
+          x: event.clientX,
+          y: event.clientY,
+        };
         send({
           type: "presence.cursor",
           x: clampUnit(

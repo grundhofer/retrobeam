@@ -458,7 +458,7 @@ describe("canvas layout & positions", () => {
     expect(rejected.code).toBe("NOT_ADMIN");
   });
 
-  it("live cursors: off by default, dropped while off, and activation is disabled", async () => {
+  it("live cursors: off by default, dropped while off, and facilitator-controlled", async () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);
     const ben = await joined(boardId, "Ben");
@@ -479,17 +479,26 @@ describe("canvas layout & positions", () => {
     if (memberReject.type !== "reject") throw new Error("unreachable");
     expect(memberReject.code).toBe("NOT_ADMIN");
 
-    // Activation is currently disabled — even the facilitator cannot enable them.
+    // The facilitator can opt in now that client throttling and a global daily
+    // server budget protect the Free tier.
     admin.socket.send({ type: "admin.cursors.set", enabled: true });
-    const adminReject = await admin.socket.waitForNext(
-      (e) => e.type === "reject",
+    const enabled = await admin.socket.waitForNext(
+      (e) => e.type === "config.changed" && e.config.cursorsEnabled === true,
     );
-    if (adminReject.type !== "reject") throw new Error("unreachable");
-    expect(adminReject.code).toBe("INVALID");
+    expect(enabled.type).toBe("config.changed");
 
-    // The config is untouched — cursors stay off for a fresh joiner too.
+    ben.socket.send({ type: "presence.cursor", x: 0.25, y: 0.75 });
+    const cursor = await admin.socket.waitForNext(
+      (e) => e.type === "presence.cursor",
+    );
+    if (cursor.type !== "presence.cursor") throw new Error("unreachable");
+    expect(cursor.participantId).toBe(ben.you.id);
+    expect(cursor.x).toBe(0.25);
+    expect(cursor.y).toBe(0.75);
+
+    // The opt-in is persisted for reconnects and new participants.
     const cara = await joined(boardId, "Cara");
-    expect(cara.sync.config.cursorsEnabled).toBe(false);
+    expect(cara.sync.config.cursorsEnabled).toBe(true);
   });
 
   it("note.moveMany repositions many cards in ONE frame", async () => {
