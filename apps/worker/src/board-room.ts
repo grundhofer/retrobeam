@@ -11,6 +11,7 @@ import {
   EMPTY_PICKER,
   IDLE_TIMER,
   noteVisibleTo,
+  nextPhase,
   parseClientCommand,
   layoutModeSchema,
   phasePlanSchema,
@@ -673,6 +674,9 @@ export class BoardRoom extends DurableObject<Env> {
         return;
       case "admin.phase.set":
         this.handlePhaseSet(ws, participant, command.phase);
+        return;
+      case "admin.phasePlan.set":
+        this.handlePhasePlanSet(ws, participant, command.phasePlan);
         return;
       case "admin.timer.start":
       case "admin.timer.pause":
@@ -1380,7 +1384,8 @@ export class BoardRoom extends DurableObject<Env> {
       return;
     }
     const current = this.phase();
-    if (!canTransition(current, target, this.phasePlan())) {
+    const phasePlan = this.phasePlan();
+    if (!canTransition(current, target, phasePlan)) {
       this.reject(
         ws,
         undefined,
@@ -1395,6 +1400,11 @@ export class BoardRoom extends DurableObject<Env> {
     // handler) is delivered by one code path at the end.
     const before = this.revealNow();
 
+    const movingForward = nextPhase(current, phasePlan) === target;
+    const lockingPlan =
+      this.getMeta("phasePlanLocked") !== "1" &&
+      (current !== "lobby" || target !== "lobby");
+    if (lockingPlan) this.setMeta("phasePlanLocked", "1");
     this.setMeta("phase", target);
     this.sql.exec("UPDATE participants SET ready = 0");
     this.sql.exec(
@@ -1412,9 +1422,9 @@ export class BoardRoom extends DurableObject<Env> {
       phase: target,
     });
 
-    // Voting closes when the board moves from vote to discuss: everyone gets
-    // the tallies and the crowned top-N in one reveal.
-    if (current === "vote" && target === "discuss") {
+    // Voting closes on the next enabled forward step: everyone gets the
+    // tallies and crowned top-N even when discussion is not in this plan.
+    if (current === "vote" && movingForward) {
       const { tallies, topTargetIds, voters } = this.talliesAndTop();
       this.broadcastAll({
         type: "votes.revealed",
@@ -1520,7 +1530,7 @@ export class BoardRoom extends DurableObject<Env> {
     // Leaving the closing phase publishes the ROTI result, exactly once, and
     // closes the poll. Until this moment nobody — facilitator included — has
     // seen an average, so there is no sequence of aggregates to difference.
-    if (current === "close") {
+    if (current === "close" && movingForward) {
       this.releaseRoti();
     }
 
@@ -1544,6 +1554,37 @@ export class BoardRoom extends DurableObject<Env> {
     if (target === "write") {
       this.broadcastColumnCountsIfWriting();
     }
+  }
+
+  private handlePhasePlanSet(
+    ws: WebSocket,
+    participant: ParticipantRow,
+    phasePlan: PhasePlan,
+  ): void {
+    if (participant.role !== "facilitator") {
+      this.reject(
+        ws,
+        undefined,
+        "NOT_ADMIN",
+        "Only the facilitator configures the retro flow",
+      );
+      return;
+    }
+    if (this.phasePlanLocked()) {
+      this.reject(
+        ws,
+        undefined,
+        "PHASE_LOCKED",
+        "The retro flow is locked after the retro starts",
+      );
+      return;
+    }
+    this.setMeta("phasePlan", JSON.stringify(phasePlan));
+    this.broadcastAll({
+      type: "config.changed",
+      seq: this.nextSeq(),
+      config: this.config(),
+    });
   }
 
   private handleTimer(
@@ -4728,6 +4769,7 @@ export class BoardRoom extends DurableObject<Env> {
     return {
       anonymous: this.anonymous(),
       phasePlan: this.phasePlan(),
+      phasePlanLocked: this.phasePlanLocked(),
       votesPerPerson: Number(
         this.getMeta("votesPerPerson") ?? DEFAULT_VOTE_CONFIG.votesPerPerson,
       ),
@@ -4775,6 +4817,10 @@ export class BoardRoom extends DurableObject<Env> {
     if (raw === null) return DEFAULT_PHASE_PLAN;
     const parsed = phasePlanSchema.safeParse(JSON.parse(raw));
     return parsed.success ? parsed.data : DEFAULT_PHASE_PLAN;
+  }
+
+  private phasePlanLocked(): boolean {
+    return this.getMeta("phasePlanLocked") === "1" || this.phase() !== "lobby";
   }
 
   private anonymous(): boolean {

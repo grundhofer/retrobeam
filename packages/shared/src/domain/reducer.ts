@@ -419,6 +419,15 @@ export function applyServerEvent(
       return {
         ...state,
         phase: event.phase,
+        config:
+          state.config === null
+            ? null
+            : {
+                ...state.config,
+                phasePlanLocked:
+                  state.config.phasePlanLocked === true ||
+                  event.phase !== "lobby",
+              },
         notes,
         // Per-column counts are a write-phase signal; the server re-broadcasts
         // fresh ones on entering write, so drop any stale set on every change.

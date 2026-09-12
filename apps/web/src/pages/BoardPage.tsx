@@ -27,6 +27,7 @@ import { LanguageToggle } from "../components/LanguageToggle.js";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { NoticeRail } from "../components/NoticeRail.js";
 import { PhaseStepper } from "../components/PhaseStepper.js";
+import { PhasePlanPanel } from "../components/PhasePlanPanel.js";
 import { PresenceRail } from "../components/PresenceRail.js";
 import { ReadyBar } from "../components/ReadyBar.js";
 import { Roster } from "../components/Roster.js";
@@ -518,6 +519,11 @@ function Room({
         <main className="flex-1 px-6 py-6">
           {inLobby ? (
             <div className="mx-auto flex max-w-2xl flex-col gap-8">
+              <PhasePlanPanel
+                phasePlan={phasePlan}
+                isAdmin={isAdmin}
+                locked={config?.phasePlanLocked ?? false}
+              />
               <div className="rounded-xl border border-zinc-200 bg-white p-5">
                 <p className="mb-4 text-sm text-zinc-500">
                   {t("lobby.hint", { count: onlineCount })}

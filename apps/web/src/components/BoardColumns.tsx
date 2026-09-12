@@ -81,6 +81,7 @@ export function BoardColumns(props: BoardColumnsProps) {
       { type: "vote.progress", yourVotes },
     );
   }
+
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
 
@@ -264,10 +265,17 @@ function BoardColumn({
   onVote: (targetId: string, delta: 1 | -1) => void;
 }) {
   const { t } = useTranslation();
-  const { mutate } = useConnection();
+  const { mutate, send } = useConnection();
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(column.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  function focusDiscussion(targetId: string) {
+    send({
+      type: "admin.discuss.focus",
+      targetId: deciding.focusId === targetId ? null : targetId,
+    });
+  }
 
   // Presenting focus is a HIGHLIGHT, not a filter. The board grows as the
   // rotation moves — the server sends a member the cards of the people it has
@@ -551,6 +559,13 @@ function BoardColumn({
               deciding={deciding}
               roster={roster}
               onVote={onVote}
+              onFocus={
+                phase === "discuss" &&
+                isAdmin &&
+                deciding.topTargetIds.length === 0
+                  ? () => focusDiscussion(targetId)
+                  : null
+              }
             >
               {item.kind === "note" ? (
                 <NoteCard note={item.note} revealIndex={index} {...cardProps} />
@@ -607,12 +622,14 @@ function TargetFrame({
   deciding,
   roster,
   onVote,
+  onFocus,
   children,
 }: {
   targetId: string;
   deciding: DecidingState;
   roster: Participant[];
   onVote: (targetId: string, delta: 1 | -1) => void;
+  onFocus: (() => void) | null;
   children: React.ReactNode;
 }) {
   const { t } = useTranslation();
@@ -648,6 +665,23 @@ function TargetFrame({
         focused ? "ring-2 ring-accent ring-offset-2" : ""
       } ${dim ? "opacity-40" : ""}`}
     >
+      {onFocus !== null ? (
+        <div className="mb-1 flex justify-end px-1">
+          <button
+            type="button"
+            data-testid="discuss-focus-card"
+            aria-pressed={focused}
+            onClick={onFocus}
+            className={`rounded-full px-2 py-0.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-accent ${
+              focused
+                ? "bg-accent text-white"
+                : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+            }`}
+          >
+            {focused ? t("discuss.clearFocus") : t("discuss.focusCard")}
+          </button>
+        </div>
+      ) : null}
       {deciding.talliesShown &&
       (rank >= 0 || tally !== undefined || myCount > 0) ? (
         <div className="mb-1 flex flex-wrap items-center gap-1.5 px-1">

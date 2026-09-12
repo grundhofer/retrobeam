@@ -65,10 +65,11 @@ function note(id: string, columnId: string, order: number): Note {
 
 function view(
   overrides: Partial<React.ComponentProps<typeof BoardColumns>> = {},
+  sent: ClientCommand[] = [],
 ) {
   const connection = {
     boardId: "a".repeat(32),
-    send: (_command: ClientCommand) => {},
+    send: (command: ClientCommand) => sent.push(command),
     mutate: (
       _command: ClientCommand,
       _optimistic: ServerEvent | ServerEvent[],
@@ -108,6 +109,15 @@ function view(
     </ConnectionProvider>
   );
 }
+
+test("discussion without a voting result lets the facilitator focus a card", async () => {
+  const sent: ClientCommand[] = [];
+  const target = note("1", columns[0]!.id, 1);
+  const screen = await render(view({ notes: [target] }, sent));
+
+  await screen.getByTestId("discuss-focus-card").click();
+  expect(sent).toEqual([{ type: "admin.discuss.focus", targetId: target.id }]);
+});
 
 test("every column stays inside the board at a starved width", async () => {
   await page.viewport(1280, 720);

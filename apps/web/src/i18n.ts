@@ -87,6 +87,39 @@ const resources = {
         next: "Next",
         startRetro: "Start retro",
       },
+      phasePlan: {
+        title: "Plan this retro",
+        adminHint: "Choose the optional phases before you start.",
+        memberHint: "This is the planned agenda for the retro.",
+        locked: "The agenda is locked because this retro has already started.",
+        required: "Required",
+        phase: {
+          checkin: {
+            title: "Check-in",
+            description: "Warm up with a question and working agreements.",
+          },
+          write: {
+            title: "Write",
+            description: "Collect the team's observations privately.",
+          },
+          present: {
+            title: "Present",
+            description: "Share the cards one person at a time.",
+          },
+          vote: {
+            title: "Vote",
+            description: "Prioritize cards with dot voting.",
+          },
+          discuss: {
+            title: "Discuss & actions",
+            description: "Discuss cards and capture action items.",
+          },
+          close: {
+            title: "Closing with kudos & ROTI",
+            description: "End with appreciation and a short rating.",
+          },
+        },
+      },
       ready: {
         imDone: "I'm done",
         done: "Done",
@@ -200,6 +233,8 @@ const resources = {
       },
       discuss: {
         queue: "Discussion",
+        focusCard: "Discuss this card",
+        clearFocus: "Show all cards",
       },
       action: {
         title: "Action items",
@@ -587,6 +622,40 @@ const resources = {
         next: "Weiter",
         startRetro: "Retro starten",
       },
+      phasePlan: {
+        title: "Ablauf festlegen",
+        adminHint: "Wähle vor dem Start die optionalen Phasen aus.",
+        memberHint: "Das ist der geplante Ablauf dieser Retro.",
+        locked:
+          "Der Ablauf ist gesperrt, da diese Retro bereits gestartet wurde.",
+        required: "Pflichtphase",
+        phase: {
+          checkin: {
+            title: "Check-in",
+            description: "Mit einer Frage und Arbeitsvereinbarungen ankommen.",
+          },
+          write: {
+            title: "Schreiben",
+            description: "Beobachtungen zunächst privat sammeln.",
+          },
+          present: {
+            title: "Vorstellen",
+            description: "Die Karten nacheinander im Team teilen.",
+          },
+          vote: {
+            title: "Abstimmen",
+            description: "Karten mit Punkten priorisieren.",
+          },
+          discuss: {
+            title: "Diskutieren & Maßnahmen",
+            description: "Karten besprechen und Maßnahmen festhalten.",
+          },
+          close: {
+            title: "Abschluss mit Kudos & ROTI",
+            description: "Mit Wertschätzung und kurzer Bewertung abschließen.",
+          },
+        },
+      },
       ready: {
         imDone: "Ich bin fertig",
         done: "Fertig",
@@ -701,6 +770,8 @@ const resources = {
       },
       discuss: {
         queue: "Diskussion",
+        focusCard: "Diese Karte diskutieren",
+        clearFocus: "Alle Karten zeigen",
       },
       action: {
         title: "Action Items",

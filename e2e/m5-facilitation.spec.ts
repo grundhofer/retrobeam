@@ -4,10 +4,51 @@
 import { expect, test, type Page } from "@playwright/test";
 import { newContext } from "./helpers.js";
 
+test("facilitator chooses optional phases before the retro starts", async ({
+  browser,
+}) => {
+  const context = await newContext(browser, { reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.goto("/new");
+  await page.getByRole("textbox").fill("Short retro");
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(page, "Anna");
+
+  const vote = page.getByTestId("phase-plan-vote");
+  const close = page.getByTestId("phase-plan-close");
+  await expect(vote).toBeChecked();
+  await vote.click();
+  await expect(vote).not.toBeChecked();
+  await expect(close).toBeEnabled();
+  await close.click();
+  await expect(close).not.toBeChecked();
+
+  // Start, rewind once, and prove that the chosen agenda cannot be changed
+  // after the retro has begun.
+  await page.getByTestId("phase-next").click();
+  await page.getByTestId("phase-back").click();
+  await expect(page.getByTestId("phase-plan-vote")).toBeDisabled();
+
+  // The configured sequence is lobby -> write -> present -> discuss -> done.
+  await page.getByTestId("phase-next").click();
+  await page.getByTestId("phase-next").click();
+  await expect(page.getByTestId("phase-next")).toContainText(
+    /discuss|diskutieren/i,
+  );
+  await page.getByTestId("phase-next").click();
+  await expect(page.getByTestId("phase-next")).toContainText(/done|fertig/i);
+  await page.getByTestId("phase-next").click();
+  await expect(page.getByTestId("phase-next")).toHaveCount(0);
+
+  await context.close();
+});
+
 // M5 acceptance: the check-in warm-up (icebreaker + shuffle + agreements) and
-// the anonymous ROTI closing poll. Check-in is off by default and has no
-// creation toggle in the UI, so we opt in through the API (which exercises the
-// checkin:true flag) and seed the creator's admin token.
+// the anonymous ROTI closing poll. This flow opts in through the creation API
+// so it can focus on the phase itself; the lobby toggle is covered above.
 test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   browser,
 }) => {

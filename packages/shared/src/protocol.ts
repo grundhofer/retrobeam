@@ -62,6 +62,10 @@ const legacyPickerStyleSchema = z.enum(["wheel", "slots"]);
 export const boardConfigSchema = z.object({
   anonymous: z.boolean(),
   phasePlan: phasePlanSchema,
+  /** Once the room has left the lobby for the first time, its phase plan is
+   *  immutable. The explicit flag keeps a later rewind to the lobby from
+   *  making old controls look editable again. */
+  phasePlanLocked: z.boolean().optional(),
   /** dot-voting budget per person (blind voting, product spec §6) */
   votesPerPerson: z.number().int().min(1).max(10),
   /** optional cap per card/stack; null = only the personal budget limits */
@@ -340,6 +344,10 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
   }),
 
   z.object({ type: z.literal("admin.phase.set"), phase: phaseSchema }),
+  z.object({
+    type: z.literal("admin.phasePlan.set"),
+    phasePlan: phasePlanSchema,
+  }),
   z.object({
     type: z.literal("admin.timer.start"),
     durationSec: z.number().int().min(10).max(3600),

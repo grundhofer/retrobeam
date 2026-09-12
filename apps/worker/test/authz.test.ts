@@ -40,6 +40,16 @@ function sampleFor(type: string, columnId: string, participantId: string) {
   switch (type) {
     case "admin.phase.set":
       return { type, phase: "write" };
+    case "admin.phasePlan.set":
+      return {
+        type,
+        phasePlan: {
+          checkin: false,
+          vote: true,
+          discuss: true,
+          close: true,
+        },
+      };
     case "admin.timer.start":
       return { type, durationSec: 300 };
     case "admin.timer.extend":

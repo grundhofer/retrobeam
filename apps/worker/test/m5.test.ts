@@ -121,7 +121,154 @@ describe("check-in", () => {
   });
 });
 
+describe("retro phase plan", () => {
+  it("lets the facilitator configure optional phases in the lobby and syncs the plan", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    const phasePlan = {
+      checkin: true,
+      vote: false,
+      discuss: true,
+      close: false,
+    };
+
+    admin.socket.send({ type: "admin.phasePlan.set", phasePlan });
+    const changed = await ben.socket.waitForNext(
+      (event) =>
+        event.type === "config.changed" &&
+        event.config.phasePlan.close === false,
+    );
+    if (changed.type !== "config.changed") throw new Error("unreachable");
+    expect(changed.config.phasePlan).toEqual(phasePlan);
+    expect(changed.config.phasePlanLocked).toBe(false);
+
+    const cara = await joined(boardId, "Cara");
+    expect(cara.sync.config.phasePlan).toEqual(phasePlan);
+  });
+
+  it("refuses members and locks the plan permanently on the first start", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    const phasePlan = {
+      checkin: false,
+      vote: false,
+      discuss: false,
+      close: false,
+    };
+
+    ben.socket.send({ type: "admin.phasePlan.set", phasePlan });
+    const forbidden = await ben.socket.waitForNext(
+      (event) => event.type === "reject",
+    );
+    if (forbidden.type !== "reject") throw new Error("unreachable");
+    expect(forbidden.code).toBe("NOT_ADMIN");
+
+    admin.socket.send({ type: "admin.phasePlan.set", phasePlan });
+    await admin.socket.waitForNext(
+      (event) =>
+        event.type === "config.changed" &&
+        event.config.phasePlan.vote === false,
+    );
+    await toPhase(admin.socket, "write");
+    await toPhase(admin.socket, "lobby");
+
+    admin.socket.send({
+      type: "admin.phasePlan.set",
+      phasePlan: { ...phasePlan, vote: true },
+    });
+    const locked = await admin.socket.waitForNext(
+      (event) => event.type === "reject",
+    );
+    if (locked.type !== "reject") throw new Error("unreachable");
+    expect(locked.code).toBe("PHASE_LOCKED");
+
+    admin.socket.send({ type: "resync" });
+    const sync = await admin.socket.waitForNext(
+      (event) => event.type === "sync",
+    );
+    if (sync.type !== "sync") throw new Error("unreachable");
+    expect(sync.config.phasePlanLocked).toBe(true);
+  });
+
+  it("walks directly to done when every optional phase is disabled", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    admin.socket.send({
+      type: "admin.phasePlan.set",
+      phasePlan: {
+        checkin: false,
+        vote: false,
+        discuss: false,
+        close: false,
+      },
+    });
+    await admin.socket.waitForNext(
+      (event) =>
+        event.type === "config.changed" &&
+        event.config.phasePlan.close === false,
+    );
+
+    await toPhase(admin.socket, "write");
+    await toPhase(admin.socket, "present");
+    await toPhase(admin.socket, "done");
+  });
+
+  it("reveals vote results when discussion is skipped", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    admin.socket.send({
+      type: "admin.phasePlan.set",
+      phasePlan: {
+        checkin: false,
+        vote: true,
+        discuss: false,
+        close: true,
+      },
+    });
+    await admin.socket.waitForNext(
+      (event) =>
+        event.type === "config.changed" &&
+        event.config.phasePlan.discuss === false,
+    );
+    await toPhase(admin.socket, "write");
+    await toPhase(admin.socket, "present");
+    await toPhase(admin.socket, "vote");
+
+    const from = admin.socket.events.length;
+    admin.socket.send({ type: "admin.phase.set", phase: "close" });
+    await admin.socket.waitFor(
+      (event, index) => index >= from && event.type === "votes.revealed",
+    );
+    expect(
+      admin.socket.events.some(
+        (event, index) =>
+          index >= from &&
+          event.type === "phase.changed" &&
+          event.phase === "close",
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("ROTI closing poll", () => {
+  it("does not publish the result when the facilitator rewinds from close", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    await toClose(admin);
+    admin.socket.send({ type: "roti.set", score: 5 });
+    await admin.socket.waitForNext((event) => event.type === "roti.you");
+
+    await toPhase(admin.socket, "discuss");
+    admin.socket.send({ type: "resync" });
+    const sync = await admin.socket.waitForNext(
+      (event) => event.type === "sync",
+    );
+    if (sync.type !== "sync") throw new Error("unreachable");
+    expect(sync.roti.released).toBe(false);
+  });
+
   it("publishes the average ONCE at the end, never as a running mean", async () => {
     // A running mean re-broadcast per submission is differenceable: an observer
     // holding two consecutive aggregates computes n*avg(n) - (n-1)*avg(n-1) and
