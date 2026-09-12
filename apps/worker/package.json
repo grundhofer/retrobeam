@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@retrobeam/shared": "workspace:*",
-    "hono": "^4.13.5",
+    "hono": "^4.13.7",
     "zod": "^4.5.4"
   },
   "devDependencies": {

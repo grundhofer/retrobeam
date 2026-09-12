@@ -14,7 +14,7 @@
   "dependencies": {
     "@retrobeam/shared": "workspace:*",
     "canvas-confetti": "^1.9.4",
-    "i18next": "^26.4.1",
+    "i18next": "^26.4.2",
     "partysocket": "^1.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
