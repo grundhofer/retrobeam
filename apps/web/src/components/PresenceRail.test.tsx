@@ -55,8 +55,9 @@ test("the initial action follows the selected slots tool", async () => {
     .toHaveTextContent(`🎰 ${i18n.t("picker.startSlots")}`);
 });
 
-test("cards replace the start button with one face-down choice per person", async () => {
+test("cards open the full-screen selection instead of rendering in the rail", async () => {
   const send = vi.fn();
+  const openCards = vi.fn();
   const screen = await render(
     <ConnectionProvider
       value={{ boardId: "b".repeat(32), send, mutate: vi.fn() }}
@@ -69,12 +70,14 @@ test("cards replace the start button with one face-down choice per person", asyn
         you={anna}
         isAdmin
         pickerStyle="cards"
+        onOpenCards={openCards}
       />
     </ConnectionProvider>,
   );
 
-  expect(screen.getByTestId("picker-card").elements()).toHaveLength(2);
+  expect(document.querySelector("[data-testid='picker-card']")).toBeNull();
   expect(document.querySelector("[data-testid='spin-button']")).toBeNull();
-  await screen.getByTestId("picker-card").first().click();
-  expect(send).toHaveBeenCalledWith({ type: "admin.picker.spin" });
+  await screen.getByTestId("open-card-picker").click();
+  expect(openCards).toHaveBeenCalledOnce();
+  expect(send).not.toHaveBeenCalled();
 });

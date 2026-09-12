@@ -129,6 +129,9 @@ export const wheelSpinSchema = z.object({
   seed: z.number(),
   startAt: z.number(),
   durationMs: z.number(),
+  /** Face-down position chosen by the facilitator. Optional so an in-flight
+   *  spin from a pre-card-deck deployment still parses after a deploy. */
+  cardIndex: z.number().int().nonnegative().optional(),
 });
 export type WheelSpin = z.infer<typeof wheelSpinSchema>;
 

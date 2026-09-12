@@ -154,12 +154,31 @@ test("facilitator chooses a face-down card for the next presenter", async ({
   await anna.getByTestId("phase-next").click();
   await anna.getByTestId("picker-style").selectOption("cards");
   await expect(anna.getByTestId("picker-style")).toHaveValue("cards");
+  await expect(anna.getByTestId("picker-card")).toHaveCount(0);
+  await anna.getByTestId("open-card-picker").click();
+  await expect(anna.getByTestId("card-picker-overlay")).toBeVisible();
   await expect(anna.getByTestId("picker-card")).toHaveCount(2);
   await expect(anna.getByTestId("spin-button")).toHaveCount(0);
 
   await anna.getByTestId("picker-card").first().click();
   await expect(anna.getByTestId("card-reveal")).toBeVisible();
   await expect(ben.getByTestId("card-reveal")).toBeVisible();
+  await expect(anna.getByTestId("reveal-card")).toHaveCount(2);
+  await expect(ben.getByTestId("reveal-card")).toHaveCount(2);
+  await expect(
+    anna.locator('[data-testid="reveal-card"][data-selected="true"]'),
+  ).toHaveCount(1);
+  await expect(
+    ben.locator('[data-testid="reveal-card"][data-selected="true"]'),
+  ).toHaveCount(1);
+  await expect(anna.getByTestId("reveal-card").first()).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
+  await expect(ben.getByTestId("reveal-card").first()).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
   await expect(anna.getByTestId("wheel-winner")).toBeVisible({
     timeout: 8_000,
   });

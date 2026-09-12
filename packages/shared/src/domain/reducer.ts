@@ -318,6 +318,7 @@ export function applyServerEvent(
           seed: event.seed,
           startAt: event.startAt,
           durationMs: event.durationMs,
+          cardIndex: event.cardIndex,
         },
         lastSeq: seq(state, event.seq),
       };

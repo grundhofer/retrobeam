@@ -15,28 +15,150 @@ import {
   type WheelSpin,
 } from "@retrobeam/shared";
 import { burstConfetti } from "../lib/confetti.js";
+import { useConnection } from "../lib/connection.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
 
 // Every client renders the SAME spin from the broadcast seed and lands on the
 // same name. Reduced-motion (and late joiners) skip straight to the result.
-export function WheelOverlay() {
+export function WheelOverlay({
+  cardSelectionOpen = false,
+  isAdmin = false,
+  onCloseCardSelection = () => undefined,
+}: {
+  cardSelectionOpen?: boolean;
+  isAdmin?: boolean;
+  onCloseCardSelection?: () => void;
+}) {
   const spin = useBoardStore((store) => store.state.lastSpin);
   const roster = useBoardStore((store) => store.state.roster);
+  const picker = useBoardStore((store) => store.state.picker);
+  const config = useBoardStore((store) => store.state.config);
+  const phase = useBoardStore((store) => store.state.phase);
   const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
   const now = useNow();
 
-  if (spin === null) return null;
-  const localEnd = spin.startAt - clockOffsetMs + spin.durationMs;
-  if (now > localEnd + WHEEL_HOLD_MS) return null;
+  const localEnd =
+    spin === null ? 0 : spin.startAt - clockOffsetMs + spin.durationMs;
+  const activeSpin = spin !== null && now <= localEnd + WHEEL_HOLD_MS;
+  useEffect(() => {
+    if (activeSpin && cardSelectionOpen) onCloseCardSelection();
+  }, [activeSpin, cardSelectionOpen, onCloseCardSelection]);
+
+  if (activeSpin && spin !== null) {
+    return (
+      <SpinScene
+        key={spin.startAt}
+        spin={spin}
+        roster={roster}
+        clockOffsetMs={clockOffsetMs}
+      />
+    );
+  }
+
+  const cardsSelected = config?.pickerCards ?? false;
+  if (
+    !cardSelectionOpen ||
+    !isAdmin ||
+    !cardsSelected ||
+    phase !== "present" ||
+    picker === null
+  ) {
+    return null;
+  }
+  const onlineRemaining = picker.remaining.filter((id) =>
+    roster.some((participant) => participant.id === id && participant.online),
+  );
+  const pool = onlineRemaining.length > 0 ? onlineRemaining : picker.remaining;
+  if (pool.length === 0) return null;
 
   return (
-    <SpinScene
-      key={spin.startAt}
-      spin={spin}
-      roster={roster}
-      clockOffsetMs={clockOffsetMs}
-    />
+    <CardSelectionScene count={pool.length} onClose={onCloseCardSelection} />
+  );
+}
+
+function CardSelectionScene({
+  count,
+  onClose,
+}: {
+  count: number;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { send } = useConnection();
+  const [selected, setSelected] = useState<number | null>(null);
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  function choose(index: number) {
+    if (selected !== null) return;
+    setSelected(index);
+    send({ type: "admin.picker.spin", cardIndex: index });
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="card-picker-title"
+      data-testid="card-picker-overlay"
+      className="fixed inset-0 z-50 flex flex-col bg-zinc-900/80 px-4 py-5 backdrop-blur-sm sm:px-8"
+    >
+      <div className="mx-auto flex w-full max-w-6xl items-start gap-4 text-white">
+        <div className="min-w-0 flex-1 text-center">
+          <h2
+            id="card-picker-title"
+            className="text-xl font-semibold sm:text-2xl"
+          >
+            {t("picker.cardDeckTitle")}
+          </h2>
+          <p className="mt-1 text-sm text-zinc-300">
+            {t("picker.cardDeckHint", { count })}
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label={t("picker.closeCards")}
+          onClick={onClose}
+          className="rounded-full bg-white/10 px-3 py-1.5 text-lg text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          ×
+        </button>
+      </div>
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-wrap content-center items-center justify-center gap-3 overflow-y-auto py-5 sm:gap-5">
+        {Array.from({ length: count }, (_, index) => (
+          <button
+            key={index}
+            type="button"
+            data-testid="picker-card"
+            aria-label={t("picker.chooseCardAria", { index: index + 1 })}
+            disabled={selected !== null}
+            onClick={() => choose(index)}
+            className={`group relative h-[clamp(8rem,24dvh,15rem)] w-[clamp(5.75rem,17dvh,10.75rem)] shrink-0 rounded-2xl border-4 border-white bg-accent shadow-2xl ring-1 ring-accent-strong transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-wait ${
+              selected === null
+                ? "hover:-translate-y-2 hover:rotate-1 hover:shadow-accent/30"
+                : selected === index
+                  ? "-translate-y-2 ring-4 ring-white"
+                  : "opacity-45"
+            }`}
+          >
+            <span className="absolute inset-2 rounded-xl border-2 border-white/45" />
+            <span
+              aria-hidden="true"
+              className="relative text-4xl text-white/90 transition group-hover:scale-110 sm:text-5xl"
+            >
+              ✦
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -151,6 +273,10 @@ function CardReveal({
 }) {
   const [revealed, setRevealed] = useState(false);
   const winner = roster.find((participant) => participant.id === spin.winnerId);
+  const selectedIndex = Math.min(
+    spin.cardIndex ?? spin.seed % Math.max(1, spin.pool.length),
+    Math.max(0, spin.pool.length - 1),
+  );
 
   useEffect(() => {
     const delay = Math.max(0, spin.startAt - clockOffsetMs - Date.now());
@@ -170,44 +296,62 @@ function CardReveal({
     <div
       data-testid="card-reveal"
       aria-hidden="true"
-      className="h-72 w-52"
-      style={{ perspective: 900 }}
+      className="flex max-h-[70dvh] max-w-6xl flex-wrap content-center items-center justify-center gap-3 overflow-y-auto px-4 py-6 sm:gap-5"
     >
-      <div
-        className="relative size-full"
-        style={{
-          transformStyle: "preserve-3d",
-          transform: revealed ? "rotateY(180deg)" : "rotateY(0deg)",
-          transition: revealed
-            ? `transform ${spin.durationMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`
-            : undefined,
-        }}
-      >
-        <div
-          className="absolute inset-0 flex items-center justify-center rounded-3xl border-4 border-white bg-accent shadow-2xl"
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          <span className="absolute inset-3 rounded-2xl border-2 border-white/45" />
-          <span className="text-6xl text-white/90">✦</span>
-        </div>
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-3xl border-4 border-white bg-white px-5 text-center shadow-2xl"
-          style={{
-            backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-          }}
-        >
-          <span
-            className="flex size-20 items-center justify-center rounded-full text-2xl font-semibold text-white"
-            style={{ backgroundColor: winner?.color ?? "#9AA1AD" }}
+      {spin.pool.map((participantId, index) => {
+        const selected = index === selectedIndex;
+        return (
+          <div
+            key={participantId}
+            data-testid="reveal-card"
+            data-selected={selected ? "true" : "false"}
+            className={`h-[clamp(8rem,24dvh,15rem)] w-[clamp(5.75rem,17dvh,10.75rem)] shrink-0 transition-opacity duration-500 ${
+              revealed && !selected ? "opacity-30" : "opacity-100"
+            }`}
+            style={{ perspective: 900 }}
           >
-            {nameMonogram(winner?.name ?? "?")}
-          </span>
-          <span className="text-xl font-semibold text-zinc-900">
-            {winner?.name ?? "?"}
-          </span>
-        </div>
-      </div>
+            <div
+              className="relative size-full"
+              style={{
+                transformStyle: "preserve-3d",
+                transform:
+                  revealed && selected ? "rotateY(180deg)" : "rotateY(0deg)",
+                transition:
+                  revealed && selected
+                    ? `transform ${spin.durationMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`
+                    : undefined,
+              }}
+            >
+              <div
+                className="absolute inset-0 flex items-center justify-center rounded-2xl border-4 border-white bg-accent shadow-2xl"
+                style={{ backfaceVisibility: "hidden" }}
+              >
+                <span className="absolute inset-2 rounded-xl border-2 border-white/45" />
+                <span className="text-4xl text-white/90 sm:text-5xl">✦</span>
+              </div>
+              {selected ? (
+                <div
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl border-4 border-white bg-white px-3 text-center shadow-2xl"
+                  style={{
+                    backfaceVisibility: "hidden",
+                    transform: "rotateY(180deg)",
+                  }}
+                >
+                  <span
+                    className="flex size-14 items-center justify-center rounded-full text-lg font-semibold text-white sm:size-16 sm:text-xl"
+                    style={{ backgroundColor: winner?.color ?? "#9AA1AD" }}
+                  >
+                    {nameMonogram(winner?.name ?? "?")}
+                  </span>
+                  <span className="max-w-full truncate text-base font-semibold text-zinc-900 sm:text-lg">
+                    {winner?.name ?? "?"}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

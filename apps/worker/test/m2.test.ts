@@ -706,10 +706,16 @@ describe("picker style (skin)", () => {
     await admin.socket.waitFor(
       (e) => e.type === "config.changed" && e.config.pickerCards === true,
     );
-    admin.socket.send({ type: "admin.picker.spin" });
+    admin.socket.send({ type: "admin.picker.spin", cardIndex: 2 });
+    const rejected = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (rejected.type !== "reject") throw new Error("unreachable");
+    expect(rejected.code).toBe("INVALID");
+
+    admin.socket.send({ type: "admin.picker.spin", cardIndex: 1 });
     const drawn = await admin.socket.waitFor((e) => e.type === "picker.spun");
     if (drawn.type !== "picker.spun") throw new Error("unreachable");
     expect(drawn.durationMs).toBe(CARD_REVEAL_MS);
+    expect(drawn.cardIndex).toBe(1);
   });
 });
 

@@ -189,6 +189,7 @@ function Room({
   // wire shape, offer a reload — the board is safe on the server, so reloading
   // costs nothing but the click.
   const [staleBuild, setStaleBuild] = useState(false);
+  const [cardsOpen, setCardsOpen] = useState(false);
 
   // Stable connection facade over whichever socket is currently alive. User
   // interactions can only happen after the effect below has run, so the ref
@@ -406,7 +407,11 @@ function Room({
 
   return (
     <ConnectionProvider value={connection}>
-      <WheelOverlay />
+      <WheelOverlay
+        cardSelectionOpen={cardsOpen}
+        isAdmin={isAdmin}
+        onCloseCardSelection={() => setCardsOpen(false)}
+      />
       <NoticeRail />
       {staleBuild ? (
         <div
@@ -672,6 +677,7 @@ function Room({
                   isAdmin={isAdmin}
                   scopedRound={scopedRound}
                   pickerStyle={pickerStyle}
+                  onOpenCards={() => setCardsOpen(true)}
                 />
               )}
             </div>

@@ -23,7 +23,7 @@ export const rotiScoreSchema = z.number().int().min(1).max(5);
  *  running the OLD build — it is told the server's version in `sync` and can
  *  offer a reload rather than quietly misbehaving. Never used to refuse a
  *  connection: locking someone out mid-retro is worse than a stale tab. */
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 
 /** The published ROTI result, persisted once when the poll closes so every
  *  later read reports the identical pair (see ROTI_MIN_ANONYMOUS). */
@@ -439,7 +439,12 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     actionId: hexIdSchema,
   }),
 
-  z.object({ type: z.literal("admin.picker.spin") }),
+  z.object({
+    type: z.literal("admin.picker.spin"),
+    /** The face-down position selected in card mode. The server still draws
+     *  the person randomly; this only synchronizes the visual reveal. */
+    cardIndex: z.number().int().nonnegative().optional(),
+  }),
   z.object({ type: z.literal("admin.picker.skip") }),
   // Facilitator hand-picks the next presenter directly (no wheel) — same
   // rotation bookkeeping as a spin, just a targeted draw.
@@ -722,6 +727,7 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     seed: z.number(),
     startAt: z.number(),
     durationMs: z.number(),
+    cardIndex: z.number().int().nonnegative().optional(),
   }),
   z.object({
     type: z.literal("picker.changed"),

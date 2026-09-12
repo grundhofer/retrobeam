@@ -328,9 +328,11 @@ describe("picker & roster", () => {
       seed: 42,
       startAt: 1000,
       durationMs: 4500,
+      cardIndex: 1,
     });
     expect(state.picker?.current).toBe(anna.id);
     expect(state.lastSpin?.winnerId).toBe(anna.id);
+    expect(state.lastSpin?.cardIndex).toBe(1);
   });
 
   it("phase.changed keeps the picker but clears the spin animation", () => {

@@ -707,7 +707,7 @@ export class BoardRoom extends DurableObject<Env> {
         this.handleNoteMoveMany(ws, participant, command);
         return;
       case "admin.picker.spin":
-        this.handlePickerSpin(ws, participant);
+        this.handlePickerSpin(ws, participant, command);
         return;
       case "admin.picker.skip":
         this.handlePickerSkip(ws, participant);
@@ -2308,7 +2308,11 @@ export class BoardRoom extends DurableObject<Env> {
   // picker (who presents next) & roles
   // ---------------------------------------------------------------------
 
-  private handlePickerSpin(ws: WebSocket, participant: ParticipantRow): void {
+  private handlePickerSpin(
+    ws: WebSocket,
+    participant: ParticipantRow,
+    command: Extract<ClientCommand, { type: "admin.picker.spin" }>,
+  ): void {
     if (participant.role !== "facilitator") {
       this.reject(
         ws,
@@ -2374,6 +2378,16 @@ export class BoardRoom extends DurableObject<Env> {
     );
     const candidates = picker.remaining.filter((id) => online.has(id));
     const pool = candidates.length > 0 ? candidates : [...picker.remaining];
+    const pickerStyle =
+      pickerStyleSchema.safeParse(this.getMeta("pickerStyle")).data ?? "wheel";
+    if (
+      pickerStyle === "cards" &&
+      command.cardIndex !== undefined &&
+      command.cardIndex >= pool.length
+    ) {
+      this.reject(ws, undefined, "INVALID", "Card index is outside the deck");
+      return;
+    }
     const winnerId = pool[randomIndex(pool.length)] as string;
     const beforeDraw = this.revealNow();
     picker = withPresenterRevealed(
@@ -2389,14 +2403,15 @@ export class BoardRoom extends DurableObject<Env> {
     this.savePicker(picker);
     const seedBuf = new Uint32Array(1);
     crypto.getRandomValues(seedBuf);
-    const pickerStyle =
-      pickerStyleSchema.safeParse(this.getMeta("pickerStyle")).data ?? "wheel";
     const spin: WheelSpin = {
       pool,
       winnerId,
       seed: seedBuf[0] as number,
       startAt: Date.now() + WHEEL_START_DELAY_MS,
       durationMs: pickerStyle === "cards" ? CARD_REVEAL_MS : WHEEL_SPIN_MS,
+      ...(pickerStyle === "cards"
+        ? { cardIndex: command.cardIndex ?? randomIndex(pool.length) }
+        : {}),
     };
     // Persisted for the in-flight guard above and so reconnect syncs can
     // resume the animation instead of killing the wheel mid-spin.

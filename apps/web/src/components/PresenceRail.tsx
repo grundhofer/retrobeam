@@ -29,6 +29,8 @@ export interface PresenceRailProps {
   scopedRound?: boolean;
   /** current draw skin — the facilitator switches it from the cockpit */
   pickerStyle?: PickerStyle;
+  /** opens the full-screen face-down deck; the rail only launches it */
+  onOpenCards?: () => void;
 }
 
 // The rail wears three hats depending on the phase, but always as ONE list:
@@ -55,6 +57,7 @@ export function PresenceRail({
   isAdmin,
   scopedRound = false,
   pickerStyle = "wheel",
+  onOpenCards,
 }: PresenceRailProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -133,11 +136,15 @@ export function PresenceRail({
       {mode === "present" && isAdmin && !finished && spinLabel !== null ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 px-3 py-2 lg:shrink-0">
           {pickerStyle === "cards" && cardCount > 0 ? (
-            <FaceDownCards
-              count={cardCount}
+            <button
+              type="button"
+              data-testid="open-card-picker"
               disabled={spinning}
-              onChoose={() => send({ type: "admin.picker.spin" })}
-            />
+              onClick={onOpenCards}
+              className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
+            >
+              🂠 {t("picker.chooseCard")}
+            </button>
           ) : (
             <button
               type="button"
@@ -268,46 +275,6 @@ export function PresenceRail({
         </p>
       ) : null}
     </aside>
-  );
-}
-
-function FaceDownCards({
-  count,
-  disabled,
-  onChoose,
-}: {
-  count: number;
-  disabled: boolean;
-  onChoose: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div data-testid="picker-card-deck" className="w-full">
-      <p className="mb-2 text-xs font-medium text-zinc-500">
-        {t("picker.chooseCard")}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {Array.from({ length: count }, (_, index) => (
-          <button
-            key={index}
-            type="button"
-            data-testid="picker-card"
-            aria-label={t("picker.chooseCardAria", { index: index + 1 })}
-            disabled={disabled}
-            onClick={onChoose}
-            className="group relative h-14 w-10 rounded-md border-2 border-white bg-accent shadow-sm ring-1 ring-accent-strong transition hover:-translate-y-1 hover:shadow-md focus-visible:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:translate-y-0 disabled:opacity-40"
-          >
-            <span className="absolute inset-1 rounded-sm border border-white/50" />
-            <span
-              aria-hidden="true"
-              className="relative text-lg text-white/90 transition group-hover:scale-110"
-            >
-              ✦
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }
 
