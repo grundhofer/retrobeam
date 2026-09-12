@@ -24,7 +24,13 @@ function view(sent: ClientCommand[], isAdmin = true, locked = false) {
         mutate: () => {},
       }}
     >
-      <PhasePlanPanel phasePlan={plan} isAdmin={isAdmin} locked={locked} />
+      <PhasePlanPanel
+        phasePlan={plan}
+        isAdmin={isAdmin}
+        locked={locked}
+        icebreakerId={null}
+        workingAgreements=""
+      />
     </ConnectionProvider>
   );
 }
@@ -42,6 +48,40 @@ test("the facilitator can toggle an optional phase", async () => {
     },
   ]);
   await expect.element(screen.getByTestId("phase-plan-close")).toBeDisabled();
+});
+
+test("check-in setup stays in the facilitator's lobby", async () => {
+  const sent: ClientCommand[] = [];
+  const screen = await render(
+    <ConnectionProvider
+      value={{
+        boardId: "a".repeat(32),
+        send: (command) => sent.push(command),
+        mutate: () => {},
+      }}
+    >
+      <PhasePlanPanel
+        phasePlan={{ ...plan, checkin: true }}
+        isAdmin
+        locked={false}
+        icebreakerId={null}
+        workingAgreements=""
+      />
+    </ConnectionProvider>,
+  );
+
+  await screen.getByTestId("checkin-question-select").selectOptions("weather");
+  await screen.getByTestId("agreements-edit").click();
+  await screen.getByTestId("agreements-input").fill("Listen first.");
+  await screen.getByRole("button", { name: /save|speichern/i }).click();
+
+  expect(sent).toEqual([
+    {
+      type: "admin.checkin.question.set",
+      icebreakerId: "weather",
+    },
+    { type: "admin.agreements.set", text: "Listen first." },
+  ]);
 });
 
 test("core phases and the read-only member view cannot be changed", async () => {

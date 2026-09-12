@@ -519,6 +519,10 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
   // Check-in warm-up.
   z.object({ type: z.literal("admin.checkin.shuffle") }),
   z.object({
+    type: z.literal("admin.checkin.question.set"),
+    icebreakerId: icebreakerIdSchema.nullable(),
+  }),
+  z.object({
     type: z.literal("admin.agreements.set"),
     text: workingAgreementsSchema,
   }),
@@ -828,6 +832,11 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     type: z.literal("checkin.shuffled"),
     seq: z.number(),
     icebreakerId: icebreakerIdSchema,
+  }),
+  z.object({
+    type: z.literal("checkin.question.changed"),
+    seq: z.number(),
+    icebreakerId: icebreakerIdSchema.nullable(),
   }),
   z.object({
     type: z.literal("agreements.changed"),

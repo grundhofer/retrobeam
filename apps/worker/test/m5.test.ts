@@ -42,7 +42,7 @@ async function toClose(admin: { socket: TestSocket }) {
 }
 
 describe("check-in", () => {
-  it("picks an icebreaker on entering check-in; the admin can shuffle it for everyone", async () => {
+  it("lets the facilitator prepare the icebreaker before entering check-in", async () => {
     // Check-in is off by default; opt in so the phase is reachable.
     const { boardId, adminToken } = await createBoard("Sprint 12", {
       checkin: true,
@@ -50,46 +50,67 @@ describe("check-in", () => {
     const admin = await joined(boardId, "Anna", adminToken);
     const ben = await joined(boardId, "Ben");
 
-    admin.socket.send({ type: "admin.phase.set", phase: "checkin" });
-    const shuffled = await ben.socket.waitFor(
+    admin.socket.send({ type: "admin.checkin.shuffle" });
+    const shuffled = await ben.socket.waitForNext(
       (e) => e.type === "checkin.shuffled",
     );
     if (shuffled.type !== "checkin.shuffled") throw new Error("unreachable");
     const first = shuffled.icebreakerId;
     expect(ICEBREAKER_IDS).toContain(first);
 
-    // Ben's fresh sync carries the same icebreaker (persisted).
+    admin.socket.send({
+      type: "admin.checkin.question.set",
+      icebreakerId: "weather",
+    });
+    const selected = await ben.socket.waitForNext(
+      (e) => e.type === "checkin.question.changed",
+    );
+    if (selected.type !== "checkin.question.changed")
+      throw new Error("unreachable");
+    expect(selected.icebreakerId).toBe("weather");
+
+    // Ben's fresh sync carries the prepared question (persisted).
     ben.socket.send({ type: "resync" });
     const sync = await ben.socket.waitFor(
       (e) => e.type === "sync" && e.icebreakerId !== null,
     );
     if (sync.type !== "sync") throw new Error("unreachable");
-    expect(sync.icebreakerId).toBe(first);
+    expect(sync.icebreakerId).toBe("weather");
 
-    // Admin shuffle picks a DIFFERENT question, synced to Ben.
+    await toPhase(admin.socket, "checkin");
+    // The live screen is presentation-only; changing its question is refused.
     admin.socket.send({ type: "admin.checkin.shuffle" });
-    const reshuffled = await ben.socket.waitFor(
-      (e) => e.type === "checkin.shuffled" && e.icebreakerId !== first,
-    );
-    if (reshuffled.type !== "checkin.shuffled") throw new Error("unreachable");
-    expect(reshuffled.icebreakerId).not.toBe(first);
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (locked.type !== "reject") throw new Error("unreachable");
+    expect(locked.code).toBe("PHASE_LOCKED");
   });
 
-  it("only the facilitator shuffles, and only during check-in", async () => {
+  it("only the facilitator configures the check-in, and only before start", async () => {
     const { boardId, adminToken } = await createBoard("Sprint 12", {
       checkin: true,
     });
     const admin = await joined(boardId, "Anna", adminToken);
     const ben = await joined(boardId, "Ben");
-    await toPhase(admin.socket, "checkin");
-
     ben.socket.send({ type: "admin.checkin.shuffle" });
     const notAdmin = await ben.socket.waitForNext((e) => e.type === "reject");
     if (notAdmin.type !== "reject") throw new Error("unreachable");
     expect(notAdmin.code).toBe("NOT_ADMIN");
 
-    await toPhase(admin.socket, "write");
-    admin.socket.send({ type: "admin.checkin.shuffle" });
+    ben.socket.send({
+      type: "admin.checkin.question.set",
+      icebreakerId: "weather",
+    });
+    const selectForbidden = await ben.socket.waitForNext(
+      (e) => e.type === "reject",
+    );
+    if (selectForbidden.type !== "reject") throw new Error("unreachable");
+    expect(selectForbidden.code).toBe("NOT_ADMIN");
+
+    await toPhase(admin.socket, "checkin");
+    admin.socket.send({
+      type: "admin.checkin.question.set",
+      icebreakerId: "weather",
+    });
     const locked = await admin.socket.waitForNext((e) => e.type === "reject");
     if (locked.type !== "reject") throw new Error("unreachable");
     expect(locked.code).toBe("PHASE_LOCKED");
@@ -112,6 +133,15 @@ describe("check-in", () => {
 
     const cara = await joined(boardId, "Cara");
     expect(cara.sync.workingAgreements).toBe("Vegas rule. Be kind.");
+
+    await toPhase(admin.socket, "write");
+    admin.socket.send({
+      type: "admin.agreements.set",
+      text: "Too late",
+    });
+    const locked = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (locked.type !== "reject") throw new Error("unreachable");
+    expect(locked.code).toBe("PHASE_LOCKED");
 
     // Members can't edit.
     ben.socket.send({ type: "admin.agreements.set", text: "hacked" });

@@ -6,7 +6,8 @@ import { z } from "zod";
 // Check-in question bank. Only the STABLE ids live here; the localized text is
 // rendered client-side (t(`icebreaker.${id}`)), so participants viewing in
 // different languages each read the question in their own language. The
-// server picks an id — never text — on entering the check-in phase.
+// The server stores an id — never text — selected in the lobby or drawn when
+// the check-in begins, so every client renders it in its own language.
 export const ICEBREAKER_IDS = [
   "one-word",
   "weather",

@@ -93,6 +93,11 @@ const resources = {
         memberHint: "This is the planned agenda for the retro.",
         locked: "The agenda is locked because this retro has already started.",
         required: "Required",
+        checkin: {
+          question: "Icebreaker question",
+          randomOnStart: "Choose a random question when the check-in starts",
+          randomize: "Choose a random question now",
+        },
         phase: {
           checkin: {
             title: "Check-in",
@@ -629,6 +634,11 @@ const resources = {
         locked:
           "Der Ablauf ist gesperrt, da diese Retro bereits gestartet wurde.",
         required: "Pflichtphase",
+        checkin: {
+          question: "Icebreaker-Frage",
+          randomOnStart: "Beim Check-in eine zufällige Frage auswählen",
+          randomize: "Jetzt eine zufällige Frage auswählen",
+        },
         phase: {
           checkin: {
             title: "Check-in",

@@ -3,24 +3,21 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useConnection } from "../lib/connection.js";
+import type { IcebreakerId } from "@retrobeam/shared";
 
 export interface CheckinPanelProps {
-  icebreakerId: string | null;
+  icebreakerId: IcebreakerId | null;
   workingAgreements: string;
-  isAdmin: boolean;
 }
 
 // The warm-up: an icebreaker question the room answers, the Prime Directive,
-// and editable working agreements. The actual sharing happens out loud; the
-// ready-check (in the phase bar) signals who has checked in.
+// and the prepared working agreements. Configuration happens privately in the
+// facilitator's lobby; the live phase is presentation-only for everyone.
 export function CheckinPanel({
   icebreakerId,
   workingAgreements,
-  isAdmin,
 }: CheckinPanelProps) {
   const { t } = useTranslation();
-  const { send } = useConnection();
   const [showDirective, setShowDirective] = useState(true);
 
   return (
@@ -37,16 +34,6 @@ export function CheckinPanel({
             ? t(`icebreaker.${icebreakerId}`)
             : t("checkin.noQuestion")}
         </p>
-        {isAdmin ? (
-          <button
-            type="button"
-            data-testid="icebreaker-shuffle"
-            onClick={() => send({ type: "admin.checkin.shuffle" })}
-            className="mt-4 rounded-lg border border-zinc-200 px-3 py-1 text-sm text-zinc-600 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            🔀 {t("checkin.shuffle")}
-          </button>
-        ) : null}
       </section>
 
       {showDirective ? (
@@ -68,29 +55,13 @@ export function CheckinPanel({
         </section>
       ) : null}
 
-      <WorkingAgreements
-        text={workingAgreements}
-        isAdmin={isAdmin}
-        onSave={(next) => send({ type: "admin.agreements.set", text: next })}
-      />
+      <WorkingAgreements text={workingAgreements} />
     </div>
   );
 }
 
-function WorkingAgreements({
-  text,
-  isAdmin,
-  onSave,
-}: {
-  text: string;
-  isAdmin: boolean;
-  onSave: (text: string) => void;
-}) {
+function WorkingAgreements({ text }: { text: string }) {
   const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
-  // The draft is seeded from the current text each time editing opens (the
-  // edit button below), so no prop→state sync effect is needed.
-  const [draft, setDraft] = useState(text);
   const display = text.trim() === "" ? t("checkin.agreementsDefault") : text;
 
   return (
@@ -99,56 +70,8 @@ function WorkingAgreements({
         <h2 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">
           {t("checkin.agreements")}
         </h2>
-        {isAdmin && !editing ? (
-          <button
-            type="button"
-            data-testid="agreements-edit"
-            onClick={() => {
-              setDraft(text);
-              setEditing(true);
-            }}
-            className="rounded px-2 py-0.5 text-sm text-zinc-500 hover:bg-zinc-100"
-          >
-            ✎ {t("checkin.edit")}
-          </button>
-        ) : null}
       </div>
-      {editing ? (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSave(draft.trim());
-            setEditing(false);
-          }}
-        >
-          <textarea
-            autoFocus
-            value={draft}
-            data-testid="agreements-input"
-            onChange={(event) => setDraft(event.target.value)}
-            maxLength={1000}
-            rows={4}
-            className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-accent"
-          />
-          <div className="mt-2 flex gap-2">
-            <button
-              type="submit"
-              className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong"
-            >
-              {t("note.save")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100"
-            >
-              {t("note.cancel")}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <p className="text-sm whitespace-pre-wrap text-zinc-700">{display}</p>
-      )}
+      <p className="text-sm whitespace-pre-wrap text-zinc-700">{display}</p>
     </section>
   );
 }

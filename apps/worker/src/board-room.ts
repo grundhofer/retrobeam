@@ -775,6 +775,9 @@ export class BoardRoom extends DurableObject<Env> {
       case "admin.checkin.shuffle":
         this.handleCheckinShuffle(ws, participant);
         return;
+      case "admin.checkin.question.set":
+        this.handleCheckinQuestionSet(ws, participant, command.icebreakerId);
+        return;
       case "admin.agreements.set":
         this.handleAgreementsSet(ws, participant, command);
         return;
@@ -3802,11 +3805,49 @@ export class BoardRoom extends DurableObject<Env> {
       );
       return;
     }
-    if (this.phase() !== "checkin") {
-      this.reject(ws, undefined, "PHASE_LOCKED", "The check-in is not open");
+    if (this.phasePlanLocked()) {
+      this.reject(
+        ws,
+        undefined,
+        "PHASE_LOCKED",
+        "The check-in is locked after the retro starts",
+      );
       return;
     }
     this.shuffleIcebreaker();
+  }
+
+  private handleCheckinQuestionSet(
+    ws: WebSocket,
+    participant: ParticipantRow,
+    icebreakerId: IcebreakerId | null,
+  ): void {
+    if (participant.role !== "facilitator") {
+      this.reject(
+        ws,
+        undefined,
+        "NOT_ADMIN",
+        "Only the facilitator configures the check-in",
+      );
+      return;
+    }
+    if (this.phasePlanLocked()) {
+      this.reject(
+        ws,
+        undefined,
+        "PHASE_LOCKED",
+        "The check-in is locked after the retro starts",
+      );
+      return;
+    }
+    if (icebreakerId === null)
+      this.sql.exec("DELETE FROM board_meta WHERE key = 'icebreakerId'");
+    else this.setMeta("icebreakerId", icebreakerId);
+    this.broadcastAll({
+      type: "checkin.question.changed",
+      seq: this.nextSeq(),
+      icebreakerId,
+    });
   }
 
   private handleAgreementsSet(
@@ -3820,6 +3861,15 @@ export class BoardRoom extends DurableObject<Env> {
         undefined,
         "NOT_ADMIN",
         "Only the facilitator edits the agreements",
+      );
+      return;
+    }
+    if (this.phasePlanLocked()) {
+      this.reject(
+        ws,
+        undefined,
+        "PHASE_LOCKED",
+        "The agreements are locked after the retro starts",
       );
       return;
     }

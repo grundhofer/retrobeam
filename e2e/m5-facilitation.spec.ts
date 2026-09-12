@@ -89,32 +89,26 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   await join(cara, "Cara");
   await expect(anna.getByTestId("roster-item")).toHaveCount(3);
 
-  // First "next" enters the check-in phase — an icebreaker appears for both.
-  await anna.getByTestId("phase-next").click();
-  await expect(anna.getByTestId("icebreaker-question")).toBeVisible();
-  await expect(ben.getByTestId("icebreaker-question")).toBeVisible();
-  const first = (
-    await ben.getByTestId("icebreaker-question").innerText()
-  ).trim();
-
-  // Admin shuffles → both screens get the same NEW question.
-  await anna.getByTestId("icebreaker-shuffle").click();
-  await expect(ben.getByTestId("icebreaker-question")).not.toHaveText(first, {
-    timeout: 10_000,
-  });
-  await expect(anna.getByTestId("icebreaker-question")).not.toHaveText(first, {
-    timeout: 10_000,
-  });
-  const second = (
-    await ben.getByTestId("icebreaker-question").innerText()
-  ).trim();
-  await expect(anna.getByTestId("icebreaker-question")).toHaveText(second);
-
-  // Facilitator edits the working agreements; Ben sees the change.
+  // Anna prepares the whole check-in privately in the lobby. Other members
+  // see that the phase is enabled, but not the setup controls or draft.
+  await anna.getByTestId("checkin-question-select").selectOption("weather");
   await anna.getByTestId("agreements-edit").click();
   await anna.getByTestId("agreements-input").fill("Cameras on, phones away.");
   await anna.getByRole("button", { name: /^(save|speichern)$/i }).click();
+  await expect(ben.getByTestId("checkin-setup")).toHaveCount(0);
+  await expect(ben.getByText("Cameras on, phones away.")).toHaveCount(0);
+
+  // First "next" presents the prepared check-in to everyone.
+  await anna.getByTestId("phase-next").click();
+  await expect(anna.getByTestId("icebreaker-question")).toBeVisible();
+  await expect(ben.getByTestId("icebreaker-question")).toBeVisible();
+  const question = (
+    await ben.getByTestId("icebreaker-question").innerText()
+  ).trim();
+  await expect(anna.getByTestId("icebreaker-question")).toHaveText(question);
   await expect(ben.getByText("Cameras on, phones away.")).toBeVisible();
+  await expect(anna.getByTestId("icebreaker-shuffle")).toHaveCount(0);
+  await expect(anna.getByTestId("agreements-edit")).toHaveCount(0);
 
   // Walk to the close phase (write → present → vote → discuss → close).
   for (let i = 0; i < 5; i++) await anna.getByTestId("phase-next").click();

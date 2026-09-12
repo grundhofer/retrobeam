@@ -63,6 +63,8 @@ function sampleFor(type: string, columnId: string, participantId: string) {
     case "admin.board.keep":
     case "admin.board.delete":
       return { type };
+    case "admin.checkin.question.set":
+      return { type, icebreakerId: "one-word" };
     case "admin.column.create":
       return { ...base, columnId: hexId(), name: "New column" };
     case "admin.column.rename":

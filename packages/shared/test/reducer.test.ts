@@ -607,7 +607,7 @@ describe("appreciation & retention (M4)", () => {
 });
 
 describe("check-in & ROTI (M5)", () => {
-  it("checkin.shuffled and agreements.changed update state", () => {
+  it("check-in question and agreements changes update state", () => {
     let state = afterSync();
     state = applyServerEvent(state, {
       type: "checkin.shuffled",
@@ -616,8 +616,14 @@ describe("check-in & ROTI (M5)", () => {
     });
     expect(state.icebreakerId).toBe("weather");
     state = applyServerEvent(state, {
-      type: "agreements.changed",
+      type: "checkin.question.changed",
       seq: 7,
+      icebreakerId: null,
+    });
+    expect(state.icebreakerId).toBeNull();
+    state = applyServerEvent(state, {
+      type: "agreements.changed",
+      seq: 8,
       text: "Be kind",
     });
     expect(state.workingAgreements).toBe("Be kind");

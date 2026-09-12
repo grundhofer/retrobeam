@@ -14,6 +14,7 @@ import type {
   Timer,
 } from "../protocol.js";
 import { IDLE_TIMER } from "../protocol.js";
+import type { IcebreakerId } from "./icebreakers.js";
 import { phaseRevealed, type Phase } from "./phases.js";
 import type { PickerState, WheelSpin } from "./picker.js";
 
@@ -74,7 +75,7 @@ export interface ClientBoardState {
   /** appreciation wall — populated only from the close phase on */
   kudos: Kudo[];
   /** current check-in icebreaker id (null until check-in runs) */
-  icebreakerId: string | null;
+  icebreakerId: IcebreakerId | null;
   workingAgreements: string;
   /** ROTI closing poll: anonymous aggregate + the viewer's own score.
    *  average is null until enough people respond to stay anonymous. */
@@ -266,6 +267,13 @@ export function applyServerEvent(
       };
 
     case "checkin.shuffled":
+      return {
+        ...state,
+        icebreakerId: event.icebreakerId,
+        lastSeq: seq(state, event.seq),
+      };
+
+    case "checkin.question.changed":
       return {
         ...state,
         icebreakerId: event.icebreakerId,

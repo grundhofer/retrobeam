@@ -523,6 +523,8 @@ function Room({
                 phasePlan={phasePlan}
                 isAdmin={isAdmin}
                 locked={config?.phasePlanLocked ?? false}
+                icebreakerId={state.icebreakerId}
+                workingAgreements={state.workingAgreements}
               />
               <div className="rounded-xl border border-zinc-200 bg-white p-5">
                 <p className="mb-4 text-sm text-zinc-500">
@@ -536,7 +538,6 @@ function Room({
             <CheckinPanel
               icebreakerId={state.icebreakerId}
               workingAgreements={state.workingAgreements}
-              isAdmin={isAdmin}
             />
           ) : state.phase === "close" ? (
             <div className="flex flex-col gap-8">
