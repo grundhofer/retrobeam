@@ -114,6 +114,8 @@ export function withAllRevealed(picker: PickerState): PickerState {
 }
 
 export const WHEEL_SPIN_MS = 4500;
+/** A card only needs one deliberate flip, not a full wheel-length animation. */
+export const CARD_REVEAL_MS = 1400;
 /** lead time between the server timestamp and the animation start */
 export const WHEEL_START_DELAY_MS = 300;
 /** how long the winner card stays up after the wheel stops */
@@ -164,7 +166,7 @@ export function wheelTargetRotation(
 
 // Alternative picker skin: a slot machine. Same server draw, same seed — only
 // the visual differs, so the drawn winner is identical to the wheel.
-export const pickerStyles = ["wheel", "slots"] as const;
+export const pickerStyles = ["wheel", "slots", "cards"] as const;
 export type PickerStyle = (typeof pickerStyles)[number];
 
 export const SLOT_REELS = 3;

@@ -4,6 +4,7 @@
 import { DurableObject } from "cloudflare:workers";
 import {
   canTransition,
+  CARD_REVEAL_MS,
   CURSORS_ACTIVATABLE,
   DEFAULT_PHASE_PLAN,
   DEFAULT_VOTE_CONFIG,
@@ -424,7 +425,7 @@ export class BoardRoom extends DurableObject<Env> {
         config?.phasePlan ?? creation.phasePlan ?? DEFAULT_PHASE_PLAN,
       ),
       config === undefined || config.gifsEnabled ? "1" : "0",
-      config?.pickerStyle ?? "wheel",
+      config?.pickerCards ? "cards" : (config?.pickerStyle ?? "wheel"),
       config?.layout ?? creation.layout ?? "columns",
       config?.cursorsEnabled ? "1" : "0",
       // ON for a new board — the room discusses a crowned card with the people
@@ -2344,12 +2345,14 @@ export class BoardRoom extends DurableObject<Env> {
     this.savePicker(picker);
     const seedBuf = new Uint32Array(1);
     crypto.getRandomValues(seedBuf);
+    const pickerStyle =
+      pickerStyleSchema.safeParse(this.getMeta("pickerStyle")).data ?? "wheel";
     const spin: WheelSpin = {
       pool,
       winnerId,
       seed: seedBuf[0] as number,
       startAt: Date.now() + WHEEL_START_DELAY_MS,
-      durationMs: WHEEL_SPIN_MS,
+      durationMs: pickerStyle === "cards" ? CARD_REVEAL_MS : WHEEL_SPIN_MS,
     };
     // Persisted for the in-flight guard above and so reconnect syncs can
     // resume the animation instead of killing the wheel mid-spin.
@@ -4720,6 +4723,8 @@ export class BoardRoom extends DurableObject<Env> {
 
   private config(): BoardConfig {
     const maxRaw = this.getMeta("maxPerTarget");
+    const storedPickerStyle =
+      pickerStyleSchema.safeParse(this.getMeta("pickerStyle")).data ?? "wheel";
     return {
       anonymous: this.anonymous(),
       phasePlan: this.phasePlan(),
@@ -4730,15 +4735,11 @@ export class BoardRoom extends DurableObject<Env> {
       topN: Number(this.getMeta("topN") ?? DEFAULT_VOTE_CONFIG.topN),
       // Default true for boards created before the toggle existed.
       gifsEnabled: this.getMeta("gifsEnabled") !== "0",
-      // Validated against the schema, not a hand-written ternary. The old
-      // `=== "slots" ? "slots" : "wheel"` made the picker's extensibility a
-      // lie: a third style would broadcast correctly live and then silently
-      // revert to the wheel on every reconnect, every sync and every board
-      // duplication. Same fail-safe direction as phase() — an unreadable value
-      // reads as the classic wheel.
-      pickerStyle:
-        pickerStyleSchema.safeParse(this.getMeta("pickerStyle")).data ??
-        "wheel",
+      // `cards` uses an additive flag so an already-open older client can
+      // still parse this config and safely render its wheel fallback. New
+      // clients combine the flag with this legacy two-value field.
+      pickerStyle: storedPickerStyle === "slots" ? "slots" : "wheel",
+      pickerCards: storedPickerStyle === "cards",
       // Same reasoning as pickerStyle above; columns for boards created
       // before the layout field, and for anything unreadable.
       layout:

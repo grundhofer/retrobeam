@@ -54,9 +54,10 @@ function SpinScene({
   // Freeze the skin for this spin's lifetime: SpinScene is keyed by
   // spin.startAt, so it captures the style at mount and a mid-spin picker-style
   // change can't remount (and restart) the animation on every client.
-  const [pickerStyle] = useState(
-    () => useBoardStore.getState().state.config?.pickerStyle ?? "wheel",
-  );
+  const [pickerStyle] = useState<PickerStyle>(() => {
+    const config = useBoardStore.getState().state.config;
+    return config?.pickerCards ? "cards" : (config?.pickerStyle ?? "wheel");
+  });
   const reducedMotion =
     typeof matchMedia !== "undefined" &&
     matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -120,6 +121,10 @@ function PickerSkin({
   clockOffsetMs: number;
 }) {
   switch (style) {
+    case "cards":
+      return (
+        <CardReveal spin={spin} roster={roster} clockOffsetMs={clockOffsetMs} />
+      );
     case "slots":
       return (
         <SlotMachine
@@ -133,6 +138,78 @@ function PickerSkin({
         <Wheel spin={spin} roster={roster} clockOffsetMs={clockOffsetMs} />
       );
   }
+}
+
+function CardReveal({
+  spin,
+  roster,
+  clockOffsetMs,
+}: {
+  spin: WheelSpin;
+  roster: Participant[];
+  clockOffsetMs: number;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const winner = roster.find((participant) => participant.id === spin.winnerId);
+
+  useEffect(() => {
+    const delay = Math.max(0, spin.startAt - clockOffsetMs - Date.now());
+    let raf = 0;
+    const timeout = setTimeout(() => {
+      raf = requestAnimationFrame(() => {
+        raf = requestAnimationFrame(() => setRevealed(true));
+      });
+    }, delay);
+    return () => {
+      clearTimeout(timeout);
+      cancelAnimationFrame(raf);
+    };
+  }, [spin.startAt, clockOffsetMs]);
+
+  return (
+    <div
+      data-testid="card-reveal"
+      aria-hidden="true"
+      className="h-72 w-52"
+      style={{ perspective: 900 }}
+    >
+      <div
+        className="relative size-full"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: revealed ? "rotateY(180deg)" : "rotateY(0deg)",
+          transition: revealed
+            ? `transform ${spin.durationMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`
+            : undefined,
+        }}
+      >
+        <div
+          className="absolute inset-0 flex items-center justify-center rounded-3xl border-4 border-white bg-accent shadow-2xl"
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          <span className="absolute inset-3 rounded-2xl border-2 border-white/45" />
+          <span className="text-6xl text-white/90">✦</span>
+        </div>
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-3xl border-4 border-white bg-white px-5 text-center shadow-2xl"
+          style={{
+            backfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+          }}
+        >
+          <span
+            className="flex size-20 items-center justify-center rounded-full text-2xl font-semibold text-white"
+            style={{ backgroundColor: winner?.color ?? "#9AA1AD" }}
+          >
+            {nameMonogram(winner?.name ?? "?")}
+          </span>
+          <span className="text-xl font-semibold text-zinc-900">
+            {winner?.name ?? "?"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // --- wheel geometry -------------------------------------------------------

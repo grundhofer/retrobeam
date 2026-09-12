@@ -73,6 +73,12 @@ export function PresenceRail({
   const onlineCount = roster.filter((p) => p.online).length;
   const youReady = readyIds.includes(you.id);
   const finished = picker !== null && pickerFinished(picker);
+  const onlineRemaining =
+    picker?.remaining.filter((id) =>
+      roster.some((p) => p.id === id && p.online),
+    ).length ?? 0;
+  const cardCount =
+    onlineRemaining > 0 ? onlineRemaining : (picker?.remaining.length ?? 0);
 
   const celebrated = useRef(false);
   useEffect(() => {
@@ -126,15 +132,28 @@ export function PresenceRail({
 
       {mode === "present" && isAdmin && !finished && spinLabel !== null ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 px-3 py-2 lg:shrink-0">
-          <button
-            type="button"
-            data-testid="spin-button"
-            disabled={spinning}
-            onClick={() => send({ type: "admin.picker.spin" })}
-            className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
-          >
-            {pickerStyle === "slots" ? "🎰" : "🎡"} {spinLabel}
-          </button>
+          {pickerStyle === "cards" && cardCount > 0 ? (
+            <FaceDownCards
+              count={cardCount}
+              disabled={spinning}
+              onChoose={() => send({ type: "admin.picker.spin" })}
+            />
+          ) : (
+            <button
+              type="button"
+              data-testid="spin-button"
+              disabled={spinning}
+              onClick={() => send({ type: "admin.picker.spin" })}
+              className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
+            >
+              {pickerStyle === "slots"
+                ? "🎰"
+                : pickerStyle === "cards"
+                  ? "✓"
+                  : "🎡"}{" "}
+              {spinLabel}
+            </button>
+          )}
           {picker?.current != null ? (
             <button
               type="button"
@@ -249,6 +268,46 @@ export function PresenceRail({
         </p>
       ) : null}
     </aside>
+  );
+}
+
+function FaceDownCards({
+  count,
+  disabled,
+  onChoose,
+}: {
+  count: number;
+  disabled: boolean;
+  onChoose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div data-testid="picker-card-deck" className="w-full">
+      <p className="mb-2 text-xs font-medium text-zinc-500">
+        {t("picker.chooseCard")}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {Array.from({ length: count }, (_, index) => (
+          <button
+            key={index}
+            type="button"
+            data-testid="picker-card"
+            aria-label={t("picker.chooseCardAria", { index: index + 1 })}
+            disabled={disabled}
+            onClick={onChoose}
+            className="group relative h-14 w-10 rounded-md border-2 border-white bg-accent shadow-sm ring-1 ring-accent-strong transition hover:-translate-y-1 hover:shadow-md focus-visible:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:translate-y-0 disabled:opacity-40"
+          >
+            <span className="absolute inset-1 rounded-sm border border-white/50" />
+            <span
+              aria-hidden="true"
+              className="relative text-lg text-white/90 transition group-hover:scale-110"
+            >
+              ✦
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

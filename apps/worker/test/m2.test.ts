@@ -3,7 +3,7 @@
 
 import { env, runInDurableObject } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import type { ServerEvent } from "@retrobeam/shared";
+import { CARD_REVEAL_MS, type ServerEvent } from "@retrobeam/shared";
 import { boardStub } from "../src/board-stub.js";
 import { connect, createBoard, type TestSocket } from "./helpers.js";
 
@@ -666,7 +666,7 @@ describe("canvas layout & positions", () => {
 });
 
 describe("picker style (skin)", () => {
-  it("defaults to the wheel and lets the facilitator switch to slots for everyone", async () => {
+  it("defaults to the wheel and syncs slots or cards to everyone", async () => {
     const { boardId, admin, ben } = await presentingBoard();
     expect(admin.sync.config.pickerStyle).toBe("wheel"); // new boards
 
@@ -677,9 +677,19 @@ describe("picker style (skin)", () => {
     if (changed.type !== "config.changed") throw new Error("unreachable");
     expect(changed.config.pickerStyle).toBe("slots");
 
+    admin.socket.send({ type: "admin.picker.style", style: "cards" });
+    const cards = await ben.socket.waitFor(
+      (e) => e.type === "config.changed" && e.config.pickerCards === true,
+    );
+    if (cards.type !== "config.changed") throw new Error("unreachable");
+    // Backward-compatible wire shape: old clients see the wheel; new clients
+    // combine the additive flag into the cards style.
+    expect(cards.config.pickerStyle).toBe("wheel");
+
     // A fresh joiner's sync carries the chosen skin (persisted).
     const cara = await joined(boardId, "Cara");
-    expect(cara.sync.config.pickerStyle).toBe("slots");
+    expect(cara.sync.config.pickerStyle).toBe("wheel");
+    expect(cara.sync.config.pickerCards).toBe(true);
   });
 
   it("only the facilitator changes the skin", async () => {
@@ -688,6 +698,18 @@ describe("picker style (skin)", () => {
     const rejected = await ben.socket.waitForNext((e) => e.type === "reject");
     if (rejected.type !== "reject") throw new Error("unreachable");
     expect(rejected.code).toBe("NOT_ADMIN");
+  });
+
+  it("uses the short reveal animation for a card draw", async () => {
+    const { admin } = await presentingBoard();
+    admin.socket.send({ type: "admin.picker.style", style: "cards" });
+    await admin.socket.waitFor(
+      (e) => e.type === "config.changed" && e.config.pickerCards === true,
+    );
+    admin.socket.send({ type: "admin.picker.spin" });
+    const drawn = await admin.socket.waitFor((e) => e.type === "picker.spun");
+    if (drawn.type !== "picker.spun") throw new Error("unreachable");
+    expect(drawn.durationMs).toBe(CARD_REVEAL_MS);
   });
 });
 

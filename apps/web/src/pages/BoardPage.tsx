@@ -302,6 +302,9 @@ function Room({
   const phasePlan = state.config?.phasePlan;
   const inLobby = state.phase === "lobby";
   const config = state.config;
+  const pickerStyle = config?.pickerCards
+    ? "cards"
+    : (config?.pickerStyle ?? "wheel");
   const usedVotes = Object.values(state.votes.mine).reduce(
     (sum, count) => sum + count,
     0,
@@ -606,6 +609,7 @@ function Room({
                     spotlightId={state.spotlightId}
                     focusMode={focusMode}
                     picker={state.picker}
+                    pickerStyle={pickerStyle}
                   />
                 ) : (
                   <BoardColumns
@@ -660,7 +664,7 @@ function Room({
                   you={you}
                   isAdmin={isAdmin}
                   scopedRound={scopedRound}
-                  pickerStyle={config?.pickerStyle ?? "wheel"}
+                  pickerStyle={pickerStyle}
                 />
               )}
             </div>

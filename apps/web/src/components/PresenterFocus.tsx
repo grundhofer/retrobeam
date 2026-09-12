@@ -10,6 +10,7 @@ import {
   type Note,
   type Participant,
   type Phase,
+  type PickerStyle,
   type PickerState,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
@@ -31,6 +32,7 @@ export interface PresenterFocusProps {
   focusMode: boolean;
   /** the rotation, so the last card can offer "next person" instead of "next" */
   picker: PickerState | null;
+  pickerStyle: PickerStyle;
 }
 
 // The readable "reader" for the presenting round: instead of hunting a sprawling
@@ -53,6 +55,7 @@ export function PresenterFocus({
   spotlightId,
   focusMode,
   picker,
+  pickerStyle,
 }: PresenterFocusProps) {
   const { t } = useTranslation();
   const theirs = notes.filter((note) => note.authorId === presenter.id);
@@ -143,7 +146,12 @@ export function PresenterFocus({
       )}
 
       {isAdmin ? (
-        <WalkthroughControl order={order} index={index} picker={picker} />
+        <WalkthroughControl
+          order={order}
+          index={index}
+          picker={picker}
+          pickerStyle={pickerStyle}
+        />
       ) : null}
     </div>
   );
@@ -218,10 +226,12 @@ function WalkthroughControl({
   order,
   index,
   picker,
+  pickerStyle,
 }: {
   order: string[];
   index: number;
   picker: PickerState | null;
+  pickerStyle: PickerStyle;
 }) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -242,11 +252,26 @@ function WalkthroughControl({
   // were still unread, with no way back in.
   const nextIndex = index < 0 ? 0 : index + 1;
   const hasNextCard = nextIndex < order.length;
+  const chooseFromDeck =
+    !hasNextCard &&
+    pickerStyle === "cards" &&
+    (picker?.remaining.length ?? 0) > 0;
   const label = hasNextCard
     ? t("present.walkthrough.nextCard")
     : (picker?.remaining.length ?? 0) > 0
       ? t("picker.next")
       : t("picker.finishRound");
+
+  if (chooseFromDeck) {
+    return (
+      <p
+        data-testid="choose-card-hint"
+        className="text-center text-sm font-medium text-zinc-500"
+      >
+        🂠 {t("picker.chooseCardHint")}
+      </p>
+    );
+  }
 
   return (
     <div className="flex justify-center">

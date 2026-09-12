@@ -57,6 +57,7 @@ export const boardInfoSchema = z.object({
 export type BoardInfo = z.infer<typeof boardInfoSchema>;
 
 export const pickerStyleSchema = z.enum(pickerStyles);
+const legacyPickerStyleSchema = z.enum(["wheel", "slots"]);
 
 export const boardConfigSchema = z.object({
   anonymous: z.boolean(),
@@ -71,7 +72,12 @@ export const boardConfigSchema = z.object({
   gifsEnabled: z.boolean(),
   /** who-presents-next picker skin — pure presentation, same server draw.
    *  Defaulted so boards created before the field parse as the classic wheel. */
-  pickerStyle: pickerStyleSchema.default("wheel"),
+  // Kept to the two original wire values so an already-open older client can
+  // still parse config updates when the new card picker is selected.
+  pickerStyle: legacyPickerStyleSchema.default("wheel"),
+  /** The third picker style is additive for old clients: they ignore this
+   *  optional flag and safely fall back to the wheel. */
+  pickerCards: z.boolean().optional(),
   /** board layout: classic columns or a freeform canvas of the same zones.
    *  Defaulted so boards created before the field parse as columns. */
   layout: layoutModeSchema.default("columns"),

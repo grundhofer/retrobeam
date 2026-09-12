@@ -131,6 +131,46 @@ test("slot-machine picker skin spins to a winner", async ({ browser }) => {
   await benCtx.close();
 });
 
+test("facilitator chooses a face-down card for the next presenter", async ({
+  browser,
+}) => {
+  const annaCtx = await newContext(browser);
+  const anna = await annaCtx.newPage();
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Card draw retro");
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  const boardUrl = anna.url();
+  await join(anna, "Anna");
+
+  const benCtx = await newContext(browser);
+  const ben = await benCtx.newPage();
+  await ben.goto(boardUrl);
+  await join(ben, "Ben");
+
+  await anna.getByTestId("phase-next").click();
+  await anna.getByTestId("phase-next").click();
+  await anna.getByTestId("picker-style").selectOption("cards");
+  await expect(anna.getByTestId("picker-style")).toHaveValue("cards");
+  await expect(anna.getByTestId("picker-card")).toHaveCount(2);
+  await expect(anna.getByTestId("spin-button")).toHaveCount(0);
+
+  await anna.getByTestId("picker-card").first().click();
+  await expect(anna.getByTestId("card-reveal")).toBeVisible();
+  await expect(ben.getByTestId("card-reveal")).toBeVisible();
+  await expect(anna.getByTestId("wheel-winner")).toBeVisible({
+    timeout: 8_000,
+  });
+  await expect(ben.getByTestId("wheel-winner")).toBeVisible({
+    timeout: 8_000,
+  });
+
+  await annaCtx.close();
+  await benCtx.close();
+});
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();

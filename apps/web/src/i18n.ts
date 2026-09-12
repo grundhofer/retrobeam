@@ -123,6 +123,9 @@ const resources = {
       picker: {
         spin: "Spin the wheel",
         startSlots: "Start slots",
+        chooseCard: "Choose a face-down card",
+        chooseCardAria: "Choose card {{index}}",
+        chooseCardHint: "Choose the next person's card in the sidebar",
         next: "Next person",
         finishRound: "Finish the round",
         presenting: "{{name}} is presenting",
@@ -267,6 +270,7 @@ const resources = {
         picker: {
           wheel: "Wheel",
           slots: "Slots",
+          cards: "Cards",
         },
         duplicate: "Duplicate board",
         duplicateName: "Copy of {{name}}",
@@ -619,6 +623,9 @@ const resources = {
       picker: {
         spin: "Rad drehen",
         startSlots: "Slots starten",
+        chooseCard: "Verdeckte Karte wählen",
+        chooseCardAria: "Karte {{index}} wählen",
+        chooseCardHint: "Wähle rechts die Karte der nächsten Person",
         next: "Nächste Person",
         finishRound: "Runde abschließen",
         presenting: "{{name}} präsentiert",
@@ -770,6 +777,7 @@ const resources = {
         picker: {
           wheel: "Glücksrad",
           slots: "Slots",
+          cards: "Karten",
         },
         duplicate: "Board duplizieren",
         duplicateName: "Kopie von {{name}}",
