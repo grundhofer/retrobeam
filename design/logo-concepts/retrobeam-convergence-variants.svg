@@ -1,0 +1,179 @@
+<!--
+SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 1600 960">
+  <defs>
+    <linearGradient id="page2" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fafafa"/>
+      <stop offset="1" stop-color="#eaf7f6"/>
+    </linearGradient>
+    <linearGradient id="tealBeam" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#0e7c7b"/>
+    </linearGradient>
+    <radialGradient id="roomGlow">
+      <stop stop-color="#ccfbf1" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#5eead4" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#18181b" flood-opacity=".09"/>
+    </filter>
+    <filter id="markShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#18181b" flood-opacity=".16"/>
+    </filter>
+
+    <!-- A: three participant signals enter one shared retro board. -->
+    <symbol id="signalBoard" viewBox="0 0 320 260">
+      <g fill="none" stroke-linecap="round" stroke-width="16">
+        <path d="M34 54c72 0 81 45 126 66" stroke="#e8590c"/>
+        <path d="M34 130c67 0 86 0 126 0" stroke="#0e7c7b"/>
+        <path d="M34 206c72 0 81-45 126-66" stroke="#e64980"/>
+      </g>
+      <g fill="#fff" stroke-width="8">
+        <circle cx="34" cy="54" r="20" stroke="#e8590c"/>
+        <circle cx="34" cy="130" r="20" stroke="#0e7c7b"/>
+        <circle cx="34" cy="206" r="20" stroke="#e64980"/>
+      </g>
+      <g fill="#18181b" opacity=".76">
+        <circle cx="34" cy="49" r="5"/><path d="M25 65c1-8 4-11 9-11s8 3 9 11Z"/>
+        <circle cx="34" cy="125" r="5"/><path d="M25 141c1-8 4-11 9-11s8 3 9 11Z"/>
+        <circle cx="34" cy="201" r="5"/><path d="M25 217c1-8 4-11 9-11s8 3 9 11Z"/>
+      </g>
+      <g filter="url(#markShadow)">
+        <rect x="145" y="52" width="150" height="150" rx="34" fill="#18181b"/>
+        <path d="m251 197 25 34 4-47Z" fill="#18181b"/>
+      </g>
+      <rect x="169" y="79" width="30" height="48" rx="8" fill="#e8590c" transform="rotate(-4 184 103)"/>
+      <rect x="205" y="75" width="30" height="48" rx="8" fill="#e8b50c" transform="rotate(3 220 99)"/>
+      <rect x="241" y="81" width="30" height="48" rx="8" fill="#e64980" transform="rotate(-3 256 105)"/>
+      <path d="M173 156h93" stroke="#5eead4" stroke-linecap="round" stroke-width="9"/>
+      <path d="M173 174h62" stroke="#0e7c7b" stroke-linecap="round" stroke-width="7" opacity=".8"/>
+    </symbol>
+
+    <!-- B: people are physically converted into beams and materialize in the board. -->
+    <symbol id="beamRoom" viewBox="0 0 320 260">
+      <ellipse cx="160" cy="146" rx="118" ry="102" fill="url(#roomGlow)"/>
+      <g fill="none" stroke-linecap="round" stroke-width="15">
+        <path d="M63 37c0 74 25 83 63 112" stroke="#e8590c"/>
+        <path d="M160 37v109" stroke="url(#tealBeam)"/>
+        <path d="M257 37c0 74-25 83-63 112" stroke="#e64980"/>
+      </g>
+      <g fill="#fff" stroke-width="8">
+        <circle cx="63" cy="34" r="20" stroke="#e8590c"/>
+        <circle cx="160" cy="34" r="20" stroke="#0e7c7b"/>
+        <circle cx="257" cy="34" r="20" stroke="#e64980"/>
+      </g>
+      <g fill="#18181b" opacity=".76">
+        <circle cx="63" cy="29" r="5"/><path d="M54 45c1-8 4-11 9-11s8 3 9 11Z"/>
+        <circle cx="160" cy="29" r="5"/><path d="M151 45c1-8 4-11 9-11s8 3 9 11Z"/>
+        <circle cx="257" cy="29" r="5"/><path d="M248 45c1-8 4-11 9-11s8 3 9 11Z"/>
+      </g>
+      <g fill="#fff" opacity=".76">
+        <circle cx="73" cy="86" r="3"/><circle cx="99" cy="120" r="3"/><circle cx="150" cy="89" r="3"/><circle cx="170" cy="116" r="3"/><circle cx="224" cy="103" r="3"/><circle cx="244" cy="75" r="3"/>
+      </g>
+      <g filter="url(#markShadow)">
+        <rect x="89" y="137" width="142" height="92" rx="28" fill="#18181b"/>
+        <path d="m199 225 20 28 3-36Z" fill="#18181b"/>
+      </g>
+      <rect x="111" y="158" width="28" height="38" rx="7" fill="#e8590c" transform="rotate(-4 125 177)"/>
+      <rect x="146" y="156" width="28" height="38" rx="7" fill="#e8b50c" transform="rotate(3 160 175)"/>
+      <rect x="181" y="159" width="28" height="38" rx="7" fill="#e64980" transform="rotate(-3 195 178)"/>
+      <path d="M115 210h89" stroke="#5eead4" stroke-linecap="round" stroke-width="7"/>
+    </symbol>
+
+    <!-- C: a backwards orbit gathers the team into the shared room. -->
+    <symbol id="returnOrbit" viewBox="0 0 320 260">
+      <circle cx="160" cy="130" r="103" fill="none" stroke="#dff6f4" stroke-width="18"/>
+      <path d="M78 69a104 104 0 0 1 163-4" fill="none" stroke="#0e7c7b" stroke-linecap="round" stroke-width="15"/>
+      <path d="m70 42 9 37 35-17Z" fill="#0e7c7b"/>
+      <path d="M65 184a104 104 0 0 1-8-87" fill="none" stroke="#e8590c" stroke-linecap="round" stroke-width="15"/>
+      <path d="M242 187a104 104 0 0 0 12-79" fill="none" stroke="#e64980" stroke-linecap="round" stroke-width="15"/>
+      <g fill="#fff" stroke-width="8">
+        <circle cx="64" cy="181" r="20" stroke="#e8590c"/>
+        <circle cx="83" cy="65" r="20" stroke="#0e7c7b"/>
+        <circle cx="244" cy="184" r="20" stroke="#e64980"/>
+      </g>
+      <g fill="#18181b" opacity=".76">
+        <circle cx="64" cy="176" r="5"/><path d="M55 192c1-8 4-11 9-11s8 3 9 11Z"/>
+        <circle cx="83" cy="60" r="5"/><path d="M74 76c1-8 4-11 9-11s8 3 9 11Z"/>
+        <circle cx="244" cy="179" r="5"/><path d="M235 195c1-8 4-11 9-11s8 3 9 11Z"/>
+      </g>
+      <g filter="url(#markShadow)">
+        <rect x="102" y="77" width="116" height="106" rx="27" fill="#18181b"/>
+        <path d="m184 180 18 26 3-34Z" fill="#18181b"/>
+      </g>
+      <rect x="120" y="99" width="24" height="34" rx="6" fill="#e8590c" transform="rotate(-4 132 116)"/>
+      <rect x="148" y="96" width="24" height="34" rx="6" fill="#e8b50c" transform="rotate(3 160 113)"/>
+      <rect x="176" y="100" width="24" height="34" rx="6" fill="#e64980" transform="rotate(-3 188 117)"/>
+      <path d="M123 152h73" stroke="#5eead4" stroke-linecap="round" stroke-width="7"/>
+    </symbol>
+
+    <style>
+      .ui2 { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .num { fill: #0e7c7b; font-size: 15px; font-weight: 800; letter-spacing: 1.7px; }
+      .name { fill: #18181b; font-size: 29px; font-weight: 800; letter-spacing: -1px; }
+      .desc { fill: #52525b; font-size: 17px; }
+      .word2 { fill: #18181b; font-size: 35px; font-weight: 820; letter-spacing: -1.4px; }
+      .beamword2 { fill: #0e7c7b; }
+      .small { fill: #71717a; font-size: 14px; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="960" fill="url(#page2)"/>
+  <g class="ui2">
+    <text x="54" y="65" fill="#18181b" font-size="39" font-weight="820" letter-spacing="-1.6">RetroBeam – Convergence-Richtung</text>
+    <text x="54" y="101" fill="#71717a" font-size="18">Drei verfeinerte Varianten auf Basis des stärksten ersten Entwurfs · inklusive Kleingrößenprobe</text>
+
+    <!-- Cards -->
+    <g filter="url(#cardShadow)"><rect x="50" y="140" width="480" height="750" rx="30" fill="#fff"/></g>
+    <g filter="url(#cardShadow)"><rect x="560" y="140" width="480" height="750" rx="30" fill="#fff"/></g>
+    <g filter="url(#cardShadow)"><rect x="1070" y="140" width="480" height="750" rx="30" fill="#fff"/></g>
+
+    <!-- A -->
+    <text class="num" x="84" y="185">4A · SIGNAL BOARD</text>
+    <use href="#signalBoard" x="110" y="210" width="360" height="292"/>
+    <text class="name" x="84" y="540">Beiträge fließen zusammen</text>
+    <text class="desc" x="84" y="575">Die klarste Weiterentwicklung des Originals.</text>
+    <text class="desc" x="84" y="603">Team und Retro-Board bleiben sofort erkennbar.</text>
+    <text class="word2" x="84" y="674">Retro<tspan class="beamword2">Beam</tspan></text>
+    <text class="small" x="84" y="704">präzise · kollaborativ · produktnah</text>
+    <line x1="84" y1="735" x2="496" y2="735" stroke="#e4e4e7"/>
+    <text class="small" x="84" y="770">64 px</text>
+    <use href="#signalBoard" x="130" y="744" width="78" height="63"/>
+    <text class="small" x="250" y="770">32 px</text>
+    <use href="#signalBoard" x="295" y="751" width="40" height="33"/>
+
+    <!-- B -->
+    <text class="num" x="594" y="185">4B · BEAM ROOM</text>
+    <rect x="900" y="164" width="102" height="28" rx="14" fill="#dff6f4"/>
+    <text x="951" y="183" fill="#0a5958" font-size="13" font-weight="750" text-anchor="middle">FAVORIT</text>
+    <use href="#beamRoom" x="620" y="210" width="360" height="292"/>
+    <text class="name" x="594" y="540">Das Team wird zum Beam</text>
+    <text class="desc" x="594" y="575">Die Personen lösen sich sichtbar in Strahlen auf.</text>
+    <text class="desc" x="594" y="603">Sci-Fi-Gefühl und Produkterklärung im Gleichgewicht.</text>
+    <text class="word2" x="594" y="674">Retro<tspan class="beamword2">Beam</tspan></text>
+    <text class="small" x="594" y="704">dynamisch · menschlich · eigenständig</text>
+    <line x1="594" y1="735" x2="1006" y2="735" stroke="#e4e4e7"/>
+    <text class="small" x="594" y="770">64 px</text>
+    <use href="#beamRoom" x="640" y="744" width="78" height="63"/>
+    <text class="small" x="760" y="770">32 px</text>
+    <use href="#beamRoom" x="805" y="751" width="40" height="33"/>
+
+    <!-- C -->
+    <text class="num" x="1104" y="185">4C · RETURN ORBIT</text>
+    <use href="#returnOrbit" x="1130" y="210" width="360" height="292"/>
+    <text class="name" x="1104" y="540">Zurück in den gemeinsamen Raum</text>
+    <text class="desc" x="1104" y="575">Die Rückwärtsbewegung erklärt zusätzlich „Retro“.</text>
+    <text class="desc" x="1104" y="603">Markanter, aber in kleinen Größen etwas komplexer.</text>
+    <text class="word2" x="1104" y="674">Retro<tspan class="beamword2">Beam</tspan></text>
+    <text class="small" x="1104" y="704">energetisch · erzählerisch · technisch</text>
+    <line x1="1104" y1="735" x2="1516" y2="735" stroke="#e4e4e7"/>
+    <text class="small" x="1104" y="770">64 px</text>
+    <use href="#returnOrbit" x="1150" y="744" width="78" height="63"/>
+    <text class="small" x="1270" y="770">32 px</text>
+    <use href="#returnOrbit" x="1315" y="751" width="40" height="33"/>
+
+    <text x="54" y="930" fill="#71717a" font-size="15">Bewertung: visuelle Klarheit · Eigenständigkeit · Animation · Lesbarkeit als Favicon und Board-Marke</text>
+  </g>
+</svg>
