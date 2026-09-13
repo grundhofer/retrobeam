@@ -3,24 +3,30 @@ SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <path d="M21 23 55 8v48L21 41Z" fill="#0e7c7b" opacity=".16"/>
-  <path d="M18 24 50 13v38L18 40Z" fill="#0e7c7b" opacity=".12"/>
+  <path d="M16 5h32l11 49H5Z" fill="#0e7c7b" opacity=".13"/>
+  <path d="M23 5h18l7 48H16Z" fill="#0e7c7b" opacity=".13"/>
+  <path d="M17 8 11 48M32 6v43M47 8l6 40" fill="none" stroke="#0e7c7b" stroke-linecap="round" stroke-width="2" opacity=".38"/>
 
-  <g transform="rotate(-7 43 17)">
-    <rect x="36" y="9" width="16" height="16" rx="3.5" fill="#e8590c"/>
-    <path d="M47 21h5v-5Z" fill="#fff" opacity=".42"/>
+  <g fill="#e8590c">
+    <rect x="16" y="12" width="3" height="5" rx="1.5" opacity=".45"/>
+    <rect x="20" y="19" width="2.5" height="4" rx="1.25" opacity=".7"/>
+    <circle cx="18" cy="30" r="4.5"/>
+    <path d="M9.5 47c.7-9 3.5-13 8.5-13s7.8 4 8.5 13Z"/>
   </g>
-  <g transform="rotate(5 47 33)">
-    <rect x="39" y="25" width="17" height="17" rx="3.5" fill="#e8b50c"/>
-    <path d="M51 38h5v-5Z" fill="#fff" opacity=".42"/>
+  <g fill="#e64980">
+    <rect x="45" y="11" width="3" height="5" rx="1.5" opacity=".45"/>
+    <rect x="41.5" y="18" width="2.5" height="4" rx="1.25" opacity=".7"/>
+    <circle cx="46" cy="30" r="4.5"/>
+    <path d="M37.5 47c.7-9 3.5-13 8.5-13s7.8 4 8.5 13Z"/>
   </g>
-  <g transform="rotate(-5 39 48)">
-    <rect x="31" y="40" width="16" height="16" rx="3.5" fill="#e64980"/>
-    <path d="M42 52h5v-5Z" fill="#fff" opacity=".42"/>
+  <g fill="#0e7c7b">
+    <rect x="30.5" y="7" width="3" height="5" rx="1.5" opacity=".45"/>
+    <rect x="34.5" y="14" width="2.5" height="4" rx="1.25" opacity=".7"/>
+    <circle cx="32" cy="23" r="5"/>
+    <path d="M22.5 45c.8-11 4-16.5 9.5-16.5s8.7 5.5 9.5 16.5Z"/>
   </g>
 
-  <rect x="4" y="21" width="21" height="23" rx="6" fill="#18181b"/>
-  <circle cx="18" cy="32.5" r="8" fill="#0e7c7b"/>
-  <circle cx="18" cy="32.5" r="3.5" fill="#dff6f4"/>
-  <path d="M9 44 6 53h17l-3-9Z" fill="#18181b"/>
+  <ellipse cx="32" cy="53" rx="27" ry="7" fill="#18181b"/>
+  <ellipse cx="32" cy="51" rx="22" ry="5" fill="#0e7c7b"/>
+  <ellipse cx="32" cy="50" rx="15" ry="2.5" fill="#dff6f4" opacity=".8"/>
 </svg>
