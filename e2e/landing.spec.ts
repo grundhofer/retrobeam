@@ -13,6 +13,8 @@ test("the landing page invites to try and leads to the create form", async ({
   const page = await context.newPage();
   await page.goto("/");
 
+  await expect(page.getByTestId("brand-logo")).toBeVisible();
+  await expect(page.getByRole("link", { name: "RetroBeam" })).toBeVisible();
   await expect(page.getByTestId("landing-hero")).toBeVisible();
   await expect(page.getByTestId("landing-cta")).toHaveCount(1);
   await expect(

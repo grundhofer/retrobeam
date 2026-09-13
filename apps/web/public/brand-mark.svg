@@ -1,0 +1,26 @@
+<!--
+SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <path d="M21 23 55 8v48L21 41Z" fill="#0e7c7b" opacity=".16"/>
+  <path d="M18 24 50 13v38L18 40Z" fill="#0e7c7b" opacity=".12"/>
+
+  <g transform="rotate(-7 43 17)">
+    <rect x="36" y="9" width="16" height="16" rx="3.5" fill="#e8590c"/>
+    <path d="M47 21h5v-5Z" fill="#fff" opacity=".42"/>
+  </g>
+  <g transform="rotate(5 47 33)">
+    <rect x="39" y="25" width="17" height="17" rx="3.5" fill="#e8b50c"/>
+    <path d="M51 38h5v-5Z" fill="#fff" opacity=".42"/>
+  </g>
+  <g transform="rotate(-5 39 48)">
+    <rect x="31" y="40" width="16" height="16" rx="3.5" fill="#e64980"/>
+    <path d="M42 52h5v-5Z" fill="#fff" opacity=".42"/>
+  </g>
+
+  <rect x="4" y="21" width="21" height="23" rx="6" fill="#18181b"/>
+  <circle cx="18" cy="32.5" r="8" fill="#0e7c7b"/>
+  <circle cx="18" cy="32.5" r="3.5" fill="#dff6f4"/>
+  <path d="M9 44 6 53h17l-3-9Z" fill="#18181b"/>
+</svg>

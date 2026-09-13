@@ -17,6 +17,7 @@ import { AvatarRow } from "../components/AvatarRow.js";
 import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
 import { BoardMenu } from "../components/BoardMenu.js";
+import { BrandLogo } from "../components/BrandLogo.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
 import { CheckinPanel } from "../components/CheckinPanel.js";
@@ -137,7 +138,7 @@ function JoinGate({
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       <header className="flex items-center justify-between px-6 py-4">
-        <span className="font-semibold text-zinc-800">{t("app.name")}</span>
+        <BrandLogo compact />
         <LanguageToggle />
       </header>
       <main className="flex flex-1 items-center justify-center px-6 pb-24">
@@ -432,7 +433,7 @@ function Room({
       <div className="flex min-h-dvh flex-col bg-zinc-50">
         <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-200 bg-white px-6 py-3">
           <div className="flex min-w-0 items-baseline gap-3">
-            <span className="font-semibold text-zinc-800">{t("app.name")}</span>
+            <BrandLogo compact />
             <h1 className="truncate text-zinc-600">
               {state.board?.name ?? board.name}
             </h1>

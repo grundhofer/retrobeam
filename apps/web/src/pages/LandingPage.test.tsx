@@ -20,6 +20,10 @@ const storedKeys = () =>
 // after the long-form content, and both instances lead to the create form.
 test("keeps the create action clear at the start and end", async () => {
   const screen = await render(page());
+  await expect.element(screen.getByTestId("brand-logo")).toBeVisible();
+  expect(
+    screen.getByTestId("brand-logo").element().querySelector("img")?.src,
+  ).toMatch(/\/brand-mark\.svg$/);
   const cta = screen.getByTestId("landing-cta");
   await expect.element(cta).toBeVisible();
   expect(cta.element().getAttribute("href")).toBe("/new");

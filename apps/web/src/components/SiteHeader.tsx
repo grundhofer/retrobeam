@@ -4,6 +4,7 @@
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
 import { REPO_URL } from "../content/operator.js";
+import { BrandLogo } from "./BrandLogo.js";
 import { LanguageToggle } from "./LanguageToggle.js";
 
 // The header of every page outside a board: wordmark back to the landing
@@ -17,9 +18,9 @@ export function SiteHeader() {
       <Link
         to="/"
         aria-current={pathname === "/" ? "page" : undefined}
-        className="rounded font-semibold text-zinc-800 focus-visible:outline-2 focus-visible:outline-accent"
+        className="group rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        {t("app.name")}
+        <BrandLogo />
       </Link>
       <nav className="flex items-center gap-3" aria-label={t("site.nav")}>
         <a
