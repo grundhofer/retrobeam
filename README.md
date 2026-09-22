@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="apps/web/public/brand-mark.svg" width="96" alt="">
+
 # RetroBeam
 
 **Guided, playful, genuinely free retrospectives.**
@@ -33,7 +35,7 @@ No accounts, no invites, no seat licences. Create a board, drop the URL into you
 
 ![The write phase, with ghost cards showing that colleagues are typing but not what](docs/screenshots/write-phase.png)
 
-Nobody reads anybody else's notes until the facilitator reveals them — and that is **enforced on the server**, not merely hidden in the browser. You still see _that_ your colleagues are writing and how many cards exist, just never what they say.
+Nobody reads anybody else's notes until the facilitator reveals them — and that is **enforced on the server**, not merely hidden in the browser. You still see _that_ your colleagues are writing and how many cards exist, just never what they say. On a canvas board you also see _where_ their cards sit, so you don't drop yours on top of one — as a blank placeholder with no author and no content.
 
 No anchoring on whoever typed fastest. No quietly agreeing with the manager.
 
@@ -41,7 +43,7 @@ No anchoring on whoever typed fastest. No quietly agreeing with the manager.
 
 ![The wheel of fortune spinning to pick the next presenter](docs/screenshots/wheel.png)
 
-The wheel picks the next presenter — or a slot machine, if you prefer. The draw happens on the server and replays deterministically on every screen, so everybody sees the same result at the same moment. The picked person's cards are spotlighted for the whole room.
+The wheel picks the next presenter — or a slot machine, or a deck of face-down cards the facilitator picks from, if you prefer. Whichever skin is on, the draw happens on the server and replays deterministically on every screen, so everybody sees the same result at the same moment. The picked person's cards are spotlighted for the whole room.
 
 It also quietly solves the problem where the same two people talk every sprint.
 
@@ -60,10 +62,10 @@ Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll —
 ## What's in the box
 
 - **6 templates** — Went well / To improve, Start-Stop-Continue, Mad-Sad-Glad, 4Ls, Sailboat, Starfish — plus custom columns
-- **Two board layouts** — classic columns or a freeform canvas with draggable zones
-- **A real phase flow** — write → present → vote → discuss → close, rewindable, and every step can be switched off for a shorter retro
+- **Two board layouts** — classic columns or a freeform canvas with draggable zones and optional live cursors (facilitator switch, 1 update per second, off by default)
+- **A real phase flow** — write → present → vote → discuss → close, rewindable. The facilitator plans the agenda in the lobby — check-in, vote, discuss and close are each optional — and the plan locks once the retro starts, so the room's expectations don't shift mid-way
 - **One person at a time** — when the writing stops the board doesn't fall open. The wheel picks who presents, and the room is handed that person's cards as their turn comes, with the speaker's highlighted. Nothing shown is ever taken back, and once everyone has presented all non-hidden cards are open to the room.
-- **Facilitation kit** — an optional opening check-in with 24 localized icebreakers, the Prime Directive, live-editable working agreements, and a shared timer with a chime
+- **Facilitation kit** — an optional opening check-in with 24 localized icebreakers (pick one in the lobby or let the check-in draw one), the Prime Directive, live-editable working agreements, and a shared timer with a chime
 - **Grouping** — drag cards into stacks; votes and reactions come along
 - **Staged columns** — prepare a column and reveal it to the room when you're ready
 - **Emoji reactions and GIFs**, and confetti where it's earned
@@ -80,6 +82,7 @@ The write phase is private because retros only work when people say the awkward 
 - **EU board-data residency** — every board lives in an EU-jurisdiction Durable Object, pinned at creation.
 - **Boards auto-delete after 90 days by default**; the facilitator can keep one or delete it immediately.
 - **Anonymity where it matters** — kudos, the ROTI poll, and the voting meter.
+- **Live cursors are opt-in and ephemeral** — off until the facilitator switches them on, broadcast only while on, never stored. They also stop for the day once an account-wide free-tier budget is spent; notes and votes keep working.
 - **Cards travel with their turn** — during the presenting round the server sends a participant only what the room has already been shown in visible columns. The facilitator, who runs the round, sees the whole board; that includes cards still waiting for their turn and any columns kept hidden from members. `docs/05` says both differences plainly.
 
 If you need to bring this past a German works council, [`docs/05-privacy-gdpr.md`](docs/05-privacy-gdpr.md) has the §87 BetrVG playbook, the data inventory and the sub-processor list already written up.
