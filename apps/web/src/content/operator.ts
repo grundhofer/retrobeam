@@ -8,12 +8,28 @@
 //
 // Bracketed values are placeholders. They render highlighted so they are
 // impossible to miss; replace them with the operator's public details.
-export const OPERATOR = {
+//
+// `careOf` carries the "c/o" line of an address service. It is a ladungsfähige
+// Anschrift (§18 Abs. 1 MStV is satisfied, a P.O. box would not be) and the
+// line is load-bearing: post only reaches the operator when it is addressed
+// with it. Leave it empty when the address needs no such line.
+// Typed rather than `as const`: a self-hoster edits these values, and an empty
+// careOf has to stay a legal value for the renderer to test against.
+export interface Operator {
+  readonly name: string;
+  readonly careOf: string;
+  readonly street: string;
+  readonly city: string;
+  readonly email: string;
+}
+
+export const OPERATOR: Operator = {
   name: "Sebastian Grundhöfer",
-  street: "[Straße Hausnummer]",
-  city: "[PLZ Ort]",
-  email: "[E-Mail-Adresse]",
-} as const;
+  careOf: "c/o Impressumservice Dein-Impressum",
+  street: "Stettiner Str. 41",
+  city: "35410 Hungen",
+  email: "info@sebaro-ventures.de",
+};
 
 export const NOTICE_DATE = "2026-09-11";
 

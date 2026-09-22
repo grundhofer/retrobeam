@@ -163,7 +163,7 @@ export function LandingPage() {
                           <span>{t(`landing.faq.${key}.q`)}</span>
                           <span
                             aria-hidden="true"
-                            className="shrink-0 text-zinc-500 transition-transform group-open:rotate-45"
+                            className="shrink-0 text-zinc-500 transition-transform group-open:rotate-45 motion-reduce:transition-none"
                           >
                             +
                           </span>

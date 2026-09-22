@@ -228,7 +228,7 @@ app.get("/api/boards/:id/export", async (c) => {
 // operator's provider quota, and it could not honour a board's own GIF opt-out
 // because it had no board to ask. Now a caller needs a board capability, the
 // board's setting is checked BEFORE any search term leaves the edge, and the
-// route is rate limited per IP.
+// route is rate limited per board.
 app.get("/api/boards/:id/gifs/search", async (c) => {
   {
     const boardId = c.req.param("id");

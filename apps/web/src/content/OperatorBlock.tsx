@@ -19,6 +19,12 @@ export function OperatorBlock({
     <p data-testid="operator-block">
       {OPERATOR.name}
       <br />
+      {OPERATOR.careOf === "" ? null : (
+        <>
+          <PlaceholderField value={OPERATOR.careOf} />
+          <br />
+        </>
+      )}
       <PlaceholderField value={OPERATOR.street} />
       <br />
       <PlaceholderField value={OPERATOR.city} />

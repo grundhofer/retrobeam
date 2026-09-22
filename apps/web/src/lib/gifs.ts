@@ -26,7 +26,7 @@ const gifSearchResponseSchema = z.object({
 });
 export type GifSearchResponse = z.infer<typeof gifSearchResponseSchema>;
 
-// Board-scoped on purpose: the route is rate limited per IP and refuses to
+// Board-scoped on purpose: the route is rate limited per board and refuses to
 // call the provider at all when the board has GIFs switched off, so a caller
 // without a board capability cannot spend the operator's search quota.
 export async function searchGifs(
