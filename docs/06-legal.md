@@ -86,9 +86,13 @@ some other way). Making it public is therefore a launch blocker, not a nice-to-h
 3. **Register the trademark** — see below.
 4. **Impressum and Datenschutzerklärung** — built 2026-09-11 as `/impressum` and `/datenschutz`
    (`apps/web/src/content/`), linked from the footer of every screen. Before publication:
-   - `apps/web/src/content/operator.ts` still carries the postal address, e-mail, Cloudflare
-     settings-check date and workers.dev fallback host as bracketed placeholders (rendered
-     highlighted). The deployment workflow rejects them. Fill them in before the pages go public.
+   - **Done 2026-09-22.** `apps/web/src/content/operator.ts` carries the operator's real
+     contact data: an address-service address (`c/o Impressumservice Dein-Impressum`, the same
+     one android-coden.de uses) and a working e-mail. `762600b` had removed the `check:legal`
+     step from both jobs in `.github/workflows/deploy.yml` to unblock a deploy with placeholders
+     still in place; the step is restored now that there are none, so a future placeholder
+     cannot reach production. The `c/o` line is load-bearing — post only arrives when it is
+     addressed with it, so never drop it when reformatting the block.
      The governing norm for the imprint is **§ 18 Abs. 1 MStV** (name + ladungsfähige Anschrift
      for any public offer, commercial or not — a P.O. box does not satisfy it), not § 5 DDG,
      which only applies once ads or a paid tier exist; the address is required by Art. 13(1)(a)

@@ -25,6 +25,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The imprint and the privacy notice read the operator's address from
+      # apps/web/src/content/operator.ts. Shipping a bracketed placeholder
+      # there publishes a legal page with no reachable operator, so it fails
+      # the deploy rather than the deploy failing a visitor.
+      - run: pnpm check:legal
       - name: Build for the preview environment
         run: pnpm --filter @retrobeam/web build
         env:
@@ -55,6 +60,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:legal
       - run: pnpm --filter @retrobeam/web build
         env:
           # AGPL §13: the running build must link to its own source
