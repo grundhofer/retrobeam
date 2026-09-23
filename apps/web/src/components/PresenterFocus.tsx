@@ -137,6 +137,7 @@ export function PresenterFocus({
                 // still see which card the room is on.
                 presenterId={note.id === spotlightId ? presenter.id : null}
                 interactive={false}
+                gifsEnabled={false}
                 onDropNote={() => {}}
                 onUngroup={() => {}}
               />
@@ -210,6 +211,7 @@ function StagedCard({
           isAdmin={isAdmin}
           presenterId={null}
           interactive={false}
+          gifsEnabled={false}
           onDropNote={() => {}}
           onUngroup={() => {}}
         />

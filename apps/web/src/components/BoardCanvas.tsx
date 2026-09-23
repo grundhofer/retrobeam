@@ -145,6 +145,7 @@ export function BoardCanvas({
   isAdmin,
   presenterId,
   unpresentedAuthorIds,
+  gifsEnabled,
   cursors,
   cursorsEnabled,
 }: BoardCanvasProps) {
@@ -757,6 +758,7 @@ export function BoardCanvas({
                           isAdmin={isAdmin}
                           presenterId={presenterId}
                           unpresentedAuthorIds={unpresentedAuthorIds}
+                          gifsEnabled={gifsEnabled}
                           draggable={false}
                           onDropNote={() => {}}
                           onUngroup={(n) =>

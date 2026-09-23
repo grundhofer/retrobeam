@@ -12,6 +12,7 @@ import {
   type Phase,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { GifPickerButton } from "./GifPicker.js";
 
 const NOTE_DRAG_MIME = "application/x-retrobeam-note";
 
@@ -28,6 +29,9 @@ export interface NoteCardProps {
    *  null outside that round. Only a facilitator can ever hold such a card, so
    *  the marker answers "can the room read this one yet?" at a glance. */
   unpresentedAuthorIds?: ReadonlySet<string> | null;
+  /** the board's GIF switch — gates adding one while editing. Required: a
+   *  defaulted flag would switch the feature off silently at a missed site. */
+  gifsEnabled: boolean;
   onDropNote: (sourceNoteId: string, target: Note) => void;
   onUngroup: (note: Note) => void;
   /** read-only rendering (the presenter reader): drag/edit/delete/curate off,
@@ -47,6 +51,7 @@ export function NoteCard({
   revealIndex,
   presenterId,
   unpresentedAuthorIds = null,
+  gifsEnabled,
   onDropNote,
   onUngroup,
   interactive = true,
@@ -56,6 +61,7 @@ export function NoteCard({
   const { mutate } = useConnection();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.text);
+  const [draftGif, setDraftGif] = useState(note.gifUrl);
   const [dropHover, setDropHover] = useState(false);
 
   const mine = note.authorId === you.id;
@@ -89,13 +95,27 @@ export function NoteCard({
   function saveEdit(event: React.FormEvent) {
     event.preventDefault();
     const text = draft.trim();
-    if (text === "" || text === note.text) {
+    const gifChanged = draftGif !== note.gifUrl;
+    if (text === "" || (text === note.text && !gifChanged)) {
       setEditing(false);
       return;
     }
     mutate(
-      { type: "note.update", opId: generateHexId(), noteId: note.id, text },
-      { type: "note.updated", seq: 0, note: { ...note, text } },
+      {
+        type: "note.update",
+        opId: generateHexId(),
+        noteId: note.id,
+        text,
+        // Omitted = the server keeps the stored GIF. Sent only when it
+        // changed, so an untouched GIF survives a board whose GIFs were
+        // switched off since (the server would drop a re-sent URL there).
+        ...(gifChanged ? { gifUrl: draftGif } : {}),
+      },
+      {
+        type: "note.updated",
+        seq: 0,
+        note: { ...note, text, gifUrl: draftGif },
+      },
     );
     setEditing(false);
   }
@@ -184,7 +204,26 @@ export function NoteCard({
             rows={3}
             className="w-full resize-none rounded-lg border border-zinc-200 px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-accent"
           />
-          <div className="mt-1 flex gap-2">
+          {draftGif !== null ? (
+            <div className="relative mt-1 w-fit">
+              <img
+                src={draftGif}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="max-h-24 rounded-lg"
+              />
+              <button
+                type="button"
+                data-testid="note-edit-gif-remove"
+                onClick={() => setDraftGif(null)}
+                aria-label={t("gif.remove")}
+                className="absolute -top-1.5 -right-1.5 rounded-full bg-zinc-800 px-1.5 text-xs text-white"
+              >
+                ✕
+              </button>
+            </div>
+          ) : null}
+          <div className="mt-1 flex items-center gap-2">
             <button
               type="submit"
               className="rounded-lg bg-accent px-2.5 py-0.5 text-sm font-medium text-white hover:bg-accent-strong"
@@ -198,6 +237,10 @@ export function NoteCard({
             >
               {t("note.cancel")}
             </button>
+            {/* Same rule as the composer: a GIF only ever joins text. */}
+            {gifsEnabled && draftGif === null && draft.trim() !== "" ? (
+              <GifPickerButton testId="note-edit-gif" onPick={setDraftGif} />
+            ) : null}
           </div>
         </form>
       ) : (
@@ -247,6 +290,7 @@ export function NoteCard({
                   aria-label={t("note.edit")}
                   onClick={() => {
                     setDraft(note.text);
+                    setDraftGif(note.gifUrl);
                     setEditing(true);
                   }}
                   className="rounded px-1 text-xs text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
