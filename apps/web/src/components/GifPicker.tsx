@@ -2,9 +2,111 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useConnection } from "../lib/connection.js";
 import { searchGifs, type GifResult } from "../lib/gifs.js";
+
+// The "GIF" button with its picker as a popover. The popover is portaled to
+// <body> with fixed coordinates so it escapes the columns' horizontal-scroll
+// container (which clips absolute children and made the picker overflow onto
+// neighbouring columns) and the canvas's scaled world (a transform turns
+// `position: fixed` into "fixed to the transformed box"). Anchored above the
+// button, clamped to the viewport.
+export function GifPickerButton({
+  testId,
+  onPick,
+}: {
+  testId: string;
+  onPick: (url: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [anchor, setAnchor] = useState<{
+    left: number;
+    top?: number;
+    bottom?: number;
+  } | null>(null);
+
+  function toggle() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      const width = 288; // GifPicker is w-72
+      const height = 330; // w-72 search row + max-h-64 grid + attribution
+      const left = Math.max(
+        8,
+        Math.min(rect.left, window.innerWidth - width - 8),
+      );
+      // Above the button by default — but the composer now sits directly under
+      // the column header, and a `position: fixed` picker that grows past the
+      // top of the viewport is unreachable (nothing can scroll a fixed
+      // element back into view). When there is no room above, flip below.
+      setAnchor(
+        rect.top >= height + 8
+          ? { left, bottom: window.innerHeight - rect.top + 6 }
+          : { left, top: rect.bottom + 6 },
+      );
+    }
+    setOpen(true);
+  }
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        data-testid={testId}
+        onClick={toggle}
+        className="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-50"
+      >
+        🎞 {t("gif.add")}
+      </button>
+      {open && anchor
+        ? createPortal(
+            // A portal leaves the DOM tree but not React's: without these, a
+            // press inside the picker bubbles to whatever holds the button —
+            // on the canvas that starts a card drag or a pan, and a
+            // double-click opens a new note behind the picker.
+            <div
+              className="fixed inset-0 z-50"
+              onPointerDown={(event) => event.stopPropagation()}
+              onDoubleClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                aria-label={t("note.cancel")}
+                tabIndex={-1}
+                onClick={() => setOpen(false)}
+                className="absolute inset-0 cursor-default"
+              />
+              <div
+                className="absolute"
+                style={{
+                  left: anchor.left,
+                  top: anchor.top,
+                  bottom: anchor.bottom,
+                }}
+              >
+                <GifPicker
+                  onPick={(url) => {
+                    onPick(url);
+                    setOpen(false);
+                  }}
+                  onClose={() => setOpen(false)}
+                />
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
 
 // Search runs through our Worker proxy (key server-side, employee IPs hidden).
 // When no KLIPY key is configured the proxy returns empty + configured:false,

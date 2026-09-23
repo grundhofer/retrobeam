@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { expect, test } from "vitest";
+import { afterEach, expect, test } from "vitest";
 import { render } from "vitest-browser-react";
 import type {
   ClientCommand,
@@ -71,6 +71,7 @@ function view(props: {
         revealIndex={0}
         presenterId={props.presenterId}
         unpresentedAuthorIds={props.unpresentedAuthorIds ?? null}
+        gifsEnabled={false}
         onDropNote={() => {}}
         onUngroup={() => {}}
       />
@@ -122,4 +123,118 @@ test("a card the room has not been shown is marked as pending", async () => {
       .at(-1)
       ?.getAttribute("data-pending"),
   ).toBe(null);
+});
+
+// Editing a card is where a GIF gets added, swapped or dropped after the fact.
+// The note.update contract: gifUrl omitted keeps the stored one, null clears
+// it, a URL replaces it.
+const GIF_A = "https://static.klipy.com/a.gif";
+const GIF_B = "https://static.klipy.com/b.gif";
+
+const realFetch = globalThis.fetch;
+afterEach(() => {
+  globalThis.fetch = realFetch;
+});
+
+function editView(gifUrl: string | null, sent: ClientCommand[]) {
+  const connection = {
+    boardId: "a".repeat(32),
+    send: () => {},
+    mutate: (command: ClientCommand) => {
+      sent.push(command);
+    },
+  };
+  return (
+    <ConnectionProvider value={connection}>
+      <NoteCard
+        note={{ ...note(ben.id), gifUrl }}
+        roster={[anna, ben]}
+        you={ben}
+        phase="write"
+        isAdmin={false}
+        revealIndex={0}
+        presenterId={null}
+        gifsEnabled
+        onDropNote={() => {}}
+        onUngroup={() => {}}
+      />
+    </ConnectionProvider>
+  );
+}
+
+test("editing a card can add a GIF it was written without", async () => {
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    if (!String(input).includes("/gifs/search"))
+      return realFetch(input as RequestInfo, init);
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          configured: true,
+          gifs: [
+            {
+              id: "1",
+              url: GIF_B,
+              previewUrl: GIF_B,
+              width: 200,
+              height: 100,
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+  }) as typeof fetch;
+  const sent: ClientCommand[] = [];
+  const screen = await render(editView(null, sent));
+
+  await screen.getByRole("button", { name: /edit note|bearbeiten/i }).click();
+  await screen.getByTestId("note-edit-gif").click();
+  await screen.getByTestId("gif-search").fill("ship it");
+  await screen.getByTestId("gif-result").click();
+  await screen.getByRole("button", { name: /^(save|speichern)$/i }).click();
+
+  expect(sent).toEqual([
+    expect.objectContaining({
+      type: "note.update",
+      text: "Deploys are slow",
+      gifUrl: GIF_B,
+    }),
+  ]);
+});
+
+test("editing a card can drop its GIF, and never adds one to an emptied text", async () => {
+  const sent: ClientCommand[] = [];
+  const screen = await render(editView(GIF_A, sent));
+
+  await screen.getByRole("button", { name: /edit note|bearbeiten/i }).click();
+  // The existing GIF has to go before another can be picked.
+  expect(screen.getByTestId("note-edit-gif").elements()).toHaveLength(0);
+  await screen.getByTestId("note-edit-gif-remove").click();
+  await expect.element(screen.getByTestId("note-edit-gif")).toBeInTheDocument();
+  // No text, no GIF — the same rule as the composer.
+  await screen.getByRole("textbox").fill("");
+  await expect
+    .element(screen.getByTestId("note-edit-gif"))
+    .not.toBeInTheDocument();
+  await screen.getByRole("textbox").fill("Deploys are slow");
+  await screen.getByRole("button", { name: /^(save|speichern)$/i }).click();
+
+  expect(sent).toEqual([
+    expect.objectContaining({ type: "note.update", gifUrl: null }),
+  ]);
+});
+
+test("a text-only edit leaves the stored GIF alone", async () => {
+  const sent: ClientCommand[] = [];
+  const screen = await render(editView(GIF_A, sent));
+
+  await screen.getByRole("button", { name: /edit note|bearbeiten/i }).click();
+  await screen.getByRole("textbox").fill("Deploys are painfully slow");
+  await screen.getByRole("button", { name: /^(save|speichern)$/i }).click();
+
+  expect(sent).toHaveLength(1);
+  // Omitted, not re-sent: a board whose GIFs were switched off since would
+  // otherwise have the server drop it.
+  expect(sent[0]).not.toHaveProperty("gifUrl");
+  expect(sent[0]).toMatchObject({ text: "Deploys are painfully slow" });
 });

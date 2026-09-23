@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   generateHexId,
@@ -14,7 +13,7 @@ import {
   type ServerEvent,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
-import { GifPicker } from "./GifPicker.js";
+import { GifPickerButton } from "./GifPicker.js";
 import { NOTE_DRAG_MIME, NoteCard } from "./NoteCard.js";
 
 export interface DecidingState {
@@ -409,6 +408,7 @@ function BoardColumn({
     isAdmin,
     presenterId,
     unpresentedAuthorIds,
+    gifsEnabled,
     onDropNote,
     onUngroup,
   };
@@ -801,44 +801,6 @@ function NoteComposer({
   const { send, mutate } = useConnection();
   const [text, setText] = useState("");
   const [gifUrl, setGifUrl] = useState<string | null>(null);
-  const [gifOpen, setGifOpen] = useState(false);
-  const gifButtonRef = useRef<HTMLButtonElement>(null);
-  // The GIF popover is portaled to <body> with fixed coordinates so it escapes
-  // the columns' horizontal-scroll container (which clips absolute children and
-  // made the picker overflow onto neighbouring columns). Anchored above the
-  // button, clamped to the viewport.
-  const [gifAnchor, setGifAnchor] = useState<{
-    left: number;
-    top?: number;
-    bottom?: number;
-  } | null>(null);
-
-  function toggleGif() {
-    if (gifOpen) {
-      setGifOpen(false);
-      return;
-    }
-    const rect = gifButtonRef.current?.getBoundingClientRect();
-    if (rect) {
-      const width = 288; // GifPicker is w-72
-      const height = 330; // w-72 search row + max-h-64 grid + attribution
-      const left = Math.max(
-        8,
-        Math.min(rect.left, window.innerWidth - width - 8),
-      );
-      // Above the button by default — but the composer now sits directly under
-      // the column header, and a `position: fixed` picker that grows past the
-      // top of the viewport is unreachable (nothing can scroll a fixed
-      // element back into view). When there is no room above, flip below.
-      setGifAnchor(
-        rect.top >= height + 8
-          ? { left, bottom: window.innerHeight - rect.top + 6 }
-          : { left, top: rect.bottom + 6 },
-      );
-    }
-    setGifOpen(true);
-  }
-
   function submit() {
     const trimmed = text.trim();
     if (trimmed === "") return;
@@ -881,7 +843,6 @@ function NoteComposer({
     );
     setText("");
     setGifUrl(null);
-    setGifOpen(false);
   }
 
   return (
@@ -935,48 +896,13 @@ function NoteComposer({
             {t("note.add")}
           </button>
         ) : null}
-        {gifsEnabled && gifUrl === null ? (
-          <>
-            <button
-              ref={gifButtonRef}
-              type="button"
-              data-testid={`composer-gif-${columnId}`}
-              onClick={toggleGif}
-              className="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-50"
-            >
-              🎞 {t("gif.add")}
-            </button>
-            {gifOpen && gifAnchor
-              ? createPortal(
-                  <div className="fixed inset-0 z-50">
-                    <button
-                      type="button"
-                      aria-label={t("note.cancel")}
-                      tabIndex={-1}
-                      onClick={() => setGifOpen(false)}
-                      className="absolute inset-0 cursor-default"
-                    />
-                    <div
-                      className="absolute"
-                      style={{
-                        left: gifAnchor.left,
-                        top: gifAnchor.top,
-                        bottom: gifAnchor.bottom,
-                      }}
-                    >
-                      <GifPicker
-                        onPick={(url) => {
-                          setGifUrl(url);
-                          setGifOpen(false);
-                        }}
-                        onClose={() => setGifOpen(false)}
-                      />
-                    </div>
-                  </div>,
-                  document.body,
-                )
-              : null}
-          </>
+        {/* A GIF illustrates a note, it is never the note: the button
+            waits for text, the same as the submit button beside it. */}
+        {gifsEnabled && gifUrl === null && text.trim() !== "" ? (
+          <GifPickerButton
+            testId={`composer-gif-${columnId}`}
+            onPick={setGifUrl}
+          />
         ) : null}
       </div>
     </form>

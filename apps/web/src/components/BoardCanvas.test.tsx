@@ -241,3 +241,64 @@ test("double-clicking empty canvas space opens a composer", async () => {
     .element(screen.getByTestId("canvas-composer"))
     .toBeInTheDocument();
 });
+
+// A pinch made where the canvas is not (the presenter reader) zooms the page.
+// Back on the canvas, the pinch-out that would undo it has to reach the page —
+// swallowing it left the board stuck magnified with no way back.
+test("a pinch belongs to the page while the page itself is zoomed", async () => {
+  const screen = await render(
+    <ConnectionProvider
+      value={{ boardId: BOARD_ID, mutate: vi.fn(), send: vi.fn() }}
+    >
+      <BoardCanvas
+        columns={[column]}
+        notes={[note]}
+        columnCounts={{}}
+        canvasOccupancy={[]}
+        roster={[you]}
+        you={you}
+        phase="write"
+        editing={{}}
+        isAdmin
+        presenterId={null}
+        unpresentedAuthorIds={null}
+        gifsEnabled={false}
+        cursors={{}}
+        cursorsEnabled={false}
+      />
+    </ConnectionProvider>,
+  );
+  const viewport = screen.getByTestId("canvas-viewport").element();
+  const world = () =>
+    (viewport.firstElementChild as HTMLElement).style.transform;
+  // deltaY < 0 is a pinch in: the fitted view may already sit at the minimum
+  // zoom in a small test frame, where a pinch out would change nothing.
+  const pinch = (deltaY: number) => {
+    const event = new WheelEvent("wheel", {
+      deltaY,
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    viewport.dispatchEvent(event);
+    return event;
+  };
+
+  const own = Object.getOwnPropertyDescriptor(window, "visualViewport");
+  Object.defineProperty(window, "visualViewport", {
+    configurable: true,
+    value: { scale: 2 },
+  });
+  try {
+    // Not cancelled = the browser gets to zoom the page back out.
+    expect(pinch(40).defaultPrevented).toBe(false);
+  } finally {
+    if (own) Object.defineProperty(window, "visualViewport", own);
+    else delete (window as { visualViewport?: unknown }).visualViewport;
+  }
+
+  // At 1× the pinch is the canvas's own zoom again.
+  const before = world();
+  expect(pinch(-40).defaultPrevented).toBe(true);
+  await expect.poll(world).not.toBe(before);
+});

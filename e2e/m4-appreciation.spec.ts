@@ -168,6 +168,9 @@ test("GIF search degrades gracefully with no key configured", async ({
     .first()
     .getAttribute("data-testid");
   const suffix = columnId!.replace("composer-", "");
+  // The GIF button only appears once the note has text.
+  await expect(page.getByTestId(`composer-gif-${suffix}`)).toHaveCount(0);
+  await page.getByTestId(`composer-${suffix}`).fill("Shipped it");
   await page.getByTestId(`composer-gif-${suffix}`).click();
   await page.getByTestId("gif-search").fill("celebrate");
   await expect(page.getByText(/isn't set up|nicht eingerichtet/i)).toBeVisible({

@@ -239,3 +239,23 @@ test("the reveal shows your own dots, and the voters when the board names them",
     named.getByTestId("board-column").first().element().textContent,
   ).not.toContain(you.id);
 });
+
+test("the composer offers a GIF only once the note has text", async () => {
+  const screen = await render(view({ phase: "write", gifsEnabled: true }));
+  const columnId = columns[0]!.id;
+
+  // A GIF illustrates a note; on an empty composer there is nothing to
+  // illustrate, so the button waits — like the submit button next to it.
+  expect(
+    screen.getByTestId(`composer-gif-${columnId}`).elements(),
+  ).toHaveLength(0);
+  await screen.getByTestId(`composer-${columnId}`).fill("Deploys are slow");
+  await expect
+    .element(screen.getByTestId(`composer-gif-${columnId}`))
+    .toBeInTheDocument();
+  // Whitespace is not text.
+  await screen.getByTestId(`composer-${columnId}`).fill("   ");
+  await expect
+    .element(screen.getByTestId(`composer-gif-${columnId}`))
+    .not.toBeInTheDocument();
+});
