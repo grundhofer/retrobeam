@@ -212,6 +212,18 @@ export function BoardCanvas({
     const vp = viewportRef.current;
     if (!vp) return;
     const onWheel = (event: WheelEvent) => {
+      // A trackpad pinch arrives as ctrl + wheel. Anywhere the canvas is not —
+      // the presenter reader, typically, blowing a card up for the room — that
+      // pinch zooms the PAGE. Coming back to the canvas, swallowing it here
+      // left the page stuck magnified: pinching out only shrank the canvas,
+      // and nothing else on screen can undo a pinch. So while the page itself
+      // is zoomed, the pinch is the page's; the canvas takes over again at 1×.
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        (window.visualViewport?.scale ?? 1) > 1.001
+      ) {
+        return;
+      }
       event.preventDefault();
       const rect = vp.getBoundingClientRect();
       // deltaMode is 0 (pixels) in Chromium but 1 (lines) on a Firefox mouse
