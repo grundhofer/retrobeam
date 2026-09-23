@@ -16,9 +16,13 @@ import { searchGifs, type GifResult } from "../lib/gifs.js";
 export function GifPickerButton({
   testId,
   onPick,
+  onOpenChange,
 }: {
   testId: string;
   onPick: (url: string) => void;
+  /** called BEFORE the picker takes focus and before it gives it back, for a
+   *  host that commits on blur (the canvas composer) */
+  onOpenChange?: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -29,9 +33,14 @@ export function GifPickerButton({
     bottom?: number;
   } | null>(null);
 
+  function close() {
+    onOpenChange?.(false);
+    setOpen(false);
+  }
+
   function toggle() {
     if (open) {
-      setOpen(false);
+      close();
       return;
     }
     const rect = buttonRef.current?.getBoundingClientRect();
@@ -52,6 +61,7 @@ export function GifPickerButton({
           : { left, top: rect.bottom + 6 },
       );
     }
+    onOpenChange?.(true);
     setOpen(true);
   }
 
@@ -81,7 +91,7 @@ export function GifPickerButton({
                 type="button"
                 aria-label={t("note.cancel")}
                 tabIndex={-1}
-                onClick={() => setOpen(false)}
+                onClick={close}
                 className="absolute inset-0 cursor-default"
               />
               <div
@@ -95,9 +105,9 @@ export function GifPickerButton({
                 <GifPicker
                   onPick={(url) => {
                     onPick(url);
-                    setOpen(false);
+                    close();
                   }}
-                  onClose={() => setOpen(false)}
+                  onClose={close}
                 />
               </div>
             </div>,
