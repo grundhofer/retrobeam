@@ -17,6 +17,7 @@ import {
   type ZoneRect,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { GifPickerButton } from "./GifPicker.js";
 import { NoteCard } from "./NoteCard.js";
 
 export interface BoardCanvasProps {
@@ -267,7 +268,7 @@ export function BoardCanvas({
   function onViewportPointerDown(event: React.PointerEvent) {
     if (
       (event.target as HTMLElement).closest(
-        "[data-testid='note-card'], [data-testid='canvas-composer'], [data-canvas-control], [data-zone-handle]",
+        "[data-testid='note-card'], [data-canvas-composer], [data-canvas-control], [data-zone-handle]",
       )
     ) {
       return;
@@ -544,7 +545,13 @@ export function BoardCanvas({
     );
   }
 
-  function createNote(columnId: string, x: number, y: number, text: string) {
+  function createNote(
+    columnId: string,
+    x: number,
+    y: number,
+    text: string,
+    gifUrl: string | null,
+  ) {
     const trimmed = text.trim();
     if (trimmed === "") return;
     const open = openPosition(columnId, { x, y });
@@ -561,7 +568,7 @@ export function BoardCanvas({
         noteId,
         columnId,
         text: trimmed,
-        gifUrl: null,
+        gifUrl,
         x: open.x,
         y: open.y,
       },
@@ -573,7 +580,7 @@ export function BoardCanvas({
           columnId,
           authorId: you.id,
           text: trimmed,
-          gifUrl: null,
+          gifUrl,
           order,
           x: open.x,
           y: open.y,
@@ -702,7 +709,7 @@ export function BoardCanvas({
                   onDoubleClick={(event) => {
                     if (
                       (event.target as HTMLElement).closest(
-                        "[data-testid='note-card']",
+                        "[data-testid='note-card'], [data-canvas-composer]",
                       )
                     ) {
                       return;
@@ -796,8 +803,15 @@ export function BoardCanvas({
                     <CanvasComposer
                       x={composing.x}
                       y={composing.y}
-                      onCommit={(text) => {
-                        createNote(column.id, composing.x, composing.y, text);
+                      gifsEnabled={gifsEnabled}
+                      onCommit={(text, gifUrl) => {
+                        createNote(
+                          column.id,
+                          composing.x,
+                          composing.y,
+                          text,
+                          gifUrl,
+                        );
                         setComposing(null);
                       }}
                       onCancel={() => setComposing(null)}
@@ -880,35 +894,50 @@ export function BoardCanvas({
 function CanvasComposer({
   x,
   y,
+  gifsEnabled,
   onCommit,
   onCancel,
 }: {
   x: number;
   y: number;
-  onCommit: (text: string) => void;
+  gifsEnabled: boolean;
+  onCommit: (text: string, gifUrl: string | null) => void;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState("");
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // The composer commits when focus leaves it, and the GIF picker takes focus
+  // into a portal outside it. A ref, not state: the picker's search field
+  // grabs focus in the same commit that opens it, before a re-render could
+  // tell the blur handler.
+  const pickerOpen = useRef(false);
   return (
-    <textarea
-      autoFocus
-      value={text}
-      data-testid="canvas-composer"
-      onChange={(event) => setText(event.target.value)}
-      onBlur={() => (text.trim() === "" ? onCancel() : onCommit(text))}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" && !event.shiftKey) {
+    <div
+      data-canvas-composer
+      // React bubbles focus events through the picker's portal, and the DOM
+      // check below cannot see into it — hence the pickerOpen guard as well.
+      onBlur={(event) => {
+        if (pickerOpen.current) return;
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          return;
+        }
+        if (text.trim() === "") onCancel();
+        else onCommit(text, gifUrl);
+      }}
+      // Keep focus in the textarea when a button in here is pressed: WebKit
+      // does not focus a clicked button, so the blur would name no target
+      // and commit the note before the click lands.
+      onMouseDown={(event) => {
+        const target = event.target as Node;
+        if (
+          event.currentTarget.contains(target) &&
+          target !== textareaRef.current
+        ) {
           event.preventDefault();
-          onCommit(text);
-        } else if (event.key === "Escape") {
-          event.preventDefault();
-          onCancel();
         }
       }}
-      rows={2}
-      maxLength={500}
-      placeholder={t("note.placeholder")}
       style={{
         position: "absolute",
         left: `${x * 100}%`,
@@ -917,7 +946,66 @@ function CanvasComposer({
         transform: "translate(-50%, -50%)",
         zIndex: 40,
       }}
-      className="resize-none rounded-xl border border-accent bg-white px-3 py-2 text-sm shadow-md focus-visible:outline-2 focus-visible:outline-accent"
-    />
+      className="flex flex-col gap-1"
+    >
+      <textarea
+        ref={textareaRef}
+        autoFocus
+        value={text}
+        data-testid="canvas-composer"
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            onCommit(text, gifUrl);
+          } else if (event.key === "Escape") {
+            event.preventDefault();
+            onCancel();
+          }
+        }}
+        rows={2}
+        maxLength={500}
+        placeholder={t("note.placeholder")}
+        className="resize-none rounded-xl border border-accent bg-white px-3 py-2 text-sm shadow-md focus-visible:outline-2 focus-visible:outline-accent"
+      />
+      {gifUrl !== null ? (
+        <div className="relative w-fit">
+          <img
+            src={gifUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="max-h-24 rounded-lg shadow-md"
+          />
+          <button
+            type="button"
+            onClick={() => setGifUrl(null)}
+            aria-label={t("gif.remove")}
+            className="absolute -top-1.5 -right-1.5 rounded-full bg-zinc-800 px-1.5 text-xs text-white"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+      {/* Same rule as the column composer: a GIF only ever joins text. */}
+      {gifsEnabled && gifUrl === null && text.trim() !== "" ? (
+        <div className="w-fit rounded-lg bg-white/80">
+          <GifPickerButton
+            testId="canvas-composer-gif"
+            onPick={setGifUrl}
+            onOpenChange={(open) => {
+              // Opening: guard before the picker steals focus. Closing: take
+              // focus back first, THEN lift the guard, so the picker field's
+              // blur is still ignored and Enter keeps working.
+              if (open) {
+                pickerOpen.current = true;
+                return;
+              }
+              textareaRef.current?.focus();
+              pickerOpen.current = false;
+            }}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }

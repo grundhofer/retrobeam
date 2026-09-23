@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import type { Column, Note, Participant } from "@retrobeam/shared";
 import i18n from "../i18n.js";
@@ -240,6 +240,85 @@ test("double-clicking empty canvas space opens a composer", async () => {
   await expect
     .element(screen.getByTestId("canvas-composer"))
     .toBeInTheDocument();
+});
+
+const realFetch = globalThis.fetch;
+afterEach(() => {
+  globalThis.fetch = realFetch;
+});
+
+// The canvas composer commits when focus leaves it — and the GIF picker takes
+// focus into a portal. Opening the picker must not post the note half-done,
+// and picking must hand focus back so Enter still posts it, GIF included.
+test("the canvas composer takes a GIF once there is text", async () => {
+  const gif = "https://static.klipy.com/a.gif";
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    if (!String(input).includes("/gifs/search"))
+      return realFetch(input as RequestInfo, init);
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          configured: true,
+          gifs: [{ id: "1", url: gif, previewUrl: gif, width: 2, height: 1 }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+  }) as typeof fetch;
+  const mutate = vi.fn();
+  const screen = await render(
+    <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send: vi.fn() }}>
+      <BoardCanvas
+        columns={[column]}
+        notes={[]}
+        columnCounts={{}}
+        canvasOccupancy={[]}
+        roster={[you]}
+        you={you}
+        phase="write"
+        editing={{}}
+        isAdmin
+        presenterId={null}
+        unpresentedAuthorIds={null}
+        gifsEnabled
+        cursors={{}}
+        cursorsEnabled={false}
+      />
+    </ConnectionProvider>,
+  );
+  const zone = screen.getByTestId(`zone-${column.id}`).element() as HTMLElement;
+  const rect = zone.getBoundingClientRect();
+  zone.dispatchEvent(
+    new MouseEvent("dblclick", {
+      clientX: rect.left + rect.width * 0.5,
+      clientY: rect.top + rect.height * 0.5,
+      bubbles: true,
+    }),
+  );
+
+  const composer = screen.getByTestId("canvas-composer");
+  await expect.element(composer).toBeInTheDocument();
+  expect(screen.getByTestId("canvas-composer-gif").elements()).toHaveLength(0);
+  await composer.fill("Ship it");
+  await screen.getByTestId("canvas-composer-gif").click();
+  await screen.getByTestId("gif-search").fill("ship");
+  // Focus is in the picker now, and the note is still unposted.
+  expect(mutate).not.toHaveBeenCalled();
+  await expect.element(composer).toBeInTheDocument();
+
+  await screen.getByTestId("gif-result").click();
+  await expect.element(composer).toHaveFocus();
+  expect(mutate).not.toHaveBeenCalled();
+  (composer.element() as HTMLTextAreaElement).dispatchEvent(
+    new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+  );
+
+  await expect.poll(() => mutate.mock.calls.length).toBe(1);
+  expect(mutate.mock.calls[0]?.[0]).toMatchObject({
+    type: "note.create",
+    text: "Ship it",
+    gifUrl: gif,
+  });
 });
 
 // A pinch made where the canvas is not (the presenter reader) zooms the page.
