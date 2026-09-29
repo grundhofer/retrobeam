@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+Source of apps/web/public/og.png, the link-preview image. Built from the app's
+own tokens (zinc surfaces, teal #0e7c7b, system type, the real brand mark) and
+no webfont, like the landing page. Regenerate after a copy change by
+screenshotting this file with Playwright at exactly 1200x630,
+deviceScaleFactor 1, and keep the PNG well under 150 KB. The pills are the
+app's phase names, so keep them in step with phase.* in i18n.ts.
+-->
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+      }
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji";
+        background: #fafafa;
+        color: #18181b;
+        display: flex;
+        flex-direction: column;
+        padding: 72px 88px 64px;
+        border-bottom: 12px solid #0e7c7b;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .brand img {
+        width: 84px;
+        height: 84px;
+      }
+      .brand span {
+        font-size: 46px;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+      }
+      .brand b {
+        color: #0e7c7b;
+        font-weight: 700;
+      }
+      .kicker {
+        margin-top: 56px;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #71717a;
+      }
+      h1 {
+        margin-top: 18px;
+        font-size: 76px;
+        line-height: 1.08;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        max-width: 1000px;
+      }
+      .foot {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 26px;
+        color: #52525b;
+      }
+      .steps {
+        display: flex;
+        gap: 12px;
+      }
+      .steps span {
+        border: 2px solid #d4d4d8;
+        background: #fff;
+        border-radius: 999px;
+        padding: 6px 18px;
+      }
+      .steps span.on {
+        background: #0e7c7b;
+        border-color: #0e7c7b;
+        color: #fff;
+      }
+      .host {
+        font-weight: 600;
+        color: #0a5958;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="brand">
+      <img src="../../apps/web/public/brand-mark.svg" alt="" /><span
+        >Retro<b>Beam</b></span
+      >
+    </div>
+    <p class="kicker">
+      Kostenloses Retro-Tool · ohne Anmeldung · ohne Board-Limit
+    </p>
+    <h1>Retros, auf die sich dein Team freut.</h1>
+    <div class="foot">
+      <div class="steps">
+        <span class="on">Schreiben</span><span>Vorstellen</span
+        ><span>Abstimmen</span><span>Diskutieren</span>
+      </div>
+      <span class="host">retrobeam.de</span>
+    </div>
+  </body>
+</html>

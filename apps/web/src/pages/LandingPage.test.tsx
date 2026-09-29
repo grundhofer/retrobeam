@@ -30,8 +30,12 @@ test("keeps the create action clear at the start and end", async () => {
   await expect
     .element(cta)
     .toHaveTextContent(/Retro-Board erstellen|Create a retro board/);
+  // One action in the hero; the trust chips are in-page anchors, not exits.
   expect(
-    screen.getByTestId("landing-hero").element().querySelectorAll("a"),
+    screen
+      .getByTestId("landing-hero")
+      .element()
+      .querySelectorAll('a:not([href^="#faq-"])'),
   ).toHaveLength(1);
   expect(
     screen
@@ -58,9 +62,36 @@ test("answers the FAQ on demand and states that it is not commercial", async () 
   await screen.getByText(/wo ist der Haken|where's the catch/).click();
   expect(items[0]?.open).toBe(true);
 
+  // docs/06 relies on this line ("not a commercial service"), so it stays
+  // visible under the closing call to action rather than inside a FAQ answer.
+  const notice = screen.getByTestId("landing-notice");
+  await expect.element(notice).toBeVisible();
   await expect
-    .element(screen.getByTestId("landing-notice"))
-    .toHaveTextContent(/kein Unternehmen|not a company/);
+    .element(notice)
+    .toHaveTextContent(/Kein kommerzielles Angebot|Not a commercial service/);
+  expect(notice.element().closest("details")).toBeNull();
+});
+
+// Each claim in the hero is a short form of a FAQ answer that carries its
+// caveats; a chip that pointed nowhere, or left the answer shut, would make
+// the claim without them.
+test("every trust chip opens the FAQ answer it stands for", async () => {
+  const screen = await render(page());
+  const chips = [
+    ...screen
+      .getByTestId("landing-trust")
+      .element()
+      .querySelectorAll<HTMLAnchorElement>("a"),
+  ];
+  expect(chips.length).toBeGreaterThanOrEqual(4);
+  for (const chip of chips) {
+    const id = chip.getAttribute("href")?.slice(1) ?? "";
+    const target = document.getElementById(id);
+    expect(target, id).toBeInstanceOf(HTMLDetailsElement);
+    expect((target as HTMLDetailsElement).open).toBe(false);
+    chip.click();
+    expect((target as HTMLDetailsElement).open, id).toBe(true);
+  }
 });
 
 // § 25 TDDDG: the case for "no consent banner" rests on the landing page
@@ -70,5 +101,10 @@ test("writes nothing to localStorage", async () => {
   const before = storedKeys();
   const screen = await render(page());
   await screen.getByText(/wo ist der Haken|where's the catch/).click();
+  screen
+    .getByTestId("landing-trust")
+    .element()
+    .querySelector<HTMLAnchorElement>("a")
+    ?.click();
   expect(storedKeys()).toEqual(before);
 });

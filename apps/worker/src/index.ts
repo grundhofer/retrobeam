@@ -52,6 +52,18 @@ const duplicateBoardRequestSchema = z.object({
 
 const app = new Hono<{ Bindings: Env }>();
 
+// API responses are data, never pages. robots.txt keeps crawlers off /api/,
+// but that stops fetching, not indexing a URL somebody linked — an export link
+// pasted into a wiki, say, which carries the board capability. The
+// X-Robots-Tag rules in apps/web/public/_headers cannot reach these: /api/*
+// runs the Worker first, and the asset layer never sees its responses. The
+// WebSocket upgrade (101) is left alone — that response comes from the Durable
+// Object and cannot be re-wrapped without losing the socket.
+app.use("/api/*", async (c, next) => {
+  await next();
+  if (c.res.status !== 101) c.header("X-Robots-Tag", "noindex");
+});
+
 // Board creation is unauthenticated and each call mints a permanent,
 // alarm-armed Durable Object. The free-tier allowance is account-wide, so one
 // unthrottled script takes every board offline until midnight UTC. Keyed on the

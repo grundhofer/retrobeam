@@ -18,9 +18,14 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
   const [openId, setOpenId] = useState<string | null>(null);
+  // Which side of the avatar the role menu hangs from — see HeaderPopover.
+  // On a phone the row starts at the left edge, and a right-aligned menu
+  // under the first avatars began off-screen.
+  const [alignLeft, setAlignLeft] = useState(false);
 
   return (
-    <div className="flex -space-x-1.5">
+    // Wraps: a full team of avatars in one row is wider than a phone.
+    <div className="flex flex-wrap -space-x-1.5 gap-y-1">
       {participants.map((participant) => (
         <span
           key={participant.id}
@@ -44,9 +49,13 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
                 : "")
             }
             disabled={!isAdmin}
-            onClick={() =>
-              setOpenId(openId === participant.id ? null : participant.id)
-            }
+            onClick={(event) => {
+              // Room for the widest label ("Zur Moderation machen") on the
+              // right? Then hang it rightwards from the avatar's left edge.
+              const rect = event.currentTarget.getBoundingClientRect();
+              setAlignLeft(rect.right < 200);
+              setOpenId(openId === participant.id ? null : participant.id);
+            }}
             className={`flex size-7 items-center justify-center rounded-full border-2 text-xs font-semibold text-white focus-visible:outline-2 focus-visible:outline-accent ${
               participant.role === "facilitator"
                 ? "border-zinc-700"
@@ -68,7 +77,11 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
             </span>
           </button>
           {openId === participant.id && isAdmin ? (
-            <span className="absolute top-9 right-0 z-40 w-max rounded-lg border border-zinc-200 bg-white p-1 shadow-lg">
+            <span
+              className={`absolute top-9 z-40 w-max rounded-lg border border-zinc-200 bg-white p-1 shadow-lg ${
+                alignLeft ? "left-0" : "right-0"
+              }`}
+            >
               <button
                 type="button"
                 data-testid={`role-toggle-${participant.name}`}

@@ -199,7 +199,7 @@ function SpinScene({
   return (
     <div
       data-testid="wheel-overlay"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-zinc-900/75 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-zinc-900/75 px-4 backdrop-blur-sm"
     >
       {!reducedMotion ? (
         <PickerSkin
@@ -209,11 +209,13 @@ function SpinScene({
           clockOffsetMs={clockOffsetMs}
         />
       ) : null}
-      <div aria-live="polite" className="min-h-16 text-center">
+      {/* max-w-full: a forty-character name at text-2xl is wider than a
+          phone, and the overlay cannot scroll. */}
+      <div aria-live="polite" className="min-h-16 max-w-full text-center">
         {landed && winner ? (
           <div
             data-testid="wheel-winner"
-            className="reveal-in rounded-2xl bg-white px-8 py-4 text-2xl font-semibold text-zinc-900 shadow-xl"
+            className="reveal-in rounded-2xl bg-white px-8 py-4 text-2xl font-semibold break-words text-zinc-900 shadow-xl"
           >
             <span
               aria-hidden="true"

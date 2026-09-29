@@ -13,6 +13,13 @@ const ADMIN_PARAM = "admin";
 // the server mints, and a token that fails this can never match anyway.
 const TOKEN_PATTERN = /^[0-9a-f]{32}$/;
 
+// The TEAM link — the one to hand out, share on screen and put in a QR code.
+// Built from the id alone, never derived from an address bar that may still
+// hold the fragment above.
+export function teamLinkUrl(origin: string, boardId: string): string {
+  return `${origin}/board/${boardId}`;
+}
+
 export function adminLinkUrl(
   origin: string,
   boardId: string,

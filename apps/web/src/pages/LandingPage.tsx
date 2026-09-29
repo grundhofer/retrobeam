@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { BoardPreview } from "../components/BoardPreview.js";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { SiteHeader } from "../components/SiteHeader.js";
@@ -31,6 +32,30 @@ const FAQ_GROUPS = [
   },
 ] as const;
 
+// The hero's claims, each one a link to the FAQ answer that carries its
+// caveats: "stored in the EU" is only honest next to the answer that says the
+// edge can be outside it, "90 days" next to the one that says a facilitator
+// can keep a board. The chips are the short form; the answer is the promise.
+// No "no account" chip — the kicker and the hint under the button say it.
+const TRUST_CHIPS = [
+  { key: "private", faq: "whoReads" },
+  { key: "anonymous", faq: "hideAuthors" },
+  { key: "eu", faq: "where" },
+  { key: "deletes", faq: "howLong" },
+  { key: "openSource", faq: "license" },
+] as const;
+
+const faqId = (key: string) => `faq-${key}`;
+
+// A fragment alone scrolls to a <details> but leaves it shut in some engines,
+// so a chip (or a shared /#faq-… link) opens the answer it points at as well.
+// Only the element's `open` state changes — nothing is stored.
+function openFaq(id: string): HTMLElement | null {
+  const target = document.getElementById(id);
+  if (target instanceof HTMLDetailsElement) target.open = true;
+  return target;
+}
+
 // The app's primary-button class string, one size up.
 const ctaClass =
   "inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -40,6 +65,26 @@ const sectionInnerClass = "mx-auto w-full max-w-6xl px-6 sm:px-10";
 
 export function LandingPage() {
   const { t } = useTranslation();
+  const { hash } = useLocation();
+  const appName = t("app.name");
+  const tagline = t("app.tagline");
+
+  // index.html carries the German title for crawlers and link previews; once
+  // the app runs, the tab follows the UI language. Same pattern as LegalPage.
+  useEffect(() => {
+    document.title = `${appName} — ${tagline}`;
+    return () => {
+      document.title = appName;
+    };
+  }, [appName, tagline]);
+
+  // The browser's own fragment scroll runs before React has rendered the FAQ,
+  // so a link that arrives with #faq-… would land at the top, answer closed.
+  useEffect(() => {
+    if (!hash.startsWith("#faq-")) return;
+    openFaq(hash.slice(1))?.scrollIntoView();
+  }, [hash]);
+
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       <SiteHeader />
@@ -67,9 +112,22 @@ export function LandingPage() {
               <p className="mt-4 text-sm text-zinc-600">
                 {t("landing.ctaHint")}
               </p>
-              <p className="mt-2 text-sm text-zinc-600 tabular-nums">
-                {t("landing.trust")}
-              </p>
+              <ul
+                data-testid="landing-trust"
+                className="mt-6 flex flex-wrap gap-2"
+              >
+                {TRUST_CHIPS.map(({ key, faq }) => (
+                  <li key={key}>
+                    <a
+                      href={`#${faqId(faq)}`}
+                      onClick={() => openFaq(faqId(faq))}
+                      className="inline-flex rounded-2xl border border-zinc-300 bg-white px-3 py-1 text-sm text-zinc-700 transition-colors duration-150 hover:border-accent hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    >
+                      {t(`landing.trustChips.${key}`)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
             <div className="mt-12 lg:col-span-6 lg:mt-0">
               <div className="rounded-2xl bg-accent/[0.06] p-3 sm:p-5">
@@ -91,6 +149,9 @@ export function LandingPage() {
         >
           <div className={`${sectionInnerClass} py-12 sm:py-20`}>
             <h2 className={labelClass}>{t("landing.howTitle")}</h2>
+            <p className="mt-4 max-w-prose text-lg leading-relaxed text-zinc-700">
+              {t("landing.howRoles")}
+            </p>
             <ol className="mt-8 grid gap-4 md:grid-cols-3">
               {STEPS.map((step, index) => (
                 <li
@@ -158,7 +219,11 @@ export function LandingPage() {
                   </h3>
                   <div className="mt-3 divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-zinc-50 px-5">
                     {group.questions.map((key) => (
-                      <details key={key} className="group">
+                      <details
+                        key={key}
+                        id={faqId(key)}
+                        className="group scroll-mt-6"
+                      >
                         <summary className="flex cursor-pointer list-none items-baseline justify-between gap-4 py-4 font-medium text-zinc-900 focus-visible:outline-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
                           <span>{t(`landing.faq.${key}.q`)}</span>
                           <span
@@ -180,15 +245,18 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section data-testid="landing-notice" className="bg-zinc-50">
+        {/* The last word before the decision is an invitation, not a caveat.
+            The private-project line stays visible right under it: docs/06
+            relies on the landing saying "not a commercial service". */}
+        <section data-testid="landing-closing" className="bg-zinc-50">
           <div className={`${sectionInnerClass} py-12 sm:py-20`}>
             <div className="rounded-2xl bg-zinc-900 px-6 py-8 sm:flex sm:items-center sm:justify-between sm:gap-10 sm:px-8">
               <div>
-                <h2 className="text-sm font-semibold tracking-wide text-zinc-400 uppercase">
-                  {t("landing.noticeTitle")}
+                <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  {t("landing.closingTitle")}
                 </h2>
-                <p className="mt-4 max-w-2xl text-[17px] leading-[1.65] text-zinc-300">
-                  {t("landing.notice")}
+                <p className="mt-3 max-w-2xl text-[17px] leading-[1.65] text-zinc-300">
+                  {t("landing.closingText")}
                 </p>
               </div>
               <Link
@@ -199,6 +267,12 @@ export function LandingPage() {
                 {t("landing.cta")}
               </Link>
             </div>
+            <p
+              data-testid="landing-notice"
+              className="mt-6 max-w-prose text-sm leading-relaxed text-zinc-600"
+            >
+              {t("landing.notice")}
+            </p>
           </div>
         </section>
       </main>

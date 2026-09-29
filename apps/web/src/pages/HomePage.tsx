@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import {
@@ -24,6 +24,16 @@ export function HomePage() {
   const [anonymous, setAnonymous] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const title = t("home.title");
+  const appName = t("app.name");
+
+  // Same pattern as LegalPage: the tab names the page, in the UI language.
+  useEffect(() => {
+    document.title = `${title} · ${appName}`;
+    return () => {
+      document.title = appName;
+    };
+  }, [appName, title]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -55,7 +65,11 @@ export function HomePage() {
           <h1 className="text-2xl font-semibold text-zinc-900">
             {t("home.title")}
           </h1>
-          <p className="mt-1 mb-6 text-zinc-500">{t("app.tagline")}</p>
+          {/* What happens after the button, so nobody fills in a form that
+              leads to a black box: a link to share, then a lobby to wait in. */}
+          <p data-testid="home-next-step" className="mt-1 mb-6 text-zinc-500">
+            {t("home.nextStep")}
+          </p>
           <form
             onSubmit={(event) => void submit(event)}
             className="flex flex-col gap-4"

@@ -65,7 +65,31 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <ol className="flex items-center gap-1" aria-label={t("phase.stepper")}>
+      {/* Below `sm` the full row does not fit: seven or eight names are some
+          560px, and that one row made every board page on a phone scroll
+          sideways — which also pushed the fixed wheel overlay off centre. The
+          phone gets the position and the current phase; the list stays in the
+          accessibility tree (sr-only), so a screen reader hears the same
+          agenda on every screen, and this line is hidden from it to avoid
+          reading the phase twice. */}
+      <p
+        aria-hidden="true"
+        data-testid="phase-compact"
+        className="flex items-center gap-2 text-sm text-zinc-500 sm:hidden"
+      >
+        {t("phase.stepOf", {
+          current: sequence.indexOf(phase) + 1,
+          total: sequence.length,
+        })}
+        <span className="text-zinc-300">·</span>
+        <span className="rounded-full bg-accent px-2.5 py-0.5 font-medium text-white">
+          {t(`phase.${phase}`)}
+        </span>
+      </p>
+      <ol
+        className="sr-only flex items-center gap-1 sm:not-sr-only"
+        aria-label={t("phase.stepper")}
+      >
         {sequence.map((step, index) => (
           <li key={step} className="flex items-center gap-1">
             {index > 0 ? <span className="text-zinc-300">·</span> : null}

@@ -3,12 +3,14 @@
 
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
+import { page } from "vitest/browser";
 import {
   DEFAULT_PHASE_PLAN,
   type ClientCommand,
   type ServerEvent,
 } from "@retrobeam/shared";
 import "../i18n.js";
+import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
 import { PhaseStepper } from "./PhaseStepper.js";
 
@@ -108,4 +110,33 @@ test("members get no phase controls at all", async () => {
 
   expect(screen.getByTestId("phase-next").elements()).toHaveLength(0);
   expect(screen.getByTestId("phase-back").elements()).toHaveLength(0);
+});
+
+// Below `sm` the full row of phase names was ~560px wide and made every board
+// page on a phone scroll sideways. The phone gets "Step 3 of 7 · Present"; the
+// list itself stays in the accessibility tree, current step and all, so a
+// screen reader hears the same agenda at every width.
+test("a phone gets the position, the phase list stays for screen readers", async () => {
+  const { view } = harness();
+  await page.viewport(390, 844);
+  const screen = await render(view("present"));
+
+  const compact = screen.getByTestId("phase-compact");
+  await expect.element(compact).toBeVisible();
+  await expect
+    .element(compact)
+    .toHaveTextContent(/(Step|Schritt) 3 (of|von) 7/);
+  const list = screen.getByRole("list");
+  await expect.element(list).toBeInTheDocument();
+  expect(list.element().getBoundingClientRect().width).toBeLessThanOrEqual(1);
+  expect(
+    list.element().querySelector('[aria-current="step"]')?.textContent,
+  ).toMatch(/present|vorstellen/i);
+  // The controls are not squeezed out by it.
+  await expect.element(screen.getByTestId("phase-next")).toBeVisible();
+
+  // From `sm` up, the row as it always was.
+  await page.viewport(1024, 768);
+  await expect.element(compact).not.toBeVisible();
+  expect(list.element().getBoundingClientRect().width).toBeGreaterThan(300);
 });

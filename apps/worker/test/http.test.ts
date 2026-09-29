@@ -90,3 +90,33 @@ describe("GET /api/boards/:id/ws", () => {
     expect(response.status).toBe(404);
   });
 });
+
+// A board URL is a capability; neither the API answer nor an export link that
+// ends up somewhere public may be indexed. The asset layer's _headers cannot
+// reach /api/* (the Worker runs first), so the Worker sets it itself.
+describe("X-Robots-Tag on /api/*", () => {
+  it("marks JSON, export and error answers noindex", async () => {
+    const { boardId } = await createBoard("Indexed? No.");
+    for (const path of [
+      `/api/boards/${boardId}`,
+      `/api/boards/${boardId}/export?format=md`,
+      `/api/boards/${"0".repeat(32)}`,
+      "/api/nope",
+    ]) {
+      const response = await SELF.fetch(`https://example.com${path}`);
+      expect(response.headers.get("x-robots-tag"), path).toBe("noindex");
+    }
+  });
+
+  it("leaves the WebSocket upgrade intact", async () => {
+    const { boardId } = await createBoard();
+    const response = await SELF.fetch(
+      `https://example.com/api/boards/${boardId}/ws`,
+      { headers: { Upgrade: "websocket" } },
+    );
+    expect(response.status).toBe(101);
+    expect(response.webSocket).not.toBeNull();
+    response.webSocket?.accept();
+    response.webSocket?.close();
+  });
+});

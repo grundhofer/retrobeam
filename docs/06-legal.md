@@ -39,7 +39,7 @@ model must work _with_ the AGPL, not around it.
 | Item               | Where                                                                  |
 | ------------------ | ---------------------------------------------------------------------- |
 | Licence text       | `LICENSE` (verbatim AGPL-3.0, 34 523 bytes)                            |
-| SPDX headers       | 143 first-party source files (2026-09-29), REUSE-style two-line header |
+| SPDX headers       | 162 first-party source files (2026-09-30), REUSE-style two-line header |
 | Package metadata   | `license: AGPL-3.0-or-later` in all four `package.json`                |
 | CLA                | `CLA.md` (German binding, English translation)                         |
 | Contribution rules | `CONTRIBUTING.md`                                                      |
@@ -117,11 +117,15 @@ holder cannot grant an exception to code they do not own.
 
 Audit of 2026-08-06 — 21 third-party packages in the production closure, **zero copyleft**:
 
-| Licence    | Packages                                                                                                                                                                                                                                                                                        |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MIT        | `@babel/runtime`, `@types/react`, `cookie`, `csstype`, `event-target-polyfill`, `hono`, `html-parse-stringify`, `i18next`, `partysocket`, `react`, `react-dom`, `react-i18next`, `react-router`, `scheduler`, `set-cookie-parser`, `use-sync-external-store`, `void-elements`, `zod`, `zustand` |
-| ISC        | `canvas-confetti`                                                                                                                                                                                                                                                                               |
-| Apache-2.0 | `typescript`                                                                                                                                                                                                                                                                                    |
+| Licence    | Packages                                                                                                                                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| MIT        | `@babel/runtime`, `@types/react`, `cookie`, `csstype`, `event-target-polyfill`, `hono`, `html-parse-stringify`, `i18next`, `partysocket`, `react`, `react-dom`, `react-i18next`, `react-router`, `scheduler`, `set-cookie-parser`, `uqr`, `use-sync-external-store`, `void-elements`, `zod`, `zustand` |
+| ISC        | `canvas-confetti`                                                                                                                                                                                                                                                                                      |
+| Apache-2.0 | `typescript`                                                                                                                                                                                                                                                                                           |
+
+Added since: `uqr` (MIT, 2026-09-29) — the QR code for the team link in the lobby and the invite
+panel. Zero dependencies, encoded in the browser, never fetched from a QR service; it sits in its own
+lazily loaded chunk (`apps/web/src/lib/qr.ts`), so the entry bundle does not carry it.
 
 Apache-2.0 is one-way compatible: it may be combined into AGPLv3 work, but not the reverse. That is
 fine here and does not affect the exception licence, since Apache-2.0 permits proprietary

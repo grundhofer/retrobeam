@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+Only paths that exist and are meant to be found. The English aliases
+(/privacy, /imprint) render the same pages and are left out; boards never
+appear here.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://retrobeam.de/</loc></url>
+  <url><loc>https://retrobeam.de/new</loc></url>
+  <url><loc>https://retrobeam.de/impressum</loc></url>
+  <url><loc>https://retrobeam.de/datenschutz</loc></url>
+</urlset>

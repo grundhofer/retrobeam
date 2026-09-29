@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,10 +11,87 @@
     <meta name="referrer" content="no-referrer" />
     <meta name="theme-color" content="#0e7c7b" />
     <link rel="icon" href="/brand-mark.svg" type="image/svg+xml" />
-    <title>RetroBeam</title>
+    <!-- Link previews (Teams, Slack, chat apps) and crawlers that run no
+         script see only this file, so it carries the product's own German
+         wording; once the app runs, i18n.ts switches <html lang> and the pages
+         set the tab title in the UI language. The tags are GENERIC on purpose:
+         this same shell answers /board/<id>, so there is deliberately no
+         og:url and no canonical — either would turn every invitation link into
+         a link to "/" — and nothing about any board ever appears here.
+         og:image must be absolute; a self-hosted instance changes the host. -->
+    <title>RetroBeam — Retros, auf die sich dein Team freut.</title>
+    <meta
+      name="description"
+      content="Geführte Team-Retrospektiven im Browser: verdeckt schreiben, Glücksrad, verdeckt abstimmen, Action Items festhalten. Kostenlos, ohne Account, Open Source."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RetroBeam" />
+    <meta
+      property="og:title"
+      content="RetroBeam — Retros, auf die sich dein Team freut."
+    />
+    <meta
+      property="og:description"
+      content="Geführte Team-Retrospektiven im Browser: verdeckt schreiben, Glücksrad, verdeckt abstimmen, Action Items festhalten. Kostenlos, ohne Account, Open Source."
+    />
+    <meta property="og:image" content="https://retrobeam.de/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="RetroBeam — Retros, auf die sich dein Team freut."
+    />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- The fallback below is for readers without script only. Where script
+         runs, it stays hidden until React replaces #root's children on the
+         first render (createRoot clears the container; nothing is hydrated),
+         so a board link never flashes the landing text first. -->
+    <style>
+      @media (scripting: enabled) {
+        [data-static-fallback] {
+          display: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main
+        data-static-fallback
+        class="mx-auto max-w-2xl px-6 py-16 leading-relaxed text-zinc-700"
+      >
+        <h1 class="text-3xl font-semibold tracking-tight text-zinc-900">
+          RetroBeam — Retros, auf die sich dein Team freut.
+        </h1>
+        <p class="mt-6">
+          Kostenloses Retro-Tool ohne Anmeldung und ohne Board-Limit. Eine
+          Person moderiert, RetroBeam führt euer Team Schritt für Schritt durch
+          die Retrospektive.
+        </p>
+        <ul class="mt-6 list-disc space-y-2 pl-6">
+          <li>
+            Alle schreiben erst verdeckt — fremde Notizen verlassen den Server
+            erst, wenn sie dran sind.
+          </li>
+          <li>
+            Das Glücksrad entscheidet, wer vorstellt; danach wird verdeckt
+            abgestimmt, diskutiert und ihr haltet Action Items fest.
+          </li>
+          <li>
+            Boards in der EU gespeichert, standardmäßig nach 90 Tagen gelöscht,
+            Open Source unter der AGPL-3.0.
+          </li>
+        </ul>
+        <p class="mt-8">
+          <a href="/new" class="text-accent underline underline-offset-4"
+            >Retro-Board erstellen</a
+          >
+        </p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
