@@ -35,7 +35,9 @@ async function joined(
 
 async function advanceTo(
   admin: { socket: TestSocket },
-  phases: ReadonlyArray<"write" | "present" | "vote" | "discuss">,
+  phases: ReadonlyArray<
+    "write" | "present" | "vote" | "discuss" | "close" | "done"
+  >,
 ): Promise<void> {
   for (const phase of phases) {
     admin.socket.send({ type: "admin.phase.set", phase });
@@ -58,8 +60,8 @@ async function createNote(
   return noteId;
 }
 
-async function votingBoard() {
-  const { boardId, adminToken } = await createBoard();
+async function votingBoard(options: { anonymous?: boolean } = {}) {
+  const { boardId, adminToken } = await createBoard("Sprint 12", options);
   const admin = await joined(boardId, "Anna", adminToken);
   const ben = await joined(boardId, "Ben");
   const columnId = admin.sync.columns[0]?.id;
@@ -404,6 +406,66 @@ describe("voter names on the reveal", () => {
 });
 
 describe("reveal & discussion", () => {
+  // The results page is drawn from the snapshot a reload or a latecomer gets
+  // on a FINISHED board. If "done" ever fell out of the reveal gate, the crowns
+  // and the vote result would vanish exactly where the retro's outcome is read.
+  it("a finished board still hands a fresh join the result", async () => {
+    const { boardId, admin, ben, noteA, noteB } = await votingBoard();
+    castMany(admin.socket, noteB, 2);
+    await admin.socket.waitFor(
+      (e) => e.type === "vote.progress" && e.yourVotes[noteB] === 2,
+    );
+    cast(ben.socket, noteA, 1);
+    await ben.socket.waitFor((e) => e.type === "vote.progress");
+    await advanceTo(admin, ["discuss", "close", "done"]);
+
+    const cara = await joined(boardId, "Cara");
+    expect(cara.sync.phase).toBe("done");
+    expect(cara.sync.votes.tallies).toEqual({ [noteB]: 2, [noteA]: 1 });
+    expect(cara.sync.votes.topTargetIds).toEqual([noteB, noteA]);
+    // Names ride along exactly as they did in the discussion (on by default
+    // for a new board), because the same talliesAndTop() gate decides.
+    expect(cara.sync.votes.voters?.[noteB]).toEqual({ [admin.you.id]: 2 });
+    expect(cara.sync.notes.map((n) => n.id).sort()).toEqual(
+      [noteA, noteB].sort(),
+    );
+  });
+
+  it("an anonymous finished board hands over the result without a name", async () => {
+    const { boardId, admin, ben, noteA } = await votingBoard({
+      anonymous: true,
+    });
+    cast(ben.socket, noteA, 1);
+    await ben.socket.waitFor((e) => e.type === "vote.progress");
+    await advanceTo(admin, ["discuss", "close", "done"]);
+
+    const cara = await joined(boardId, "Cara");
+    expect(cara.sync.votes.tallies).toEqual({ [noteA]: 1 });
+    expect(cara.sync.votes.topTargetIds).toEqual([noteA]);
+    expect(cara.sync.votes.voters).toBeNull();
+    expect(cara.sync.notes.every((n) => n.authorId === null)).toBe(true);
+  });
+
+  // Joining a finished board to read it adds a participants row like any
+  // join, so a count taken from the roster grew with every reader — the
+  // manager the link was sent to, a participant's second device. The number
+  // is taken once, at "done", and handed out as that.
+  it("the headcount is taken at done, and readers who join later leave it alone", async () => {
+    const { boardId, admin, ben } = await votingBoard();
+    expect(ben.sync.headcount).toBeNull();
+    await advanceTo(admin, ["discuss", "close", "done"]);
+    const finished = await ben.socket.waitFor(
+      (e) => e.type === "phase.changed" && e.phase === "done",
+    );
+    expect(finished.type === "phase.changed" && finished.headcount).toBe(2);
+
+    const cara = await joined(boardId, "Cara");
+    const dora = await joined(boardId, "Dora");
+    expect(dora.sync.roster).toHaveLength(4);
+    expect(cara.sync.headcount).toBe(2);
+    expect(dora.sync.headcount).toBe(2);
+  });
+
   it("vote→discuss reveals tallies and crowns the top-N with a stable tiebreak", async () => {
     const { admin, ben, noteA, noteB } = await votingBoard();
     admin.socket.send({

@@ -6,7 +6,7 @@ import { newContext } from "./helpers.js";
 
 // M3 acceptance: blind voting (nobody sees others' votes), the anonymous
 // meter, top-N crowns after the reveal, the synced discussion focus, action
-// items, and re-blinding on rewind.
+// items, re-blinding on rewind — and the result that survives finishing.
 test("blind voting, crowns, discussion queue and action items", async ({
   browser,
 }) => {
@@ -159,6 +159,55 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await anna.getByTestId("phase-back").click();
   await expect(ben.getByTestId("crown")).toHaveCount(0);
   await expect(ben.getByTestId("tally")).toHaveCount(0);
+
+  // Back through the reveal and the close, and finish. The last step is the
+  // one nobody can take back, so it asks first — and until it is confirmed,
+  // nothing has happened on anybody's screen.
+  await anna.getByTestId("phase-next").click(); // discuss, re-revealed
+  await expect(ben.getByTestId("crown").first()).toBeVisible();
+  await anna.getByTestId("phase-next").click(); // close
+  await expect(anna.getByTestId("phase-next")).toContainText(/done|fertig/i);
+  await anna.getByTestId("phase-next").click();
+  await expect(anna.getByTestId("phase-done-question")).toContainText(
+    /read-only|schreibgeschützt/i,
+  );
+  await expect(ben.getByTestId("results-header")).toHaveCount(0);
+  await anna.getByTestId("phase-done-confirm").click();
+  // The confirm button is gone with the phase row; focus lands on the result
+  // rather than falling back to the top of the document.
+  await expect(anna.getByTestId("results-title")).toBeFocused();
+
+  // The results page leads with the outcome: the crowned topic in first place
+  // with its tally, and the action item. On the member's screen — and again
+  // after a reload, which is drawn from the snapshot, not the live stream.
+  for (const reload of [false, true]) {
+    if (reload) {
+      await ben.reload();
+      await ben.getByRole("button", { name: /^(join|beitreten)$/i }).click();
+    }
+    await expect(ben.getByTestId("results-header")).toBeVisible();
+    const first = ben.getByTestId("top-topic").first();
+    await expect(first).toContainText("Slow deploys");
+    await expect(first.getByTestId("crown")).toContainText("1");
+    await expect(first.getByTestId("tally")).toContainText("4");
+    await expect(first.getByTestId("voter-Anna")).toBeVisible();
+    await expect(
+      ben.getByTestId("action-item").filter({ hasText: "Automate the deploy" }),
+    ).toBeVisible();
+    await expect(ben.getByTestId("results-export-pdf")).toBeVisible();
+    // Two people finished it — however many opened it since.
+    await expect(ben.getByTestId("results-recap")).toContainText(
+      /2 (people|Personen)/,
+    );
+  }
+  // The whole board is one click away, read-only.
+  await ben.getByTestId("all-cards-toggle").click();
+  await expect(
+    ben.getByTestId("board-column").getByTestId("note-card"),
+  ).toHaveCount(2);
+  await expect(
+    ben.getByPlaceholder(/write a note|notiz schreiben/i),
+  ).toHaveCount(0);
 
   await annaContext.close();
   await benContext.close();

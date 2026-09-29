@@ -108,14 +108,42 @@ test("board fits a phone", async ({ browser }) => {
 
   await step(anna, ben, /vote|abstimmen/i);
   await expectFits(anna, ben, "vote");
+  // One dot, so the results page has a crowned topic to lay out.
+  await ben.getByTestId("vote-plus").first().click();
+  await expect(ben.getByTestId("vote-count").first()).toHaveText("1");
   await step(anna, ben, /discuss|diskutieren/i);
   await expectFits(anna, ben, "discuss");
+  // …and an action item, typed on the phone.
+  await anna.getByTestId("action-input").fill("Split the integration stage");
+  await anna.getByTestId("action-input").press("Enter");
+  await expect(ben.getByTestId("action-item")).toHaveCount(1);
   await step(anna, ben, /close|abschluss/i);
   await expectFits(anna, ben, "close");
-  await step(anna, ben, /done|fertig/i);
+
+  // Finishing asks first, and the question fits the phone too.
+  await anna.getByTestId("phase-next").click();
+  await expectOnScreen(anna.getByTestId("phase-done-question"));
+  await expectOnScreen(anna.getByTestId("phase-done-confirm"));
+  await expectFits(anna, ben, "finish question");
+  await anna.getByTestId("phase-done-confirm").click();
+  await expect(anna.getByTestId("phase-compact")).toContainText(/done|fertig/i);
+  await expect(ben.getByTestId("phase-compact")).toContainText(/done|fertig/i);
   await expectFits(anna, ben, "done");
   // Nobody joins a finished retro to take part.
   await expect(anna.getByTestId("invite-button")).toHaveCount(0);
+
+  // The results page, stacked for the phone: the crowned topic, the action
+  // item, then the export — and the whole board, which on this canvas board
+  // reads as its zones.
+  for (const page of [anna, ben]) {
+    await expectOnScreen(page.getByTestId("top-topic").first());
+    await expectOnScreen(page.getByTestId("action-item").first());
+    await expectOnScreen(page.getByTestId("results-export-pdf"));
+    await expectOnScreen(page.getByTestId("results-export-jpeg"));
+    await page.getByTestId("all-cards-toggle").click();
+    await expectOnScreen(page.getByTestId("board-column").first());
+  }
+  await expectFits(anna, ben, "done (all cards)");
 
   await Promise.all([annaContext.close(), benContext.close()]);
 });
