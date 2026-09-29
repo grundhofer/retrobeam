@@ -55,6 +55,31 @@ test("the initial action follows the selected slots tool", async () => {
     .toHaveTextContent(`🎰 ${i18n.t("picker.startSlots")}`);
 });
 
+test("an anonymous board calls nobody up, and says why the wheel is missing", async () => {
+  const screen = await render(
+    <ConnectionProvider
+      value={{ boardId: "b".repeat(32), send: vi.fn(), mutate: vi.fn() }}
+    >
+      <PresenceRail
+        phase="present"
+        roster={[anna, ben]}
+        readyIds={[]}
+        picker={{ ...picker, remaining: [anna.id, ben.id] }}
+        you={anna}
+        isAdmin
+        anonymous
+      />
+    </ConnectionProvider>,
+  );
+
+  await expect
+    .element(screen.getByTestId("present-anonymous-hint"))
+    .toHaveTextContent(i18n.t("present.anonymous"));
+  expect(document.querySelector("[data-testid='spin-button']")).toBeNull();
+  expect(document.querySelector("[data-testid='picker-style']")).toBeNull();
+  expect(document.querySelector(`[data-testid='pick-${ben.name}']`)).toBeNull();
+});
+
 test("cards open the full-screen selection instead of rendering in the rail", async () => {
   const send = vi.fn();
   const openCards = vi.fn();

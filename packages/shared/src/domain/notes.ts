@@ -108,7 +108,14 @@ export function noteVisibleTo(
 // Per-viewer sanitisation of a note that has ALREADY passed noteVisibleTo.
 // Two things are stripped:
 //  1. authorship, on anonymous boards, for everyone but the author (who needs
-//     it to know the note is editable). Applies in every phase.
+//     it to know the note is editable). Applies in every phase. The ORDER goes
+//     with it: `order` is numbered per (column, author) — a global counter
+//     would leak hidden-note counts before the reveal — so a column reading
+//     1, 1, 2, 3 tells the room that the 2 and the 3 share an author with one
+//     of the 1s. Stripping the name and shipping that would link every
+//     person's cards together, and one card that gives its author away would
+//     then give away the rest. A foreign note carries 0; the client breaks the
+//     tie by id, which is random and identical on every screen.
 //  2. groupId, when the viewer cannot see the stack's ANCHOR. A stack's id IS
 //     its anchor note's id, so shipping it would name a note the viewer was
 //     never shown — the same class of leak that broadcastNoteReorg's
@@ -129,7 +136,7 @@ export function redactNoteForViewer(
   if (!hideAuthor && !hideGroup) return note;
   return {
     ...note,
-    ...(hideAuthor ? { authorId: null } : {}),
+    ...(hideAuthor ? { authorId: null, order: 0 } : {}),
     ...(hideGroup ? { groupId: null } : {}),
   };
 }

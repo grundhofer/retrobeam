@@ -13,6 +13,7 @@ import {
   type ServerEvent,
 } from "@retrobeam/shared";
 import { ActionsPanel } from "../components/ActionsPanel.js";
+import { AdminLink } from "../components/AdminLink.js";
 import { AvatarRow } from "../components/AvatarRow.js";
 import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
@@ -36,6 +37,7 @@ import { ShareLink } from "../components/ShareLink.js";
 import { TimerPanel } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
+import { adoptAdminLink } from "../lib/adminLink.js";
 import { fetchBoardInfo } from "../lib/api.js";
 import { playTimerChime, soundEnabled, unlockAudio } from "../lib/beep.js";
 import { ConnectionProvider, type BoardConnection } from "../lib/connection.js";
@@ -59,6 +61,31 @@ type Gate =
 export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>();
   const [gate, setGate] = useState<Gate>({ step: "loading" });
+
+  // Counts the facilitator links opened in this tab (see adoptAdminLink). The
+  // fragment is read and wiped here, before anyone types a name, so the token
+  // is already stored when the join goes out — the ordinary join path carries
+  // it from there, exactly as it does for the browser that created the board.
+  // hashchange too: pasting the link over this board's own address changes
+  // only the fragment, which reloads nothing. A member already in the room is
+  // then re-joined (Room is keyed on this count) and comes back facilitator.
+  const [adminLinks, setAdminLinks] = useState(0);
+  // Whether the latest of those links was set aside for the token this
+  // browser already holds — the join cannot tell (see adoptAdminLink).
+  const [adminLinkConflict, setAdminLinkConflict] = useState(false);
+  useEffect(() => {
+    if (!boardId) return;
+    const id = boardId;
+    function adopt() {
+      const outcome = adoptAdminLink(id);
+      if (outcome === "none") return;
+      setAdminLinkConflict(outcome === "conflict");
+      setAdminLinks((n) => n + 1);
+    }
+    adopt();
+    window.addEventListener("hashchange", adopt);
+    return () => window.removeEventListener("hashchange", adopt);
+  }, [boardId]);
 
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -106,9 +133,12 @@ export function BoardPage() {
     case "room":
       return (
         <Room
+          key={adminLinks}
           boardId={boardId}
           board={gate.board}
           displayName={gate.displayName}
+          fromAdminLink={adminLinks > 0}
+          adminLinkConflict={adminLinkConflict}
         />
       );
   }
@@ -176,10 +206,16 @@ function Room({
   boardId,
   board,
   displayName,
+  fromAdminLink,
+  adminLinkConflict,
 }: {
   boardId: string;
   board: BoardInfo;
   displayName: string;
+  // A facilitator link was opened in this tab — see BoardPage.
+  fromAdminLink: boolean;
+  // ...and the latest one differed from the token already stored here.
+  adminLinkConflict: boolean;
 }) {
   const { t } = useTranslation();
   const state = useBoardStore((store) => store.state);
@@ -201,6 +237,8 @@ function Room({
   const rejectHandlers = useRef(new Map<string, () => void>());
   // Last time the timer chime actually played — see the timer.ended handler.
   const lastChimeAt = useRef(0);
+  // Whether the first sync after a facilitator link has been checked yet.
+  const adminLinkChecked = useRef(false);
 
   const connection = useMemo<BoardConnection>(
     () => ({
@@ -233,6 +271,24 @@ function Room({
         if (event.type === "sync") {
           saveSessionKey(boardId, event.you.sessionKey);
           setClockOffset(event.serverNow - Date.now());
+          // The server never says why a token did not count — a wrong one
+          // joins as a member, silently, like any link holder. So the tab
+          // that just opened a facilitator link says it for the server: once,
+          // gently, and without guessing which of the two reasons applies (a
+          // link cut short in a chat, or a demotion that sticks to this
+          // session by design).
+          //
+          // A link set aside for the stored token is said regardless of the
+          // role: this browser may well still be facilitator — on the token it
+          // kept, not on the link that was just opened.
+          if (fromAdminLink && !adminLinkChecked.current) {
+            adminLinkChecked.current = true;
+            if (adminLinkConflict) {
+              notify("adminLink.conflict", "warning");
+            } else if (event.you.role !== "facilitator") {
+              notify("adminLink.notAccepted", "warning");
+            }
+          }
           if ((event.protocolVersion ?? PROTOCOL_VERSION) > PROTOCOL_VERSION) {
             setStaleBuild(true);
           }
@@ -298,10 +354,11 @@ function Room({
       socketRef.current = null;
       useBoardStore.getState().reset();
     };
-  }, [boardId, displayName]);
+  }, [boardId, displayName, fromAdminLink, adminLinkConflict]);
 
   const you = state.you;
   const isAdmin = you?.role === "facilitator";
+  const adminToken = loadAdminToken(boardId);
   const phasePlan = state.config?.phasePlan;
   const inLobby = state.phase === "lobby";
   const config = state.config;
@@ -328,6 +385,7 @@ function Room({
   // than dimmed. Purely a rendering decision — the server sends the same cards
   // either way, so flipping it back restores the board instantly.
   const focusMode = config?.focusMode ?? false;
+  const anonymous = config?.anonymous ?? false;
   const surface = boardSurface(
     layout,
     state.phase,
@@ -437,6 +495,18 @@ function Room({
             <h1 className="truncate text-zinc-600">
               {state.board?.name ?? board.name}
             </h1>
+            {/* On every screen, in every phase: anonymity only earns trust if
+                the room can see it is on — a latecomer never passes the lobby
+                that explains it. */}
+            {anonymous ? (
+              <span
+                data-testid="anonymous-badge"
+                title={t("board.anonymousHint")}
+                className="shrink-0 rounded-full border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-500"
+              >
+                {t("board.anonymous")}
+              </span>
+            ) : null}
           </div>
           <div className="mx-auto">
             <PhaseStepper
@@ -493,7 +563,10 @@ function Room({
                 has one primary element (the phase stepper). Only where it
                 bites — presenting a person's cards, and walking the crowned
                 ones in the discussion. */}
-            {state.phase === "present" || state.phase === "discuss" ? (
+            {/* Not while presenting on an anonymous board: nobody is on stage
+                there, so the switch would have nothing to act on. */}
+            {(state.phase === "present" && !anonymous) ||
+            state.phase === "discuss" ? (
               <div className="mx-auto">
                 <FocusToggle focusMode={focusMode} isAdmin={isAdmin} />
               </div>
@@ -536,7 +609,24 @@ function Room({
                 <p className="mb-4 text-sm text-zinc-500">
                   {t("lobby.hint", { count: onlineCount })}
                 </p>
+                {anonymous ? (
+                  <p
+                    data-testid="lobby-anonymous"
+                    className="mb-4 text-sm text-zinc-700"
+                  >
+                    {t("board.anonymousHint")}
+                  </p>
+                ) : null}
                 <ShareLink boardId={boardId} />
+                {/* Only in the browser that holds the token — a co-facilitator
+                    promoted by role has none and must not be handed one — and
+                    only while it still counts here: a demoted holder is not
+                    running this retro. */}
+                {isAdmin && adminToken !== null ? (
+                  <div className="mt-4">
+                    <AdminLink boardId={boardId} adminToken={adminToken} />
+                  </div>
+                ) : null}
               </div>
               <Roster participants={state.roster} youId={you.id} />
             </div>
@@ -607,7 +697,9 @@ function Room({
                     gifsEnabled={gifsEnabled}
                     cursors={state.cursors}
                     cursorsEnabled={
-                      (config?.cursorsEnabled ?? false) && CURSORS_ACTIVATABLE
+                      (config?.cursorsEnabled ?? false) &&
+                      CURSORS_ACTIVATABLE &&
+                      !anonymous
                     }
                   />
                 ) : surface === "focus" && presenter ? (
@@ -677,6 +769,7 @@ function Room({
                   you={you}
                   isAdmin={isAdmin}
                   scopedRound={scopedRound}
+                  anonymous={anonymous}
                   pickerStyle={pickerStyle}
                   onOpenCards={() => setCardsOpen(true)}
                 />

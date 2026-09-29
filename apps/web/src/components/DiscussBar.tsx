@@ -29,11 +29,24 @@ export function DiscussBar({
 
   function excerptFor(targetId: string): string {
     const stackMembers = notes.filter((n) => n.groupId === targetId);
+    // Which member speaks for the stack must not depend on array order. On an
+    // anonymous board the store holds your own cards first (they arrived while
+    // writing; the reveal appends everyone else's), so "the first member"
+    // would put your card on the chip — on your screen only, which a shared
+    // screen then shows the room. The anchor (its id IS the stack's id) is the
+    // same card on every screen; a stack whose anchor was deleted falls back
+    // to the lowest id, which is random and just as shared.
     const source =
-      stackMembers.length > 0
-        ? stackMembers
-        : notes.filter((n) => n.id === targetId);
-    const text = source[0]?.text ?? "";
+      stackMembers.find((n) => n.id === targetId) ??
+      stackMembers.reduce<Note | undefined>(
+        (lowest, n) =>
+          lowest === undefined || n.id.localeCompare(lowest.id) < 0
+            ? n
+            : lowest,
+        undefined,
+      ) ??
+      notes.find((n) => n.id === targetId);
+    const text = source?.text ?? "";
     const short = text.length > 24 ? `${text.slice(0, 23)}…` : text;
     return stackMembers.length > 0 ? `${short} ×${stackMembers.length}` : short;
   }

@@ -27,6 +27,9 @@ export interface PresenceRailProps {
   /** the presenting round is actually pacing the reveal — false on an anonymous
    *  board (never scoped) and once the board has been handed over */
   scopedRound?: boolean;
+  /** anonymous board: nobody is called up, so the presenting phase gets no
+   *  rotation board and no cockpit — the server refuses a spin there anyway */
+  anonymous?: boolean;
   /** current draw skin — the facilitator switches it from the cockpit */
   pickerStyle?: PickerStyle;
   /** opens the full-screen face-down deck; the rail only launches it */
@@ -56,12 +59,16 @@ export function PresenceRail({
   you,
   isAdmin,
   scopedRound = false,
+  anonymous = false,
   pickerStyle = "wheel",
   onOpenCards,
 }: PresenceRailProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
-  const mode = modeForPhase(phase);
+  // An anonymous board reads its cards together, with no speaker: during the
+  // presenting phase the rail is just who is here.
+  const mode =
+    anonymous && phase === "present" ? "presence" : modeForPhase(phase);
 
   // Same in-flight guard as the old picker panel: no spinning (or hand-picking)
   // while the wheel is still animating.
@@ -262,6 +269,17 @@ export function PresenceRail({
         <div className="border-t border-zinc-100 px-3 py-2.5 lg:shrink-0">
           <p className="text-xs text-zinc-400">{t("rail.waiting")}</p>
         </div>
+      ) : null}
+
+      {/* The rotation is missing on purpose here, and a missing wheel with no
+          word about it reads as a broken one. */}
+      {phase === "present" && anonymous ? (
+        <p
+          data-testid="present-anonymous-hint"
+          className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-400 lg:shrink-0"
+        >
+          {t("present.anonymous")}
+        </p>
       ) : null}
 
       {/* Without a word about it, a scoped board reads as "where did the cards

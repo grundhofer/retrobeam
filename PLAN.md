@@ -17,7 +17,7 @@ Created 2026-07-17 from a multi-agent research pass (11 competitor deep-dives, C
 
 ## Decisions locked (2026-07-17)
 
-1. **Access:** no accounts — share link (+ QR) for participants, capability admin link for the facilitator.
+1. **Access:** no accounts — share link (+ QR) for participants, capability admin link for the facilitator (`/board/<id>#admin=<token>` — the token rides in the fragment, never reaches a server; see docs/02 §9).
 2. **Privacy:** EU-jurisdiction Durable Objects; boards auto-delete after 90 days; per-board anonymity toggle (default off).
 3. **Language:** German + English i18n from day one.
 4. **Stack:** judge-panel winner — pnpm monorepo · React 19 + Vite 7 + `@cloudflare/vite-plugin` · zustand · Tailwind 4 + shadcn/ui · motion · partysocket · Hono + one SQLite-backed `BoardRoom` DO per board (WebSocket Hibernation API, DO alarms) · zod protocol + pure domain core in `packages/shared` · Vitest 4 (+ pool-workers) + Playwright.

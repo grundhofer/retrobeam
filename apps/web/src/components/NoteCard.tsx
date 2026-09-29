@@ -12,6 +12,7 @@ import {
   type Phase,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { useBoardStore } from "../store/boardStore.js";
 import { GifPickerButton } from "./GifPicker.js";
 
 const NOTE_DRAG_MIME = "application/x-retrobeam-note";
@@ -64,9 +65,18 @@ export function NoteCard({
   const [draftGif, setDraftGif] = useState(note.gifUrl);
   const [dropHover, setDropHover] = useState(false);
 
+  // An anonymous board shows no author chip at all — not even on your own
+  // cards. Everyone else's arrive without an author anyway; your own would be
+  // the only named cards on your screen, and the screen you share with the
+  // room (the facilitator's, typically) would name exactly those.
+  const anonymous = useBoardStore(
+    (store) => store.state.config?.anonymous ?? false,
+  );
   const mine = note.authorId === you.id;
   const author =
-    note.authorId === null ? null : roster.find((p) => p.id === note.authorId);
+    note.authorId === null || anonymous
+      ? null
+      : roster.find((p) => p.id === note.authorId);
   const revealed = phaseRevealed(phase) && phase !== "done";
   const canEdit =
     interactive && mine && (phase === "write" || phase === "present");

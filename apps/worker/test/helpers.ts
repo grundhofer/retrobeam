@@ -27,6 +27,7 @@ export async function createBoard(
     locale?: string;
     checkin?: boolean;
     layout?: "columns" | "canvas";
+    anonymous?: boolean;
   } = {},
 ): Promise<{
   boardId: string;

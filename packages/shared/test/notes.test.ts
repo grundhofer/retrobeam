@@ -161,6 +161,15 @@ describe("redactNoteForViewer", () => {
     );
   });
 
+  it("anonymous boards strip the per-author order along with the author", () => {
+    // order is numbered per (column, author): a foreign 2 would say "same
+    // person as one of the 1s", which links an author's cards together.
+    const second: Note = { ...annaNote, order: 2 };
+    expect(redactNoteForViewer(second, "ben", true, true).order).toBe(0);
+    expect(redactNoteForViewer(second, "anna", true, true).order).toBe(2);
+    expect(redactNoteForViewer(second, "ben", false, true).order).toBe(2);
+  });
+
   it("strips a stack id whose anchor the viewer cannot see", () => {
     // A stack's id IS its anchor note's id, so shipping it would name a card
     // the viewer was never shown.

@@ -196,21 +196,23 @@ export function PrivacyEn() {
               <td>
                 Notes (text, column, position, membership in a card stack,
                 creation time, optionally the address of a GIF), each linked to
-                its author
+                its author; on an anonymous board (section 3.1, below) that link
+                only serves to let the author edit the card and is shown to
+                nobody else
               </td>
               <td>Your input</td>
             </tr>
             <tr>
               <td>
                 Reactions (emoji per note and person), votes (count per card and
-                person). On newly created boards, once voting is over, every
-                participant is shown who voted for which card; the vote bar
-                states before the first vote whether names will be shown. The
-                facilitator can switch the display of names off at any time;
-                switching it on is only possible while nobody has voted yet. A
-                duplicated board inherits the original's setting. With personal
-                names switched on, the export contains these names too (section
-                3.4).
+                person). On newly created boards that are not anonymous, once
+                voting is over, every participant is shown who voted for which
+                card; the vote bar states before the first vote whether names
+                will be shown. The facilitator can switch the display of names
+                off at any time; switching it on is only possible while nobody
+                has voted yet. A duplicated board inherits the original's
+                setting. With personal names switched on, the export contains
+                these names too (section 3.4).
               </td>
               <td>Your input</td>
             </tr>
@@ -259,8 +261,21 @@ export function PrivacyEn() {
         never transmitted at all. In addition to the status data listed in the
         table (online and "ready" status), during the writing phase participants
         are told, for the columns visible to them, that a person is currently
-        writing there (name and column, no content, no length) and how many
-        cards the team already has per column.
+        writing there (name and column, no content, no length; not on an
+        anonymous board) and how many cards the team already has per column.
+      </p>
+
+      <p>
+        A board can be created as an <strong>anonymous board</strong>; this is
+        decided when the board is created and cannot be changed afterwards. On
+        such a board nobody but the author is told who wrote a card — the
+        facilitator included —, neither on screen nor in the export; nobody is
+        shown who is writing in which column, live cursors are not available,
+        and the names of voters are never shown. The board still stores which
+        participant wrote a card, so that only the author can edit it. Not
+        anonymous even there: who takes part (display name, online and "ready"
+        status), kudos whose sender chose to be named, and the persons
+        responsible for action items.
       </p>
 
       <h3>3.2 Where</h3>
@@ -308,9 +323,9 @@ export function PrivacyEn() {
         <li>
           <strong>Duplicating</strong> a board copies only its structure (board
           name — in the application as "Copy of …" —, columns including hidden
-          columns, which stay hidden, settings, working agreements) into a new
-          board with a fresh 90-day window — no notes, votes, participants,
-          kudos or ratings.
+          columns, which stay hidden, settings — an anonymous board's copy is
+          anonymous too —, working agreements) into a new board with a fresh
+          90-day window — no notes, votes, participants, kudos or ratings.
         </li>
       </ul>
 
@@ -331,12 +346,14 @@ export function PrivacyEn() {
         <strong>Personal names are not included by default</strong> — this
         applies to note authors, kudo senders, owners of action items and the
         names of voters (where the board shows them, section 3.1); they can be
-        switched on deliberately when exporting. One exception: the full export
-        always names the recipient of a kudo, provided the kudo is addressed to
-        a person. Only the "summary" variant (the top-voted cards and the action
-        items, no appreciation wall) contains no personal names at all with the
-        default setting. Whatever you export is then in your hands; nothing of
-        the export remains on the server.
+        switched on deliberately when exporting — except on an anonymous board,
+        where note authors, kudo senders and voter names stay out even then. One
+        exception: the full export always names the recipient of a kudo,
+        provided the kudo is addressed to a person. Only the "summary" variant
+        (the top-voted cards and the action items, no appreciation wall)
+        contains no personal names at all with the default setting. Whatever you
+        export is then in your hands; nothing of the export remains on the
+        server.
       </p>
 
       <h3>3.5 The link is the key — please read</h3>
@@ -356,8 +373,12 @@ export function PrivacyEn() {
       </p>
 
       <p>
-        The facilitator additionally holds an admin key that lives only in their
-        browser (section 4) and never appears in an address.
+        The facilitator additionally holds an admin key that lives in their
+        browser (section 4). To run the board from another device, they can copy
+        a personal facilitator link that carries this key after the{" "}
+        <code>#</code> of the address — a part browsers never send to a server;
+        the application stores the key and removes it from the address bar as
+        soon as the link is opened.
       </p>
 
       <h3>3.6 Legal basis</h3>
@@ -437,7 +458,10 @@ export function PrivacyEn() {
               <td>
                 <code>{"retrobeam.board.<board id>.adminToken"}</code>
               </td>
-              <td>Admin key (only for the creator of a board)</td>
+              <td>
+                Admin key (only for the creator of a board, or a browser that
+                opened its facilitator link)
+              </td>
               <td>Facilitator rights without an account</td>
             </tr>
           </tbody>
