@@ -43,11 +43,12 @@ Timer behavior: visible to all, color warning near the end, a chime at zero (on 
 
 ## 4. Boards & templates
 
-- **6 launch templates** (curated beats EasyRetro's 200 — nobody praises the pile): Went Well / To Improve / Action Items · Start / Stop / Continue · Mad / Sad / Glad · 4Ls · Sailboat (the flagship playful one) · Starfish. Each template card in the picker carries a one-line _"when to use this"_ — directly serves "easy to understand".
+- **9 curated templates** (6 at launch, 3 added 2026-09; curated beats EasyRetro's 200 — nobody praises the pile): Went Well / To Improve / Action Items · Start / Stop / Continue · Mad / Sad / Glad · 4Ls · Sailboat (the flagship playful one) · Starfish · DAKI (Drop / Add / Keep / Improve) · Rose / Bud / Thorn · KALM (Keep / Add / Less / More). Each template card in the picker carries a one-line _"when to use this"_ — directly serves "easy to understand".
 - **Custom columns** always: rename, recolor, reorder, add, remove.
+- **Template links** instead of stored custom templates (no accounts): `/new?template=<key>` preselects a built-in template, `/new?columns=A|B|C` (1–8 names, each a valid column name) creates the board with those columns instead of a template's. The facilitator's board menu has "Copy as template link", built from the **visible** column names only — never a staged column's name, never board content. An unreadable link is ignored with a quiet hint; the create form never breaks on it.
 - Optional **appreciation section** can be attached to any template (see §7).
 - Board options at creation (all changeable later, except anonymity): **anonymity** (hide authors — off by default, one checkbox on the create form, and deliberately _irreversible_: switching it on mid-board cannot take back names already on everyone's screen, and switching it off would break the promise the room wrote its cards under; a duplicate inherits it), GIFs on/off, votes per person, top-N count, retention. The board header carries an "Anonymous" badge and the lobby says what it means, so the room can see the promise before writing.
-- Second wave (v1.x/v2): KALM, DAKI, Hot Air Balloon, Rose/Bud/Thorn, Plus/Delta; Lean Coffee and Team Health Check as **distinct board types** (they need different mechanics), v2.
+- Second wave (v1.x/v2): Hot Air Balloon, Plus/Delta (KALM, DAKI and Rose/Bud/Thorn shipped 2026-09); Lean Coffee and Team Health Check as **distinct board types** (they need different mechanics), v2.
 
 ## 5. Notes, presence & privacy model
 

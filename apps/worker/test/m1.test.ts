@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { env, runDurableObjectAlarm } from "cloudflare:test";
+import { env, runDurableObjectAlarm, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import type { ServerEvent } from "@retrobeam/shared";
 import { boardStub } from "../src/board-stub.js";
-import { connect, createBoard, type TestSocket } from "./helpers.js";
+import { connect, createBoard, ipHeaders, type TestSocket } from "./helpers.js";
 
 let opCounter = 0;
 function opId(): string {
@@ -68,6 +68,36 @@ describe("board creation with templates", () => {
       "Weitermachen",
     ]);
     expect(sync.phase).toBe("lobby");
+  });
+
+  it("columns from a template link replace the template's", async () => {
+    const { boardId } = await createBoard("Retro", {
+      template: "start-stop-continue",
+      locale: "de",
+      columns: ["  Gut ", "Schlecht", "Ideen"],
+    });
+    const { sync } = await joined(boardId, "Anna");
+    expect(sync.columns.map((c) => c.name)).toEqual([
+      "Gut",
+      "Schlecht",
+      "Ideen",
+    ]);
+    expect(sync.columns.map((c) => c.order)).toEqual([0, 1, 2]);
+  });
+
+  it("refuses a template link's columns that no rename would accept", async () => {
+    const post = (columns: unknown) =>
+      SELF.fetch("https://example.com/api/boards", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...ipHeaders() },
+        body: JSON.stringify({ name: "Retro", columns }),
+      });
+    const nine = Array.from({ length: 9 }, (_, i) => `Column ${i}`);
+    expect((await post(nine)).status).toBe(400);
+    expect((await post([])).status).toBe(400);
+    expect((await post(["Keep", "   "])).status).toBe(400);
+    expect((await post(["Keep", "x".repeat(61)])).status).toBe(400);
+    expect((await post("Keep|Drop")).status).toBe(400);
   });
 });
 

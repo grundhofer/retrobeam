@@ -16,6 +16,7 @@ import {
   renderExport,
   templateColumnNames,
   templateKeySchema,
+  templateLinkColumnsSchema,
   type ExportFormat,
   type ExportScope,
 } from "@retrobeam/shared";
@@ -29,6 +30,10 @@ export { RateLimiter } from "./rate-limiter.js";
 const createBoardRequestSchema = z.object({
   name: boardNameSchema,
   template: templateKeySchema.default("went-well"),
+  // Columns from a template link. When present they REPLACE the template's —
+  // a link is somebody's own format, and mixing it with a built-in one would
+  // create a board nobody asked for.
+  columns: templateLinkColumnsSchema.optional(),
   locale: boardLocaleSchema.default("en"),
   // The check-in warm-up is off by default; opt in here to run the full flow.
   checkin: z.boolean().default(false),
@@ -120,9 +125,9 @@ app.post("/api/boards", smallBody, createLimit(), async (c) => {
   const adminToken = generateSecret();
   // Template columns are materialized in the creator's language at creation —
   // column names are board data, editable afterwards.
-  const columns = templateColumnNames(
-    parsed.data.template,
-    parsed.data.locale,
+  const columns = (
+    parsed.data.columns ??
+    templateColumnNames(parsed.data.template, parsed.data.locale)
   ).map((name, index) => ({ id: generateSecret(), name, order: index }));
   await boardStub(c.env, boardId).initialize({
     boardId,

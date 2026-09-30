@@ -8,6 +8,9 @@ import {
   EXPORT_DOWNLOADS,
   EXPORT_SCOPES,
   layoutModes,
+  TEMPLATE_LINK_MAX_COLUMNS,
+  templateLinkQuery,
+  type Column,
   type LayoutMode,
   type Phase,
 } from "@retrobeam/shared";
@@ -33,6 +36,7 @@ export function BoardMenu({
   phase,
   layout,
   retentionAt,
+  columns,
 }: {
   boardId: string;
   boardName: string;
@@ -44,6 +48,7 @@ export function BoardMenu({
   phase: Phase;
   layout: LayoutMode;
   retentionAt: number | null;
+  columns: readonly Column[];
 }) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -304,6 +309,7 @@ export function BoardMenu({
               ) : null}
             </>
           ) : null}
+          <TemplateLinkButton columns={columns} />
           <p className="mb-2 text-xs text-zinc-500">
             {retentionAt === null
               ? t("menu.retentionKept")
@@ -349,6 +355,67 @@ export function BoardMenu({
         </div>
       ) : null}
     </HeaderPopover>
+  );
+}
+
+// The board's format as a /new link another team can start from. Built from
+// the VISIBLE column names only: a staged column is the facilitator's surprise
+// for later in this retro, and a link pasted into a wiki would give it away.
+// Nothing else goes in — no cards, no board id, no names.
+function TemplateLinkButton({ columns }: { columns: readonly Column[] }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
+  const names = columns
+    .filter((column) => !column.hidden)
+    .toSorted((a, b) => a.order - b.order)
+    .map((column) => column.name);
+  const tooMany = names.length > TEMPLATE_LINK_MAX_COLUMNS;
+
+  async function copy() {
+    const url = `${location.origin}/new${templateLinkQuery(names)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (non-secure origin) — show the link to copy
+      // by hand, as ShareLink and AdminLink do.
+      setFallbackUrl(url);
+    }
+  }
+
+  return (
+    <div className="mb-2">
+      <button
+        type="button"
+        data-testid="template-link-copy"
+        disabled={names.length === 0 || tooMany}
+        onClick={() => void copy()}
+        className="w-full rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+      >
+        {copied ? t("board.copied") : t("menu.templateLink")}
+      </button>
+      {/* A disabled button says why, as the voter-names switch does. */}
+      <p className="mt-1 text-xs text-zinc-500">
+        {names.length === 0
+          ? t("menu.templateLinkNoVisible")
+          : tooMany
+            ? t("menu.templateLinkTooMany", { max: TEMPLATE_LINK_MAX_COLUMNS })
+            : t("menu.templateLinkHint")}
+      </p>
+      {fallbackUrl !== null ? (
+        <input
+          readOnly
+          autoFocus
+          data-testid="template-link-input"
+          aria-label={t("menu.templateLink")}
+          value={fallbackUrl}
+          onFocus={(event) => event.currentTarget.select()}
+          className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600"
+        />
+      ) : null}
+    </div>
   );
 }
 

@@ -61,7 +61,7 @@ Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll —
 
 ## What's in the box
 
-- **6 templates** — Went well / To improve, Start-Stop-Continue, Mad-Sad-Glad, 4Ls, Sailboat, Starfish — plus custom columns
+- **9 templates** — Went well / To improve, Start-Stop-Continue, Mad-Sad-Glad, 4Ls, Sailboat, Starfish, DAKI, Rose / Bud / Thorn, KALM — plus custom columns, and template links (`/new?columns=A|B|C`) to share your own set without an account
 - **Two board layouts** — classic columns or a freeform canvas with draggable zones and optional live cursors (facilitator switch, 1 update per second, off by default)
 - **A real phase flow** — write → present → vote → discuss → close, rewindable. The facilitator plans the agenda in the lobby — check-in, vote, discuss and close are each optional — and the plan locks once the retro starts, so the room's expectations don't shift mid-way
 - **One person at a time** — when the writing stops the board doesn't fall open. The wheel picks who presents, and the room is handed that person's cards as their turn comes, with the speaker's highlighted. Nothing shown is ever taken back, and once everyone has presented all non-hidden cards are open to the room.

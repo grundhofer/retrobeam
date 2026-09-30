@@ -571,6 +571,7 @@ function Room({
               phase={state.phase}
               layout={layout}
               retentionAt={state.retentionAt}
+              columns={state.columns}
             />
             <LanguageToggle />
           </div>

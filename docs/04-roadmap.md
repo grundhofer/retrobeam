@@ -61,7 +61,7 @@ Goal: a deployed, tested "hello board" proving every architectural mechanism end
 
 ## v1.x (fast follows)
 
-Shipped in M6: slot-machine picker skin · staged/hidden columns · board duplication. Shipped 2026-09: anonymous boards · facilitator link · results page on done · **follow-up retro with open action items carried over** (no team space needed: the facilitator's admin token chains one board to the next; text + previous board name only, no owners). Remaining: icebreaker bank expansion (~100 questions DE/EN; 24 shipped in M5).
+Shipped in M6: slot-machine picker skin · staged/hidden columns · board duplication. Shipped 2026-09: anonymous boards · facilitator link · results page on done · **follow-up retro with open action items carried over** (no team space needed: the facilitator's admin token chains one board to the next; text + previous board name only, no owners) · three more templates (DAKI, Rose/Bud/Thorn, KALM) · **template links** (`/new?template=<key>`, `/new?columns=A|B|C`, "Copy as template link" in the facilitator's menu — visible column names only). Remaining: icebreaker bank expansion (~100 questions DE/EN; 24 shipped in M5).
 
 ## v2 (needs team spaces)
 
@@ -69,4 +69,4 @@ Shipped in M6: slot-machine picker skin · staged/hidden columns · board duplic
 
 ## Later / research
 
-AI grouping suggestions + AI summary (paid inference conflicts with free-tier economics — revisit with budget) · Jira/Slack integrations · async mode · optional E2E encryption ("server sees only ciphertext" — a strong German-market story) · template import/export.
+AI grouping suggestions + AI summary (paid inference conflicts with free-tier economics — revisit with budget) · Jira/Slack integrations · async mode · optional E2E encryption ("server sees only ciphertext" — a strong German-market story) · template import/export beyond links (template links shipped in v1.x).

@@ -1,12 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   layoutModes,
+  parseTemplateLinkColumns,
   TEMPLATE_KEYS,
+  templateKeySchema,
   type LayoutMode,
   type TemplateKey,
 } from "@retrobeam/shared";
@@ -18,8 +20,30 @@ import { saveAdminToken } from "../lib/session.js";
 export function HomePage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [name, setName] = useState("");
-  const [template, setTemplate] = useState<TemplateKey>("went-well");
+  // Template links: `?template=<key>` preselects a built-in one, `?columns=A|B`
+  // brings somebody's own set. A link is typed, pasted and truncated by chat
+  // tools, so nothing in it may break the form — anything unreadable is
+  // ignored, with a quiet line saying so rather than a silent swap.
+  const linkTemplate = searchParams.get("template");
+  const linkTemplateKey = templateKeySchema.safeParse(linkTemplate);
+  const linkColumnsRaw = searchParams.get("columns");
+  const linkColumns =
+    linkColumnsRaw === null ? null : parseTemplateLinkColumns(linkColumnsRaw);
+  // The drop button removes itself, so focus would fall to <body>. It moves
+  // to the picker that takes its place instead — only after a drop, never
+  // on load, where the name field keeps its autofocus.
+  const templateSelectRef = useRef<HTMLSelectElement>(null);
+  const focusPickerAfterDrop = useRef(false);
+  useEffect(() => {
+    if (linkColumnsRaw !== null || !focusPickerAfterDrop.current) return;
+    focusPickerAfterDrop.current = false;
+    templateSelectRef.current?.focus();
+  }, [linkColumnsRaw]);
+  const [template, setTemplate] = useState<TemplateKey>(() =>
+    linkTemplateKey.success ? linkTemplateKey.data : "went-well",
+  );
   const [layout, setLayout] = useState<LayoutMode>("columns");
   const [anonymous, setAnonymous] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -48,6 +72,7 @@ export function HomePage() {
         locale,
         layout,
         anonymous,
+        linkColumns ?? undefined,
       );
       saveAdminToken(boardId, adminToken);
       void navigate(`/board/${boardId}`);
@@ -87,27 +112,73 @@ export function HomePage() {
                 className="rounded-lg border border-zinc-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
               />
             </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-zinc-700">
-                {t("home.template")}
-              </span>
-              <select
-                value={template}
-                onChange={(event) =>
-                  setTemplate(event.target.value as typeof template)
-                }
-                className="rounded-lg border border-zinc-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
+            {linkColumns !== null ? (
+              <div
+                data-testid="home-link-columns"
+                className="flex flex-col gap-1.5 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2"
               >
-                {TEMPLATE_KEYS.map((key) => (
-                  <option key={key} value={key}>
-                    {t(`template.${key}.name`)}
-                  </option>
-                ))}
-              </select>
-              <span className="text-sm text-zinc-500">
-                {t(`template.${template}.hint`)}
-              </span>
-            </label>
+                <span className="text-sm text-zinc-700">
+                  {t("home.linkColumns", { columns: linkColumns.join(" · ") })}
+                </span>
+                {/* Dropping them edits the URL too, so a reload keeps the
+                    choice instead of bringing the link's columns back. */}
+                <button
+                  type="button"
+                  data-testid="home-link-columns-drop"
+                  onClick={() => {
+                    focusPickerAfterDrop.current = true;
+                    setSearchParams(
+                      (params) => {
+                        params.delete("columns");
+                        return params;
+                      },
+                      { replace: true },
+                    );
+                  }}
+                  className="self-start text-sm font-medium text-accent-strong underline hover:no-underline"
+                >
+                  {t("home.linkColumnsDrop")}
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-zinc-700">
+                  {t("home.template")}
+                </span>
+                <select
+                  ref={templateSelectRef}
+                  value={template}
+                  onChange={(event) =>
+                    setTemplate(event.target.value as typeof template)
+                  }
+                  className="rounded-lg border border-zinc-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
+                >
+                  {TEMPLATE_KEYS.map((key) => (
+                    <option key={key} value={key}>
+                      {t(`template.${key}.name`)}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-sm text-zinc-500">
+                  {t(`template.${template}.hint`)}
+                </span>
+                {linkColumnsRaw !== null ? (
+                  <span
+                    data-testid="home-link-invalid"
+                    className="text-sm text-zinc-500"
+                  >
+                    {t("home.linkColumnsInvalid")}
+                  </span>
+                ) : linkTemplate !== null && !linkTemplateKey.success ? (
+                  <span
+                    data-testid="home-link-invalid"
+                    className="text-sm text-zinc-500"
+                  >
+                    {t("home.linkTemplateInvalid")}
+                  </span>
+                ) : null}
+              </label>
+            )}
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-zinc-700">
                 {t("home.layout")}
