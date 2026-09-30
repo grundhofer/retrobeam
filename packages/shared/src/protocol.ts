@@ -122,6 +122,12 @@ export const DEFAULT_VOTE_CONFIG = {
 export const actionTextSchema = z.string().trim().min(1).max(300);
 
 export const actionStatusSchema = z.enum(["open", "done"]);
+
+// How many open Action Items a follow-up retro carries over, oldest first. A
+// real retro ends with a handful; the cap only bounds what one request can
+// write into a fresh board (rows written are the free tier's binding cost).
+// Shared so the results page's hint counts exactly what will arrive.
+export const FOLLOW_UP_ACTION_CAP = 50;
 export const actionSchema = z.object({
   id: hexIdSchema,
   text: z.string(),

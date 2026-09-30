@@ -330,11 +330,12 @@ export function PrivacyEn() {
         </li>
         <li>
           A <strong>follow-up retro</strong> copies the same structure plus the
-          action items that are <em>open</em> at that moment: their text only,
-          labelled with the previous board's name as their origin. Responsible
-          persons are not copied, done action items stay behind, and the new
-          board holds no reference to the old board's address. The copied texts
-          are then subject to the new board's fresh 90-day window.
+          action items that are <em>open</em> at that moment (at most 50, oldest
+          first): their text only, labelled with the previous board's name as
+          their origin. Responsible persons are not copied, done action items
+          stay behind, and the new board holds no reference to the old board's
+          address. The copied texts are then subject to the new board's fresh
+          90-day window.
         </li>
       </ul>
 

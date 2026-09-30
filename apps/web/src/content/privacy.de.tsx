@@ -348,11 +348,12 @@ export function PrivacyDe() {
         <li>
           Eine <strong>Folge-Retro</strong> übernimmt dieselbe Struktur und
           zusätzlich die zum Zeitpunkt des Anlegens <em>offenen</em> Action
-          Items: nur ihren Text, versehen mit dem Namen des bisherigen Boards
-          als Herkunftsangabe. Verantwortliche Personen werden nicht übernommen,
-          erledigte Action Items bleiben zurück, und das neue Board enthält
-          keinen Verweis auf die Adresse des alten. Die übernommenen Texte
-          unterliegen danach der frischen 90-Tage-Frist des neuen Boards.
+          Items (höchstens 50, die ältesten zuerst): nur ihren Text, versehen
+          mit dem Namen des bisherigen Boards als Herkunftsangabe.
+          Verantwortliche Personen werden nicht übernommen, erledigte Action
+          Items bleiben zurück, und das neue Board enthält keinen Verweis auf
+          die Adresse des alten. Die übernommenen Texte unterliegen danach der
+          frischen 90-Tage-Frist des neuen Boards.
         </li>
       </ul>
 

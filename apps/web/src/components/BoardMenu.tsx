@@ -59,7 +59,7 @@ export function BoardMenu({
     exportHref,
   } = useBoardExport(boardId);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const { copying, copy } = useBoardCopy(boardId);
+  const { copying, failed: copyFailed, copy } = useBoardCopy(boardId);
   // Same rule as the lobby: the token holder, while it still counts here.
   const adminToken = isAdmin ? loadAdminToken(boardId) : null;
 
@@ -297,6 +297,11 @@ export function BoardMenu({
               >
                 {t("menu.duplicate")}
               </button>
+              {copyFailed ? (
+                <p role="alert" className="mb-2 text-xs text-red-700">
+                  {t("menu.copyFailed")}
+                </p>
+              ) : null}
             </>
           ) : null}
           <p className="mb-2 text-xs text-zinc-400">

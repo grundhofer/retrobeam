@@ -4,7 +4,7 @@
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
 import i18n from "../i18n.js";
-import { PhaseGuide } from "./PhaseGuide.js";
+import { PhaseAnnouncer, PhaseGuide } from "./PhaseGuide.js";
 
 // The line under the phase row: what to do now, and whose move it is. The
 // engines run with different browser locales, so these pin the keys through
@@ -40,15 +40,25 @@ test("an anonymous board never promises that someone gets picked", async () => {
   }
 });
 
-test("it is a polite status region, and silent in the lobby and when done", async () => {
-  const vote = await render(
-    <PhaseGuide phase="vote" isAdmin={false} anonymous={false} />,
+test("the announcer is a status region that stays mounted, empty in the lobby", async () => {
+  // Mounted in the lobby with no text, so the first real line is a CHANGE of
+  // an existing live region — the only kind screen readers reliably announce.
+  const screen = await render(
+    <PhaseAnnouncer phase="lobby" isAdmin={false} anonymous={false} />,
+  );
+  const region = screen.getByTestId("phase-announcer");
+  await expect.element(region).toHaveAttribute("role", "status");
+  await expect.element(region).toHaveTextContent("");
+  await screen.rerender(
+    <PhaseAnnouncer phase="write" isAdmin={false} anonymous={false} />,
   );
   await expect
-    .element(vote.getByTestId("phase-guide"))
-    .toHaveAttribute("role", "status");
-  await vote.unmount();
+    .element(screen.getByTestId("phase-announcer"))
+    .toHaveTextContent(text("guide.write.member"));
+  expect(screen.getByTestId("phase-announcer").elements()).toHaveLength(1);
+});
 
+test("the visible line is silent in the lobby and when done", async () => {
   for (const phase of ["lobby", "done"] as const) {
     const screen = await render(
       <PhaseGuide phase={phase} isAdmin anonymous={false} />,

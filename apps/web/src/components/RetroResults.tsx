@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   EXPORT_SCOPES,
+  FOLLOW_UP_ACTION_CAP,
   type Action,
   type Column,
   type ExportFormat,
@@ -96,6 +97,9 @@ export function RetroResults({
   // holds none, and the server would refuse the follow-up (as AdminLink).
   const canFollowUp = isAdmin && loadAdminToken(boardId) !== null;
   const openActions = actions.filter((a) => a.status === "open").length;
+  // What will actually arrive: the server carries the oldest items up to the
+  // cap, so the hint must not promise more than that.
+  const carried = Math.min(openActions, FOLLOW_UP_ACTION_CAP);
 
   // Finishing unmounts the control that did it (the confirm button, a ROTI
   // score, the whole phase row), so focus falls to <body> and a keyboard or
@@ -201,7 +205,12 @@ export function RetroResults({
             >
               {openActions === 0
                 ? t("done.followUpHintNone")
-                : t("done.followUpHint", { count: openActions })}
+                : openActions > carried
+                  ? t("done.followUpHintCapped", {
+                      count: openActions,
+                      cap: carried,
+                    })
+                  : t("done.followUpHint", { count: openActions })}
             </p>
             {copyFailed ? (
               <p role="alert" className="text-sm text-red-700">

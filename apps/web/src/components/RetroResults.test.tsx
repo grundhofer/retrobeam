@@ -7,6 +7,7 @@ import { MemoryRouter } from "react-router";
 import {
   DEFAULT_PHASE_PLAN,
   EMPTY_VOTES,
+  FOLLOW_UP_ACTION_CAP,
   type Action,
   type BoardConfig,
   type ClientCommand,
@@ -198,14 +199,13 @@ test("offers the follow-up retro only to the facilitator holding the token", asy
 
 test("creates the follow-up with the open items' count in the hint, once", async () => {
   saveAdminToken(BOARD, "b".repeat(32));
-  const fetchSpy = vi
-    .spyOn(window, "fetch")
-    .mockResolvedValue(
-      new Response(
-        JSON.stringify({ boardId: "e".repeat(32), adminToken: "f".repeat(32) }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      ),
-    );
+  // Held open, so the second click lands while the first request is in flight.
+  let respond: (response: Response) => void = () => {};
+  const fetchSpy = vi.spyOn(window, "fetch").mockReturnValue(
+    new Promise<Response>((resolve) => {
+      respond = resolve;
+    }),
+  );
   const screen = await render(
     view({
       actions: [
@@ -220,18 +220,44 @@ test("creates the follow-up with the open items' count in the hint, once", async
   await expect
     .element(screen.getByTestId("results-follow-up-hint"))
     .toHaveTextContent(/the open action item and|das offene Action Item und/);
-  await button.click();
-  await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+  const element = button.element() as HTMLButtonElement;
+  element.click();
+  element.click(); // an impatient double-click
+  await expect.element(button).toBeDisabled();
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
   const [url, init] = fetchSpy.mock.calls[0]!;
   expect(String(url)).toBe(`/api/boards/${BOARD}/follow-up`);
   expect(JSON.parse(String(init?.body))).toEqual({
     name: expect.stringMatching(/^(Follow-up|Folge-Retro): Sprint 48$/),
     adminToken: "b".repeat(32),
   });
+  respond(
+    new Response(
+      JSON.stringify({ boardId: "e".repeat(32), adminToken: "f".repeat(32) }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    ),
+  );
   // the new board's capability is stored before navigating there
-  expect(
-    localStorage.getItem(`retrobeam.board.${"e".repeat(32)}.adminToken`),
-  ).toBe("f".repeat(32));
+  await vi.waitFor(() =>
+    expect(
+      localStorage.getItem(`retrobeam.board.${"e".repeat(32)}.adminToken`),
+    ).toBe("f".repeat(32)),
+  );
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
+});
+
+test("a hint never promises more items than the cap carries", async () => {
+  saveAdminToken(BOARD, "b".repeat(32));
+  const many = Array.from({ length: FOLLOW_UP_ACTION_CAP + 5 }, (_, i) => ({
+    ...action,
+    id: i.toString(16).padStart(32, "0"),
+  }));
+  const screen = await render(view({ actions: many }));
+  const hint = screen.getByTestId("results-follow-up-hint");
+  await expect.element(hint).toHaveTextContent(String(FOLLOW_UP_ACTION_CAP));
+  await expect
+    .element(hint)
+    .toHaveTextContent(String(FOLLOW_UP_ACTION_CAP + 5));
 });
 
 test("leads with the crowned topics in rank order, each with its vote count", async () => {

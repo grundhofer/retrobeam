@@ -3,9 +3,8 @@
 
 import { env, runInDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import type { ServerEvent } from "@retrobeam/shared";
+import { FOLLOW_UP_ACTION_CAP, type ServerEvent } from "@retrobeam/shared";
 import { boardStub } from "../src/board-stub.js";
-import { FOLLOW_UP_ACTION_CAP } from "../src/board-room.js";
 import { connect, createBoard, ipHeaders, type TestSocket } from "./helpers.js";
 
 let opCounter = 0xf0110;
@@ -130,7 +129,7 @@ describe("follow-up retro", () => {
     expect(wire).not.toContain(source.admin.you.id);
   });
 
-  it("answers a wrong or missing token exactly like a missing board", async () => {
+  it("answers a wrong token exactly like a missing board; no token is a 400", async () => {
     const source = await sourceWithActions();
     const wrong = await post(source.boardId, "follow-up", {
       adminToken: "0".repeat(32),
@@ -204,12 +203,17 @@ describe("follow-up retro", () => {
     const { boardId, adminToken } = await createBoard("Limited");
     const ip = "198.51.100.77";
     const statuses: number[] = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 14; i++) {
       statuses.push(
         (await post(boardId, "follow-up", { adminToken }, ip)).status,
       );
     }
-    expect(statuses).toContain(429);
+    // The same bucket as board creation: a burst of ten, then refusals.
+    expect(statuses.slice(0, 10)).toEqual(Array(10).fill(200));
+    expect(statuses.slice(10)).toEqual(Array(4).fill(429));
+    // Per IP: someone else is not throttled by this caller.
+    const other = await post(boardId, "follow-up", { adminToken });
+    expect(other.status).toBe(200);
   });
 
   it("labels only carried items, which tick off like any other", async () => {

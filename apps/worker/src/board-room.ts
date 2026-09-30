@@ -9,6 +9,7 @@ import {
   DEFAULT_PHASE_PLAN,
   DEFAULT_VOTE_CONFIG,
   EMPTY_PICKER,
+  FOLLOW_UP_ACTION_CAP,
   IDLE_TIMER,
   noteVisibleTo,
   nextPhase,
@@ -98,11 +99,6 @@ const ANONYMOUS_NO_ROTATION =
 // mints a participant), so a determined observer can pad the count. The
 // one-shot release is what actually closes the differencing channel.
 export const ROTI_MIN_ANONYMOUS = 3;
-
-// How many open Action Items a follow-up retro carries over. A real retro ends
-// with a handful; the cap only bounds what one request can write into a fresh
-// board (rows written are the free tier's binding cost).
-export const FOLLOW_UP_ACTION_CAP = 50;
 
 interface KudoRow {
   id: string;

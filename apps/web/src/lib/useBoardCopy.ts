@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { boardNameSchema } from "@retrobeam/shared";
 import { duplicateBoard, followUpBoard } from "./api.js";
@@ -22,27 +22,45 @@ export function useBoardCopy(boardId: string): {
   const navigate = useNavigate();
   const [copying, setCopying] = useState<BoardCopyKind | null>(null);
   const [failed, setFailed] = useState(false);
+  // State alone does not stop a double-click: both clicks can run before the
+  // re-render that disables the button, and each would mint a board. The ref
+  // is set synchronously, so the second click sees it.
+  const inFlight = useRef(false);
 
   async function copy(kind: BoardCopyKind, name: string): Promise<void> {
-    if (copying !== null) return;
+    if (inFlight.current) return;
     const token = loadAdminToken(boardId);
     if (token === null) return;
+    inFlight.current = true;
     setCopying(kind);
     setFailed(false);
     try {
       // "Folge-Retro: <a 55-character name>" would be refused by the server's
       // name limit; cut the localized name down rather than fail the copy.
-      const fitted = name.slice(0, boardNameSchema.maxLength ?? 60).trim();
+      const fitted = fitName(name, boardNameSchema.maxLength ?? 60);
       const create = kind === "duplicate" ? duplicateBoard : followUpBoard;
       const created = await create(boardId, fitted, token);
       saveAdminToken(created.boardId, created.adminToken);
       void navigate(`/board/${created.boardId}`);
     } catch {
       // stay put; the button remains usable to retry
+      inFlight.current = false;
       setCopying(null);
       setFailed(true);
     }
   }
 
   return { copying, failed, copy };
+}
+
+/** Cut to at most `max` UTF-16 units (the unit zod's .max counts) without
+ *  splitting a character: slicing by units could leave half an emoji — a lone
+ *  surrogate the server would store and every screen would draw as "�". */
+export function fitName(name: string, max: number): string {
+  let fitted = "";
+  for (const char of name) {
+    if (fitted.length + char.length > max) break;
+    fitted += char;
+  }
+  return fitted.trim();
 }

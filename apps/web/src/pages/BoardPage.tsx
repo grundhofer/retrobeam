@@ -20,7 +20,7 @@ import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
 import { BoardMenu } from "../components/BoardMenu.js";
 import { BrandLogo } from "../components/BrandLogo.js";
-import { PhaseGuide } from "../components/PhaseGuide.js";
+import { PhaseAnnouncer, PhaseGuide } from "../components/PhaseGuide.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
 import { InviteButton } from "../components/InviteButton.js";
@@ -486,6 +486,11 @@ function Room({
         onCloseCardSelection={() => setCardsOpen(false)}
       />
       <NoticeRail />
+      <PhaseAnnouncer
+        phase={state.phase}
+        isAdmin={isAdmin}
+        anonymous={anonymous}
+      />
       {staleBuild ? (
         <div
           role="status"

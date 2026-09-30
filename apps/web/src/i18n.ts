@@ -370,6 +370,7 @@ const resources = {
         duplicateName: "Copy of {{name}}",
         followUp: "Prepare the next retro",
         followUpName: "Follow-up: {{name}}",
+        copyFailed: "That didn't work — please try again.",
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
         keep: "Keep",
@@ -384,7 +385,8 @@ const resources = {
         write: {
           facilitator:
             "Everyone writes. Move on to presenting once everyone is done.",
-          member: "Write your cards — nobody sees them until it's your turn.",
+          member:
+            "Write your cards — only you can see them until the presenting round.",
           memberAnonymous:
             "Write your cards — nobody sees them before the presenting round, and nobody ever sees who wrote them.",
         },
@@ -442,6 +444,8 @@ const resources = {
           "Carries over the {{count}} open action items and this board's columns — no cards, no names.",
         followUpHintNone:
           "Carries over this board's columns — there are no open action items.",
+        followUpHintCapped:
+          "Carries over the oldest {{cap}} of the {{count}} open action items and this board's columns — no cards, no names.",
         followUpFailed: "Couldn't create the next retro — please try again.",
       },
       deleted: {
@@ -1052,6 +1056,7 @@ const resources = {
         duplicateName: "Kopie von {{name}}",
         followUp: "Folge-Retro vorbereiten",
         followUpName: "Folge-Retro: {{name}}",
+        copyFailed: "Das hat nicht geklappt — versuch es noch einmal.",
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
         keep: "Behalten",
@@ -1067,7 +1072,8 @@ const resources = {
         write: {
           facilitator:
             "Alle schreiben. Weiter zur Vorstellrunde, wenn alle fertig sind.",
-          member: "Schreib deine Karten — niemand sieht sie, bis du dran bist.",
+          member:
+            "Schreib deine Karten — bis zur Vorstellrunde siehst nur du sie.",
           memberAnonymous:
             "Schreib deine Karten — vor der Vorstellrunde sieht sie niemand, und wer sie geschrieben hat, sieht nie jemand.",
         },
@@ -1082,7 +1088,7 @@ const resources = {
           facilitator:
             "Alle stimmen verdeckt ab. Weiter zur Diskussion, wenn alle fertig sind.",
           member:
-            "Verteil deine Punkte auf die Themen, die du am dringendsten besprechen willst.",
+            "Verteil deine Stimmen auf die Themen, die du am dringendsten besprechen willst.",
         },
         discuss: {
           facilitator:
@@ -1129,6 +1135,8 @@ const resources = {
           "Übernimmt die {{count}} offenen Action Items und die Spalten dieses Boards — ohne Karten, ohne Namen.",
         followUpHintNone:
           "Übernimmt die Spalten dieses Boards — offene Action Items gibt es keine.",
+        followUpHintCapped:
+          "Übernimmt die ältesten {{cap}} der {{count}} offenen Action Items und die Spalten dieses Boards — ohne Karten, ohne Namen.",
         followUpFailed:
           "Die Folge-Retro ließ sich nicht anlegen — versuch es noch einmal.",
       },
