@@ -27,6 +27,8 @@ const resources = {
         anonymous: "Anonymous board",
         anonymousHint:
           "Nobody sees who wrote which card — not even the facilitator. Can't be changed later.",
+        nextStep:
+          "Next you'll get a link and QR code for your team. You start the retro once everyone's in.",
         adminLinkHint:
           "You'll also get a private facilitator link, so you can run the retro from another device — the meeting-room PC, say.",
         create: "Create board",
@@ -92,8 +94,20 @@ const resources = {
         conflict:
           "This facilitator link doesn't match the one this browser already holds for this board, so it was ignored and the saved one kept.",
       },
+      invite: {
+        button: "Invite",
+        title: "Invite your team",
+        hint: "Anyone with this link can join the board — even mid-retro.",
+        qrLabel: "QR code for the team link",
+        qrHint: "For everyone in the room: scan the code with a phone to join.",
+        enlarge: "Show QR code large",
+        scan: "Scan to join the retro",
+        qrFailed: "QR code unavailable — reload the page.",
+        close: "Close",
+      },
       phase: {
         stepper: "Retro phases",
+        stepOf: "Step {{current}} of {{total}}",
         lobby: "Lobby",
         checkin: "Check-in",
         write: "Write",
@@ -310,6 +324,8 @@ const resources = {
         poweredBy: "Powered by KLIPY",
       },
       menu: {
+        title: "Board menu",
+        close: "Close",
         export: "Export",
         exportScope: "Scope",
         scope: {
@@ -451,25 +467,38 @@ const resources = {
       site: {
         nav: "Site",
       },
+      pageNotFound: {
+        title: "This page doesn't exist.",
+        body: "Maybe the link is incomplete — board links look like this: {{host}}/board/…",
+        home: "Go to the home page",
+      },
       landing: {
-        kicker: "Retrospectives for teams",
-        lede: "Guided retrospectives in the browser — one person facilitates, everyone writes in private first, and a wheel decides who presents. Free, no ads.",
+        kicker: "Free retro tool · no sign-up · no board limits",
+        lede: "One person facilitates, RetroBeam walks your team through it step by step: everyone writes privately first, a wheel picks who presents, then you vote blind and capture action items. Free, no trial, no ads.",
         cta: "Create a retro board",
         ctaHint: "Just enter a board name · no account required",
-        trust: "Boards stored in the EU · Open source",
+        trustChips: {
+          private: "Others' notes don't leave the server until it's their turn",
+          anonymous: "Anonymous if you want",
+          eu: "Boards stored in the EU",
+          deletes: "Deletes itself after 90 days by default",
+          openSource: "Open source",
+        },
         howTitle: "How a retro runs",
+        howRoles:
+          "You facilitate and move the phases on; your team only needs the link.",
         steps: {
           share: {
             title: "Share a link.",
             text: "Create a board, drop the link in your team chat, type a name — you're in.",
           },
           write: {
-            title: "Write in private, then present.",
-            text: "Nobody sees anyone else's notes until the wheel calls that person up.",
+            title: "Write · Present",
+            text: "Everyone writes on their own first. Nobody sees anyone else's notes until the wheel calls that person up to present.",
           },
           decide: {
-            title: "Vote, discuss, say thanks.",
-            text: "Vote blind, discuss the top cards, capture action items as you go — and end on kudos.",
+            title: "Vote · Discuss · Close",
+            text: "Vote blind, discuss the top cards and capture action items — then close with kudos and a quick rating of whether the retro was worth it.",
           },
         },
         preview: {
@@ -481,12 +510,16 @@ const resources = {
           author1: "Mira",
           author2: "Mira",
           author3: "Mira",
+          hiddenNotes_one:
+            "+{{count}} note from others — hidden until the presenting round",
+          hiddenNotes_other:
+            "+{{count}} notes from others — hidden until the presenting round",
         },
         whyTitle: "Why RetroBeam",
         why: {
           private: {
             title: "Private means private.",
-            text: "Other people's notes don't leave the server until it's their turn — not just hidden in the browser.",
+            text: "Other people's notes don't leave the server until it's their turn — not just hidden in the browser. Boards are stored in EU data centres.",
           },
           nothing: {
             title: "Nothing to manage.",
@@ -494,11 +527,11 @@ const resources = {
           },
           guided: {
             title: "Guided, and still fun.",
-            text: "A phase stepper walks the room through the retro; the wheel and the confetti do the moments.",
+            text: "A phase bar walks the room through the retro; the wheel and the confetti bring the moments.",
           },
           languages: {
             title: "German and English.",
-            text: "Switchable mid-retro; boards are stored in EU data centres.",
+            text: "Everyone picks their own language, even mid-retro.",
           },
         },
         faqTitle: "Questions",
@@ -557,9 +590,11 @@ const resources = {
             a: "Technically and licence-wise, yes; whether your company signs off is your company's call. In Germany a tool with live presence and per-person notes falls under co-determination (§ 87 (1) no. 6 BetrVG) — so talk to the works council before, not after; the data inventory, the sub-processors and the facilitator caveat are written up for exactly that in docs/05 in the repository. To be honest: retrobeam.de comes with no contract, no guarantees and no data-processing agreement — if you need those, self-host.",
           },
         },
-        noticeTitle: "Not a commercial service",
+        closingTitle: "Your next retro, set up in a minute.",
+        closingText:
+          "Create a board, drop the link in your team chat, go. Free, no accounts, boards stored in the EU.",
         notice:
-          "RetroBeam is a personal project by Sebastian Grundhöfer, not a company. Running retrobeam.de is free of charge, with no ads, no tracking and no sale of data; I pay for it myself. The source is free software under the AGPL-3.0 — anyone may run their own instance.",
+          "Not a commercial service: RetroBeam is a private open-source project by Sebastian Grundhöfer — no company, no ads, no tracking, no sale of data.",
       },
       legal: {
         license: "Free software: AGPL-3.0-or-later",
@@ -594,6 +629,8 @@ const resources = {
         anonymous: "Anonymes Board",
         anonymousHint:
           "Niemand sieht, wer welche Karte geschrieben hat — auch die Moderation nicht. Lässt sich später nicht ändern.",
+        nextStep:
+          "Im nächsten Schritt bekommst du einen Link und einen QR-Code für dein Team. Du startest die Retro, sobald alle da sind.",
         adminLinkHint:
           "Du bekommst außerdem einen privaten Moderationslink — damit moderierst du auch von einem anderen Gerät aus, etwa vom Rechner im Meetingraum.",
         create: "Board erstellen",
@@ -660,8 +697,20 @@ const resources = {
         conflict:
           "Dieser Moderationslink passt nicht zu dem, den dieser Browser für dieses Board schon gespeichert hat. Er wurde ignoriert, der gespeicherte bleibt.",
       },
+      invite: {
+        button: "Einladen",
+        title: "Team einladen",
+        hint: "Mit diesem Link kommt jede:r ins Board — auch mitten in der Retro.",
+        qrLabel: "QR-Code für den Team-Link",
+        qrHint: "Für alle im Raum: Code mit dem Handy scannen und mitmachen.",
+        enlarge: "QR-Code groß anzeigen",
+        scan: "Scannen und mitmachen",
+        qrFailed: "QR-Code nicht verfügbar — lade die Seite neu.",
+        close: "Schließen",
+      },
       phase: {
         stepper: "Retro-Phasen",
+        stepOf: "Schritt {{current}} von {{total}}",
         lobby: "Lobby",
         checkin: "Check-in",
         write: "Schreiben",
@@ -885,6 +934,8 @@ const resources = {
         poweredBy: "Powered by KLIPY",
       },
       menu: {
+        title: "Board-Menü",
+        close: "Schließen",
         export: "Export",
         exportScope: "Umfang",
         scope: {
@@ -1030,25 +1081,39 @@ const resources = {
       site: {
         nav: "Website",
       },
+      pageNotFound: {
+        title: "Diese Seite gibt es nicht.",
+        body: "Vielleicht ist der Link unvollständig — Board-Links sehen so aus: {{host}}/board/…",
+        home: "Zur Startseite",
+      },
       landing: {
-        kicker: "Retrospektiven für Teams",
-        lede: "Geführte Retrospektiven im Browser — eine Person moderiert, alle schreiben erst privat, das Glücksrad entscheidet, wer vorstellt. Kostenlos und ohne Werbung.",
+        kicker: "Kostenloses Retro-Tool · ohne Anmeldung · ohne Board-Limit",
+        lede: "Eine Person moderiert, RetroBeam führt euch Schritt für Schritt: Alle schreiben erst verdeckt, das Glücksrad entscheidet, wer vorstellt, dann wird verdeckt abgestimmt und ihr haltet Action Items fest. Kostenlos, ohne Testphase, ohne Werbung.",
         cta: "Retro-Board erstellen",
         ctaHint: "Nur einen Boardnamen eingeben · kein Account nötig",
-        trust: "Boards in der EU gespeichert · Open Source",
+        trustChips: {
+          private:
+            "Fremde Notizen verlassen den Server erst, wenn sie dran sind",
+          anonymous: "Anonym möglich",
+          eu: "Boards in der EU gespeichert",
+          deletes: "Löscht sich standardmäßig nach 90 Tagen",
+          openSource: "Open Source",
+        },
         howTitle: "So läuft eine Retro",
+        howRoles:
+          "Du moderierst und schaltest die Phasen weiter; dein Team braucht nur den Link.",
         steps: {
           share: {
             title: "Link teilen.",
             text: "Board erstellen, Link in den Team-Chat, Namen eintippen — drin.",
           },
           write: {
-            title: "Privat schreiben, dann vorstellen.",
-            text: "Niemand sieht fremde Notizen, bis das Glücksrad die Person aufruft, die als Nächstes dran ist.",
+            title: "Schreiben · Vorstellen",
+            text: "Alle schreiben erst für sich. Niemand sieht fremde Notizen, bis das Glücksrad die Person aufruft, die als Nächstes vorstellt.",
           },
           decide: {
-            title: "Abstimmen, diskutieren, danke sagen.",
-            text: "Verdeckt abstimmen, die Top-Karten diskutieren, Action Items nebenbei festhalten — und mit Kudos enden.",
+            title: "Abstimmen · Diskutieren · Abschluss",
+            text: "Verdeckt abstimmen, die Top-Karten diskutieren und Action Items festhalten — zum Abschluss Kudos und eine kurze Bewertung, ob sich die Retro gelohnt hat.",
           },
         },
         preview: {
@@ -1061,12 +1126,16 @@ const resources = {
           author1: "Mira",
           author2: "Mira",
           author3: "Mira",
+          hiddenNotes_one:
+            "+{{count}} Notiz von anderen — verborgen bis zur Vorstellrunde",
+          hiddenNotes_other:
+            "+{{count}} Notizen von anderen — verborgen bis zur Vorstellrunde",
         },
         whyTitle: "Warum RetroBeam",
         why: {
           private: {
             title: "Privat heißt privat.",
-            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind — nicht nur im Browser versteckt.",
+            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind — nicht nur im Browser versteckt. Boards werden in EU-Rechenzentren gespeichert.",
           },
           nothing: {
             title: "Nichts zu verwalten.",
@@ -1074,11 +1143,11 @@ const resources = {
           },
           guided: {
             title: "Geführt, und trotzdem Spaß.",
-            text: "Ein Phasen-Stepper führt durch die Retro; Glücksrad und Konfetti sorgen für die Momente.",
+            text: "Eine Phasenleiste führt durch die Retro; Glücksrad und Konfetti sorgen für die Momente.",
           },
           languages: {
             title: "Deutsch und Englisch.",
-            text: "Mitten in der Retro umschaltbar; Boards liegen in EU-Rechenzentren.",
+            text: "Jede Person wählt ihre Sprache selbst, auch mitten in der Retro.",
           },
         },
         faqTitle: "Fragen",
@@ -1137,9 +1206,11 @@ const resources = {
             a: "Technisch und lizenzrechtlich ja; ob dein Unternehmen es freigibt, entscheidet dein Unternehmen. In Deutschland fällt ein Tool mit Live-Anwesenheit und Notizen pro Person unter die Mitbestimmung (§ 87 Abs. 1 Nr. 6 BetrVG) — sprich den Betriebsrat also vorher an; die Datenaufstellung, die Auftragsverarbeiter und die Sache mit der Moderation stehen in docs/05 im Repository. Ehrlicherweise: Für retrobeam.de gibt es keinen Vertrag, keine Zusagen und keinen Auftragsverarbeitungsvertrag — wer das braucht, hostet selbst.",
           },
         },
-        noticeTitle: "Kein kommerzielles Angebot",
+        closingTitle: "Deine nächste Retro, in einer Minute vorbereitet.",
+        closingText:
+          "Board anlegen, Link in den Team-Chat, loslegen. Kostenlos, ohne Account, Boards in der EU gespeichert.",
         notice:
-          "RetroBeam ist ein privates Projekt von Sebastian Grundhöfer, kein Unternehmen. Der Betrieb von retrobeam.de ist kostenlos, ohne Werbung, ohne Tracking und ohne Verkauf von Daten; die Kosten trage ich selbst. Der Quellcode ist frei unter der AGPL-3.0 — wer mag, betreibt eine eigene Instanz.",
+          "Kein kommerzielles Angebot: RetroBeam ist ein privates Open-Source-Projekt von Sebastian Grundhöfer — keine Firma, keine Werbung, kein Tracking, kein Verkauf von Daten.",
       },
       legal: {
         license: "Freie Software: AGPL-3.0-or-later",
@@ -1168,9 +1239,10 @@ function initialLanguage(): "de" | "en" {
   return navigator.language.toLowerCase().startsWith("de") ? "de" : "en";
 }
 
-// index.html ships lang="en"; screen readers and hyphenation pick their
-// pronunciation/rules from it, so it has to follow the actual UI language —
-// on load and on every switch.
+// index.html ships lang="de" (its static fallback text and link-preview tags
+// are German); screen readers and hyphenation pick their pronunciation/rules
+// from it, so it has to follow the actual UI language — on load and on every
+// switch.
 function syncDocumentLanguage(lang: string): void {
   if (typeof document !== "undefined") {
     document.documentElement.lang = lang.startsWith("de") ? "de" : "en";

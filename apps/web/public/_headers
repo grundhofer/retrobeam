@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Cloudflare static-assets header rules (not served itself). Matched against
+# the REQUEST path, and applied by the asset worker to single-page-application
+# fallback responses as well — /board/<id> has no file of its own and is
+# answered with index.html, and still gets these headers (checked against a
+# `vite build` + `vite preview`; confirm on production with
+# `curl -sI https://retrobeam.de/board/x | grep -i x-robots`).
+#
+# NOT applied to anything the Worker answers itself: /api/* runs the Worker
+# first, so its noindex is set in apps/worker/src/index.ts.
+
+# A board URL is a capability. One posted publicly must never show up in a
+# search index under the board's name. The page adds a robots meta tag as
+# well (NoIndex.tsx) — this header is the half a crawler sees without script.
+/board/*
+  X-Robots-Tag: noindex
+
+# The workers.dev mirror, preview aliases and version previews serve the same
+# content as retrobeam.de and must not compete with it in search results.
+https://:worker.:subdomain.workers.dev/*
+  X-Robots-Tag: noindex

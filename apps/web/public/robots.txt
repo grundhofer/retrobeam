@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# /board/ is deliberately NOT disallowed: robots.txt only stops fetching, not
+# indexing, and a crawler that may not fetch a board URL never sees the
+# noindex it carries (X-Robots-Tag in _headers, robots meta in the page).
+
+User-agent: *
+Disallow: /api/
+
+Sitemap: https://retrobeam.de/sitemap.xml

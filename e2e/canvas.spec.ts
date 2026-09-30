@@ -68,6 +68,21 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
     occupiedBox!.y + occupiedBox!.height > benCardBox!.y;
   expect(overlaps).toBe(false);
 
+  // Ben's invite panel and its full-screen code sit above the canvas's own
+  // controls. The zoom control (z-40, later in the page) was drawn over both —
+  // over the share link, and over the code on the projector, still clickable.
+  await ben.getByTestId("invite-button").click();
+  const panel = ben.getByTestId("invite-panel");
+  await expect(panel.getByTestId("qr-code")).toBeVisible();
+  expect(await topmostOverControl(ben, "invite-panel")).not.toBe("beneath");
+  await panel.getByTestId("qr-enlarge").click();
+  await expect(ben.getByTestId("qr-fullscreen")).toBeVisible();
+  expect(await topmostOverControl(ben, "qr-fullscreen")).toBe("above");
+  await ben.keyboard.press("Escape");
+  await expect(ben.getByTestId("qr-fullscreen")).toHaveCount(0);
+  await ben.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+
   // Flip live to columns via the board menu → the column composer returns and
   // the note is still there (positions are ignored, not lost).
   await page.getByTestId("board-menu").click();
@@ -84,4 +99,27 @@ async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await page.getByTestId("roster-item").first().waitFor();
+}
+
+// Whether the layer with this test id is what a click would hit where it
+// overlaps the canvas zoom control: "above", "beneath", or "apart" when the
+// two do not overlap at all (the dropdown's place depends on the header).
+async function topmostOverControl(page: Page, testId: string) {
+  return page.evaluate((testId) => {
+    const control = document.querySelector("[data-canvas-control]");
+    const layer = document.querySelector(`[data-testid="${testId}"]`);
+    if (!control || !layer) throw new Error(`missing control or ${testId}`);
+    const a = control.getBoundingClientRect();
+    const b = layer.getBoundingClientRect();
+    const left = Math.max(a.left, b.left);
+    const right = Math.min(a.right, b.right);
+    const top = Math.max(a.top, b.top);
+    const bottom = Math.min(a.bottom, b.bottom);
+    if (left >= right || top >= bottom) return "apart";
+    const hit = document.elementFromPoint(
+      (left + right) / 2,
+      (top + bottom) / 2,
+    );
+    return layer.contains(hit) ? "above" : "beneath";
+  }, testId);
 }

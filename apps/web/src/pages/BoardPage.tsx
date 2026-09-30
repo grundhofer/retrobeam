@@ -21,6 +21,7 @@ import { BoardMenu } from "../components/BoardMenu.js";
 import { BrandLogo } from "../components/BrandLogo.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
+import { InviteButton } from "../components/InviteButton.js";
 import { CheckinPanel } from "../components/CheckinPanel.js";
 import { DiscussBar } from "../components/DiscussBar.js";
 import { KudosWall } from "../components/KudosWall.js";
@@ -59,8 +60,18 @@ type Gate =
   | { step: "room"; board: BoardInfo; displayName: string };
 
 export function BoardPage() {
+  const { t } = useTranslation();
   const { boardId } = useParams<{ boardId: string }>();
   const [gate, setGate] = useState<Gate>({ step: "loading" });
+  const appName = t("app.name");
+
+  // The plain product name, whichever way in. index.html's static <title> is
+  // the German landing wording for link previews, and a board opened straight
+  // from its invitation link would otherwise keep it for the whole retro, in
+  // any UI language, while whoever came in through /new saw "RetroBeam".
+  useEffect(() => {
+    document.title = appName;
+  }, [appName]);
 
   // Counts the facilitator links opened in this tab (see adoptAdminLink). The
   // fragment is read and wiped here, before anyone types a name, so the token
@@ -488,7 +499,17 @@ function Room({
           </button>
         </div>
       ) : null}
-      <div className="flex min-h-dvh flex-col bg-zinc-50">
+      {/* overflow-x: clip is a safety net, not the fix: every known cause of
+          sideways scrolling on a phone is fixed where it arises (the phase
+          row, the header popovers), and e2e/mobile.spec.ts measures with this
+          clip switched off. It stays because one overflowing descendant is
+          enough to widen the whole layout viewport on a phone — and that is
+          what threw the fixed wheel overlay off centre. `clip`, not `hidden`:
+          it creates no scroll container, so nothing sticky breaks. */}
+      <div
+        data-board-root
+        className="flex min-h-dvh flex-col overflow-x-clip bg-zinc-50"
+      >
         <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-200 bg-white px-6 py-3">
           <div className="flex min-w-0 items-baseline gap-3">
             <BrandLogo compact />
@@ -515,7 +536,7 @@ function Room({
               isAdmin={isAdmin}
             />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <AvatarRow
               participants={state.roster}
               youId={you.id}
@@ -528,6 +549,9 @@ function Room({
                 {t("rail.online", { count: onlineCount })}
               </span>
             ) : null}
+            {/* Not once the retro is over: "done" is terminal and nobody joins
+                it to take part. */}
+            {state.phase !== "done" ? <InviteButton boardId={boardId} /> : null}
             <BoardMenu
               boardId={boardId}
               boardName={state.board?.name ?? board.name}

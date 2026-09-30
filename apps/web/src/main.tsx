@@ -7,10 +7,12 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 import "./index.css";
 import "./i18n.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
+import { NoIndex } from "./components/NoIndex.js";
 import { BoardPage } from "./pages/BoardPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { ImprintPage } from "./pages/ImprintPage.js";
 import { LandingPage } from "./pages/LandingPage.js";
+import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { PrivacyPage } from "./pages/PrivacyPage.js";
 
 // errorElement on every route: a render exception during a live retro must
@@ -19,6 +21,10 @@ import { PrivacyPage } from "./pages/PrivacyPage.js";
 // The legal pages answer to a German and an English path each; the language
 // of the text follows the UI language, not the path, so both spellings of a
 // link land on the same page.
+//
+// The board route carries <NoIndex /> beside the page (a board URL is a
+// capability — see NoIndex.tsx), and "*" catches every other path, so a
+// mistyped link gets a not-found page rather than the error boundary.
 const router = createBrowserRouter([
   { path: "/", element: <LandingPage />, errorElement: <ErrorBoundary /> },
   { path: "/new", element: <HomePage />, errorElement: <ErrorBoundary /> },
@@ -44,9 +50,15 @@ const router = createBrowserRouter([
   },
   {
     path: "/board/:boardId",
-    element: <BoardPage />,
+    element: (
+      <>
+        <NoIndex />
+        <BoardPage />
+      </>
+    ),
     errorElement: <ErrorBoundary />,
   },
+  { path: "*", element: <NotFoundPage />, errorElement: <ErrorBoundary /> },
 ]);
 
 createRoot(document.getElementById("root") as HTMLElement).render(

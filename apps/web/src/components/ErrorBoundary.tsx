@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useRouteError } from "react-router";
+import { isRouteErrorResponse, useRouteError } from "react-router";
 import { useTranslation } from "react-i18next";
+import { NotFoundPage } from "../pages/NotFoundPage.js";
 import { LegalFooter } from "./LegalFooter.js";
 
 // Wired as the router's errorElement. Without it, a render exception anywhere
@@ -10,11 +11,22 @@ import { LegalFooter } from "./LegalFooter.js";
 // board state still safe on the server but no way back to it except the user
 // guessing that a reload would help. Board state is server-authoritative and a
 // (re)join replays the full snapshot, so reloading really is the recovery.
+//
+// The router also reports "no such route" and thrown responses through here,
+// as plain objects rather than Errors — String() of one is "[object Object]".
+// A 404 gets the real not-found page (the catch-all route in main.tsx should
+// normally get there first); any other status is shown as status and text.
 export function ErrorBoundary() {
   const { t } = useTranslation();
   const error = useRouteError();
-  const detail =
-    error instanceof Error ? error.message : String(error ?? "unknown");
+  if (isRouteErrorResponse(error) && error.status === 404) {
+    return <NotFoundPage />;
+  }
+  const detail = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}`.trim()
+    : error instanceof Error
+      ? error.message
+      : String(error ?? "unknown");
 
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
