@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
+import { MemoryRouter } from "react-router";
 import {
   DEFAULT_PHASE_PLAN,
   EMPTY_VOTES,
@@ -18,6 +19,7 @@ import {
 import "../i18n.js";
 import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
+import { saveAdminToken } from "../lib/session.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { RetroResults, type RetroResultsProps } from "./RetroResults.js";
 
@@ -99,6 +101,7 @@ const action: Action = {
   text: "Quarantine the flaky test",
   ownerId: ben.id,
   status: "open",
+  carriedFrom: null,
 };
 
 // Noon UTC, so the calendar day is the same in every runner's time zone.
@@ -142,31 +145,93 @@ function view(overrides: Partial<RetroResultsProps> = {}) {
     },
   }));
   return (
-    <ConnectionProvider value={connection}>
-      <RetroResults
-        boardId={BOARD}
-        columns={[COLUMN]}
-        notes={notes}
-        roster={[anna, ben]}
-        you={anna}
-        isAdmin
-        votes={votes}
-        actions={[action]}
-        kudos={[]}
-        rotiReleased={false}
-        retentionAt={RETENTION}
-        headcount={3}
-        anonymous={false}
-        voterNamesEnabled
-        gifsEnabled={false}
-        {...overrides}
-      />
-    </ConnectionProvider>
+    <MemoryRouter>
+      <ConnectionProvider value={connection}>
+        <RetroResults
+          boardId={BOARD}
+          boardName="Sprint 48"
+          columns={[COLUMN]}
+          notes={notes}
+          roster={[anna, ben]}
+          you={anna}
+          isAdmin
+          votes={votes}
+          actions={[action]}
+          kudos={[]}
+          rotiReleased={false}
+          retentionAt={RETENTION}
+          headcount={3}
+          anonymous={false}
+          voterNamesEnabled
+          gifsEnabled={false}
+          {...overrides}
+        />
+      </ConnectionProvider>
+    </MemoryRouter>
   );
 }
 
 afterEach(() => {
   useBoardStore.getState().reset();
+  localStorage.clear();
+  vi.restoreAllMocks();
+});
+
+// The follow-up needs the admin token itself: a co-facilitator promoted in the
+// room holds none and the server would refuse them, so they never see it.
+test("offers the follow-up retro only to the facilitator holding the token", async () => {
+  const member = await render(view({ isAdmin: false }));
+  await expect.element(member.getByTestId("results-title")).toBeVisible();
+  expect(
+    member.container.querySelector('[data-testid="results-follow-up"]'),
+  ).toBeNull();
+  await member.unmount();
+
+  const coFacilitator = await render(view({ isAdmin: true }));
+  await expect
+    .element(coFacilitator.getByTestId("results-title"))
+    .toBeVisible();
+  expect(
+    coFacilitator.container.querySelector('[data-testid="results-follow-up"]'),
+  ).toBeNull();
+});
+
+test("creates the follow-up with the open items' count in the hint, once", async () => {
+  saveAdminToken(BOARD, "b".repeat(32));
+  const fetchSpy = vi
+    .spyOn(window, "fetch")
+    .mockResolvedValue(
+      new Response(
+        JSON.stringify({ boardId: "e".repeat(32), adminToken: "f".repeat(32) }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+  const screen = await render(
+    view({
+      actions: [
+        action,
+        { ...action, id: "9".repeat(32), text: "Done already", status: "done" },
+      ],
+    }),
+  );
+  const button = screen.getByTestId("results-follow-up");
+  await expect.element(button).toBeVisible();
+  // Either UI language: the engines run with different browser locales.
+  await expect
+    .element(screen.getByTestId("results-follow-up-hint"))
+    .toHaveTextContent(/the open action item and|das offene Action Item und/);
+  await button.click();
+  await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+  const [url, init] = fetchSpy.mock.calls[0]!;
+  expect(String(url)).toBe(`/api/boards/${BOARD}/follow-up`);
+  expect(JSON.parse(String(init?.body))).toEqual({
+    name: expect.stringMatching(/^(Follow-up|Folge-Retro): Sprint 48$/),
+    adminToken: "b".repeat(32),
+  });
+  // the new board's capability is stored before navigating there
+  expect(
+    localStorage.getItem(`retrobeam.board.${"e".repeat(32)}.adminToken`),
+  ).toBe("f".repeat(32));
 });
 
 test("leads with the crowned topics in rank order, each with its vote count", async () => {

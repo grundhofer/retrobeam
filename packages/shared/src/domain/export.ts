@@ -37,6 +37,14 @@ export interface ExportAction {
   text: string;
   ownerName: string | null;
   done: boolean;
+  /** the previous board's name when a follow-up retro carried it over */
+  carriedFrom: string | null;
+}
+
+/** " (from “Sprint 47”)" for a carried item, "" otherwise — one wording for
+ *  every format that prints an action as a line. */
+export function carriedSuffix(action: ExportAction): string {
+  return action.carriedFrom === null ? "" : ` (from “${action.carriedFrom}”)`;
 }
 
 export interface ExportKudo {
@@ -82,6 +90,8 @@ export const boardExportSchema: z.ZodType<BoardExport> = z.object({
       text: z.string(),
       ownerName: z.string().nullable(),
       done: z.boolean(),
+      // defaulted: a JPEG drawn by a newer client from an older worker's JSON
+      carriedFrom: z.string().nullable().default(null),
     }),
   ),
   kudos: z.array(
@@ -219,7 +229,9 @@ export function toMarkdown(
     for (const action of data.actions) {
       const owner =
         action.ownerName !== null ? ` — **${action.ownerName}**` : "";
-      lines.push(`- [${action.done ? "x" : " "}] ${action.text}${owner}`);
+      lines.push(
+        `- [${action.done ? "x" : " "}] ${action.text}${owner}${carriedSuffix(action)}`,
+      );
     }
     lines.push("");
   }
@@ -253,9 +265,19 @@ function csvCell(value: string): string {
 
 export function toCsv(data: BoardExport): string {
   const rows: string[][] = [
-    // `voters` is APPENDED, never inserted: a consumer reading this file by
-    // column position must keep working.
-    ["section", "column", "text", "votes", "rank", "author", "gif", "voters"],
+    // `voters` and `carried_from` are APPENDED, never inserted: a consumer
+    // reading this file by column position must keep working.
+    [
+      "section",
+      "column",
+      "text",
+      "votes",
+      "rank",
+      "author",
+      "gif",
+      "voters",
+      "carried_from",
+    ],
   ];
   for (const column of data.columns) {
     for (const note of column.notes) {
@@ -270,6 +292,7 @@ export function toCsv(data: BoardExport): string {
         // "; " not ",": a comma would need the cell quoted for no gain, and a
         // semicolon list is what a spreadsheet reader splits on anyway.
         note.voterNames === null ? "" : note.voterNames.join("; "),
+        "",
       ]);
     }
   }
@@ -283,6 +306,7 @@ export function toCsv(data: BoardExport): string {
       action.ownerName ?? "",
       "",
       "",
+      action.carriedFrom ?? "",
     ]);
   }
   for (const kudo of data.kudos) {
@@ -293,6 +317,7 @@ export function toCsv(data: BoardExport): string {
       "",
       "",
       kudo.fromName ?? "",
+      "",
       "",
       "",
     ]);

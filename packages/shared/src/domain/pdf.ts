@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {
+  carriedSuffix,
   KUDO_CARD_LABELS,
   type BoardExport,
   type ExportScope,
@@ -352,9 +353,12 @@ function buildBlocks(data: BoardExport, scope: ExportScope): Block[] {
     for (const action of data.actions) {
       const owner = action.ownerName !== null ? ` - ${action.ownerName}` : "";
       blocks.push(
-        block(`[${action.done ? "x" : " "}] ${action.text}${owner}`, {
-          spaceBefore: 4,
-        }),
+        block(
+          `[${action.done ? "x" : " "}] ${action.text}${owner}${carriedSuffix(action)}`,
+          {
+            spaceBefore: 4,
+          },
+        ),
       );
     }
   }

@@ -71,6 +71,10 @@ const resources = {
           "{{count}} person is here. Share the link — start the retro when everyone arrived.",
         hint_other:
           "{{count}} people are here. Share the link — start the retro when everyone arrived.",
+        carried: {
+          title: "Open action items from the last retro",
+          hint: "Carried over from “{{name}}” — start by checking where they stand.",
+        },
       },
       board: {
         share: "Share link",
@@ -289,6 +293,7 @@ const resources = {
         toggle: "Mark as done",
         delete: "Delete action",
         empty: "No action items yet — capture decisions while you discuss.",
+        carriedFrom: "from “{{name}}”",
       },
       kudos: {
         title: "Appreciation",
@@ -360,6 +365,8 @@ const resources = {
         },
         duplicate: "Duplicate board",
         duplicateName: "Copy of {{name}}",
+        followUp: "Prepare the next retro",
+        followUpName: "Follow-up: {{name}}",
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
         keep: "Keep",
@@ -392,6 +399,14 @@ const resources = {
         topTopics: "Top topics",
         topTopicsHint: "From the vote, most votes first.",
         allCards: "All cards",
+        followUp: "Prepare the next retro",
+        followUpHint_one:
+          "Carries over the open action item and this board's columns — no cards, no names.",
+        followUpHint_other:
+          "Carries over the {{count}} open action items and this board's columns — no cards, no names.",
+        followUpHintNone:
+          "Carries over this board's columns — there are no open action items.",
+        followUpFailed: "Couldn't create the next retro — please try again.",
       },
       deleted: {
         title: "Board deleted",
@@ -694,6 +709,10 @@ const resources = {
           "{{count}} Person ist da. Teile den Link — starte die Retro, wenn alle da sind.",
         hint_other:
           "{{count}} Personen sind da. Teile den Link — starte die Retro, wenn alle da sind.",
+        carried: {
+          title: "Offene Action Items aus der letzten Retro",
+          hint: "Übernommen aus „{{name}}“ — schaut zu Beginn, wie es damit steht.",
+        },
       },
       board: {
         share: "Link teilen",
@@ -915,6 +934,7 @@ const resources = {
         delete: "Action Item löschen",
         empty:
           "Noch keine Action Items — haltet Entscheidungen beim Diskutieren fest.",
+        carriedFrom: "aus „{{name}}“",
       },
       kudos: {
         title: "Wertschätzung",
@@ -991,6 +1011,8 @@ const resources = {
         },
         duplicate: "Board duplizieren",
         duplicateName: "Kopie von {{name}}",
+        followUp: "Folge-Retro vorbereiten",
+        followUpName: "Folge-Retro: {{name}}",
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
         keep: "Behalten",
@@ -1023,6 +1045,15 @@ const resources = {
         topTopics: "Top-Themen",
         topTopicsHint: "Aus der Abstimmung, meiste Stimmen zuerst.",
         allCards: "Alle Karten",
+        followUp: "Folge-Retro vorbereiten",
+        followUpHint_one:
+          "Übernimmt das offene Action Item und die Spalten dieses Boards — ohne Karten, ohne Namen.",
+        followUpHint_other:
+          "Übernimmt die {{count}} offenen Action Items und die Spalten dieses Boards — ohne Karten, ohne Namen.",
+        followUpHintNone:
+          "Übernimmt die Spalten dieses Boards — offene Action Items gibt es keine.",
+        followUpFailed:
+          "Die Folge-Retro ließ sich nicht anlegen — versuch es noch einmal.",
       },
       deleted: {
         title: "Board gelöscht",

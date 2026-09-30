@@ -54,8 +54,8 @@ export function PrivacyEn() {
         the nearest Cloudflare location — including outside the EU — and
         processes board content there transiently, for example when relaying the
         connection, receiving the board name on creation, carrying over the
-        structure on duplication and generating the export file; nothing is
-        stored there.
+        structure on duplication (and the open action items for a follow-up
+        retro) and generating the export file; nothing is stored there.
       </p>
 
       <p>Two limitations, stated openly:</p>
@@ -128,22 +128,23 @@ export function PrivacyEn() {
           boards in a short time and thereby exhausting the free quota for
           everyone, the requester's IP address (header{" "}
           <code>cf-connecting-ip</code>) is used as a counter key when a board
-          is <strong>created or duplicated</strong>. This counter lives only in
-          the memory of a single Durable Object, is never written to disk, is
-          not EU-pinned (in the operator's view it contains no board data), and
-          is discarded at most a few minutes after the last request. Two
-          mechanisms are at work: the counter is "full" again 60 seconds after
-          the last request and is removed by the next sweep; that sweep is
-          triggered by a later request (from anyone) and runs at most once a
-          minute. If no further request arrives at all, Cloudflare removes the
-          idle Durable Object, counters included, from memory — according to
-          Cloudflare's documentation currently after about 10 seconds, and at
-          the latest after 70–140 seconds of inactivity. A second-exact moment
-          cannot be guaranteed; the upper bound of a few minutes rests on the
-          platform's documented behaviour, not on a contractual commitment. In
-          front of that, Cloudflare's own rate-limiting feature runs with the
-          same IP key; its transient counters are managed by Cloudflare. GIF
-          search is throttled per board, not per IP.
+          is <strong>created, duplicated or set up as a follow-up retro</strong>
+          . This counter lives only in the memory of a single Durable Object, is
+          never written to disk, is not EU-pinned (in the operator's view it
+          contains no board data), and is discarded at most a few minutes after
+          the last request. Two mechanisms are at work: the counter is "full"
+          again 60 seconds after the last request and is removed by the next
+          sweep; that sweep is triggered by a later request (from anyone) and
+          runs at most once a minute. If no further request arrives at all,
+          Cloudflare removes the idle Durable Object, counters included, from
+          memory — according to Cloudflare's documentation currently after about
+          10 seconds, and at the latest after 70–140 seconds of inactivity. A
+          second-exact moment cannot be guaranteed; the upper bound of a few
+          minutes rests on the platform's documented behaviour, not on a
+          contractual commitment. In front of that, Cloudflare's own
+          rate-limiting feature runs with the same IP key; its transient
+          counters are managed by Cloudflare. GIF search is throttled per board,
+          not per IP.
         </li>
       </ul>
 
@@ -326,6 +327,14 @@ export function PrivacyEn() {
           columns, which stay hidden, settings — an anonymous board's copy is
           anonymous too —, working agreements) into a new board with a fresh
           90-day window — no notes, votes, participants, kudos or ratings.
+        </li>
+        <li>
+          A <strong>follow-up retro</strong> copies the same structure plus the
+          action items that are <em>open</em> at that moment: their text only,
+          labelled with the previous board's name as their origin. Responsible
+          persons are not copied, done action items stay behind, and the new
+          board holds no reference to the old board's address. The copied texts
+          are then subject to the new board's fresh 90-day window.
         </li>
       </ul>
 

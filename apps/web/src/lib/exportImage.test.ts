@@ -165,8 +165,13 @@ const fullBoard = board({
     { name: "To improve", notes: [] },
   ],
   actions: [
-    { text: "split the retro board template", ownerName: "Ada", done: false },
-    { text: "book the room", ownerName: null, done: true },
+    {
+      text: "split the retro board template",
+      ownerName: "Ada",
+      done: false,
+      carriedFrom: null,
+    },
+    { text: "book the room", ownerName: null, done: true, carriedFrom: null },
   ],
   kudos: [
     {

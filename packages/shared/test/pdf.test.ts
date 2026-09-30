@@ -45,8 +45,18 @@ function board(overrides: Partial<BoardExport> = {}): BoardExport {
       { name: "To improve", notes: [] },
     ],
     actions: [
-      { text: "Automate deploys", ownerName: "Ben", done: false },
-      { text: "Write more tests", ownerName: null, done: true },
+      {
+        text: "Automate deploys",
+        ownerName: "Ben",
+        done: false,
+        carriedFrom: null,
+      },
+      {
+        text: "Write more tests",
+        ownerName: null,
+        done: true,
+        carriedFrom: null,
+      },
     ],
     kudos: [
       {

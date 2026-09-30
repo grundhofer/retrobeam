@@ -128,6 +128,10 @@ export const actionSchema = z.object({
   /** owning participant; null = unassigned */
   ownerId: z.string().nullable(),
   status: actionStatusSchema,
+  /** set on an item carried into a follow-up retro: the previous board's NAME,
+   *  a label only. Never its id — the id is a capability, and a copy's members
+   *  must not be handed a way into the old board. null = captured here. */
+  carriedFrom: z.string().nullable().default(null),
 });
 export type Action = z.infer<typeof actionSchema>;
 

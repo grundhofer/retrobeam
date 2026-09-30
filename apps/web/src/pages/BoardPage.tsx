@@ -13,6 +13,7 @@ import {
   type ServerEvent,
 } from "@retrobeam/shared";
 import { ActionsPanel } from "../components/ActionsPanel.js";
+import { CarriedActions } from "../components/CarriedActions.js";
 import { AdminLink } from "../components/AdminLink.js";
 import { AvatarRow } from "../components/AvatarRow.js";
 import { BoardCanvas } from "../components/BoardCanvas.js";
@@ -623,6 +624,7 @@ function Room({
         <main className="flex-1 px-6 py-6">
           {inLobby ? (
             <div className="mx-auto flex max-w-2xl flex-col gap-8">
+              <CarriedActions actions={state.actions} />
               <PhasePlanPanel
                 phasePlan={phasePlan}
                 isAdmin={isAdmin}
@@ -675,6 +677,7 @@ function Room({
           ) : state.phase === "done" ? (
             <RetroResults
               boardId={boardId}
+              boardName={state.board?.name ?? board.name}
               columns={state.columns}
               notes={state.notes}
               roster={state.roster}

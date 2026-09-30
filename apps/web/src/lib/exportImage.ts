@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {
+  carriedSuffix,
   KUDO_CARD_LABELS,
   summarizeExport,
   type BoardExport,
@@ -438,7 +439,7 @@ export function layoutBoardImage(
         action.ownerName !== null ? ` — ${oneLine(action.ownerName)}` : "";
       block(
         wrapRun(
-          `${action.done ? "☑" : "☐"} ${oneLine(action.text)}${owner}`,
+          `${action.done ? "☑" : "☐"} ${oneLine(action.text)}${owner}${oneLine(carriedSuffix(action))}`,
           contentWidth,
           { size: BODY_SIZE, bold: false, color: BODY_INK },
           measure,

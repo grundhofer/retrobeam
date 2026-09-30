@@ -34,18 +34,37 @@ export async function createBoard(
 // Duplicate a board's structure (columns/config/agreements) into a fresh
 // board. Gated server-side on the source admin token; returns the new board's
 // id + admin token. No notes/votes/participants carry over.
-export async function duplicateBoard(
+export function duplicateBoard(
   sourceId: string,
   name: string,
   adminToken: string,
 ): Promise<{ boardId: string; adminToken: string }> {
-  const response = await fetch(`/api/boards/${sourceId}/duplicate`, {
+  return copyBoard("duplicate", sourceId, name, adminToken);
+}
+
+// A follow-up retro: the duplicate above plus the source's still-open Action
+// Items (text only, labelled with the source board's name — never an owner).
+export function followUpBoard(
+  sourceId: string,
+  name: string,
+  adminToken: string,
+): Promise<{ boardId: string; adminToken: string }> {
+  return copyBoard("follow-up", sourceId, name, adminToken);
+}
+
+async function copyBoard(
+  route: "duplicate" | "follow-up",
+  sourceId: string,
+  name: string,
+  adminToken: string,
+): Promise<{ boardId: string; adminToken: string }> {
+  const response = await fetch(`/api/boards/${sourceId}/${route}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ name, adminToken }),
   });
   if (!response.ok) {
-    throw new Error(`duplicate board failed: ${response.status}`);
+    throw new Error(`${route} board failed: ${response.status}`);
   }
   return createBoardResponseSchema.parse(await response.json());
 }

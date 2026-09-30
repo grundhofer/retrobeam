@@ -61,11 +61,11 @@ Goal: a deployed, tested "hello board" proving every architectural mechanism end
 
 ## v1.x (fast follows)
 
-Shipped in M6: slot-machine picker skin · staged/hidden columns · board duplication. Remaining: icebreaker bank expansion (~100 questions DE/EN; 24 shipped in M5).
+Shipped in M6: slot-machine picker skin · staged/hidden columns · board duplication. Shipped 2026-09: anonymous boards · facilitator link · results page on done · **follow-up retro with open action items carried over** (no team space needed: the facilitator's admin token chains one board to the next; text + previous board name only, no owners). Remaining: icebreaker bank expansion (~100 questions DE/EN; 24 shipped in M5).
 
 ## v2 (needs team spaces)
 
-`TeamRoom` DO (named team → board list, action-item carry-over auto-injected as retro phase 2, kudos history) · ROTI trend across sprints (the per-retro poll shipped in M5) · Lean Coffee + Team Health Check board types · lotto-ball machine · multi-round voting · parking lot · safety check. Pixel cursors have shipped as an opt-in 1 Hz canvas feature with an account-wide Free-tier cutoff.
+`TeamRoom` DO (named team → board list, kudos history; action-item carry-over already shipped without it, see v1.x) · ROTI trend across sprints (the per-retro poll shipped in M5) · Lean Coffee + Team Health Check board types · lotto-ball machine · multi-round voting · parking lot · safety check. Pixel cursors have shipped as an opt-in 1 Hz canvas feature with an account-wide Free-tier cutoff.
 
 ## Later / research
 

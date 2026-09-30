@@ -34,6 +34,7 @@ These aren't bolt-ons; they're why the works-council conversation should be easy
 | -------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Display name, assigned color, role           | Board DO (EU)                   | Until board deletion (≤90 days default)                                                               |
 | Notes, reactions, votes, action items, kudos | Board DO (EU)                   | Same                                                                                                  |
+| Open action items carried into a follow-up   | The new board's DO (EU)         | Text + old board's name only (no owner, no link back); the new board's fresh ≤90-day window           |
 | Session token                                | Participant's localStorage      | Local only                                                                                            |
 | Admin token                                  | Facilitator's localStorage      | Local only; also in the facilitator link's `#admin=` fragment, which never reaches a server           |
 | GIF search terms                             | Worker (transit only, proxied)  | Not stored; never reaches KLIPY with user IP                                                          |

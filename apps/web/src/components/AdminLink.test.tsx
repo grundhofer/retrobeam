@@ -78,8 +78,12 @@ test("the token holder gets the link mid-retro, masked until asked", async () =>
 test("a co-facilitator promoted by role holds no token and is offered none", async () => {
   const screen = await openMenu("2".repeat(32), true);
   // The settings section renders, so the menu really is the facilitator's.
-  await expect.element(screen.getByTestId("duplicate-board")).toBeVisible();
+  await expect.element(screen.getByTestId("gifs-toggle")).toBeVisible();
   expect(screen.getByTestId("admin-link").elements()).toHaveLength(0);
+  // Duplicate and follow-up need the token too; the server would refuse a
+  // co-facilitator, so the buttons are not offered (they used to do nothing).
+  expect(screen.getByTestId("duplicate-board").elements()).toHaveLength(0);
+  expect(screen.getByTestId("follow-up-board").elements()).toHaveLength(0);
 });
 
 test("a demoted token holder is not offered it either", async () => {
