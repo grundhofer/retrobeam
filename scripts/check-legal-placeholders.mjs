@@ -13,9 +13,12 @@
 //     build. The route in wrangler.jsonc is the one fact a self-hoster MUST
 //     change (the retrobeam.de zone is not theirs), so it is the trigger: once
 //     it no longer matches INSTANCE_HOST, or INSTANCE_HOST is not retrobeam.de,
-//     none of retrobeam.de's values may remain.
-// No network, no dependencies: it reads four files and compares strings.
+//     or the repository being deployed is not retrobeam.de's (see
+//     deployingRepository), none of retrobeam.de's values may remain.
+// No network, no dependencies: it reads files, asks git for the origin remote
+// and compares strings.
 
+import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
@@ -57,10 +60,19 @@ if (placeholders.length > 0) {
   );
 }
 
-const constant = (name) =>
-  source.match(new RegExp(`export const ${name}(?:: \\w+)? = "([^"]*)"`))?.[1];
+// `\s*` after the colon or `=`: prettier moves a value longer than the line
+// onto the next one. A bare identifier (`INSTANCE_HOST = WORKERS_DEV_HOST`,
+// as the README suggests for workers.dev) resolves to that constant's value.
+function constant(name, seen = new Set()) {
+  const match = source.match(
+    new RegExp(`export const ${name}(?:: \\w+)?\\s*=\\s*(?:"([^"]*)"|(\\w+);)`),
+  );
+  if (!match) return undefined;
+  if (match[1] !== undefined) return match[1];
+  return seen.has(name) ? undefined : constant(match[2], seen.add(name));
+}
 const field = (name) =>
-  source.match(new RegExp(`^\\s+${name}: "([^"]*)",$`, "m"))?.[1];
+  source.match(new RegExp(`^\\s+${name}:\\s*"([^"]*)",$`, "m"))?.[1];
 const current = {
   "OPERATOR.name": field("name"),
   "OPERATOR.street": field("street"),
@@ -70,22 +82,32 @@ const current = {
 };
 const instanceHost = constant("INSTANCE_HOST");
 
-// JSONC → JSON: drop comments outside strings, then trailing commas.
+// JSONC → JSON: drop comments outside strings, then trailing commas. Strings
+// are walked character by character so an escaped backslash before the
+// closing quote ("C:\\") ends the string, and anything left open throws
+// instead of restarting the scan from the top.
 function parseJsonc(text) {
+  const unterminated = (what) =>
+    new Error(`${WRANGLER_FILE}: unterminated ${what}.`);
   let out = "";
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     if (char === '"') {
-      const end = text.indexOf('"', i + 1);
-      let close = end;
-      while (text[close - 1] === "\\") close = text.indexOf('"', close + 1);
+      let close = i + 1;
+      while (close < text.length && text[close] !== '"') {
+        close += text[close] === "\\" ? 2 : 1;
+      }
+      if (close >= text.length) throw unterminated("string");
       out += text.slice(i, close + 1);
       i = close;
     } else if (char === "/" && text[i + 1] === "/") {
-      i = text.indexOf("\n", i) - 1;
-      if (i < 0) break;
+      const end = text.indexOf("\n", i);
+      if (end < 0) break;
+      i = end - 1;
     } else if (char === "/" && text[i + 1] === "*") {
-      i = text.indexOf("*/", i) + 1;
+      const end = text.indexOf("*/", i + 2);
+      if (end < 0) throw unterminated("block comment");
+      i = end + 1;
     } else {
       out += char;
     }
@@ -101,6 +123,43 @@ const routeHosts = routes.map(
 );
 const deployHost = routeHosts.length > 0 ? routeHosts : ["workers.dev only"];
 
+// The route alone does not tell a clone apart: one that keeps the
+// retrobeam.de route passes the host checks above, and wrangler uploads the
+// Worker and switches on its workers.dev origin BEFORE the custom domain fails
+// on a zone that is not theirs — so retrobeam.de's imprint would be live. The
+// repository being deployed is the second signal: GITHUB_REPOSITORY in
+// Actions, the `origin` remote for the local deploy script. Unknown (no git,
+// no remote) falls back to the host checks alone. A fresh `git clone` of
+// upstream deployed unchanged still passes — it looks exactly like
+// retrobeam.de's own checkout, which is why the README says to fork first.
+function repoSlug(url) {
+  return url
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z+]+:\/\//, "") // https://, ssh://, git+ssh://
+    .replace(/^[^@/]+@/, "") // git@
+    .replace(/^([^/:]+):(?:\d+\/)?/, "$1/") // scp form host:owner, or a port
+    .replace(/\/+$/, "")
+    .replace(/\.git$/, "");
+}
+function deployingRepository() {
+  if (process.env.GITHUB_REPOSITORY) {
+    const server = process.env.GITHUB_SERVER_URL ?? "https://github.com";
+    return repoSlug(`${server}/${process.env.GITHUB_REPOSITORY}`);
+  }
+  try {
+    const origin = execFileSync("git", ["remote", "get-url", "origin"], {
+      cwd: new URL("..", import.meta.url),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return origin.trim() ? repoSlug(origin) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+const deployRepo = deployingRepository();
+
 if (!instanceHost) {
   problems.push(`${OPERATOR_FILE} must export INSTANCE_HOST.`);
 } else {
@@ -113,8 +172,17 @@ if (!instanceHost) {
       `${WRANGLER_FILE} deploys to ${deployHost.join(", ")}, but ${OPERATOR_FILE} describes the instance at ${instanceHost}.`,
     );
   }
+  const isOtherRepo =
+    deployRepo !== undefined && deployRepo !== repoSlug(UPSTREAM.REPO_URL);
   const isUpstream =
-    instanceHost === UPSTREAM_HOST && routeHosts.includes(UPSTREAM_HOST);
+    instanceHost === UPSTREAM_HOST &&
+    routeHosts.includes(UPSTREAM_HOST) &&
+    !isOtherRepo;
+  if (isOtherRepo && routeHosts.includes(UPSTREAM_HOST)) {
+    problems.push(
+      `${WRANGLER_FILE} routes ${UPSTREAM_HOST}, but this is ${deployRepo}, not retrobeam.de's repository — route your own domain, or [] for workers.dev only.`,
+    );
+  }
   if (!isUpstream) {
     const leftovers = Object.entries(UPSTREAM)
       .filter(([key, value]) => current[key] === value)

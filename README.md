@@ -91,8 +91,10 @@ If you need to bring this past a German works council, [`docs/05-privacy-gdpr.md
 
 RetroBeam runs on the Cloudflare free tier — one Worker plus a SQLite-backed Durable Object per board. There is no database to operate.
 
+Fork the repository first and deploy from your fork: `REPO_URL` has to point at a public repository with the source of your build, and the deploy check tells a fork from retrobeam.de's own checkout by the repository it runs in.
+
 ```sh
-git clone https://github.com/grundhofer/retrobeam.git
+git clone https://github.com/<you>/retrobeam.git
 cd retrobeam
 pnpm install
 pnpm --filter @retrobeam/web run deploy   # needs `wrangler login`
@@ -120,7 +122,9 @@ deploys from it. Before your first deployment, make it yours:
   retrobeam.de.
 
 `pnpm check:legal`, which the deploy command runs first, stops the deploy and
-names what is left while the route and `INSTANCE_HOST` disagree, or while
+names what is left while the route and `INSTANCE_HOST` disagree, while a
+repository other than grundhofer/retrobeam (`GITHUB_REPOSITORY` in Actions,
+the `origin` remote locally) still routes retrobeam.de, or while
 retrobeam.de's operator, repository or host values remain in any of these
 files except `i18n.ts`. The two dates and `i18n.ts` are not checked — review
 them yourself.

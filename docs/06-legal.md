@@ -109,9 +109,16 @@ What is done instead:
   `INSTANCE_HOST` in `apps/web/src/content/operator.ts`. A clone deployed to any other host stops,
   naming each file to change, until it carries its own operator data, its own `REPO_URL` (so the
   § 13 link reaches the source of _its_ build), its own `WORKERS_DEV_HOST` and its own host in
-  `index.html`, `robots.txt`, `sitemap.xml`, the imprint and the privacy notice. A clone that keeps the retrobeam.de route is stopped
-  by Cloudflare instead, because the zone is not theirs. The guard is a courtesy, not a lock — a
-  forker can delete it — but nobody ships someone else's imprint by accident.
+  `index.html`, `robots.txt`, `sitemap.xml`, the imprint and the privacy notice. Cloudflare does
+  _not_ stop a clone that keeps the retrobeam.de route: `wrangler deploy` uploads the Worker and
+  switches on its workers.dev origin before the custom domain fails on a zone that is not theirs, so
+  retrobeam.de's imprint would already be live. The guard therefore also checks which repository is
+  being deployed — `GITHUB_REPOSITORY` in Actions, the `origin` remote for the local deploy script —
+  and treats anything other than grundhofer/retrobeam as a clone. The gap left is a plain
+  `git clone` of upstream deployed unchanged from the command line: it is indistinguishable from
+  retrobeam.de's own checkout without a network call, which is why the README says to fork first.
+  The guard is a courtesy, not a lock — a forker can delete it — but a fork does not ship someone
+  else's imprint by accident.
 - **The trademark** (below) — the lever against a clone that trades on the name.
 - **Voluntary channels** — an `ADOPTERS.md` or a "Who uses RetroBeam?" discussion, plus GitHub
   traffic, stars, forks and CLA signatures.
