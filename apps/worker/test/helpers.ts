@@ -24,6 +24,7 @@ export async function createBoard(
   name = "Sprint 12",
   options: {
     template?: string;
+    columns?: string[];
     locale?: string;
     checkin?: boolean;
     layout?: "columns" | "canvas";

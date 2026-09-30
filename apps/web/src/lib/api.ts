@@ -21,11 +21,20 @@ export async function createBoard(
   locale: string,
   layout: "columns" | "canvas" = "columns",
   anonymous = false,
+  // From a template link: replaces the template's columns server-side.
+  columns?: readonly string[],
 ): Promise<{ boardId: string; adminToken: string }> {
   const response = await fetch("/api/boards", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, template, locale, layout, anonymous }),
+    body: JSON.stringify({
+      name,
+      template,
+      locale,
+      layout,
+      anonymous,
+      ...(columns === undefined ? {} : { columns }),
+    }),
   });
   if (!response.ok) throw new Error(`create board failed: ${response.status}`);
   return createBoardResponseSchema.parse(await response.json());

@@ -42,6 +42,7 @@ function view(boardId: string, isAdmin: boolean) {
           phase="discuss"
           layout="columns"
           retentionAt={null}
+          columns={[]}
         />
       </ConnectionProvider>
     </MemoryRouter>

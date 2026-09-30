@@ -34,6 +34,12 @@ const resources = {
         create: "Create board",
         creating: "Creating…",
         createFailed: "Creating the board failed. Please try again.",
+        linkColumns: "Custom columns from the link: {{columns}}",
+        linkColumnsDrop: "Use a template instead",
+        linkColumnsInvalid:
+          "The columns in this link could not be read — pick a template instead.",
+        linkTemplateInvalid:
+          "This link names a template we don't know — pick one here.",
       },
       template: {
         "went-well": {
@@ -59,6 +65,18 @@ const resources = {
         starfish: {
           name: "Starfish — Keep / Less / More / Stop / Start",
           hint: "Finer-grained dial-up/dial-down for experienced teams.",
+        },
+        daki: {
+          name: "DAKI — Drop / Add / Keep / Improve",
+          hint: "Sorts habits into what to stop, start, keep and sharpen.",
+        },
+        "rose-bud-thorn": {
+          name: "Rose / Bud / Thorn",
+          hint: "Highlights, emerging ideas and pain points — quick and gentle.",
+        },
+        kalm: {
+          name: "KALM — Keep / Add / Less / More",
+          hint: "Tunes what the team already does rather than starting over.",
         },
       },
       join: {
@@ -371,6 +389,10 @@ const resources = {
         followUp: "Prepare the next retro",
         followUpName: "Follow-up: {{name}}",
         copyFailed: "That didn't work — please try again.",
+        templateLink: "Copy as template link",
+        templateLinkHint:
+          "A /new link with the visible column names — no cards, nothing else.",
+        templateLinkTooMany: "A template link holds at most {{max}} columns.",
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
         keep: "Keep",
@@ -712,6 +734,12 @@ const resources = {
         creating: "Wird erstellt…",
         createFailed:
           "Das Board konnte nicht erstellt werden. Bitte versuch es erneut.",
+        linkColumns: "Eigene Spalten aus dem Link: {{columns}}",
+        linkColumnsDrop: "Stattdessen eine Vorlage nehmen",
+        linkColumnsInvalid:
+          "Die Spalten aus diesem Link ließen sich nicht lesen — wähl stattdessen eine Vorlage.",
+        linkTemplateInvalid:
+          "Die Vorlage aus diesem Link kennen wir nicht — wähl hier eine aus.",
       },
       template: {
         "went-well": {
@@ -737,6 +765,18 @@ const resources = {
         starfish: {
           name: "Seestern — Beibehalten / Weniger / Mehr / Aufhören / Anfangen",
           hint: "Feinere Justierung für erfahrene Teams.",
+        },
+        daki: {
+          name: "DAKI — Weglassen / Hinzufügen / Beibehalten / Verbessern",
+          hint: "Sortiert Gewohnheiten: was wegfällt, was dazukommt, was bleibt, was besser wird.",
+        },
+        "rose-bud-thorn": {
+          name: "Rose / Knospe / Dorn",
+          hint: "Highlights, keimende Ideen und Schmerzpunkte — schnell und behutsam.",
+        },
+        kalm: {
+          name: "KALM — Beibehalten / Hinzufügen / Weniger / Mehr",
+          hint: "Justiert, was das Team schon tut, statt neu anzufangen.",
         },
       },
       join: {
@@ -1057,6 +1097,11 @@ const resources = {
         followUp: "Folge-Retro vorbereiten",
         followUpName: "Folge-Retro: {{name}}",
         copyFailed: "Das hat nicht geklappt — versuch es noch einmal.",
+        templateLink: "Als Vorlage-Link kopieren",
+        templateLinkHint:
+          "Ein /new-Link mit den sichtbaren Spaltennamen — keine Karten, sonst nichts.",
+        templateLinkTooMany:
+          "Ein Vorlage-Link fasst höchstens {{max}} Spalten.",
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
         keep: "Behalten",

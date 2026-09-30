@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { z } from "zod";
+import { columnNameSchema } from "../protocol.js";
 
 export const BOARD_LOCALES = ["en", "de"] as const;
 export const boardLocaleSchema = z.enum(BOARD_LOCALES);
@@ -14,6 +15,9 @@ export const TEMPLATE_KEYS = [
   "four-ls",
   "sailboat",
   "starfish",
+  "daki",
+  "rose-bud-thorn",
+  "kalm",
 ] as const;
 
 export const templateKeySchema = z.enum(TEMPLATE_KEYS);
@@ -59,6 +63,18 @@ const TEMPLATE_COLUMNS: Record<
     en: ["Keep doing", "Less of", "More of", "Stop doing", "Start doing"],
     de: ["Beibehalten", "Weniger davon", "Mehr davon", "Aufhören", "Anfangen"],
   },
+  daki: {
+    en: ["Drop", "Add", "Keep", "Improve"],
+    de: ["Weglassen", "Hinzufügen", "Beibehalten", "Verbessern"],
+  },
+  "rose-bud-thorn": {
+    en: ["Rose", "Bud", "Thorn"],
+    de: ["Rose", "Knospe", "Dorn"],
+  },
+  kalm: {
+    en: ["Keep", "Add", "Less", "More"],
+    de: ["Beibehalten", "Hinzufügen", "Weniger", "Mehr"],
+  },
 };
 
 export function templateColumnNames(
@@ -66,4 +82,36 @@ export function templateColumnNames(
   locale: BoardLocale,
 ): readonly string[] {
   return TEMPLATE_COLUMNS[key][locale];
+}
+
+// Template links: `/new?columns=A|B|C` hands a column set to somebody else
+// without an account or a stored template — the link IS the template. The
+// cap keeps a hand-edited link from minting a board nobody can read on one
+// screen; the per-name rule is the one every column rename already obeys.
+export const TEMPLATE_LINK_MAX_COLUMNS = 8;
+export const templateLinkColumnsSchema = z
+  .array(columnNameSchema)
+  .min(1)
+  .max(TEMPLATE_LINK_MAX_COLUMNS);
+
+const TEMPLATE_LINK_SEPARATOR = "|";
+
+/** The decoded `columns` query value as column names, or null when it is not a
+ *  valid set. All or nothing: a link with one bad name is a broken link, and
+ *  quietly dropping that column would hand over a template nobody wrote. */
+export function parseTemplateLinkColumns(raw: string): string[] | null {
+  const parsed = templateLinkColumnsSchema.safeParse(
+    raw.split(TEMPLATE_LINK_SEPARATOR),
+  );
+  return parsed.success ? parsed.data : null;
+}
+
+/** The `/new` query for a column set, e.g. `?columns=Keep%7CDrop`. A "|" inside
+ *  a name would read as a separator once decoded — whether the link keeps it
+ *  literal or a chat tool percent-encodes it — so it becomes "/" here. */
+export function templateLinkQuery(names: readonly string[]): string {
+  const value = names
+    .map((name) => name.trim().replaceAll(TEMPLATE_LINK_SEPARATOR, "/"))
+    .join(TEMPLATE_LINK_SEPARATOR);
+  return `?columns=${encodeURIComponent(value)}`;
 }

@@ -33,9 +33,9 @@ function captureCreate(): { body: Record<string, unknown> | null } {
   return seen;
 }
 
-async function fillForm() {
+async function fillForm(entry = "/new") {
   const screen = await render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
       <HomePage />
     </MemoryRouter>,
   );
@@ -73,4 +73,78 @@ test("the form says a private facilitator link comes with the board", async () =
   await expect
     .element(screen.getByText(i18n.t("home.adminLinkHint")))
     .toBeVisible();
+});
+
+// Template links arrive from chat tools and wikis, hand-edited and sometimes
+// truncated. A good one presets the form; a bad one must never break it.
+test("a template link preselects a built-in template", async () => {
+  const seen = captureCreate();
+  const screen = await fillForm("/new?template=kalm");
+  await expect.element(screen.getByRole("combobox")).toHaveValue("kalm");
+  await screen.getByRole("button", { name: i18n.t("home.create") }).click();
+  await expect.poll(() => seen.body?.template).toBe("kalm");
+  expect(seen.body).not.toHaveProperty("columns");
+});
+
+test("a column link replaces the template, and can be dropped for one", async () => {
+  const seen = captureCreate();
+  const screen = await fillForm(
+    `/new?columns=${encodeURIComponent("Gut|Schlecht & teuer|Ideen")}`,
+  );
+  await expect
+    .element(screen.getByTestId("home-link-columns"))
+    .toHaveTextContent(
+      i18n.t("home.linkColumns", {
+        columns: "Gut · Schlecht & teuer · Ideen",
+      }),
+    );
+  await expect.element(screen.getByRole("combobox")).not.toBeInTheDocument();
+  await screen.getByRole("button", { name: i18n.t("home.create") }).click();
+  await expect
+    .poll(() => seen.body?.columns)
+    .toEqual(["Gut", "Schlecht & teuer", "Ideen"]);
+});
+
+test("dropping the link's columns falls back to the template picker", async () => {
+  const seen = captureCreate();
+  const screen = await fillForm("/new?columns=Gut|Schlecht");
+  await screen.getByTestId("home-link-columns-drop").click();
+  await expect
+    .element(screen.getByTestId("home-link-columns"))
+    .not.toBeInTheDocument();
+  await expect.element(screen.getByRole("combobox")).toHaveValue("went-well");
+  await screen.getByRole("button", { name: i18n.t("home.create") }).click();
+  await expect.poll(() => seen.body?.template).toBe("went-well");
+  expect(seen.body).not.toHaveProperty("columns");
+});
+
+test("an unreadable link is ignored with a quiet hint", async () => {
+  const nine = Array.from({ length: 9 }, (_, i) => `C${i}`).join("|");
+  for (const [entry, hint] of [
+    ["/new?columns=Gut||Schlecht", "home.linkColumnsInvalid"],
+    [`/new?columns=${nine}`, "home.linkColumnsInvalid"],
+    [`/new?columns=${"x".repeat(61)}`, "home.linkColumnsInvalid"],
+    ["/new?template=nope", "home.linkTemplateInvalid"],
+  ] as const) {
+    const seen = captureCreate();
+    const screen = await fillForm(entry);
+    await expect
+      .element(screen.getByTestId("home-link-invalid"))
+      .toHaveTextContent(i18n.t(hint));
+    await expect.element(screen.getByRole("combobox")).toHaveValue("went-well");
+    await screen.getByRole("button", { name: i18n.t("home.create") }).click();
+    await expect.poll(() => seen.body?.template).toBe("went-well");
+    expect(seen.body, entry).not.toHaveProperty("columns");
+    await screen.unmount();
+  }
+});
+
+test("a clean /new says nothing about links", async () => {
+  const screen = await fillForm();
+  await expect
+    .element(screen.getByTestId("home-link-invalid"))
+    .not.toBeInTheDocument();
+  await expect
+    .element(screen.getByTestId("home-link-columns"))
+    .not.toBeInTheDocument();
 });
