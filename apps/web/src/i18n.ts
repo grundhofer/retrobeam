@@ -187,6 +187,9 @@ const resources = {
         cancel: "Cancel",
         ghostWriting: "{{name}} is writing…",
         notPresented: "Not presented yet",
+        arrange: "Move or stack",
+        moveTo: "Move to…",
+        stackWith: "Stack with…",
       },
       column: {
         addColumn: "Add column",
@@ -866,6 +869,9 @@ const resources = {
         cancel: "Abbrechen",
         ghostWriting: "{{name}} schreibt…",
         notPresented: "Noch nicht vorgestellt",
+        arrange: "Verschieben oder stapeln",
+        moveTo: "Verschieben nach…",
+        stackWith: "Stapeln mit…",
       },
       column: {
         addColumn: "Spalte hinzufügen",

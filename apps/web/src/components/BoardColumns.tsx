@@ -245,6 +245,7 @@ export function BoardColumns(props: BoardColumnsProps) {
 
 function BoardColumn({
   column,
+  columns,
   notes,
   columnCounts,
   roster,
@@ -430,6 +431,11 @@ function BoardColumn({
     gifsEnabled,
     onDropNote,
     onUngroup,
+    // The drag gestures' keyboard twin (the card's ⋯): the same callbacks
+    // the drops call, so it sends the same commands with the same echoes.
+    moveTargets: columns,
+    onMoveToColumn,
+    stackCandidates: columnNotes,
   };
 
   return (

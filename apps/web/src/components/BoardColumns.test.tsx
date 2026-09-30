@@ -66,14 +66,17 @@ function note(id: string, columnId: string, order: number): Note {
 function view(
   overrides: Partial<React.ComponentProps<typeof BoardColumns>> = {},
   sent: ClientCommand[] = [],
+  mutated: [ClientCommand, ServerEvent | ServerEvent[]][] = [],
 ) {
   const connection = {
     boardId: "a".repeat(32),
     send: (command: ClientCommand) => sent.push(command),
     mutate: (
-      _command: ClientCommand,
-      _optimistic: ServerEvent | ServerEvent[],
-    ) => {},
+      command: ClientCommand,
+      optimistic: ServerEvent | ServerEvent[],
+    ) => {
+      mutated.push([command, optimistic]);
+    },
   };
   return (
     <ConnectionProvider value={connection}>
@@ -258,4 +261,84 @@ test("the composer offers a GIF only once the note has text", async () => {
   await expect
     .element(screen.getByTestId(`composer-gif-${columnId}`))
     .not.toBeInTheDocument();
+});
+
+// WCAG 2.1.1: moving and stacking were drag-only. The card's ⋯ is their
+// keyboard and touch twin, and it must be a twin — the very command and
+// optimistic echo a drop produces, opId aside — not a second code path.
+test("the card's move and stack options send exactly what a drop sends", async () => {
+  const columnId = columns[0]!.id;
+  const a = note("1", columnId, 1);
+  const b = note("2", columnId, 2);
+  const mutated: [ClientCommand, ServerEvent | ServerEvent[]][] = [];
+  const screen = await render(
+    view({ phase: "present", notes: [a, b] }, [], mutated),
+  );
+  const withoutOpId = ([command, echo]: (typeof mutated)[number]) => [
+    { ...command, opId: "" },
+    echo,
+  ];
+
+  function drop(target: Element) {
+    const data = new DataTransfer();
+    data.setData("application/x-retrobeam-note", a.id);
+    target.dispatchEvent(
+      new DragEvent("drop", {
+        dataTransfer: data,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  }
+  const cardA = screen.getByTestId("note-card").nth(0);
+  const cardB = screen.getByTestId("note-card").nth(1);
+
+  // Drag: card A onto the second column, then onto card B.
+  drop(screen.getByTestId("board-column").nth(1).element());
+  drop(cardB.element());
+  expect(mutated.map(([command]) => command.type)).toEqual([
+    "note.move",
+    "note.group",
+  ]);
+  const dragged = mutated.splice(0).map(withoutOpId);
+
+  // The same two through the ⋯ of card A.
+  await cardA.getByTestId("note-arrange-toggle").click();
+  await cardA
+    .getByTestId("note-move-option")
+    .filter({ hasText: columns[1]!.name })
+    .click();
+  await cardA.getByTestId("note-arrange-toggle").click();
+  const stackOptions = cardA.getByTestId("note-stack-option");
+  expect(stackOptions.elements().map((el) => el.textContent)).toEqual([b.text]);
+  await stackOptions.click();
+  expect(mutated.map(withoutOpId)).toEqual(dragged);
+});
+
+test("voting freezes the board: no move or stack options", async () => {
+  const columnId = columns[0]!.id;
+  const screen = await render(
+    view({
+      phase: "vote",
+      notes: [note("1", columnId, 1), note("2", columnId, 2)],
+    }),
+  );
+  expect(screen.getByTestId("note-card").elements()).toHaveLength(2);
+  expect(screen.getByTestId("note-arrange-toggle").elements()).toHaveLength(0);
+});
+
+test("while writing, your own card moves but does not stack", async () => {
+  const columnId = columns[0]!.id;
+  const screen = await render(
+    view({
+      phase: "write",
+      notes: [note("1", columnId, 1), note("2", columnId, 2)],
+    }),
+  );
+  await screen.getByTestId("note-arrange-toggle").first().click();
+  await expect
+    .element(screen.getByTestId("note-move-option").first())
+    .toBeVisible();
+  expect(screen.getByTestId("note-move-option").elements()).toHaveLength(3);
+  expect(screen.getByTestId("note-stack-option").elements()).toHaveLength(0);
 });
