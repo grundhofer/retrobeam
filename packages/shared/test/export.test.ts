@@ -53,8 +53,18 @@ const sample: BoardExport = {
     { name: "To improve", notes: [] },
   ],
   actions: [
-    { text: "Automate deploys", ownerName: "Ben", done: false },
-    { text: "Write more tests", ownerName: null, done: true },
+    {
+      text: "Automate deploys",
+      ownerName: "Ben",
+      done: false,
+      carriedFrom: null,
+    },
+    {
+      text: "Write more tests",
+      ownerName: null,
+      done: true,
+      carriedFrom: "Sprint 47",
+    },
   ],
   kudos: [
     {
@@ -83,7 +93,8 @@ describe("toMarkdown", () => {
   it("empty columns are marked, actions are checkboxes, kudos render", () => {
     expect(md).toContain("_(no notes)_");
     expect(md).toContain("- [ ] Automate deploys — **Ben**");
-    expect(md).toContain("- [x] Write more tests");
+    expect(md).toContain("- [x] Write more tests (from “Sprint 47”)");
+    expect(md).toContain("- [ ] Automate deploys — **Ben**\n");
     expect(md).toContain("**Great job** → Anna: shipped the picker");
   });
 
@@ -96,13 +107,26 @@ describe("toCsv", () => {
   const csv = toCsv(sample);
   it("has a header and quotes cells with commas/newlines", () => {
     expect(csv.split("\r\n")[0]).toBe(
-      "section,column,text,votes,rank,author,gif,voters",
+      "section,column,text,votes,rank,author,gif,voters,carried_from",
     );
     expect(csv).toContain('"Line one\nline two"');
   });
   it("includes actions and kudos rows", () => {
     expect(csv).toContain("action,");
     expect(csv).toContain("kudo,");
+  });
+  it("appends carried_from as the last column, filled only on carried items", () => {
+    const rows = csv.trimEnd().split("\r\n");
+    expect(rows[0]?.endsWith(",voters,carried_from")).toBe(true);
+    // every row keeps the header's width, so a reader by position still works
+    const width = rows[0]?.split(",").length;
+    for (const row of rows.filter((r) => !r.includes('"'))) {
+      expect(row.split(",").length).toBe(width);
+    }
+    expect(rows.find((r) => r.includes("Write more tests"))).toMatch(
+      /,Sprint 47$/,
+    );
+    expect(rows.find((r) => r.includes("Automate deploys"))).toMatch(/,$/);
   });
 
   it("neutralizes spreadsheet formulas typed into a note", () => {
@@ -295,7 +319,7 @@ describe("summary scope", () => {
   it("reuses the CSV row shape unchanged, minus the kudo rows", () => {
     const csv = renderExport("csv", sample, "summary");
     expect(csv.split("\r\n")[0]).toBe(
-      "section,column,text,votes,rank,author,gif,voters",
+      "section,column,text,votes,rank,author,gif,voters,carried_from",
     );
     expect(csv).not.toContain("kudo,");
     // header + 2 crowned notes + 2 actions + trailing terminator

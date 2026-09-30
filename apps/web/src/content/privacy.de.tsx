@@ -53,8 +53,9 @@ export function PrivacyDe() {
         jeweils nächstgelegenen Cloudflare-Standort — auch außerhalb der EU —
         und verarbeitet Board-Inhalte dort flüchtig, zum Beispiel beim
         Weiterleiten der Verbindung, beim Entgegennehmen des Board-Namens beim
-        Anlegen, beim Übernehmen der Struktur beim Duplizieren und beim Erzeugen
-        der Export-Datei; gespeichert wird dort nichts.
+        Anlegen, beim Übernehmen der Struktur beim Duplizieren (und der offenen
+        Action Items bei einer Folge-Retro) und beim Erzeugen der Export-Datei;
+        gespeichert wird dort nichts.
       </p>
 
       <p>Zwei Einschränkungen dazu, offen benannt:</p>
@@ -130,9 +131,11 @@ export function PrivacyDe() {
           Ausnahme muss ehrlich genannt werden: Um zu verhindern, dass ein
           Skript in kurzer Zeit tausende Boards anlegt und damit das kostenlose
           Kontingent für alle aufbraucht, wird beim{" "}
-          <strong>Anlegen und Duplizieren eines Boards</strong> die IP-Adresse
-          des Anfragenden (Header <code>cf-connecting-ip</code>) als
-          Zählschlüssel verwendet. Dieser Zähler lebt ausschließlich im
+          <strong>
+            Anlegen und Duplizieren eines Boards sowie einer Folge-Retro
+          </strong>{" "}
+          die IP-Adresse des Anfragenden (Header <code>cf-connecting-ip</code>)
+          als Zählschlüssel verwendet. Dieser Zähler lebt ausschließlich im
           Arbeitsspeicher eines einzelnen Durable Objects, wird nie auf einen
           Datenträger geschrieben, ist nicht an die EU gebunden (er enthält nach
           Auffassung des Betreibers keine Board-Daten) und wird spätestens
@@ -341,6 +344,16 @@ export function PrivacyDe() {
           —, Arbeitsvereinbarungen) in ein neues Board mit frischer
           90-Tage-Frist übernommen — keine Notizen, Stimmen, Teilnehmer, Kudos
           oder Bewertungen.
+        </li>
+        <li>
+          Eine <strong>Folge-Retro</strong> übernimmt dieselbe Struktur und
+          zusätzlich die zum Zeitpunkt des Anlegens <em>offenen</em> Action
+          Items (höchstens 50, die ältesten zuerst): nur ihren Text, versehen
+          mit dem Namen des bisherigen Boards als Herkunftsangabe.
+          Verantwortliche Personen werden nicht übernommen, erledigte Action
+          Items bleiben zurück, und das neue Board enthält keinen Verweis auf
+          die Adresse des alten. Die übernommenen Texte unterliegen danach der
+          frischen 90-Tage-Frist des neuen Boards.
         </li>
       </ul>
 

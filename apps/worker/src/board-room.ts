@@ -9,6 +9,7 @@ import {
   DEFAULT_PHASE_PLAN,
   DEFAULT_VOTE_CONFIG,
   EMPTY_PICKER,
+  FOLLOW_UP_ACTION_CAP,
   IDLE_TIMER,
   noteVisibleTo,
   nextPhase,
@@ -192,6 +193,10 @@ export interface BoardCreation {
   /** seeded when duplicating an existing board — structure only. Absent for a
    *  fresh board, which falls back to the built-in defaults. */
   config?: BoardConfig;
+  /** a follow-up retro only: the previous board's still-open Action Items,
+   *  seeded as open and unassigned. Text and the source board's NAME, nothing
+   *  else — see followUpActions for why the owner never crosses. */
+  carriedActions?: Array<{ text: string; carriedFrom: string }>;
 }
 
 // Must fit the LARGEST frame the protocol itself permits, otherwise a legal
@@ -374,6 +379,14 @@ export class BoardRoom extends DurableObject<Env> {
         this.sql.exec(`ALTER TABLE columns ADD COLUMN ${col} REAL`);
       }
     }
+    const actionColumns = this.sql
+      .exec("PRAGMA table_info(actions)")
+      .toArray()
+      .map((row) => String(row.name));
+    // Previous board's name on an item carried into a follow-up; null = local.
+    if (!actionColumns.includes("carried_from")) {
+      this.sql.exec("ALTER TABLE actions ADD COLUMN carried_from TEXT");
+    }
     // Secondary indexes. Only primary keys existed, so the hottest per-message
     // predicates were full scans, and SQLite bills rows READ. `votes` is keyed
     // (target_id, participant_id), which cannot seek by participant alone —
@@ -476,6 +489,17 @@ export class BoardRoom extends DurableObject<Env> {
         column.rect?.h ?? null,
       );
     }
+    // Fresh ids, like the columns above; created_at is spaced by index so the
+    // carried items keep the source board's order under actions()'s sort.
+    (creation.carriedActions ?? []).forEach((carried, index) => {
+      this.sql.exec(
+        "INSERT INTO actions (id, text, owner_id, status, created_at, carried_from) VALUES (?, ?, NULL, 'open', ?, ?)",
+        generateSecret(),
+        carried.text,
+        now + index,
+        carried.carriedFrom,
+      );
+    });
     // Auto-delete after the retention window (GDPR / decided). The DO's single
     // alarm slot is shared with the phase timer — nearest deadline wins.
     await this.rescheduleAlarm();
@@ -553,6 +577,40 @@ export class BoardRoom extends DurableObject<Env> {
       config: this.config(),
       workingAgreements: this.getMeta("workingAgreements") ?? "",
     };
+  }
+
+  // RPC: the still-open Action Items for a follow-up retro — their TEXT and
+  // this board's name, nothing else. A separate surface from
+  // duplicationSnapshot on purpose: that one's "structure, never content"
+  // promise stays literal, and this one's content is exactly the Action Items
+  // the room agreed to follow up on. The owner never crosses — owner ids are
+  // this board's participants, and no name may outlive its 90 days in a copy
+  // that starts a fresh window. Done items stay behind: they are finished.
+  //
+  // Any phase: Action Items are on every member's screen from the moment they
+  // are written, so there is no reveal to wait for, and a facilitator who
+  // plans the next retro before pressing "done" loses nothing by it.
+  // Same gate and same null (missing board OR wrong token) as
+  // duplicationSnapshot, so neither route is an oracle for the other.
+  async followUpActions(
+    adminToken: string,
+  ): Promise<{ name: string; texts: string[] } | null> {
+    const expected = this.getMeta("adminToken");
+    if (
+      this.getMeta("id") === null ||
+      expected === null ||
+      !safeEqual(adminToken, expected)
+    ) {
+      return null;
+    }
+    const texts = this.sql
+      .exec(
+        "SELECT text FROM actions WHERE status = 'open' ORDER BY created_at LIMIT ?",
+        FOLLOW_UP_ACTION_CAP,
+      )
+      .toArray()
+      .map((row) => String(row.text));
+    return { name: this.getMeta("name") ?? "", texts };
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -3337,6 +3395,7 @@ export class BoardRoom extends DurableObject<Env> {
       text: String(row.text),
       ownerId: row.owner_id === null ? null : String(row.owner_id),
       status: row.status === "done" ? "done" : "open",
+      carriedFrom: row.carried_from === null ? null : String(row.carried_from),
     };
   }
 
@@ -3349,6 +3408,8 @@ export class BoardRoom extends DurableObject<Env> {
         text: String(row.text),
         ownerId: row.owner_id === null ? null : String(row.owner_id),
         status: row.status === "done" ? ("done" as const) : ("open" as const),
+        carriedFrom:
+          row.carried_from === null ? null : String(row.carried_from),
       }));
   }
 
@@ -4224,6 +4285,7 @@ export class BoardRoom extends DurableObject<Env> {
         text: a.text,
         ownerName: nameOf(a.ownerId),
         done: a.status === "done",
+        carriedFrom: a.carriedFrom,
       })),
       kudos: this.allKudos().map((k) => ({
         cardType: k.cardType,

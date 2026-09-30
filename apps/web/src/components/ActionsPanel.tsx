@@ -53,6 +53,7 @@ export function ActionsPanel({
           text: parsed.data,
           ownerId: owner,
           status: "open",
+          carriedFrom: null,
         },
       },
     );
@@ -169,6 +170,16 @@ export function ActionsPanel({
                       style={{ backgroundColor: owner.color }}
                     />
                     {owner.name}
+                  </span>
+                ) : null}
+                {/* Carried in by a follow-up retro: the previous board's name,
+                    so the room can tell last time's promises from today's. */}
+                {action.carriedFrom !== null ? (
+                  <span
+                    data-testid="action-carried"
+                    className="mt-0.5 block text-xs text-zinc-500"
+                  >
+                    {t("action.carriedFrom", { name: action.carriedFrom })}
                   </span>
                 ) : null}
               </span>

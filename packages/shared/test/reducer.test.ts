@@ -491,6 +491,7 @@ describe("voting & discussion", () => {
       text: "Fix the pipeline",
       ownerId: ben.id,
       status: "open" as const,
+      carriedFrom: null,
     };
     state = applyServerEvent(state, { type: "action.created", seq: 7, action });
     state = applyServerEvent(state, {

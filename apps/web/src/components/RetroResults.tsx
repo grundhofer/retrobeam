@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   EXPORT_SCOPES,
+  FOLLOW_UP_ACTION_CAP,
   type Action,
   type Column,
   type ExportFormat,
@@ -13,6 +14,8 @@ import {
   type Participant,
   type VotesState,
 } from "@retrobeam/shared";
+import { loadAdminToken } from "../lib/session.js";
+import { useBoardCopy } from "../lib/useBoardCopy.js";
 import { useBoardExport } from "../lib/useBoardExport.js";
 import { ActionsPanel } from "./ActionsPanel.js";
 import {
@@ -28,6 +31,7 @@ import { RotiPoll } from "./RotiPoll.js";
 
 export interface RetroResultsProps {
   boardId: string;
+  boardName: string;
   columns: Column[];
   notes: Note[];
   roster: Participant[];
@@ -59,6 +63,7 @@ export interface RetroResultsProps {
 // "discuss", and every card goes through NoteCard's own anonymity rule.
 export function RetroResults({
   boardId,
+  boardName,
   columns,
   notes,
   roster,
@@ -87,6 +92,14 @@ export function RetroResults({
   const cardsId = useId();
   const topId = useId();
   const cardsHeadingId = useId();
+  const { copying, failed: copyFailed, copy } = useBoardCopy(boardId);
+  // The token itself, not the role: a co-facilitator promoted in the room
+  // holds none, and the server would refuse the follow-up (as AdminLink).
+  const canFollowUp = isAdmin && loadAdminToken(boardId) !== null;
+  const openActions = actions.filter((a) => a.status === "open").length;
+  // What will actually arrive: the server carries the oldest items up to the
+  // cap, so the hint must not promise more than that.
+  const carried = Math.min(openActions, FOLLOW_UP_ACTION_CAP);
 
   // Finishing unmounts the control that did it (the confirm button, a ROTI
   // score, the whole phase row), so focus falls to <body> and a keyboard or
@@ -166,6 +179,46 @@ export function RetroResults({
                 }).format(retentionAt),
               })}
         </p>
+        {canFollowUp ? (
+          // The retro's natural next step, so it sits with the header rather
+          // than in the menu only: what the room agreed to do comes along,
+          // without a card or a name — the owner of an item is this board's
+          // participant, and no name may outlive this board's 90 days.
+          <div className="mt-2 flex flex-col items-start gap-1">
+            <button
+              type="button"
+              data-testid="results-follow-up"
+              onClick={() =>
+                void copy(
+                  "follow-up",
+                  t("menu.followUpName", { name: boardName }),
+                )
+              }
+              disabled={copying !== null}
+              className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
+            >
+              {t("done.followUp")}
+            </button>
+            <p
+              data-testid="results-follow-up-hint"
+              className="text-sm text-zinc-500"
+            >
+              {openActions === 0
+                ? t("done.followUpHintNone")
+                : openActions > carried
+                  ? t("done.followUpHintCapped", {
+                      count: openActions,
+                      cap: carried,
+                    })
+                  : t("done.followUpHint", { count: openActions })}
+            </p>
+            {copyFailed ? (
+              <p role="alert" className="text-sm text-red-700">
+                {t("done.followUpFailed")}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       {topics.length > 0 || actions.length > 0 ? (

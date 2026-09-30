@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
 import {
   CURSORS_ACTIVATABLE,
   EXPORT_DOWNLOADS,
@@ -13,8 +12,8 @@ import {
   type Phase,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
-import { duplicateBoard } from "../lib/api.js";
-import { loadAdminToken, saveAdminToken } from "../lib/session.js";
+import { loadAdminToken } from "../lib/session.js";
+import { useBoardCopy } from "../lib/useBoardCopy.js";
 import { useBoardExport } from "../lib/useBoardExport.js";
 import { AdminLink } from "./AdminLink.js";
 import { HeaderPopover } from "./HeaderPopover.js";
@@ -48,7 +47,6 @@ export function BoardMenu({
 }) {
   const { t } = useTranslation();
   const { send } = useConnection();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const {
     scope,
@@ -61,27 +59,9 @@ export function BoardMenu({
     exportHref,
   } = useBoardExport(boardId);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [duplicating, setDuplicating] = useState(false);
+  const { copying, failed: copyFailed, copy } = useBoardCopy(boardId);
   // Same rule as the lobby: the token holder, while it still counts here.
   const adminToken = isAdmin ? loadAdminToken(boardId) : null;
-
-  async function duplicate() {
-    if (duplicating) return;
-    const token = loadAdminToken(boardId);
-    if (token === null) return;
-    setDuplicating(true);
-    try {
-      const created = await duplicateBoard(
-        boardId,
-        t("menu.duplicateName", { name: boardName }),
-        token,
-      );
-      saveAdminToken(created.boardId, created.adminToken);
-      void navigate(`/board/${created.boardId}`);
-    } catch {
-      setDuplicating(false); // stay put; the menu remains usable to retry
-    }
-  }
 
   return (
     <HeaderPopover
@@ -284,15 +264,46 @@ export function BoardMenu({
               ))}
             </div>
           </div>
-          <button
-            type="button"
-            data-testid="duplicate-board"
-            onClick={() => void duplicate()}
-            disabled={duplicating}
-            className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-          >
-            {t("menu.duplicate")}
-          </button>
+          {/* Both need the admin token itself, not just the role: a
+              co-facilitator promoted in the room holds no token, and the
+              server would refuse them. */}
+          {adminToken !== null ? (
+            <>
+              <button
+                type="button"
+                data-testid="follow-up-board"
+                onClick={() =>
+                  void copy(
+                    "follow-up",
+                    t("menu.followUpName", { name: boardName }),
+                  )
+                }
+                disabled={copying !== null}
+                className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                {t("menu.followUp")}
+              </button>
+              <button
+                type="button"
+                data-testid="duplicate-board"
+                onClick={() =>
+                  void copy(
+                    "duplicate",
+                    t("menu.duplicateName", { name: boardName }),
+                  )
+                }
+                disabled={copying !== null}
+                className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                {t("menu.duplicate")}
+              </button>
+              {copyFailed ? (
+                <p role="alert" className="mb-2 text-xs text-red-700">
+                  {t("menu.copyFailed")}
+                </p>
+              ) : null}
+            </>
+          ) : null}
           <p className="mb-2 text-xs text-zinc-400">
             {retentionAt === null
               ? t("menu.retentionKept")

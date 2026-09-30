@@ -46,8 +46,10 @@ test("two participants meet on a board and see each other live", async ({
   await expect(ben.getByTestId("roster-item")).toHaveCount(2);
   await expect(anna.getByTestId("roster-item")).toHaveCount(2);
   await expect(anna.getByTestId("roster-item").nth(1)).toContainText("Ben");
-  // Ben is a plain member: exactly one facilitator badge on his screen.
-  await expect(ben.getByText(/facilitator|moderation/i)).toHaveCount(1);
+  // Ben is a plain member: exactly one facilitator badge in his roster.
+  await expect(
+    ben.getByTestId("roster-item").getByText(/^(facilitator|moderation)$/i),
+  ).toHaveCount(1);
 
   // Ben leaves; Anna sees him go offline (kept in roster, dimmed).
   await benContext.close();

@@ -145,9 +145,24 @@ app.post("/api/boards", smallBody, createLimit(), async (c) => {
 // Duplicate a board's STRUCTURE (columns, config, working agreements) into a
 // fresh board — no notes, votes, participants, kudos, or roti carry over.
 // Gated on the source board's admin token (facilitator-only).
-app.post("/api/boards/:id/duplicate", smallBody, createLimit(), async (c) => {
+app.post("/api/boards/:id/duplicate", smallBody, createLimit(), (c) =>
+  copyBoard(c, false),
+);
+
+// A follow-up retro: the duplicate above PLUS the source's still-open Action
+// Items, as text labelled with the source board's name. Its own route rather
+// than a flag on duplicate, so "duplicate carries structure, never content"
+// stays true of the duplicate route without a footnote.
+app.post("/api/boards/:id/follow-up", smallBody, createLimit(), (c) =>
+  copyBoard(c, true),
+);
+
+async function copyBoard(
+  c: Context<{ Bindings: Env }>,
+  carryActions: boolean,
+): Promise<Response> {
   const sourceId = c.req.param("id");
-  if (!isSecretShaped(sourceId)) {
+  if (sourceId === undefined || !isSecretShaped(sourceId)) {
     return c.json({ error: "BOARD_NOT_FOUND" }, 404);
   }
   const body: unknown = await c.req.json().catch(() => null);
@@ -155,12 +170,19 @@ app.post("/api/boards/:id/duplicate", smallBody, createLimit(), async (c) => {
   if (!parsed.success) {
     return c.json({ error: "INVALID_REQUEST" }, 400);
   }
-  const snapshot = await boardStub(c.env, sourceId).duplicationSnapshot(
-    parsed.data.adminToken,
-  );
+  const source = boardStub(c.env, sourceId);
+  const snapshot = await source.duplicationSnapshot(parsed.data.adminToken);
   // null = board missing OR wrong admin token — 404 either way (the id is the
   // capability; we don't confirm existence to a non-facilitator).
   if (snapshot === null) {
+    return c.json({ error: "BOARD_NOT_FOUND" }, 404);
+  }
+  // Same gate as the snapshot, so it cannot answer differently; the null
+  // check only covers a board deleted between the two calls.
+  const followUp = carryActions
+    ? await source.followUpActions(parsed.data.adminToken)
+    : null;
+  if (carryActions && followUp === null) {
     return c.json({ error: "BOARD_NOT_FOUND" }, 404);
   }
   const boardId = generateSecret();
@@ -181,9 +203,17 @@ app.post("/api/boards/:id/duplicate", smallBody, createLimit(), async (c) => {
     columns,
     workingAgreements: snapshot.workingAgreements,
     config: snapshot.config,
+    ...(followUp !== null
+      ? {
+          carriedActions: followUp.texts.map((text) => ({
+            text,
+            carriedFrom: followUp.name,
+          })),
+        }
+      : {}),
   });
   return c.json({ boardId, adminToken });
-});
+}
 
 app.get("/api/boards/:id", async (c) => {
   const boardId = c.req.param("id");

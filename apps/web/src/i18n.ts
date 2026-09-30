@@ -71,6 +71,12 @@ const resources = {
           "{{count}} person is here. Share the link — start the retro when everyone arrived.",
         hint_other:
           "{{count}} people are here. Share the link — start the retro when everyone arrived.",
+        memberHint:
+          "You're in. The facilitator will start the retro once everyone has joined.",
+        carried: {
+          title: "Open action items from the last retro",
+          hint: "Carried over from “{{name}}” — start by checking where they stand.",
+        },
       },
       board: {
         share: "Share link",
@@ -123,6 +129,7 @@ const resources = {
       },
       phasePlan: {
         title: "Plan this retro",
+        memberTitle: "Today's agenda",
         adminHint: "Choose the optional phases before you start.",
         memberHint: "This is the planned agenda for the retro.",
         locked: "The agenda is locked because this retro has already started.",
@@ -289,6 +296,7 @@ const resources = {
         toggle: "Mark as done",
         delete: "Delete action",
         empty: "No action items yet — capture decisions while you discuss.",
+        carriedFrom: "from “{{name}}”",
       },
       kudos: {
         title: "Appreciation",
@@ -360,15 +368,52 @@ const resources = {
         },
         duplicate: "Duplicate board",
         duplicateName: "Copy of {{name}}",
+        followUp: "Prepare the next retro",
+        followUpName: "Follow-up: {{name}}",
+        copyFailed: "That didn't work — please try again.",
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
         keep: "Keep",
         deleteNow: "Delete now",
         reallyDelete: "Really delete?",
       },
+      guide: {
+        checkin: {
+          facilitator: "Warm up with the question, then move on to writing.",
+          member: "Warm-up: answer the question when it's your turn.",
+        },
+        write: {
+          facilitator:
+            "Everyone writes. Move on to presenting once everyone is done.",
+          member:
+            "Write your cards — only you can see them until the presenting round.",
+          memberAnonymous:
+            "Write your cards — nobody sees them before the presenting round, and nobody ever sees who wrote them.",
+        },
+        present: {
+          facilitator:
+            "Pick who presents next — stack similar cards once everyone has had a turn.",
+          member: "When you're picked, walk the room through your cards.",
+          anonymous: "Read all cards together and stack similar ones.",
+        },
+        vote: {
+          facilitator:
+            "Everyone votes blind. Move on to the discussion once everyone is done.",
+          member: "Spend your votes on the topics you most want to discuss.",
+        },
+        discuss: {
+          facilitator: "Walk the top topics and capture action items.",
+          member: "Discuss the top topics and capture action items.",
+        },
+        close: {
+          facilitator: "Kudos and a quick rating — then finish the retro.",
+          member: "Send kudos and rate the retro.",
+        },
+      },
       roster: {
         makeFacilitator: "Make facilitator",
         removeFacilitator: "Remove facilitator",
+        lastFacilitator: "At least one person has to facilitate.",
         you: "(you)",
       },
       done: {
@@ -392,6 +437,16 @@ const resources = {
         topTopics: "Top topics",
         topTopicsHint: "From the vote, most votes first.",
         allCards: "All cards",
+        followUp: "Prepare the next retro",
+        followUpHint_one:
+          "Carries over the open action item and this board's columns — no cards, no names.",
+        followUpHint_other:
+          "Carries over the {{count}} open action items and this board's columns — no cards, no names.",
+        followUpHintNone:
+          "Carries over this board's columns — there are no open action items.",
+        followUpHintCapped:
+          "Carries over the oldest {{cap}} of the {{count}} open action items and this board's columns — no cards, no names.",
+        followUpFailed: "Couldn't create the next retro — please try again.",
       },
       deleted: {
         title: "Board deleted",
@@ -694,6 +749,12 @@ const resources = {
           "{{count}} Person ist da. Teile den Link — starte die Retro, wenn alle da sind.",
         hint_other:
           "{{count}} Personen sind da. Teile den Link — starte die Retro, wenn alle da sind.",
+        memberHint:
+          "Du bist drin. Die Moderation startet die Retro, sobald alle da sind.",
+        carried: {
+          title: "Offene Action Items aus der letzten Retro",
+          hint: "Übernommen aus „{{name}}“ — schaut zu Beginn, wie es damit steht.",
+        },
       },
       board: {
         share: "Link teilen",
@@ -746,6 +807,7 @@ const resources = {
       },
       phasePlan: {
         title: "Ablauf festlegen",
+        memberTitle: "Ablauf dieser Retro",
         adminHint: "Wähle vor dem Start die optionalen Phasen aus.",
         memberHint: "Das ist der geplante Ablauf dieser Retro.",
         locked:
@@ -915,6 +977,7 @@ const resources = {
         delete: "Action Item löschen",
         empty:
           "Noch keine Action Items — haltet Entscheidungen beim Diskutieren fest.",
+        carriedFrom: "aus „{{name}}“",
       },
       kudos: {
         title: "Wertschätzung",
@@ -991,15 +1054,57 @@ const resources = {
         },
         duplicate: "Board duplizieren",
         duplicateName: "Kopie von {{name}}",
+        followUp: "Folge-Retro vorbereiten",
+        followUpName: "Folge-Retro: {{name}}",
+        copyFailed: "Das hat nicht geklappt — versuch es noch einmal.",
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
         keep: "Behalten",
         deleteNow: "Jetzt löschen",
         reallyDelete: "Wirklich löschen?",
       },
+      guide: {
+        checkin: {
+          facilitator:
+            "Zum Aufwärmen die Frage in die Runde geben — dann weiter zum Schreiben.",
+          member: "Zum Aufwärmen: beantworte die Frage, wenn du dran bist.",
+        },
+        write: {
+          facilitator:
+            "Alle schreiben. Weiter zur Vorstellrunde, wenn alle fertig sind.",
+          member:
+            "Schreib deine Karten — bis zur Vorstellrunde siehst nur du sie.",
+          memberAnonymous:
+            "Schreib deine Karten — vor der Vorstellrunde sieht sie niemand, und wer sie geschrieben hat, sieht nie jemand.",
+        },
+        present: {
+          facilitator:
+            "Bestimm, wer als Nächstes vorstellt — ähnliche Karten stapelt ihr, wenn alle dran waren.",
+          member: "Wenn du gezogen wirst, stellst du deine Karten vor.",
+          anonymous:
+            "Lest alle Karten gemeinsam und stapelt ähnliche aufeinander.",
+        },
+        vote: {
+          facilitator:
+            "Alle stimmen verdeckt ab. Weiter zur Diskussion, wenn alle fertig sind.",
+          member:
+            "Verteil deine Stimmen auf die Themen, die du am dringendsten besprechen willst.",
+        },
+        discuss: {
+          facilitator:
+            "Geht die Top-Themen durch und haltet Action Items fest.",
+          member: "Besprecht die Top-Themen und haltet Action Items fest.",
+        },
+        close: {
+          facilitator:
+            "Kudos und eine kurze Bewertung — danach beendest du die Retro.",
+          member: "Verteil Kudos und bewerte die Retro.",
+        },
+      },
       roster: {
         makeFacilitator: "Zur Moderation machen",
         removeFacilitator: "Moderation entziehen",
+        lastFacilitator: "Mindestens eine Person muss moderieren.",
         you: "(du)",
       },
       done: {
@@ -1023,6 +1128,17 @@ const resources = {
         topTopics: "Top-Themen",
         topTopicsHint: "Aus der Abstimmung, meiste Stimmen zuerst.",
         allCards: "Alle Karten",
+        followUp: "Folge-Retro vorbereiten",
+        followUpHint_one:
+          "Übernimmt das offene Action Item und die Spalten dieses Boards — ohne Karten, ohne Namen.",
+        followUpHint_other:
+          "Übernimmt die {{count}} offenen Action Items und die Spalten dieses Boards — ohne Karten, ohne Namen.",
+        followUpHintNone:
+          "Übernimmt die Spalten dieses Boards — offene Action Items gibt es keine.",
+        followUpHintCapped:
+          "Übernimmt die ältesten {{cap}} der {{count}} offenen Action Items und die Spalten dieses Boards — ohne Karten, ohne Namen.",
+        followUpFailed:
+          "Die Folge-Retro ließ sich nicht anlegen — versuch es noch einmal.",
       },
       deleted: {
         title: "Board gelöscht",
