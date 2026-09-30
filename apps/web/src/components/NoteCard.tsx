@@ -273,7 +273,7 @@ export function NoteCard({
           ) : null}
           <div className="mt-2 flex items-center gap-1.5">
             {author ? (
-              <span className="flex items-center gap-1 text-xs text-zinc-400">
+              <span className="flex items-center gap-1 text-xs text-zinc-500">
                 <span
                   aria-hidden="true"
                   className="size-2 rounded-full"
@@ -289,7 +289,7 @@ export function NoteCard({
                   aria-label={t("group.ungroup")}
                   title={t("group.ungroup")}
                   onClick={() => onUngroup(note)}
-                  className="rounded px-1 text-xs text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   ⇱
                 </button>
@@ -303,7 +303,7 @@ export function NoteCard({
                     setDraftGif(note.gifUrl);
                     setEditing(true);
                   }}
-                  className="rounded px-1 text-xs text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   ✎
                 </button>
@@ -313,7 +313,7 @@ export function NoteCard({
                   type="button"
                   aria-label={t("note.delete")}
                   onClick={remove}
-                  className="rounded px-1 text-xs text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   🗑
                 </button>

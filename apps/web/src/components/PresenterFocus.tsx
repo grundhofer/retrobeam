@@ -92,7 +92,7 @@ export function PresenterFocus({
         <h2 className="text-lg font-semibold text-zinc-800">
           🎤 {t("present.focus.heading", { name: presenter.name })}
         </h2>
-        <span className="ml-auto text-sm text-zinc-400 tabular-nums">
+        <span className="ml-auto text-sm text-zinc-500 tabular-nums">
           {staged
             ? t("present.walkthrough.position", {
                 index: index + 1,
@@ -103,7 +103,7 @@ export function PresenterFocus({
       </header>
 
       {zones.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-zinc-200 py-12 text-center text-sm text-zinc-300">
+        <p className="rounded-2xl border border-dashed border-zinc-200 py-12 text-center text-sm text-zinc-500">
           {t("present.focus.empty")}
         </p>
       ) : staged && onStage !== null ? (

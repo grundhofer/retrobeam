@@ -553,7 +553,7 @@ function Room({
             {/* Only where there is no rail to carry it — otherwise the same
                 count would render twice on one screen. */}
             {showActions ? (
-              <span className="text-xs text-zinc-400 tabular-nums">
+              <span className="text-xs text-zinc-500 tabular-nums">
                 {t("rail.online", { count: onlineCount })}
               </span>
             ) : null}

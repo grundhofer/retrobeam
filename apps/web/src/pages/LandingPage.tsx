@@ -255,6 +255,7 @@ export function LandingPage() {
                 <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                   {t("landing.closingTitle")}
                 </h2>
+                {/* contrast-ok: light text on the dark zinc-900 panel */}
                 <p className="mt-3 max-w-2xl text-[17px] leading-[1.65] text-zinc-300">
                   {t("landing.closingText")}
                 </p>

@@ -686,14 +686,14 @@ export function BoardCanvas({
                         {t("column.hidden")}
                       </span>
                     ) : null}
-                    <span className="ml-1.5 font-normal text-zinc-400 tabular-nums">
+                    <span className="ml-1.5 font-normal text-zinc-500 tabular-nums">
                       {zoneNotes.length}
                     </span>
                   </h2>
                   {othersCount > 0 ? (
                     <span
                       data-testid="team-cards"
-                      className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-400"
+                      className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600"
                     >
                       {t("rail.teamCards", { count: othersCount })}
                     </span>
@@ -731,7 +731,7 @@ export function BoardCanvas({
                             key={`${column.id}-${index}`}
                             data-testid="canvas-occupancy"
                             aria-label={t("canvas.occupied")}
-                            className="pointer-events-none absolute flex min-h-28 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-100/80 px-3 text-center text-xs font-medium text-zinc-400"
+                            className="pointer-events-none absolute flex min-h-28 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-100/80 px-3 text-center text-xs font-medium text-zinc-600"
                             style={{
                               left: `${slot.x * 100}%`,
                               top: `${slot.y * 100}%`,
@@ -820,7 +820,7 @@ export function BoardCanvas({
 
                   {zoneNotes.length === 0 &&
                   composing?.columnId !== column.id ? (
-                    <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-xs text-zinc-300">
+                    <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-xs text-zinc-500">
                       {t("canvas.hint")}
                     </p>
                   ) : null}
@@ -834,7 +834,7 @@ export function BoardCanvas({
                     onPointerDown={(event) =>
                       beginZoneDrag(event, column, "resize")
                     }
-                    className="absolute right-0 bottom-0 size-5 cursor-nwse-resize rounded-br-2xl text-zinc-300 hover:text-zinc-500"
+                    className="absolute right-0 bottom-0 size-5 cursor-nwse-resize rounded-br-2xl text-zinc-500 hover:text-zinc-700"
                     style={{ touchAction: "none" }}
                   >
                     ⤡

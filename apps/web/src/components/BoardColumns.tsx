@@ -232,7 +232,7 @@ export function BoardColumns(props: BoardColumnsProps) {
             <button
               type="button"
               onClick={() => setAddingColumn(true)}
-              className="w-full rounded-xl border-2 border-dashed border-zinc-200 px-3 py-2 text-sm text-zinc-400 hover:border-zinc-300 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+              className="w-full rounded-xl border-2 border-dashed border-zinc-200 px-3 py-2 text-sm text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
             >
               + {t("column.addColumn")}
             </button>
@@ -480,7 +480,7 @@ function BoardColumn({
                 {t("column.hidden")}
               </span>
             ) : null}
-            <span className="ml-1.5 font-normal text-zinc-400 tabular-nums">
+            <span className="ml-1.5 font-normal text-zinc-500 tabular-nums">
               {columnNotes.length}
             </span>
           </ColumnTitle>
@@ -493,7 +493,7 @@ function BoardColumn({
               aria-label={column.hidden ? t("column.reveal") : t("column.hide")}
               aria-pressed={column.hidden}
               onClick={toggleHidden}
-              className="rounded px-1 text-sm text-zinc-400 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+              className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
             >
               {column.hidden ? "🙈" : "👁"}
             </button>
@@ -504,7 +504,7 @@ function BoardColumn({
                 setRenameValue(column.name);
                 setRenaming(true);
               }}
-              className="rounded px-1 text-sm text-zinc-400 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+              className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
             >
               ✎
             </button>
@@ -522,7 +522,7 @@ function BoardColumn({
                 type="button"
                 aria-label={t("column.delete")}
                 onClick={() => setConfirmingDelete(true)}
-                className="rounded px-1 text-sm text-zinc-400 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+                className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
               >
                 🗑
               </button>
@@ -560,7 +560,7 @@ function BoardColumn({
                 className="size-2.5 animate-pulse rounded-full"
                 style={{ backgroundColor: ghost.color }}
               />
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-zinc-500">
                 {t("note.ghostWriting", { name: ghost.name })}
               </span>
             </div>
@@ -609,7 +609,7 @@ function BoardColumn({
             back, and an empty column with a placeholder above a live input
             reads as broken. */}
         {phase === "present" && presenterId !== null && items.length === 0 ? (
-          <p className="px-1 py-6 text-center text-sm text-zinc-300">—</p>
+          <p className="px-1 py-6 text-center text-sm text-zinc-500">—</p>
         ) : null}
         {othersCardCount > 0 ? (
           <div
@@ -620,7 +620,7 @@ function BoardColumn({
               <div className="h-2 w-4/5 rounded bg-zinc-200/70" />
               <div className="h-2 w-3/5 rounded bg-zinc-200/70" />
             </div>
-            <p className="mt-2 text-xs text-zinc-400">
+            <p className="mt-2 text-xs text-zinc-500">
               {t("rail.teamCards", { count: othersCardCount })}
             </p>
           </div>
@@ -807,7 +807,7 @@ export function TargetFrame({
           <span
             data-testid="vote-count"
             className={`min-w-5 text-center text-sm font-semibold tabular-nums ${
-              myCount > 0 ? "text-accent-strong" : "text-zinc-300"
+              myCount > 0 ? "text-accent-strong" : "text-zinc-500"
             }`}
           >
             {myCount}
@@ -913,7 +913,7 @@ function NoteComposer({
         maxLength={500}
         rows={2}
         placeholder={t("note.placeholder")}
-        className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-300 focus-visible:outline-2 focus-visible:outline-accent"
+        className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
       />
       {gifUrl !== null ? (
         <div className="relative mt-1 w-fit">

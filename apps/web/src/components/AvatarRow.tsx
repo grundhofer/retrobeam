@@ -86,10 +86,11 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
                 participants={participants}
                 onDone={() => setOpenId(null)}
                 testId={`role-toggle-${participant.name}`}
+                // contrast-ok: disabled state, exempt from WCAG 1.4.3
                 className="block w-full rounded px-2 py-1 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:text-zinc-400 disabled:hover:bg-transparent"
               />
               {participant.id === youId ? (
-                <span className="block px-2 pb-0.5 text-xs text-zinc-400">
+                <span className="block px-2 pb-0.5 text-xs text-zinc-500">
                   {t("roster.you")}
                 </span>
               ) : null}

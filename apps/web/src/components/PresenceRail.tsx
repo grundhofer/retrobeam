@@ -131,7 +131,7 @@ export function PresenceRail({
           {t("board.participants")}
         </h2>
         <span
-          className="text-xs text-zinc-400 tabular-nums"
+          className="text-xs text-zinc-500 tabular-nums"
           {...(mode === "ready" ? { "data-testid": "ready-count" } : {})}
         >
           {mode === "ready"
@@ -227,7 +227,7 @@ export function PresenceRail({
 
       {mode === "ready" ? (
         <div className="border-t border-zinc-100 px-3 pt-2.5 pb-3 lg:shrink-0">
-          <p className="mb-1.5 flex items-center gap-1.5 text-xs text-zinc-400">
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs text-zinc-500">
             <span
               aria-hidden="true"
               className="size-2 rounded-full"
@@ -267,7 +267,7 @@ export function PresenceRail({
         </div>
       ) : mode === "present" && !isAdmin && !finished ? (
         <div className="border-t border-zinc-100 px-3 py-2.5 lg:shrink-0">
-          <p className="text-xs text-zinc-400">{t("rail.waiting")}</p>
+          <p className="text-xs text-zinc-500">{t("rail.waiting")}</p>
         </div>
       ) : null}
 
@@ -276,7 +276,7 @@ export function PresenceRail({
       {phase === "present" && anonymous ? (
         <p
           data-testid="present-anonymous-hint"
-          className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-400 lg:shrink-0"
+          className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-500 lg:shrink-0"
         >
           {t("present.anonymous")}
         </p>
@@ -287,7 +287,7 @@ export function PresenceRail({
       {mode === "present" && scopedRound ? (
         <p
           data-testid="present-scope-hint"
-          className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-400 lg:shrink-0"
+          className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-500 lg:shrink-0"
         >
           {isAdmin ? t("present.scoped.facilitator") : t("present.scoped.hint")}
         </p>
@@ -309,7 +309,7 @@ function PickerStyleSelect({
   const { t } = useTranslation();
   const { send } = useConnection();
   return (
-    <label className="flex items-center gap-2 text-xs text-zinc-400">
+    <label className="flex items-center gap-2 text-xs text-zinc-500">
       {t("menu.pickerStyle")}
       <select
         data-testid="picker-style"
@@ -392,13 +392,13 @@ function PresenceRow({
       <span
         className={`truncate ${
           status === "presented"
-            ? "text-zinc-400 line-through"
+            ? "text-zinc-500 line-through"
             : "text-zinc-700"
         }`}
       >
         {participant.name}
         {isYou ? (
-          <span className="text-zinc-400"> {t("roster.you")}</span>
+          <span className="text-zinc-500"> {t("roster.you")}</span>
         ) : null}
       </span>
 
@@ -422,7 +422,7 @@ function PresenceRow({
               🎤 {t("picker.current")}
             </span>
           ) : status === "presented" ? (
-            <span className="text-xs text-zinc-300">✓</span>
+            <span className="text-xs text-zinc-500">✓</span>
           ) : isAdmin && status === "remaining" ? (
             <>
               <button
@@ -449,7 +449,7 @@ function PresenceRow({
                     participantId: participant.id,
                   })
                 }
-                className="rounded px-1 text-xs text-zinc-300 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+                className="rounded px-1 text-xs text-zinc-500 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
               >
                 ✕
               </button>
@@ -463,7 +463,7 @@ function PresenceRow({
                   participantId: participant.id,
                 })
               }
-              className="rounded-full border border-dashed border-zinc-300 px-2 py-0.5 text-xs text-zinc-400 hover:text-zinc-600 focus-visible:outline-2 focus-visible:outline-accent"
+              className="rounded-full border border-dashed border-zinc-300 px-2 py-0.5 text-xs text-zinc-500 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
             >
               + {t("picker.pick")}
             </button>

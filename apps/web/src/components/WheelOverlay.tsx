@@ -118,6 +118,7 @@ function CardSelectionScene({
           >
             {t("picker.cardDeckTitle")}
           </h2>
+          {/* contrast-ok: light text on the dark overlay */}
           <p className="mt-1 text-sm text-zinc-300">
             {t("picker.cardDeckHint", { count })}
           </p>

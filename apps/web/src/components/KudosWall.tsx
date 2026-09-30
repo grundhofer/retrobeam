@@ -58,7 +58,7 @@ export function KudosWall({
       ) : null}
 
       {kudos.length === 0 ? (
-        <p className="text-center text-sm text-zinc-400">{t("kudos.empty")}</p>
+        <p className="text-center text-sm text-zinc-500">{t("kudos.empty")}</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {kudos.map((kudo) => {
@@ -97,7 +97,7 @@ export function KudosWall({
                     className="max-h-40 w-full rounded-lg object-contain"
                   />
                 ) : null}
-                <span className="mt-auto text-xs text-zinc-400">
+                <span className="mt-auto text-xs text-zinc-500">
                   {from
                     ? t("kudos.from", { name: from.name })
                     : t("kudos.anonymous")}
@@ -124,7 +124,7 @@ function RemoveButton({ kudoId }: { kudoId: string }) {
           { type: "kudo.deleted", seq: 0, kudoId },
         )
       }
-      className="rounded px-1 text-xs text-zinc-400 hover:bg-white/60 hover:text-zinc-600"
+      className="rounded px-1 text-xs text-zinc-500 hover:bg-white/60 hover:text-zinc-700"
     >
       🗑
     </button>
@@ -237,7 +237,7 @@ function KudoComposer({
         maxLength={300}
         rows={2}
         placeholder={t("kudos.placeholder")}
-        className="resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-300 focus-visible:outline-2 focus-visible:outline-accent"
+        className="resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
       />
 
       {gifUrl !== null ? (

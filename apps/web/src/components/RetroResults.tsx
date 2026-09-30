@@ -325,6 +325,7 @@ export function RetroResults({
           >
             <span
               aria-hidden="true"
+              // contrast-ok: aria-hidden chevron beside the labelled text
               className={`inline-block text-zinc-400 transition-transform motion-reduce:transition-none ${
                 cardsOpen ? "rotate-90" : ""
               }`}
