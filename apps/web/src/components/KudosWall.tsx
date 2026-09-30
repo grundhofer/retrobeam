@@ -72,7 +72,9 @@ export function KudosWall({
                 className={`reveal-in flex flex-col gap-2 rounded-2xl border p-4 shadow-sm ${CARD_ACCENT[kudo.cardType]}`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold tracking-wide text-zinc-500 uppercase">
+                  {/* zinc-600, not the zinc-500 used on white: this sits on the card's
+                      pastel fill, and zinc-500 on rose-50/violet-50 is 4.4:1. */}
+                  <span className="text-xs font-semibold tracking-wide text-zinc-600 uppercase">
                     {t(`kudos.card.${kudo.cardType}`)}
                   </span>
                   {canRemove ? <RemoveButton kudoId={kudo.id} /> : null}
@@ -97,7 +99,7 @@ export function KudosWall({
                     className="max-h-40 w-full rounded-lg object-contain"
                   />
                 ) : null}
-                <span className="mt-auto text-xs text-zinc-500">
+                <span className="mt-auto text-xs text-zinc-600">
                   {from
                     ? t("kudos.from", { name: from.name })
                     : t("kudos.anonymous")}

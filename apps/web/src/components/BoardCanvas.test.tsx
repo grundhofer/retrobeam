@@ -415,6 +415,17 @@ test("the zone's + Note button opens the composer at a free spot", async () => {
   await screen.getByTestId("canvas-add-note").click();
   const composer = screen.getByTestId("canvas-composer");
   await expect.element(composer).toHaveFocus();
+  // Where it OPENS, not only where it commits: createNote nudges the commit
+  // again, so the command below would pass even with a composer drawn on top
+  // of the fixture's card at the centre.
+  const shown = composer
+    .element()
+    .closest<HTMLElement>("[data-canvas-composer]");
+  expect(shown).not.toBe(null);
+  expect(
+    shown!.style.left !== `${note.x! * 100}%` ||
+      shown!.style.top !== `${note.y! * 100}%`,
+  ).toBe(true);
   await composer.fill("from the button");
   await userEvent.keyboard("{Enter}");
 

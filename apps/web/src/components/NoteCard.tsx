@@ -190,9 +190,29 @@ export function NoteCard({
     );
   }
 
+  // A move or a stack remounts this card elsewhere — another column, or
+  // inside a NoteStack — and the option button that had focus goes with the
+  // old one, dropping a keyboard user back to <body>. So once the echo has
+  // rendered, hand focus to the same card's ⋯ (or, if it has nothing left
+  // to offer, its first button). By id, not a ref: the ref dies with the
+  // old mount.
+  function refocusAfterArrange() {
+    requestAnimationFrame(() => {
+      const card = document.querySelector(`[data-note-id="${note.id}"]`);
+      const target =
+        card?.querySelector<HTMLElement>(
+          '[data-testid="note-arrange-toggle"]',
+        ) ?? card?.querySelector<HTMLElement>("button");
+      target?.focus();
+    });
+  }
+
   return (
     <article
       data-testid="note-card"
+      // Interactive cards only: the presenter reader can show the same note,
+      // and refocusAfterArrange must not land in it.
+      data-note-id={interactive ? note.id : undefined}
       draggable={canDrag && !editing}
       onDragStart={(event) => {
         event.dataTransfer.setData(NOTE_DRAG_MIME, note.id);
@@ -230,7 +250,7 @@ export function NoteCard({
           : pending
             ? "border border-dashed border-zinc-300"
             : "border border-zinc-200"
-      } ${spotlighted ? "shadow-md ring-2 ring-accent" : ""} ${dimmed ? "opacity-70" : ""} ${
+      } ${spotlighted ? "shadow-md ring-2 ring-accent" : ""} ${dimmed && !arranging ? "opacity-70" : ""} ${
         canDrag && !editing ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       style={{ animationDelay: `${Math.min(revealIndex, 12) * 45}ms` }}
@@ -368,7 +388,10 @@ export function NoteCard({
           </div>
           {/* Inline, not a floating menu: a dimmed card (opacity) or a hidden
               column is its own stacking context, so a popover hung off the
-              card would be drawn under the next one and faded with it. */}
+              card would be drawn under the next one and faded with it. Being
+              inside means taking the card's fade, though — at opacity-70 the
+              panel's zinc-500 labels are 2.8:1 — so the card drops its dim
+              while the panel is open (see the article's className). */}
           {arranging && canArrange ? (
             <div
               id={arrangeId}
@@ -392,6 +415,7 @@ export function NoteCard({
                         onClick={() => {
                           setArranging(false);
                           onMoveToColumn?.(note.id, column.id);
+                          refocusAfterArrange();
                         }}
                         className="max-w-full truncate rounded-full border border-zinc-200 px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
                       >
@@ -414,6 +438,7 @@ export function NoteCard({
                         onClick={() => {
                           setArranging(false);
                           onDropNote(note.id, other);
+                          refocusAfterArrange();
                         }}
                         className="truncate rounded border border-zinc-200 px-2 py-0.5 text-left text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
                       >
