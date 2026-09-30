@@ -232,7 +232,8 @@ const resources = {
         waiting: "The facilitator is leading the round",
       },
       canvas: {
-        hint: "Double-click to add a note",
+        hint: "Double-click or + Note to add one",
+        addNote: "+ Note",
         occupied: "Occupied by another note",
         zoomIn: "Zoom in",
         zoomOut: "Zoom out",
@@ -914,7 +915,8 @@ const resources = {
         waiting: "Die Moderation führt durch die Runde",
       },
       canvas: {
-        hint: "Doppelklick zum Hinzufügen",
+        hint: "Doppelklick oder + Notiz zum Hinzufügen",
+        addNote: "+ Notiz",
         occupied: "Durch eine andere Notiz belegt",
         zoomIn: "Vergrößern",
         zoomOut: "Verkleinern",

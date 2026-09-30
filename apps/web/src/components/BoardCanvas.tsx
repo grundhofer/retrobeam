@@ -698,6 +698,28 @@ export function BoardCanvas({
                       {t("rail.teamCards", { count: othersCount })}
                     </span>
                   ) : null}
+                  {/* The double-click's visible, keyboard-reachable twin
+                      (WCAG 2.1.1): same composer, same zone, same (absent)
+                      conditions. It opens at the zone's centre, nudged to the
+                      nearest free spot the way a commit is. */}
+                  <button
+                    type="button"
+                    data-testid="canvas-add-note"
+                    // Not a zone drag: the facilitator's header is the zone's
+                    // move handle, and a captured pointer would swallow the click.
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={() => {
+                      const centre = { x: 0.5, y: 0.5 };
+                      setComposing({
+                        columnId: column.id,
+                        ...(openPosition(column.id, centre) ?? centre),
+                      });
+                    }}
+                    className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-accent-strong hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-accent"
+                  >
+                    {t("canvas.addNote")}
+                    <span className="sr-only"> ({column.name})</span>
+                  </button>
                 </header>
 
                 <div

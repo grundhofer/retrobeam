@@ -3,6 +3,7 @@
 
 import { afterEach, expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
+import { userEvent } from "vitest/browser";
 import type { Column, Note, Participant } from "@retrobeam/shared";
 import i18n from "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
@@ -380,4 +381,56 @@ test("a pinch belongs to the page while the page itself is zoomed", async () => 
   const before = world();
   expect(pinch(-40).defaultPrevented).toBe(true);
   await expect.poll(world).not.toBe(before);
+});
+
+// WCAG 2.1.1: a canvas note used to be double-click only. The zone's "+ Note"
+// opens the same composer — for the facilitator too, whose zone header is also
+// the zone's drag handle — at a free spot, not on top of the existing card.
+test("the zone's + Note button opens the composer at a free spot", async () => {
+  const mutate = vi.fn();
+  const screen = await render(
+    <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send: vi.fn() }}>
+      <BoardCanvas
+        columns={[column]}
+        notes={[note]}
+        columnCounts={{}}
+        canvasOccupancy={[]}
+        roster={[you]}
+        you={you}
+        phase="write"
+        editing={{}}
+        isAdmin
+        presenterId={null}
+        unpresentedAuthorIds={null}
+        gifsEnabled={false}
+        cursors={{}}
+        cursorsEnabled={false}
+      />
+    </ConnectionProvider>,
+  );
+
+  await expect
+    .element(screen.getByTestId("canvas-composer"))
+    .not.toBeInTheDocument();
+  await screen.getByTestId("canvas-add-note").click();
+  const composer = screen.getByTestId("canvas-composer");
+  await expect.element(composer).toHaveFocus();
+  await composer.fill("from the button");
+  await userEvent.keyboard("{Enter}");
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const command = mutate.mock.calls[0]?.[0] as {
+    type: string;
+    columnId: string;
+    text: string;
+    x: number;
+    y: number;
+  };
+  expect(command).toMatchObject({
+    type: "note.create",
+    columnId: column.id,
+    text: "from the button",
+  });
+  // The centre is taken by the fixture's card; the composer moved off it.
+  expect(command.x !== note.x || command.y !== note.y).toBe(true);
 });
