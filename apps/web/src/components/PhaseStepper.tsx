@@ -109,6 +109,7 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
             current: sequence.indexOf(phase) + 1,
             total: sequence.length,
           })}
+          {/* contrast-ok: decorative separator */}
           <span className="text-zinc-300">·</span>
           <span className="rounded-full bg-accent px-2.5 py-0.5 font-medium text-white">
             {t(`phase.${phase}`)}
@@ -120,13 +121,14 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
         >
           {sequence.map((step, index) => (
             <li key={step} className="flex items-center gap-1">
+              {/* contrast-ok: decorative separator */}
               {index > 0 ? <span className="text-zinc-300">·</span> : null}
               <span
                 aria-current={step === phase ? "step" : undefined}
                 className={
                   step === phase
                     ? "rounded-full bg-accent px-2.5 py-0.5 text-sm font-medium text-white"
-                    : "px-1 text-sm text-zinc-400"
+                    : "px-1 text-sm text-zinc-500"
                 }
               >
                 {t(`phase.${step}`)}

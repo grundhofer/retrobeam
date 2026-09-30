@@ -3,7 +3,8 @@
 
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
-import { page } from "vitest/browser";
+import { useState } from "react";
+import { page, userEvent } from "vitest/browser";
 import type {
   ClientCommand,
   Column,
@@ -63,48 +64,52 @@ function note(id: string, columnId: string, order: number): Note {
   };
 }
 
+const baseProps: React.ComponentProps<typeof BoardColumns> = {
+  columns,
+  notes: [],
+  columnCounts: {},
+  roster: [you, ben],
+  you,
+  phase: "discuss",
+  editing: {},
+  isAdmin: true,
+  presenterId: null,
+  unpresentedAuthorIds: null,
+  deciding: {
+    voteActive: false,
+    mine: {},
+    remaining: 0,
+    maxPerTarget: null,
+    talliesShown: true,
+    tallies: {},
+    topTargetIds: [],
+    voters: null,
+    focusId: null,
+  },
+  gifsEnabled: false,
+};
+
 function view(
   overrides: Partial<React.ComponentProps<typeof BoardColumns>> = {},
   sent: ClientCommand[] = [],
+  mutated: [ClientCommand, ServerEvent | ServerEvent[]][] = [],
 ) {
   const connection = {
     boardId: "a".repeat(32),
     send: (command: ClientCommand) => sent.push(command),
     mutate: (
-      _command: ClientCommand,
-      _optimistic: ServerEvent | ServerEvent[],
-    ) => {},
+      command: ClientCommand,
+      optimistic: ServerEvent | ServerEvent[],
+    ) => {
+      mutated.push([command, optimistic]);
+    },
   };
   return (
     <ConnectionProvider value={connection}>
       {/* 576px is the board width in the discussion phase at 1280: the page
           padding, the flex gap and the 320px action list are what is left. */}
       <div style={{ width: 576 }}>
-        <BoardColumns
-          columns={columns}
-          notes={[]}
-          columnCounts={{}}
-          roster={[you, ben]}
-          you={you}
-          phase="discuss"
-          editing={{}}
-          isAdmin
-          presenterId={null}
-          unpresentedAuthorIds={null}
-          deciding={{
-            voteActive: false,
-            mine: {},
-            remaining: 0,
-            maxPerTarget: null,
-            talliesShown: true,
-            tallies: {},
-            topTargetIds: [],
-            voters: null,
-            focusId: null,
-          }}
-          gifsEnabled={false}
-          {...overrides}
-        />
+        <BoardColumns {...baseProps} {...overrides} />
       </div>
     </ConnectionProvider>
   );
@@ -258,4 +263,161 @@ test("the composer offers a GIF only once the note has text", async () => {
   await expect
     .element(screen.getByTestId(`composer-gif-${columnId}`))
     .not.toBeInTheDocument();
+});
+
+// WCAG 2.1.1: moving and stacking were drag-only. The card's ⋯ is their
+// keyboard and touch twin, and it must be a twin — the very command and
+// optimistic echo a drop produces, opId aside — not a second code path.
+test("the card's move and stack options send exactly what a drop sends", async () => {
+  const columnId = columns[0]!.id;
+  const a = note("1", columnId, 1);
+  const b = note("2", columnId, 2);
+  const mutated: [ClientCommand, ServerEvent | ServerEvent[]][] = [];
+  const screen = await render(
+    view({ phase: "present", notes: [a, b] }, [], mutated),
+  );
+  const withoutOpId = ([command, echo]: (typeof mutated)[number]) => [
+    { ...command, opId: "" },
+    echo,
+  ];
+
+  function drop(target: Element) {
+    const data = new DataTransfer();
+    data.setData("application/x-retrobeam-note", a.id);
+    target.dispatchEvent(
+      new DragEvent("drop", {
+        dataTransfer: data,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  }
+  const cardA = screen.getByTestId("note-card").nth(0);
+  const cardB = screen.getByTestId("note-card").nth(1);
+
+  // Drag: card A onto the second column, then onto card B.
+  drop(screen.getByTestId("board-column").nth(1).element());
+  drop(cardB.element());
+  expect(mutated.map(([command]) => command.type)).toEqual([
+    "note.move",
+    "note.group",
+  ]);
+  const dragged = mutated.splice(0).map(withoutOpId);
+
+  // The same two through the ⋯ of card A.
+  await cardA.getByTestId("note-arrange-toggle").click();
+  await cardA
+    .getByTestId("note-move-option")
+    .filter({ hasText: columns[1]!.name })
+    .click();
+  await cardA.getByTestId("note-arrange-toggle").click();
+  const stackOptions = cardA.getByTestId("note-stack-option");
+  expect(stackOptions.elements().map((el) => el.textContent)).toEqual([b.text]);
+  await stackOptions.click();
+  expect(mutated.map(withoutOpId)).toEqual(dragged);
+});
+
+test("voting freezes the board: no move or stack options", async () => {
+  const columnId = columns[0]!.id;
+  const screen = await render(
+    view({
+      phase: "vote",
+      notes: [note("1", columnId, 1), note("2", columnId, 2)],
+    }),
+  );
+  expect(screen.getByTestId("note-card").elements()).toHaveLength(2);
+  expect(screen.getByTestId("note-arrange-toggle").elements()).toHaveLength(0);
+});
+
+test("while writing, your own card moves but does not stack", async () => {
+  const columnId = columns[0]!.id;
+  const screen = await render(
+    view({
+      phase: "write",
+      notes: [note("1", columnId, 1), note("2", columnId, 2)],
+    }),
+  );
+  await screen.getByTestId("note-arrange-toggle").first().click();
+  await expect
+    .element(screen.getByTestId("note-move-option").first())
+    .toBeVisible();
+  expect(screen.getByTestId("note-move-option").elements()).toHaveLength(3);
+  expect(screen.getByTestId("note-stack-option").elements()).toHaveLength(0);
+});
+
+// The ⋯ panel sits inside the card, so a card stepped back behind the
+// presenter (opacity-70) faded the panel's labels to 2.8:1. Opening it
+// lifts the dim; closing it puts the dim back.
+test("an open move/stack panel is not faded with its dimmed card", async () => {
+  const columnId = columns[0]!.id;
+  const screen = await render(
+    view({
+      phase: "present",
+      presenterId: ben.id,
+      notes: [note("1", columnId, 1), note("2", columnId, 2)],
+    }),
+  );
+  const card = screen.getByTestId("note-card").first();
+  const opacity = () => getComputedStyle(card.element()).opacity;
+  await expect.poll(opacity).toBe("0.7");
+  await card.getByTestId("note-arrange-toggle").click();
+  await expect.element(card.getByTestId("note-arrange")).toBeVisible();
+  await expect.poll(opacity).toBe("1");
+  await card.getByTestId("note-arrange-toggle").click();
+  await expect.poll(opacity).toBe("0.7");
+});
+
+// A move or a stack remounts the card (another column, or inside a
+// NoteStack), and the focused option button goes with the old mount. The
+// keyboard user must land back on the card's ⋯, not on <body>. The echo
+// is applied here the way the store applies it, so the remount is real.
+test("focus follows the card after a keyboard move or stack", async () => {
+  const columnId = columns[0]!.id;
+  const initial = [note("1", columnId, 1), note("2", columnId, 2)];
+  function Live() {
+    const [notes, setNotes] = useState(initial);
+    const connection = {
+      boardId: "a".repeat(32),
+      send: () => {},
+      mutate: (_: ClientCommand, echo: ServerEvent | ServerEvent[]) => {
+        const events = Array.isArray(echo) ? echo : [echo];
+        setNotes((current) =>
+          events.reduce(
+            (acc, event) =>
+              event.type === "note.updated"
+                ? acc.map((n) => (n.id === event.note.id ? event.note : n))
+                : acc,
+            current,
+          ),
+        );
+      },
+    };
+    return (
+      <ConnectionProvider value={connection}>
+        <BoardColumns {...baseProps} phase="present" notes={notes} />
+      </ConnectionProvider>
+    );
+  }
+  const screen = await render(<Live />);
+  const toggleOf = (id: string) =>
+    document.querySelector(
+      `[data-note-id="${id.repeat(32)}"] [data-testid="note-arrange-toggle"]`,
+    );
+
+  // Stack card 1 onto card 2 — it re-renders inside a NoteStack.
+  await screen.getByTestId("note-arrange-toggle").first().click();
+  await screen.getByTestId("note-stack-option").first().click();
+  await expect.element(screen.getByTestId("note-stack")).toBeVisible();
+  await expect.poll(() => document.activeElement).toBe(toggleOf("1"));
+
+  // Move it on to the second column — out of the stack, into another list.
+  await userEvent.keyboard("{Enter}");
+  await screen
+    .getByTestId("note-move-option")
+    .filter({ hasText: columns[1]!.name })
+    .click();
+  await expect
+    .element(screen.getByTestId("board-column").nth(1).getByTestId("note-card"))
+    .toBeVisible();
+  await expect.poll(() => document.activeElement).toBe(toggleOf("1"));
 });

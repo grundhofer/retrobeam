@@ -101,7 +101,7 @@ export function ActionsPanel({
             onChange={(event) => setText(event.target.value)}
             maxLength={300}
             placeholder={t("action.placeholder")}
-            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm placeholder:text-zinc-300 focus-visible:outline-2 focus-visible:outline-accent"
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
           />
           <div className="flex gap-2">
             <select
@@ -156,14 +156,14 @@ export function ActionsPanel({
                 <span
                   className={`block text-sm break-words ${
                     action.status === "done"
-                      ? "text-zinc-400 line-through"
+                      ? "text-zinc-500 line-through"
                       : "text-zinc-800"
                   }`}
                 >
                   {action.text}
                 </span>
                 {owner ? (
-                  <span className="mt-0.5 flex items-center gap-1 text-xs text-zinc-400">
+                  <span className="mt-0.5 flex items-center gap-1 text-xs text-zinc-500">
                     <span
                       aria-hidden="true"
                       className="size-2 rounded-full"
@@ -188,7 +188,7 @@ export function ActionsPanel({
                   type="button"
                   aria-label={t("action.delete")}
                   onClick={() => remove(action)}
-                  className="rounded px-1 text-xs text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500"
+                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
                 >
                   🗑
                 </button>
@@ -197,7 +197,7 @@ export function ActionsPanel({
           );
         })}
         {actions.length === 0 ? (
-          <li className="text-sm text-zinc-400">{t("action.empty")}</li>
+          <li className="text-sm text-zinc-500">{t("action.empty")}</li>
         ) : null}
       </ul>
     </aside>

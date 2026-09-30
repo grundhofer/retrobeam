@@ -37,7 +37,7 @@ export function Roster({ participants, youId, isAdmin = false }: RosterProps) {
             <span className="truncate text-zinc-800">
               {participant.name}
               {participant.id === youId ? (
-                <span className="text-zinc-400"> ({t("board.you")})</span>
+                <span className="text-zinc-500"> ({t("board.you")})</span>
               ) : null}
             </span>
             {participant.role === "facilitator" ? (
@@ -46,7 +46,7 @@ export function Roster({ participants, youId, isAdmin = false }: RosterProps) {
               </span>
             ) : null}
             {!participant.online ? (
-              <span className="ml-auto text-xs text-zinc-400">
+              <span className="ml-auto text-xs text-zinc-500">
                 {t("board.offline")}
               </span>
             ) : null}

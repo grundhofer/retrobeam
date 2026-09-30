@@ -203,7 +203,7 @@ export function GifPicker({
           type="button"
           onClick={onClose}
           aria-label={t("note.cancel")}
-          className="rounded px-1 text-sm text-zinc-400 hover:bg-zinc-100"
+          className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100"
         >
           ✕
         </button>
@@ -218,31 +218,31 @@ export function GifPicker({
       ) : state === "throttled" ? (
         <p
           data-testid="gif-throttled"
-          className="px-1 py-4 text-center text-xs text-zinc-400"
+          className="px-1 py-4 text-center text-xs text-zinc-500"
         >
           {t("gif.throttled")}
         </p>
       ) : state === "failed" ? (
         <p
           data-testid="gif-failed"
-          className="px-1 py-4 text-center text-xs text-zinc-400"
+          className="px-1 py-4 text-center text-xs text-zinc-500"
         >
           {t("gif.failed")}
         </p>
       ) : state === "unavailable" ? (
-        <p className="px-1 py-4 text-center text-xs text-zinc-400">
+        <p className="px-1 py-4 text-center text-xs text-zinc-500">
           {t("gif.unavailable")}
         </p>
       ) : state === "loading" ? (
-        <p className="px-1 py-4 text-center text-xs text-zinc-400">
+        <p className="px-1 py-4 text-center text-xs text-zinc-500">
           {t("gif.loading")}
         </p>
       ) : state === "empty" ? (
-        <p className="px-1 py-4 text-center text-xs text-zinc-400">
+        <p className="px-1 py-4 text-center text-xs text-zinc-500">
           {t("gif.none")}
         </p>
       ) : results.length === 0 ? (
-        <p className="px-1 py-4 text-center text-xs text-zinc-400">
+        <p className="px-1 py-4 text-center text-xs text-zinc-500">
           {t("gif.hint")}
         </p>
       ) : (
@@ -266,7 +266,7 @@ export function GifPicker({
           ))}
         </div>
       )}
-      <p className="mt-1 px-1 text-right text-[10px] text-zinc-300">
+      <p className="mt-1 px-1 text-right text-[10px] text-zinc-500">
         {t("gif.poweredBy")}
       </p>
     </div>

@@ -112,7 +112,7 @@ export function TimerPanel({
         aria-pressed={sound}
         data-testid="timer-sound"
         aria-label={t("timer.sound")}
-        className="rounded px-1 text-sm text-zinc-400 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+        className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
       >
         {sound ? "🔔" : "🔕"}
       </button>
