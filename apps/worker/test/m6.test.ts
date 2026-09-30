@@ -487,10 +487,10 @@ describe("staged / hidden columns", () => {
   });
 
   it("an anonymous board strips note authorship from the export too", async () => {
-    // Anonymity is reachable today only through duplication, which copies a
-    // source board's config — so seed the flag directly and assert the export
-    // honours it. Every WS path already does (redactNoteForViewer); the export
-    // was the one surface keyed on ?authors=true alone.
+    // Seed the flag directly and assert the export honours it. Every WS path
+    // already does (redactNoteForViewer); the export was the one surface keyed
+    // on ?authors=true alone. anonymous.test.ts covers a board CREATED
+    // anonymous, across every export format.
     const { boardId, adminToken } = await createBoard();
     await runInDurableObject(boardStub(env, boardId), (_i, state) => {
       state.storage.sql.exec(

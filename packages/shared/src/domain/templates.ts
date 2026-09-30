@@ -27,7 +27,7 @@ const TEMPLATE_COLUMNS: Record<
 > = {
   "went-well": {
     en: ["Went well", "To improve", "Action items"],
-    de: ["Lief gut", "Zu verbessern", "Maßnahmen"],
+    de: ["Lief gut", "Zu verbessern", "Action Items"],
   },
   "start-stop-continue": {
     en: ["Start", "Stop", "Continue"],

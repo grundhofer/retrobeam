@@ -60,6 +60,8 @@ export const pickerStyleSchema = z.enum(pickerStyles);
 const legacyPickerStyleSchema = z.enum(["wheel", "slots"]);
 
 export const boardConfigSchema = z.object({
+  /** Nobody but the author sees who wrote a card — the facilitator included.
+   *  Chosen at creation and never changed afterwards (see the create route). */
   anonymous: z.boolean(),
   phasePlan: phasePlanSchema,
   /** Once the room has left the lobby for the first time, its phase plan is
@@ -87,7 +89,8 @@ export const boardConfigSchema = z.object({
   layout: layoutModeSchema.default("columns"),
   /** live cursors on the canvas — OFF by default (continuous presence streams
    *  eat the Cloudflare free tier; a facilitator opts in). Defaulted so older
-   *  boards parse as off. */
+   *  boards parse as off. Never on for an anonymous board: a named cursor
+   *  parked where a card then appears attributes that card. */
   cursorsEnabled: z.boolean().default(false),
   /** Attach voter names to the revealed result, so the room can discuss a card
    *  with the people who picked it. Voting itself stays blind either way — the
@@ -150,6 +153,8 @@ export const noteSchema = z.object({
   authorId: z.string().nullable(),
   text: z.string(),
   gifUrl: gifUrlSchema.nullable(),
+  // numbered per (column, author); 0 on a foreign note of an anonymous board,
+  // where the per-author sequence would link one person's cards together
   order: z.number(),
   // canvas position: normalized [0,1] fraction WITHIN the note's own zone
   // (columnId stays authoritative). null = unplaced; ignored in column mode.
@@ -202,7 +207,9 @@ export const kudoSchema = z.object({
   cardType: kudoCardTypeSchema,
   // a participant id, or KUDO_EVERYONE
   toId: z.string(),
-  // null = anonymous sender, or redacted for viewers on an anonymous board
+  // null = anonymous sender. The sender's own choice on every board, an
+  // anonymous one included: a kudo is addressed appreciation, not a card's
+  // authorship, so the live wire carries a signed sender as signed.
   fromId: z.string().nullable(),
   text: z.string(),
   gifUrl: gifUrlSchema.nullable(),

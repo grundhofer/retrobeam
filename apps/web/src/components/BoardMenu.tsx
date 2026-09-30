@@ -18,6 +18,7 @@ import { useConnection } from "../lib/connection.js";
 import { duplicateBoard, fetchBoardExport } from "../lib/api.js";
 import { renderBoardImage } from "../lib/exportImage.js";
 import { loadAdminToken, saveAdminToken } from "../lib/session.js";
+import { AdminLink } from "./AdminLink.js";
 
 // Export (anyone) + admin board settings: GIF toggle, layout, duplicate, keep,
 // delete-now. Lives in the board header. The picker SKIN deliberately is not
@@ -56,6 +57,8 @@ export function BoardMenu({
   const [duplicating, setDuplicating] = useState(false);
   const [imaging, setImaging] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  // Same rule as the lobby: the token holder, while it still counts here.
+  const adminToken = isAdmin ? loadAdminToken(boardId) : null;
 
   async function duplicate() {
     if (duplicating) return;
@@ -170,6 +173,13 @@ export function BoardMenu({
               />
               {t("menu.includeAuthors")}
             </label>
+            {/* The server leaves them out whatever this box says; say so, so
+                the box cannot be read as a way to get them back. */}
+            {anonymous ? (
+              <p className="-mt-1 mb-2 text-xs text-zinc-400">
+                {t("menu.includeAuthorsAnonymous")}
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               {EXPORT_DOWNLOADS.map((format) =>
                 // JPEG is not a link: the Worker cannot encode an image, so the
@@ -206,6 +216,14 @@ export function BoardMenu({
               </p>
             ) : null}
           </div>
+
+          {/* In every phase, not just the lobby: the moment someone needs to
+              move the retro to another screen is usually mid-retro. */}
+          {adminToken !== null ? (
+            <div className="border-t border-zinc-100 pt-3">
+              <AdminLink boardId={boardId} adminToken={adminToken} compact />
+            </div>
+          ) : null}
 
           {isAdmin ? (
             <div className="border-t border-zinc-100 pt-3">
@@ -265,7 +283,10 @@ export function BoardMenu({
                 <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
                   <input
                     type="checkbox"
-                    checked={cursorsEnabled}
+                    checked={cursorsEnabled && !anonymous}
+                    // Refused by the server on an anonymous board, like voter
+                    // names — disabled with the reason rather than hidden.
+                    disabled={anonymous}
                     data-testid="cursors-toggle"
                     onChange={(event) =>
                       send({
@@ -277,6 +298,11 @@ export function BoardMenu({
                   />
                   {t("menu.cursorsEnabled")}
                 </label>
+              ) : null}
+              {CURSORS_ACTIVATABLE && anonymous ? (
+                <p className="-mt-1 mb-2 text-xs text-zinc-400">
+                  {t("menu.cursorsAnonymous")}
+                </p>
               ) : null}
               <div className="mb-2">
                 <p className="mb-1 text-zinc-600">{t("menu.layout")}</p>

@@ -3,14 +3,17 @@
 
 import { afterEach, expect, test } from "vitest";
 import { render } from "vitest-browser-react";
-import type {
-  ClientCommand,
-  Note,
-  Participant,
-  ServerEvent,
+import {
+  DEFAULT_PHASE_PLAN,
+  type BoardConfig,
+  type ClientCommand,
+  type Note,
+  type Participant,
+  type ServerEvent,
 } from "@retrobeam/shared";
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
+import { useBoardStore } from "../store/boardStore.js";
 import { NoteCard } from "./NoteCard.js";
 
 // The presenting round no longer hides other people's cards — the server sends
@@ -123,6 +126,38 @@ test("a card the room has not been shown is marked as pending", async () => {
       .at(-1)
       ?.getAttribute("data-pending"),
   ).toBe(null);
+});
+
+test("an anonymous board names nobody — not even you, on your own card", async () => {
+  // Your own card is the one copy the server still sends with an author, and a
+  // shared screen would otherwise show the room exactly which cards are yours.
+  const named = await render(view({ authorId: ben.id, presenterId: null }));
+  await expect.element(named.getByTestId("note-card")).toHaveTextContent("Ben");
+
+  const config: BoardConfig = {
+    anonymous: true,
+    phasePlan: DEFAULT_PHASE_PLAN,
+    votesPerPerson: 3,
+    maxPerTarget: null,
+    topN: 3,
+    gifsEnabled: false,
+    pickerStyle: "wheel",
+    layout: "columns",
+    cursorsEnabled: false,
+    voterNamesEnabled: false,
+    focusMode: false,
+  };
+  useBoardStore.setState((store) => ({ state: { ...store.state, config } }));
+  try {
+    const anonymous = await render(
+      view({ authorId: ben.id, presenterId: null }),
+    );
+    const card = anonymous.getByTestId("note-card").elements().at(-1);
+    expect(card?.textContent).toContain("Deploys are slow");
+    expect(card?.textContent).not.toContain("Ben");
+  } finally {
+    useBoardStore.getState().reset();
+  }
 });
 
 // Editing a card is where a GIF gets added, swapped or dropped after the fact.

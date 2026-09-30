@@ -34,6 +34,12 @@ const createBoardRequestSchema = z.object({
   checkin: z.boolean().default(false),
   // Board layout: classic columns (default) or the freeform canvas.
   layout: layoutModeSchema.default("columns"),
+  // Anonymous board: nobody but the author sees who wrote a card, the
+  // facilitator included. Creation-time ONLY, and deliberately so — there is
+  // no command that changes it. Switching it on mid-board cannot take back
+  // names already on everyone's screen, and switching it off would break the
+  // promise the room wrote its cards under.
+  anonymous: z.boolean().default(false),
 });
 
 const duplicateBoardRequestSchema = z.object({
@@ -115,6 +121,7 @@ app.post("/api/boards", smallBody, createLimit(), async (c) => {
     // facilitator edits them (avoids baking a locale into stored data).
     workingAgreements: "",
     layout: parsed.data.layout,
+    anonymous: parsed.data.anonymous,
     // Only overrides the default when the caller opts into the check-in phase.
     ...(parsed.data.checkin
       ? { phasePlan: { ...DEFAULT_PHASE_PLAN, checkin: true } }

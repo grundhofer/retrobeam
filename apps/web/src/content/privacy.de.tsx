@@ -205,27 +205,31 @@ export function PrivacyDe() {
               <td>
                 Notizen (Text, Spalte, Position, Zugehörigkeit zu einem
                 Kartenstapel, Erstellungszeitpunkt, optional die Adresse eines
-                GIFs), jeweils verknüpft mit dem Verfasser
+                GIFs), jeweils verknüpft mit dem Verfasser; auf einem anonymen
+                Board (Abschnitt 3.1, unten) dient diese Verknüpfung nur dazu,
+                dass der Verfasser die Karte bearbeiten kann, und wird niemand
+                anderem angezeigt
               </td>
               <td>Ihre Eingaben</td>
             </tr>
             <tr>
               <td>
                 Reaktionen (Emoji pro Notiz und Person), Stimmen (Anzahl pro
-                Karte und Person). Bei neu angelegten Boards wird nach Abschluss
-                der Abstimmung allen Teilnehmern angezeigt, wer für welche Karte
-                gestimmt hat; die Abstimmungsleiste sagt vor der ersten Stimme,
-                ob Namen gezeigt werden. Der Moderator kann die Namensanzeige
-                jederzeit abschalten; einschalten kann er sie nur, solange noch
-                niemand abgestimmt hat. Ein dupliziertes Board übernimmt die
-                Einstellung des Originals. Mit hinzugeschalteten Personennamen
-                enthält der Export diese Namen ebenfalls (Abschnitt 3.4).
+                Karte und Person). Bei neu angelegten Boards, die nicht anonym
+                sind, wird nach Abschluss der Abstimmung allen Teilnehmern
+                angezeigt, wer für welche Karte gestimmt hat; die
+                Abstimmungsleiste sagt vor der ersten Stimme, ob Namen gezeigt
+                werden. Der Moderator kann die Namensanzeige jederzeit
+                abschalten; einschalten kann er sie nur, solange noch niemand
+                abgestimmt hat. Ein dupliziertes Board übernimmt die Einstellung
+                des Originals. Mit hinzugeschalteten Personennamen enthält der
+                Export diese Namen ebenfalls (Abschnitt 3.4).
               </td>
               <td>Ihre Eingaben</td>
             </tr>
             <tr>
               <td>
-                Aktionspunkte (Text, optional eine verantwortliche Person,
+                Action Items (Text, optional eine verantwortliche Person,
                 Status, Erstellungszeitpunkt)
               </td>
               <td>Eingaben im Board</td>
@@ -270,8 +274,23 @@ export function PrivacyDe() {
         Zusätzlich zu den in der Tabelle genannten Statusdaten (Online- und
         „Bereit“-Status) erfahren Teilnehmer in der Schreibphase für die jeweils
         sichtbaren Spalten, dass eine Person dort gerade schreibt (Name und
-        Spalte, kein Inhalt, keine Länge) und wie viele Karten das Team je
-        Spalte bereits angelegt hat.
+        Spalte, kein Inhalt, keine Länge; nicht auf einem anonymen Board) und
+        wie viele Karten das Team je Spalte bereits angelegt hat.
+      </p>
+
+      <p>
+        Ein Board kann als <strong>anonymes Board</strong> angelegt werden; das
+        wird beim Anlegen entschieden und lässt sich danach nicht mehr ändern.
+        Auf einem solchen Board erfährt außer dem Verfasser niemand — auch der
+        Moderator nicht —, wer eine Karte geschrieben hat, weder auf dem
+        Bildschirm noch im Export; niemandem wird angezeigt, wer in welcher
+        Spalte gerade schreibt, Live-Cursor sind nicht verfügbar, und die Namen
+        der Abstimmenden werden nie angezeigt. Gespeichert wird weiterhin,
+        welcher Teilnehmer eine Karte geschrieben hat, damit nur er sie
+        bearbeiten kann. Auch dort nicht anonym sind: wer teilnimmt
+        (Anzeigename, Online- und „Bereit“-Status), Kudos, deren Absender sich
+        namentlich zeigen wollte, und die verantwortlichen Personen bei Action
+        Items.
       </p>
 
       <h3>3.2 Wo</h3>
@@ -291,7 +310,7 @@ export function PrivacyDe() {
           Ein Board löscht sich{" "}
           <strong>90 Tage nach seiner Erstellung automatisch</strong>. Die
           Anwendung löscht dabei sämtliche Zeilen aller Tabellen des Boards:
-          Notizen, Reaktionen, Stimmen, Aktionspunkte, Kudos, ROTI-Bewertungen,
+          Notizen, Reaktionen, Stimmen, Action Items, Kudos, ROTI-Bewertungen,
           Spalten, Teilnehmer und Board-Metadaten. Der Link führt danach zu
           „Board nicht gefunden“, wie bei einem Board, das nie angelegt wurde.
         </li>
@@ -318,7 +337,8 @@ export function PrivacyDe() {
           Beim <strong>Duplizieren</strong> eines Boards wird nur die Struktur
           (Board-Name — in der Anwendung als „Kopie von …“ —, Spalten
           einschließlich ausgeblendeter Spalten, die ausgeblendet bleiben,
-          Einstellungen, Arbeitsvereinbarungen) in ein neues Board mit frischer
+          Einstellungen — die Kopie eines anonymen Boards ist ebenfalls anonym
+          —, Arbeitsvereinbarungen) in ein neues Board mit frischer
           90-Tage-Frist übernommen — keine Notizen, Stimmen, Teilnehmer, Kudos
           oder Bewertungen.
         </li>
@@ -341,15 +361,16 @@ export function PrivacyDe() {
         angezeigt wird.{" "}
         <strong>Personennamen sind standardmäßig nicht enthalten</strong> — das
         gilt für Verfasser von Notizen, Absender von Kudos, verantwortliche
-        Personen bei Aktionspunkten und die Namen der Abstimmenden (soweit das
+        Personen bei Action Items und die Namen der Abstimmenden (soweit das
         Board sie anzeigt, Abschnitt 3.1); sie lassen sich beim Export gezielt
-        hinzuschalten. Eine Ausnahme: Der vollständige Export nennt den
-        Anzeigenamen des Empfängers eines Kudos immer, sofern das Kudo an eine
-        Person gerichtet ist. Nur die Variante „Zusammenfassung“ (die am
-        höchsten bewerteten Karten und die Aktionspunkte, keine Kudos-Wand)
-        enthält mit der Standardeinstellung gar keine Personennamen. Was Sie
-        exportieren, liegt danach bei Ihnen; auf dem Server bleibt vom Export
-        nichts zurück.
+        hinzuschalten — außer auf einem anonymen Board, wo Verfasser von
+        Notizen, Absender von Kudos und Namen der Abstimmenden auch dann draußen
+        bleiben. Eine Ausnahme: Der vollständige Export nennt den Anzeigenamen
+        des Empfängers eines Kudos immer, sofern das Kudo an eine Person
+        gerichtet ist. Nur die Variante „Zusammenfassung“ (die am höchsten
+        bewerteten Karten und die Action Items, keine Kudos-Wand) enthält mit
+        der Standardeinstellung gar keine Personennamen. Was Sie exportieren,
+        liegt danach bei Ihnen; auf dem Server bleibt vom Export nichts zurück.
       </p>
 
       <h3>3.5 Der Link ist der Schlüssel — bitte lesen</h3>
@@ -370,8 +391,13 @@ export function PrivacyDe() {
       </p>
 
       <p>
-        Der Moderator besitzt zusätzlich einen Admin-Schlüssel, der nur in
-        seinem Browser liegt (Abschnitt 4) und nie in einer Adresse auftaucht.
+        Der Moderator besitzt zusätzlich einen Admin-Schlüssel, der in seinem
+        Browser liegt (Abschnitt 4). Um das Board von einem anderen Gerät aus zu
+        moderieren, kann er einen persönlichen Moderationslink kopieren, der
+        diesen Schlüssel hinter dem <code>#</code> der Adresse trägt — einem
+        Teil, den Browser nie an einen Server senden; die Anwendung speichert
+        den Schlüssel und entfernt ihn aus der Adresszeile, sobald der Link
+        geöffnet wird.
       </p>
 
       <h3>3.6 Rechtsgrundlage</h3>
@@ -453,7 +479,10 @@ export function PrivacyDe() {
               <td>
                 <code>retrobeam.board.{"<Board-ID>"}.adminToken</code>
               </td>
-              <td>Admin-Schlüssel (nur beim Ersteller eines Boards)</td>
+              <td>
+                Admin-Schlüssel (nur beim Ersteller eines Boards oder in einem
+                Browser, der dessen Moderationslink geöffnet hat)
+              </td>
               <td>Moderatorrechte ohne Konto</td>
             </tr>
           </tbody>

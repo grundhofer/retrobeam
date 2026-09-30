@@ -13,6 +13,7 @@ import {
   type ServerEvent,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { useBoardStore } from "../store/boardStore.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { NOTE_DRAG_MIME, NoteCard } from "./NoteCard.js";
 
@@ -292,13 +293,24 @@ function BoardColumn({
   // someone else finished landed on top of yours. Only the write phase is
   // flipped — from the reveal on, the board is being READ, and presenting,
   // stacking and the export all follow the same ascending order the room sees.
+  //
+  // An ANONYMOUS board sorts a revealed column by id alone. The server sends
+  // other people's cards with order 0 (their per-author order would link
+  // them), but your own keep theirs — so sorting on it would sink your cards
+  // to the bottom of every column, and a shared screen would show the room
+  // which ones are yours. While writing you only hold your own, so the order
+  // stays useful there.
+  const anonymous = useBoardStore(
+    (store) => store.state.config?.anonymous ?? false,
+  );
+  const byOrder = !(anonymous && phaseRevealed(phase));
   const newestFirst = phase === "write";
   const columnNotes = notes
     .filter((note) => note.columnId === column.id)
     .sort((a, b) =>
       newestFirst
-        ? b.order - a.order || b.id.localeCompare(a.id)
-        : a.order - b.order || a.id.localeCompare(b.id),
+        ? (byOrder ? b.order - a.order : 0) || b.id.localeCompare(a.id)
+        : (byOrder ? a.order - b.order : 0) || a.id.localeCompare(b.id),
     );
 
   // Write-phase "cards exist" signal: how many of the column's cards belong to

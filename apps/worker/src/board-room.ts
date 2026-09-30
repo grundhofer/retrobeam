@@ -75,6 +75,10 @@ import {
 // Boards auto-delete after this window unless the facilitator keeps them.
 export const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
+// The refusal every call-up entry point gives on an anonymous board.
+const ANONYMOUS_NO_ROTATION =
+  "This board is anonymous — nobody is called up to present their cards";
+
 // ROTI anonymity rests on TWO rules, and the count threshold alone is not one
 // of them.
 //
@@ -181,6 +185,10 @@ export interface BoardCreation {
   /** initial board layout ('columns' default); the facilitator can switch it
    *  live afterwards. Ignored when a full `config` is supplied. */
   layout?: LayoutMode;
+  /** create the board anonymous (the create request's opt-in). Irreversible:
+   *  nothing writes the flag after this. Ignored when a full `config` is
+   *  supplied — a duplicate inherits the source board's flag through it. */
+  anonymous?: boolean;
   /** seeded when duplicating an existing board — structure only. Absent for a
    *  fresh board, which falls back to the built-in defaults. */
   config?: BoardConfig;
@@ -409,6 +417,8 @@ export class BoardRoom extends DurableObject<Env> {
     // retentionAt) are never seeded from a source — always fresh here.
     const config = creation.config;
     const maxPerTarget = config?.maxPerTarget;
+    const anonymous =
+      config === undefined ? (creation.anonymous ?? false) : config.anonymous;
     this.sql.exec(
       `INSERT INTO board_meta (key, value) VALUES
          ('id', ?), ('name', ?), ('adminToken', ?), ('createdAt', ?), ('seq', '0'),
@@ -421,21 +431,25 @@ export class BoardRoom extends DurableObject<Env> {
       creation.name,
       creation.adminToken,
       String(now),
-      config?.anonymous ? "1" : "0",
+      anonymous ? "1" : "0",
       JSON.stringify(
         config?.phasePlan ?? creation.phasePlan ?? DEFAULT_PHASE_PLAN,
       ),
       config === undefined || config.gifsEnabled ? "1" : "0",
       config?.pickerCards ? "cards" : (config?.pickerStyle ?? "wheel"),
       config?.layout ?? creation.layout ?? "columns",
-      config?.cursorsEnabled ? "1" : "0",
+      // Never on an anonymous board (handleCursorsSet refuses it later too).
+      !anonymous && config?.cursorsEnabled ? "1" : "0",
       // ON for a new board — the room discusses a crowned card with the people
       // who picked it, which is the whole point of crowning it. An anonymous
-      // board never shows names whatever this says (voterNamesShown), and a
-      // board created BEFORE this field stays blind, because it has no row
-      // here and config() reads a missing row as off. A duplicate inherits the
-      // source board's choice.
-      config === undefined || config.voterNamesEnabled ? "1" : "0",
+      // board never shows names whatever this says (voterNamesShown), and it
+      // is seeded OFF there as well, so the stored row and the menu never
+      // claim otherwise. A board created BEFORE this field stays blind,
+      // because it has no row here and config() reads a missing row as off. A
+      // duplicate inherits the source board's choice.
+      !anonymous && (config === undefined || config.voterNamesEnabled)
+        ? "1"
+        : "0",
       config?.focusMode ? "1" : "0",
       String(config?.votesPerPerson ?? DEFAULT_VOTE_CONFIG.votesPerPerson),
       String(config?.topN ?? DEFAULT_VOTE_CONFIG.topN),
@@ -977,11 +991,14 @@ export class BoardRoom extends DurableObject<Env> {
 
     // The closing tab may have been mid-edit; its ghost card would otherwise
     // stick forever when a sibling tab keeps the participant "connected"
-    // (a surviving tab re-asserts on the next focus).
-    this.broadcastAll(
-      { type: "presence.editing", participantId, columnId: null },
-      closingSocket,
-    );
+    // (a surviving tab re-asserts on the next focus). An anonymous board never
+    // sent a ghost (handleEditing), so there is nothing to clear there.
+    if (!this.anonymous()) {
+      this.broadcastAll(
+        { type: "presence.editing", participantId, columnId: null },
+        closingSocket,
+      );
+    }
 
     const stillConnected = this.ctx
       .getWebSockets()
@@ -1031,6 +1048,16 @@ export class BoardRoom extends DurableObject<Env> {
     participant: ParticipantRow,
     columnId: string | null,
   ): void {
+    // An anonymous board circulates NO editing presence, to anyone. A ghost is
+    // "X is writing in column C" — and the column's card count ticks up a
+    // moment later, so a ghost names the author of the card that appears
+    // there. Stripping only the participant id would not be enough either: the
+    // frame still has to be keyed per person so its clear can find it, and
+    // that key lines up with the roster's online/offline and ready events. The
+    // anonymized per-column count still tells the room that cards exist.
+    // First, before the hidden-column branch: "not even the facilitator" is
+    // the promise, so a co-facilitator is not told either.
+    if (this.anonymous()) return;
     if (columnId !== null) {
       const column = this.columnById(columnId);
       if (column === null) return; // stale ghost, ignore
@@ -1047,9 +1074,7 @@ export class BoardRoom extends DurableObject<Env> {
         return;
       }
     }
-    // Ephemeral, never persisted. NOTE: when the anonymity toggle becomes
-    // reachable (per-board setting UI), ghosts on anonymous boards must stop
-    // carrying the participant id.
+    // Ephemeral, never persisted.
     //
     // Write phase only. Ghosts have always been RENDERED only while writing,
     // but they used to circulate in every phase — and once the presenting
@@ -2331,6 +2356,10 @@ export class BoardRoom extends DurableObject<Env> {
       );
       return;
     }
+    if (!this.rotationAllowed()) {
+      this.reject(ws, undefined, "INVALID", ANONYMOUS_NO_ROTATION);
+      return;
+    }
     // A double-click (or a second facilitator) must not steal the freshly
     // drawn winner's turn: no new spin while one is still animating.
     const activeSpin = this.lastSpin();
@@ -2479,6 +2508,10 @@ export class BoardRoom extends DurableObject<Env> {
         "PHASE_LOCKED",
         "Presenters are picked in the presenting phase",
       );
+      return;
+    }
+    if (!this.rotationAllowed()) {
+      this.reject(ws, undefined, "INVALID", ANONYMOUS_NO_ROTATION);
       return;
     }
     // Don't yank the stage out from under an animating wheel.
@@ -3621,6 +3654,21 @@ export class BoardRoom extends DurableObject<Env> {
       );
       return;
     }
+    // Refused on an anonymous board, like voter names and for the same
+    // reason: a cursor is a NAMED position. On the canvas a card is created
+    // where its author clicks, the write phase broadcasts that spot as an
+    // anonymous placeholder, and the revealed card keeps it — so "Ben's cursor
+    // sat there when the placeholder appeared" names the card's author. The
+    // seed in initialize() is off already; this keeps it off.
+    if (cmd.enabled && this.anonymous()) {
+      this.reject(
+        ws,
+        undefined,
+        "INVALID",
+        "This board is anonymous — live cursors would show who placed a card",
+      );
+      return;
+    }
     const blockedUntil = Number(
       this.getMeta("cursorBudgetBlockedUntil") ?? "0",
     );
@@ -4119,14 +4167,14 @@ export class BoardRoom extends DurableObject<Env> {
         // Every note is exported (stack members included — no content dropped);
         // stacks are kept adjacent, and only the votable (ungrouped note or
         // stack anchor) carries the tally so votes aren't double-counted.
-        const notes = (notesByColumn.get(column.id) ?? [])
-          .slice()
-          .sort(
-            (a, b) =>
-              (a.groupId ?? a.id).localeCompare(b.groupId ?? b.id) ||
-              a.order - b.order ||
-              a.id.localeCompare(b.id),
-          );
+        const notes = (notesByColumn.get(column.id) ?? []).slice().sort(
+          (a, b) =>
+            (a.groupId ?? a.id).localeCompare(b.groupId ?? b.id) ||
+            // Per-author order would line a stack up by author — skipped
+            // on an anonymous board, for the reason allNotes() gives.
+            (anonymous ? 0 : a.order - b.order) ||
+            a.id.localeCompare(b.id),
+        );
         return {
           name: column.name,
           notes: notes.map((n) => {
@@ -4189,6 +4237,19 @@ export class BoardRoom extends DurableObject<Env> {
   // ONE card on stage, driven by the facilitator, followed by every screen.
   // Stored in board_meta rather than on the instance: the DO hibernates, and a
   // field parked in memory would evaporate mid-round.
+
+  /** Whether anybody may be CALLED UP at all (spin, hand-pick).
+   *
+   *  Not on an anonymous board. Revealing is already all-at-once there
+   *  (revealFor rule 4), but the wheel would still name a person and hand them
+   *  the mic — "present your cards" — which makes them attribute their own
+   *  cards out loud on a board that promised nobody would have to. The
+   *  presenting phase stays: it is where the room reads, stacks and sorts the
+   *  cards together, just without a speaker. Gated here, not by hiding the
+   *  button, for the same reason spotlightAllowed is. */
+  private rotationAllowed(): boolean {
+    return !this.anonymous();
+  }
 
   /** Whether the walkthrough may run at all.
    *
@@ -4776,8 +4837,17 @@ export class BoardRoom extends DurableObject<Env> {
 
   private allNotes(): Note[] {
     const reactions = this.reactionsByNote();
+    // On an anonymous board the ARRAY order is on the wire too — the snapshot,
+    // the reveal burst and the write-phase placeholders all keep it — and
+    // "ORDER BY ord" (ties in insertion order) lists everyone's first card
+    // before anyone's second: the same per-author linkage redactNoteForViewer
+    // strips from the order field. The id is random, so it says nothing.
     return this.sql
-      .exec("SELECT * FROM notes ORDER BY ord")
+      .exec(
+        this.anonymous()
+          ? "SELECT * FROM notes ORDER BY id"
+          : "SELECT * FROM notes ORDER BY ord",
+      )
       .toArray()
       .map((row) => this.buildNote(row as unknown as NoteRow, reactions));
   }

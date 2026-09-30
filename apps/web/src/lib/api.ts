@@ -20,11 +20,12 @@ export async function createBoard(
   template: string,
   locale: string,
   layout: "columns" | "canvas" = "columns",
+  anonymous = false,
 ): Promise<{ boardId: string; adminToken: string }> {
   const response = await fetch("/api/boards", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, template, locale, layout }),
+    body: JSON.stringify({ name, template, locale, layout, anonymous }),
   });
   if (!response.ok) throw new Error(`create board failed: ${response.status}`);
   return createBoardResponseSchema.parse(await response.json());

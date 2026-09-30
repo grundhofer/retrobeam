@@ -378,8 +378,8 @@ describe("voter names on the reveal", () => {
 
   it("an anonymous board never attributes a vote, flag or no flag", async () => {
     const { boardId, admin, ben, noteA } = await votingBoard();
-    // Anonymity is not reachable from the UI yet, so force both rows: the
-    // point is that the FLAG cannot win against it.
+    // Force the row onto a board whose names flag is already on: the point is
+    // that the FLAG cannot win against it.
     await runInDurableObject(boardStub(env, boardId), (_instance, state) => {
       state.storage.sql.exec(
         "INSERT INTO board_meta (key, value) VALUES ('anonymous', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",

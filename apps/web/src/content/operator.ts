@@ -31,7 +31,7 @@ export const OPERATOR: Operator = {
   email: "info@sebaro-ventures.de",
 };
 
-export const NOTICE_DATE = "2026-09-11";
+export const NOTICE_DATE = "2026-09-29";
 
 // Confirm the Cloudflare dashboard settings named in privacy §6, then replace
 // this with the ISO date of that check. `pnpm check:legal` reports bracketed

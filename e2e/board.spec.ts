@@ -25,7 +25,12 @@ test("two participants meet on a board and see each other live", async ({
   await anna.getByRole("button", { name: /join|beitreten/i }).click();
   await expect(anna.getByTestId("roster-item")).toHaveCount(1);
   await expect(anna.getByTestId("roster-item").first()).toContainText("Anna");
-  await expect(anna.getByText(/facilitator|moderation/i)).toBeVisible();
+  await expect(
+    anna
+      .getByTestId("roster-item")
+      .first()
+      .getByText(/facilitator|moderation/i),
+  ).toBeVisible();
 
   // Ben opens the share link in a second, independent browser context.
   const benContext = await newContext(browser);

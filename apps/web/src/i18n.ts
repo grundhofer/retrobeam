@@ -24,6 +24,11 @@ const resources = {
           columns: "Classic lists — one column per topic.",
           canvas: "A freeform board — place notes anywhere in each zone.",
         },
+        anonymous: "Anonymous board",
+        anonymousHint:
+          "Nobody sees who wrote which card — not even the facilitator. Can't be changed later.",
+        adminLinkHint:
+          "You'll also get a private facilitator link, so you can run the retro from another device — the meeting-room PC, say.",
         create: "Create board",
         creating: "Creating…",
         createFailed: "Creating the board failed. Please try again.",
@@ -73,6 +78,19 @@ const resources = {
         facilitator: "Facilitator",
         you: "you",
         offline: "offline",
+        anonymous: "Anonymous",
+        anonymousHint:
+          "Anonymous board: nobody sees who wrote which card — not even the facilitator.",
+      },
+      adminLink: {
+        label: "Facilitator link",
+        private: "Private",
+        hint: "Your facilitator link — just for you. Opens this board with facilitator controls on any device. Don't share it in the team chat.",
+        show: "Show link",
+        notAccepted:
+          "This facilitator link didn't give you facilitator controls — it may be incomplete, or your facilitator role on this board was removed.",
+        conflict:
+          "This facilitator link doesn't match the one this browser already holds for this board, so it was ignored and the saved one kept.",
       },
       phase: {
         stepper: "Retro phases",
@@ -211,6 +229,8 @@ const resources = {
           hint: "You'll see each person's cards as they present.",
           facilitator: "Only you can see the cards nobody has presented yet.",
         },
+        anonymous:
+          "Anonymous board: every card is on the table at once, and nobody is called up to present their own.",
       },
       focus: {
         label: "Focus mode",
@@ -297,6 +317,8 @@ const resources = {
           summary: "Summary",
         },
         includeAuthors: "Include author names",
+        includeAuthorsAnonymous:
+          "Who wrote a card and who voted for it stay out on this board.",
         rendering: "Rendering…",
         imageFailed: "The image could not be created. Try a smaller scope.",
         settings: "Board settings",
@@ -305,6 +327,8 @@ const resources = {
         voterNamesEnabled: "Show who voted (after the reveal)",
         voterNamesLocked: "Locked once voting has started.",
         voterNamesAnonymous: "Not available on an anonymous board.",
+        cursorsAnonymous:
+          "Not available on an anonymous board — a cursor would show who placed a card.",
         layout: "Board layout",
         layoutMode: {
           columns: "Columns",
@@ -502,15 +526,15 @@ const resources = {
           },
           whoReads: {
             q: "Who can read my notes, and when?",
-            a: "During the write phase, nobody — the facilitator included: the server never sends other people's notes to your browser. During the presenting round the room gets a person's cards from visible columns when the wheel calls them up. After that everyone with the link sees the shared board; columns the facilitator keeps hidden remain facilitator-only. The link is the only key, so only hand it to your team.",
+            a: "During the write phase, nobody — the facilitator included: the server never sends other people's notes to your browser. During the presenting round the room gets a person's cards from visible columns when the wheel calls them up — on an anonymous board, everyone's at once. After that everyone with the link sees the shared board; columns the facilitator keeps hidden remain facilitator-only. The link is the only key, so only hand it to your team.",
           },
           facilitator: {
             q: "Does the facilitator see more than the team?",
-            a: "Not in the write phase. In the presenting round, yes: the facilitator sees the whole board from the start, names included, because they run the round and need to see what's still to come. Once everyone has presented, everyone sees the same visible columns; any columns the facilitator keeps hidden remain facilitator-only.",
+            a: "Not in the write phase. In the presenting round, yes: the facilitator sees the whole board from the start, names included, because they run the round and need to see what's still to come. On an anonymous board everyone gets every card at once, and nobody — the facilitator included — sees names. Once everyone has presented, everyone sees the same visible columns; any columns the facilitator keeps hidden remain facilitator-only.",
           },
           hideAuthors: {
             q: "Can I hide who wrote which card?",
-            a: "Not yet. Kudos and the closing ROTI poll can be anonymous, and while voting is open nobody sees who voted for what — but the names on cards can't currently be switched off. Don't plan around it until it ships.",
+            a: "Yes — tick “Anonymous board” when you create it. Then nobody sees who wrote which card, not even the facilitator: the server sends a card's authorship to its author only, nobody is called up to present their own cards, voter names stay off and the export leaves authors out. It's decided at creation and can't be changed later in either direction, so everyone writes under the same promise. Who is on the board and who is marked ready stay visible. On a normal board, names are on the cards once they're revealed, and by default the vote result shows who voted for what — the vote bar says so before anyone votes, and the facilitator can switch it off. Kudos and the closing ROTI poll can be anonymous on any board.",
           },
           gifs: {
             q: "What about the GIFs?",
@@ -567,6 +591,11 @@ const resources = {
           columns: "Klassische Listen — eine Spalte pro Thema.",
           canvas: "Ein freies Board — Notizen frei in jeder Zone platzieren.",
         },
+        anonymous: "Anonymes Board",
+        anonymousHint:
+          "Niemand sieht, wer welche Karte geschrieben hat — auch die Moderation nicht. Lässt sich später nicht ändern.",
+        adminLinkHint:
+          "Du bekommst außerdem einen privaten Moderationslink — damit moderierst du auch von einem anderen Gerät aus, etwa vom Rechner im Meetingraum.",
         create: "Board erstellen",
         creating: "Wird erstellt…",
         createFailed:
@@ -574,7 +603,7 @@ const resources = {
       },
       template: {
         "went-well": {
-          name: "Klassisch — Lief gut / Zu verbessern / Maßnahmen",
+          name: "Klassisch — Lief gut / Zu verbessern / Action Items",
           hint: "Der universelle Standard. Passt für fast jede Sprint-Retro.",
         },
         "start-stop-continue": {
@@ -617,6 +646,19 @@ const resources = {
         facilitator: "Moderation",
         you: "du",
         offline: "offline",
+        anonymous: "Anonym",
+        anonymousHint:
+          "Anonymes Board: Niemand sieht, wer welche Karte geschrieben hat — auch die Moderation nicht.",
+      },
+      adminLink: {
+        label: "Moderationslink",
+        private: "Privat",
+        hint: "Dein Moderationslink — nur für dich. Damit übernimmst du die Moderation auf jedem Gerät. Nicht im Team-Chat teilen.",
+        show: "Link anzeigen",
+        notAccepted:
+          "Dieser Moderationslink hat dir keine Moderationsrechte gegeben — vielleicht ist er unvollständig, oder dir wurde die Moderation auf diesem Board entzogen.",
+        conflict:
+          "Dieser Moderationslink passt nicht zu dem, den dieser Browser für dieses Board schon gespeichert hat. Er wurde ignoriert, der gespeicherte bleibt.",
       },
       phase: {
         stepper: "Retro-Phasen",
@@ -661,8 +703,8 @@ const resources = {
             description: "Karten mit Punkten priorisieren.",
           },
           discuss: {
-            title: "Diskutieren & Maßnahmen",
-            description: "Karten besprechen und Maßnahmen festhalten.",
+            title: "Diskutieren & Action Items",
+            description: "Karten besprechen und Action Items festhalten.",
           },
           close: {
             title: "Abschluss mit Kudos & ROTI",
@@ -757,6 +799,8 @@ const resources = {
           facilitator:
             "Nur du siehst die Karten, die noch niemand vorgestellt hat.",
         },
+        anonymous:
+          "Anonymes Board: Alle Karten liegen gleichzeitig offen, und niemand wird aufgerufen, die eigenen vorzustellen.",
       },
       focus: {
         label: "Fokusmodus",
@@ -848,6 +892,8 @@ const resources = {
           summary: "Zusammenfassung",
         },
         includeAuthors: "Namen der Autor:innen einschließen",
+        includeAuthorsAnonymous:
+          "Wer eine Karte geschrieben und wer dafür gestimmt hat, bleibt auf diesem Board draußen.",
         rendering: "Wird erstellt…",
         imageFailed:
           "Das Bild konnte nicht erstellt werden. Versuche einen kleineren Umfang.",
@@ -857,6 +903,8 @@ const resources = {
         voterNamesEnabled: "Zeigen, wer gestimmt hat (nach der Auflösung)",
         voterNamesLocked: "Ab Beginn der Abstimmung gesperrt.",
         voterNamesAnonymous: "Auf einem anonymen Board nicht verfügbar.",
+        cursorsAnonymous:
+          "Auf einem anonymen Board nicht verfügbar — ein Cursor würde zeigen, wer eine Karte platziert hat.",
         layout: "Board-Layout",
         layoutMode: {
           columns: "Spalten",
@@ -1058,15 +1106,15 @@ const resources = {
           },
           whoReads: {
             q: "Wer kann meine Notizen lesen — und wann?",
-            a: "In der Schreibphase niemand, auch nicht die Moderation: Der Server schickt fremde Notizen gar nicht erst an andere Browser. In der Vorstellrunde bekommt das Team die Karten einer Person aus den sichtbaren Spalten, sobald das Glücksrad sie aufruft. Danach sehen alle mit dem Link das freigegebene Board; Spalten, die die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar. Der Link ist der einzige Schlüssel, also gib ihn nur deinem Team.",
+            a: "In der Schreibphase niemand, auch nicht die Moderation: Der Server schickt fremde Notizen gar nicht erst an andere Browser. In der Vorstellrunde bekommt das Team die Karten einer Person aus den sichtbaren Spalten, sobald das Glücksrad sie aufruft — auf einem anonymen Board alle auf einmal. Danach sehen alle mit dem Link das freigegebene Board; Spalten, die die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar. Der Link ist der einzige Schlüssel, also gib ihn nur deinem Team.",
           },
           facilitator: {
             q: "Sieht die Moderation mehr als das Team?",
-            a: "In der Schreibphase nicht. In der Vorstellrunde ja: Die Moderation sieht von Anfang an das ganze Board, samt Namen, weil sie die Runde leitet und wissen muss, was noch kommt. Sobald alle vorgestellt haben, sehen alle dieselben sichtbaren Spalten; Spalten, welche die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar.",
+            a: "In der Schreibphase nicht. In der Vorstellrunde ja: Die Moderation sieht von Anfang an das ganze Board, samt Namen, weil sie die Runde leitet und wissen muss, was noch kommt. Auf einem anonymen Board bekommen alle sofort alle Karten, und niemand — auch die Moderation nicht — sieht Namen. Sobald alle vorgestellt haben, sehen alle dieselben sichtbaren Spalten; Spalten, welche die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar.",
           },
           hideAuthors: {
             q: "Kann ich ausblenden, wer welche Karte geschrieben hat?",
-            a: "Noch nicht. Kudos und die ROTI-Umfrage am Ende kannst du anonym abgeben, und während der Abstimmung sieht niemand, wer wofür gestimmt hat — aber die Namen an den Karten lassen sich derzeit nicht abschalten. Plane nicht damit, bis es da ist.",
+            a: "Ja — setz beim Anlegen den Haken bei „Anonymes Board“. Dann sieht niemand, wer welche Karte geschrieben hat, auch die Moderation nicht: Der Server schickt die Urheberschaft einer Karte nur an die Person, die sie geschrieben hat, niemand wird zum Vorstellen der eigenen Karten aufgerufen, Namen bei der Abstimmung bleiben aus, und der Export lässt die Namen weg. Das wird beim Anlegen entschieden und lässt sich danach in keine Richtung ändern — so schreiben alle unter demselben Versprechen. Wer auf dem Board ist und wer „fertig“ gemeldet hat, bleibt sichtbar. Auf einem normalen Board stehen die Namen an den Karten, sobald sie aufgedeckt sind, und das Abstimmungsergebnis zeigt standardmäßig, wer wofür gestimmt hat — die Abstimmungsleiste sagt das, bevor jemand abstimmt, und die Moderation kann es abschalten. Kudos und die ROTI-Umfrage am Ende kannst du auf jedem Board anonym abgeben.",
           },
           gifs: {
             q: "Was ist mit den GIFs?",

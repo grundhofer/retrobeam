@@ -480,8 +480,8 @@ describe("presenter-scoped visibility", () => {
     const ben = await joined(boardId, "Ben");
     const columnId = anna.sync.columns[0]?.id;
     if (!columnId) throw new Error("setup");
-    // Anonymity is only reachable through duplication today, so seed it the
-    // way m6 does — directly, then reconnect.
+    // Seeded directly after creation (the way m6 does), so this pins the
+    // reveal rule itself rather than the create route.
     await runInDurableObject(boardStub(env, boardId), (_i, state) => {
       state.storage.sql.exec(
         "INSERT INTO board_meta (key, value) VALUES ('anonymous', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
@@ -632,15 +632,18 @@ describe("the presenting walkthrough", () => {
 
   it("never stages a card on an anonymous board", async () => {
     const { boardId, anna, ben } = await round();
-    // Anonymity is not reachable from the UI yet; force the row, because the
-    // point is that the walkthrough must refuse it rather than rely on a
-    // button being hidden.
+    // Force the row on a board that is already presenting, because the point
+    // is that the walkthrough must refuse it rather than rely on a button
+    // being hidden.
     await runInDurableObject(boardStub(env, boardId), (_i, state) => {
       state.storage.sql.exec(
         "INSERT INTO board_meta (key, value) VALUES ('anonymous', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
       );
     });
-    await stage(anna, ben.you.id);
+    // Nobody is called up on an anonymous board at all (anonymous.test.ts
+    // covers that refusal); the stage stays empty either way.
+    anna.socket.send({ type: "admin.picker.pick", participantId: ben.you.id });
+    await anna.socket.waitForNext((e) => e.type === "reject");
     // The spotlight is a NOTE ID and picker.spun names the presenter in the
     // clear — the pair would reconstruct the authorship the board promised to
     // strip. So nothing is staged, for anyone, and nothing rides the wire.

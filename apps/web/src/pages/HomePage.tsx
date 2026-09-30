@@ -21,6 +21,7 @@ export function HomePage() {
   const [name, setName] = useState("");
   const [template, setTemplate] = useState<TemplateKey>("went-well");
   const [layout, setLayout] = useState<LayoutMode>("columns");
+  const [anonymous, setAnonymous] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -36,6 +37,7 @@ export function HomePage() {
         template,
         locale,
         layout,
+        anonymous,
       );
       saveAdminToken(boardId, adminToken);
       void navigate(`/board/${boardId}`);
@@ -118,6 +120,32 @@ export function HomePage() {
                 {t(`home.layoutHint.${layout}`)}
               </span>
             </div>
+            {/* Offered HERE and nowhere else: anonymity is fixed at creation.
+                The hint says so before the box is ticked, not after. */}
+            <label className="flex flex-col gap-1.5">
+              <span className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                <input
+                  type="checkbox"
+                  data-testid="home-anonymous"
+                  checked={anonymous}
+                  onChange={(event) => setAnonymous(event.target.checked)}
+                  className="accent-accent"
+                />
+                {t("home.anonymous")}
+              </span>
+              <span className="text-sm text-zinc-500">
+                {t("home.anonymousHint")}
+              </span>
+            </label>
+            {/* Said before the board exists: whoever creates it on a laptop
+                and runs it on the meeting-room PC should know there is a way
+                across, not find out once they are standing there without one. */}
+            <p
+              data-testid="home-admin-link-hint"
+              className="text-sm text-zinc-500"
+            >
+              {t("home.adminLinkHint")}
+            </p>
             <button
               type="submit"
               disabled={busy || name.trim() === ""}
