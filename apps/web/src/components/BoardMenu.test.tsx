@@ -153,3 +153,20 @@ test("the template link is the facilitator's, and refuses a set /new would rejec
     .element(screen.getByText(i18n.t("menu.templateLinkTooMany", { max: 8 })))
     .toBeVisible();
 });
+
+test("with every column staged, the template link says why it is locked", async () => {
+  const screen = await render(
+    view({
+      isAdmin: true,
+      columns: [column("Surprise", 0, true), column("Later", 1, true)],
+    }),
+  );
+  await screen.getByTestId("board-menu").click();
+  await expect.element(screen.getByTestId("template-link-copy")).toBeDisabled();
+  await expect
+    .element(screen.getByText(i18n.t("menu.templateLinkNoVisible")))
+    .toBeVisible();
+  await expect
+    .element(screen.getByText(i18n.t("menu.templateLinkHint")))
+    .not.toBeInTheDocument();
+});

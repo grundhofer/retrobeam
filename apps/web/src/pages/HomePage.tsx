@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router";
 import {
@@ -31,6 +31,16 @@ export function HomePage() {
   const linkColumnsRaw = searchParams.get("columns");
   const linkColumns =
     linkColumnsRaw === null ? null : parseTemplateLinkColumns(linkColumnsRaw);
+  // The drop button removes itself, so focus would fall to <body>. It moves
+  // to the picker that takes its place instead — only after a drop, never
+  // on load, where the name field keeps its autofocus.
+  const templateSelectRef = useRef<HTMLSelectElement>(null);
+  const focusPickerAfterDrop = useRef(false);
+  useEffect(() => {
+    if (linkColumnsRaw !== null || !focusPickerAfterDrop.current) return;
+    focusPickerAfterDrop.current = false;
+    templateSelectRef.current?.focus();
+  }, [linkColumnsRaw]);
   const [template, setTemplate] = useState<TemplateKey>(() =>
     linkTemplateKey.success ? linkTemplateKey.data : "went-well",
   );
@@ -115,15 +125,16 @@ export function HomePage() {
                 <button
                   type="button"
                   data-testid="home-link-columns-drop"
-                  onClick={() =>
+                  onClick={() => {
+                    focusPickerAfterDrop.current = true;
                     setSearchParams(
                       (params) => {
                         params.delete("columns");
                         return params;
                       },
                       { replace: true },
-                    )
-                  }
+                    );
+                  }}
                   className="self-start text-sm font-medium text-accent-strong underline hover:no-underline"
                 >
                   {t("home.linkColumnsDrop")}
@@ -135,6 +146,7 @@ export function HomePage() {
                   {t("home.template")}
                 </span>
                 <select
+                  ref={templateSelectRef}
                   value={template}
                   onChange={(event) =>
                     setTemplate(event.target.value as typeof template)

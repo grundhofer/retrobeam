@@ -393,6 +393,7 @@ const resources = {
         templateLinkHint:
           "A /new link with the visible column names — no cards, nothing else.",
         templateLinkTooMany: "A template link holds at most {{max}} columns.",
+        templateLinkNoVisible: "No visible columns to put in a link.",
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
         keep: "Keep",
@@ -1102,6 +1103,7 @@ const resources = {
           "Ein /new-Link mit den sichtbaren Spaltennamen — keine Karten, sonst nichts.",
         templateLinkTooMany:
           "Ein Vorlage-Link fasst höchstens {{max}} Spalten.",
+        templateLinkNoVisible: "Keine sichtbaren Spalten für einen Link.",
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
         keep: "Behalten",

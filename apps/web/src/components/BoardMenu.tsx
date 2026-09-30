@@ -396,10 +396,13 @@ function TemplateLinkButton({ columns }: { columns: readonly Column[] }) {
       >
         {copied ? t("board.copied") : t("menu.templateLink")}
       </button>
+      {/* A disabled button says why, as the voter-names switch does. */}
       <p className="mt-1 text-xs text-zinc-500">
-        {tooMany
-          ? t("menu.templateLinkTooMany", { max: TEMPLATE_LINK_MAX_COLUMNS })
-          : t("menu.templateLinkHint")}
+        {names.length === 0
+          ? t("menu.templateLinkNoVisible")
+          : tooMany
+            ? t("menu.templateLinkTooMany", { max: TEMPLATE_LINK_MAX_COLUMNS })
+            : t("menu.templateLinkHint")}
       </p>
       {fallbackUrl !== null ? (
         <input

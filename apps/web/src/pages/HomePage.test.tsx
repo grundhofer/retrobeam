@@ -113,6 +113,8 @@ test("dropping the link's columns falls back to the template picker", async () =
     .element(screen.getByTestId("home-link-columns"))
     .not.toBeInTheDocument();
   await expect.element(screen.getByRole("combobox")).toHaveValue("went-well");
+  // The button removed itself; focus lands on what replaced it, not <body>.
+  await expect.element(screen.getByRole("combobox")).toHaveFocus();
   await screen.getByRole("button", { name: i18n.t("home.create") }).click();
   await expect.poll(() => seen.body?.template).toBe("went-well");
   expect(seen.body).not.toHaveProperty("columns");
