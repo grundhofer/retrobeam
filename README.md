@@ -91,16 +91,46 @@ If you need to bring this past a German works council, [`docs/05-privacy-gdpr.md
 
 RetroBeam runs on the Cloudflare free tier — one Worker plus a SQLite-backed Durable Object per board. There is no database to operate.
 
+Fork the repository first and deploy from your fork: `REPO_URL` has to point at a public repository with the source of your build, and the deploy check tells a fork from retrobeam.de's own checkout by the repository it runs in.
+
 ```sh
-git clone https://github.com/grundhofer/retrobeam.git
+git clone https://github.com/<you>/retrobeam.git
 cd retrobeam
 pnpm install
 pnpm --filter @retrobeam/web run deploy   # needs `wrangler login`
 ```
 
-Before the first deployment, replace the bracketed operator, contact and host
-values in `apps/web/src/content/operator.ts`; the deploy command deliberately
-stops while any of them remain.
+The repository ships retrobeam.de's own operator data, because that is what
+deploys from it. Before your first deployment, make it yours:
+
+- `apps/worker/wrangler.jsonc` — `routes`: your domain, or `[]` to run on
+  workers.dev only.
+- `apps/web/src/content/operator.ts` — `OPERATOR` (the name, address and
+  e-mail your imprint and privacy notice show), `REPO_URL` (the public
+  repository with the source of the build you run — AGPL §13 requires the
+  in-app source link to reach it), `WORKERS_DEV_HOST` (your worker's
+  workers.dev origin), `INSTANCE_HOST` (your domain, or `WORKERS_DEV_HOST`
+  without a route) and `NOTICE_DATE`/`CLOUDFLARE_SETTINGS_CHECKED`.
+- `apps/web/index.html` — the `og:image` URL.
+- `apps/web/public/robots.txt` and `apps/web/public/sitemap.xml` — the
+  absolute URLs.
+- `apps/web/src/content/imprint.{en,de}.tsx` and `privacy.{en,de}.tsx` — the
+  imprint and privacy notice describe retrobeam.de; as the operator you are
+  the controller of your instance, so they have to describe yours.
+- `apps/web/src/i18n.ts` — the landing page's "Not a commercial service" line
+  and the "Can I use this at work" FAQ answer (EN and DE) speak for
+  retrobeam.de.
+
+`pnpm check:legal`, which the deploy command runs first, stops the deploy and
+names what is left while the route and `INSTANCE_HOST` disagree, while a
+repository other than grundhofer/retrobeam (`GITHUB_REPOSITORY` in Actions,
+the `origin` remote locally) still routes retrobeam.de, or while
+retrobeam.de's operator, repository or host values remain in any of these
+files except `i18n.ts`. The two dates and `i18n.ts` are not checked — review
+them yourself.
+
+A self-hosted RetroBeam instance sends no data to the author: there is no
+telemetry, no licence check and no update ping.
 
 Optional: switch on GIF search with a [KLIPY](https://klipy.com/api) key.
 

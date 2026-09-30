@@ -41,7 +41,16 @@ export const CLOUDFLARE_SETTINGS_CHECKED = "2026-09-11";
 // Full production fallback origin, for example "retrobeam.example.workers.dev".
 export const WORKERS_DEV_HOST = "retrobeam.sebastiangrundhoefer.workers.dev";
 
+// AGPL §13: the footer's source offer links here, so a modified build must
+// point at the repository that holds ITS source, not at the upstream one.
 export const REPO_URL = "https://github.com/grundhofer/retrobeam";
+
+// The host this operator data belongs to. Nothing in the app reads it;
+// `pnpm check:legal` compares it with the route in apps/worker/wrangler.jsonc
+// so a clone deployed to another host stops until it carries its own
+// operator, REPO_URL and WORKERS_DEV_HOST instead of retrobeam.de's. With no
+// route (workers.dev only), set it to WORKERS_DEV_HOST.
+export const INSTANCE_HOST = "retrobeam.de";
 
 export function isPlaceholder(value: string): boolean {
   return value.startsWith("[") && value.endsWith("]");
