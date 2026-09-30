@@ -147,7 +147,7 @@ test("a note written while offline is delivered after reconnect", async ({
       window as unknown as { __retrobeamWs?: { reconnect: () => void } }
     ).__retrobeamWs?.reconnect(),
   );
-  await expect(page.getByRole("status")).toBeVisible(); // offline banner
+  await expect(page.getByTestId("connection-status")).toBeVisible(); // offline banner
   await composer.fill("Written while offline");
   await composer.press("Enter");
   await expect(page.getByText("Written while offline")).toBeVisible(); // optimistic
@@ -155,7 +155,9 @@ test("a note written while offline is delivered after reconnect", async ({
 
   // The queued command flushes after the rejoin; a reload proves the note
   // was actually persisted server-side, not just rendered optimistically.
-  await expect(page.getByRole("status")).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.getByTestId("connection-status")).toHaveCount(0, {
+    timeout: 20_000,
+  });
   await page.reload();
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(page.getByText("Written while offline")).toBeVisible({
@@ -218,7 +220,9 @@ test("a note in flight when the socket dies survives the reconnect", async ({
   });
 
   // A reload proves it reached the server rather than merely staying on screen.
-  await expect(page.getByRole("status")).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.getByTestId("connection-status")).toHaveCount(0, {
+    timeout: 20_000,
+  });
   await page.reload();
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(page.getByText("Sent into a dead socket")).toBeVisible({

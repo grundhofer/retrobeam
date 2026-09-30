@@ -71,6 +71,8 @@ const resources = {
           "{{count}} person is here. Share the link — start the retro when everyone arrived.",
         hint_other:
           "{{count}} people are here. Share the link — start the retro when everyone arrived.",
+        memberHint:
+          "You're in. The facilitator will start the retro once everyone has joined.",
         carried: {
           title: "Open action items from the last retro",
           hint: "Carried over from “{{name}}” — start by checking where they stand.",
@@ -127,6 +129,7 @@ const resources = {
       },
       phasePlan: {
         title: "Plan this retro",
+        memberTitle: "Today's agenda",
         adminHint: "Choose the optional phases before you start.",
         memberHint: "This is the planned agenda for the retro.",
         locked: "The agenda is locked because this retro has already started.",
@@ -373,9 +376,42 @@ const resources = {
         deleteNow: "Delete now",
         reallyDelete: "Really delete?",
       },
+      guide: {
+        checkin: {
+          facilitator: "Warm up with the question, then move on to writing.",
+          member: "Warm-up: answer the question when it's your turn.",
+        },
+        write: {
+          facilitator:
+            "Everyone writes. Move on to presenting once everyone is done.",
+          member: "Write your cards — nobody sees them until it's your turn.",
+          memberAnonymous:
+            "Write your cards — nobody sees them before the presenting round, and nobody ever sees who wrote them.",
+        },
+        present: {
+          facilitator:
+            "Pick who presents next — stack similar cards once everyone has had a turn.",
+          member: "When you're picked, walk the room through your cards.",
+          anonymous: "Read all cards together and stack similar ones.",
+        },
+        vote: {
+          facilitator:
+            "Everyone votes blind. Move on to the discussion once everyone is done.",
+          member: "Spend your votes on the topics you most want to discuss.",
+        },
+        discuss: {
+          facilitator: "Walk the top topics and capture action items.",
+          member: "Discuss the top topics and capture action items.",
+        },
+        close: {
+          facilitator: "Kudos and a quick rating — then finish the retro.",
+          member: "Send kudos and rate the retro.",
+        },
+      },
       roster: {
         makeFacilitator: "Make facilitator",
         removeFacilitator: "Remove facilitator",
+        lastFacilitator: "At least one person has to facilitate.",
         you: "(you)",
       },
       done: {
@@ -709,6 +745,8 @@ const resources = {
           "{{count}} Person ist da. Teile den Link — starte die Retro, wenn alle da sind.",
         hint_other:
           "{{count}} Personen sind da. Teile den Link — starte die Retro, wenn alle da sind.",
+        memberHint:
+          "Du bist drin. Die Moderation startet die Retro, sobald alle da sind.",
         carried: {
           title: "Offene Action Items aus der letzten Retro",
           hint: "Übernommen aus „{{name}}“ — schaut zu Beginn, wie es damit steht.",
@@ -765,6 +803,7 @@ const resources = {
       },
       phasePlan: {
         title: "Ablauf festlegen",
+        memberTitle: "Ablauf dieser Retro",
         adminHint: "Wähle vor dem Start die optionalen Phasen aus.",
         memberHint: "Das ist der geplante Ablauf dieser Retro.",
         locked:
@@ -1019,9 +1058,47 @@ const resources = {
         deleteNow: "Jetzt löschen",
         reallyDelete: "Wirklich löschen?",
       },
+      guide: {
+        checkin: {
+          facilitator:
+            "Zum Aufwärmen die Frage in die Runde geben — dann weiter zum Schreiben.",
+          member: "Zum Aufwärmen: beantworte die Frage, wenn du dran bist.",
+        },
+        write: {
+          facilitator:
+            "Alle schreiben. Weiter zur Vorstellrunde, wenn alle fertig sind.",
+          member: "Schreib deine Karten — niemand sieht sie, bis du dran bist.",
+          memberAnonymous:
+            "Schreib deine Karten — vor der Vorstellrunde sieht sie niemand, und wer sie geschrieben hat, sieht nie jemand.",
+        },
+        present: {
+          facilitator:
+            "Bestimm, wer als Nächstes vorstellt — ähnliche Karten stapelt ihr, wenn alle dran waren.",
+          member: "Wenn du gezogen wirst, stellst du deine Karten vor.",
+          anonymous:
+            "Lest alle Karten gemeinsam und stapelt ähnliche aufeinander.",
+        },
+        vote: {
+          facilitator:
+            "Alle stimmen verdeckt ab. Weiter zur Diskussion, wenn alle fertig sind.",
+          member:
+            "Verteil deine Punkte auf die Themen, die du am dringendsten besprechen willst.",
+        },
+        discuss: {
+          facilitator:
+            "Geht die Top-Themen durch und haltet Action Items fest.",
+          member: "Besprecht die Top-Themen und haltet Action Items fest.",
+        },
+        close: {
+          facilitator:
+            "Kudos und eine kurze Bewertung — danach beendest du die Retro.",
+          member: "Verteil Kudos und bewerte die Retro.",
+        },
+      },
       roster: {
         makeFacilitator: "Zur Moderation machen",
         removeFacilitator: "Moderation entziehen",
+        lastFacilitator: "Mindestens eine Person muss moderieren.",
         you: "(du)",
       },
       done: {

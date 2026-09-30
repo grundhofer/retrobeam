@@ -3,13 +3,17 @@
 
 import { useTranslation } from "react-i18next";
 import type { Participant } from "@retrobeam/shared";
+import { isLastFacilitator, RoleToggleButton } from "./RoleToggleButton.js";
 
 export interface RosterProps {
   participants: Participant[];
   youId: string | null;
+  /** facilitators get the role switch on every row; the header's avatar menu
+   *  has it too, but behind 28px circles nobody finds in the lobby */
+  isAdmin?: boolean;
 }
 
-export function Roster({ participants, youId }: RosterProps) {
+export function Roster({ participants, youId, isAdmin = false }: RosterProps) {
   const { t } = useTranslation();
   return (
     <section aria-label={t("board.participants")}>
@@ -44,6 +48,24 @@ export function Roster({ participants, youId }: RosterProps) {
             {!participant.online ? (
               <span className="ml-auto text-xs text-zinc-400">
                 {t("board.offline")}
+              </span>
+            ) : null}
+            {/* Not on the last facilitator's own row: there it could only be
+                refused. The avatar menu, where someone looks for it, says why. */}
+            {isAdmin && !isLastFacilitator(participant, participants) ? (
+              <span
+                className={
+                  participant.role === "facilitator" || !participant.online
+                    ? ""
+                    : "ml-auto"
+                }
+              >
+                <RoleToggleButton
+                  participant={participant}
+                  participants={participants}
+                  testId={`roster-role-${participant.name}`}
+                  className="rounded-lg px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+                />
               </span>
             ) : null}
           </li>

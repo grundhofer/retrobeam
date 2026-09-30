@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { nameInitials, type Participant } from "@retrobeam/shared";
-import { useConnection } from "../lib/connection.js";
+import { RoleToggleButton } from "./RoleToggleButton.js";
 
 export interface AvatarRowProps {
   participants: Participant[];
@@ -16,7 +16,6 @@ export interface AvatarRowProps {
 // Facilitators can click an avatar to hand off / share the facilitator role.
 export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
   const { t } = useTranslation();
-  const { send } = useConnection();
   const [openId, setOpenId] = useState<string | null>(null);
   // Which side of the avatar the role menu hangs from — see HeaderPopover.
   // On a phone the row starts at the left edge, and a right-aligned menu
@@ -82,27 +81,13 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
                 alignLeft ? "left-0" : "right-0"
               }`}
             >
-              <button
-                type="button"
-                data-testid={`role-toggle-${participant.name}`}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  send({
-                    type: "admin.role.set",
-                    participantId: participant.id,
-                    role:
-                      participant.role === "facilitator"
-                        ? "member"
-                        : "facilitator",
-                  });
-                  setOpenId(null);
-                }}
-                className="block w-full rounded px-2 py-1 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-              >
-                {participant.role === "facilitator"
-                  ? t("roster.removeFacilitator")
-                  : t("roster.makeFacilitator")}
-              </button>
+              <RoleToggleButton
+                participant={participant}
+                participants={participants}
+                onDone={() => setOpenId(null)}
+                testId={`role-toggle-${participant.name}`}
+                className="block w-full rounded px-2 py-1 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:text-zinc-400 disabled:hover:bg-transparent"
+              />
               {participant.id === youId ? (
                 <span className="block px-2 pb-0.5 text-xs text-zinc-400">
                   {t("roster.you")}

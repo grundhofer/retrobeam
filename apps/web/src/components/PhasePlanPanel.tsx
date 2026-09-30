@@ -70,7 +70,11 @@ export function PhasePlanPanel({
       className="rounded-xl border border-zinc-200 bg-white p-5"
     >
       <div className="mb-4">
-        <h2 className="font-semibold text-zinc-900">{t("phasePlan.title")}</h2>
+        {/* "Plan this retro" is an instruction only the facilitator can
+            follow; everyone else is reading the agenda. */}
+        <h2 className="font-semibold text-zinc-900">
+          {isAdmin ? t("phasePlan.title") : t("phasePlan.memberTitle")}
+        </h2>
         <p data-testid="phase-plan-hint" className="mt-1 text-sm text-zinc-500">
           {locked
             ? t("phasePlan.locked")

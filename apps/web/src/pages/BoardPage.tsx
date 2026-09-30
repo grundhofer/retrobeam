@@ -20,6 +20,7 @@ import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
 import { BoardMenu } from "../components/BoardMenu.js";
 import { BrandLogo } from "../components/BrandLogo.js";
+import { PhaseGuide } from "../components/PhaseGuide.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
 import { InviteButton } from "../components/InviteButton.js";
@@ -573,6 +574,7 @@ function Room({
         {status !== "online" ? (
           <div
             role="status"
+            data-testid="connection-status"
             className="bg-amber-100 px-6 py-2 text-sm text-amber-900"
           >
             {status === "connecting"
@@ -583,6 +585,11 @@ function Room({
 
         {!inLobby && state.phase !== "done" ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-100 bg-white/60 px-6 py-2">
+            <PhaseGuide
+              phase={state.phase}
+              isAdmin={isAdmin}
+              anonymous={anonymous}
+            />
             <TimerPanel timer={state.timer} isAdmin={isAdmin} />
             {/* Top-centre, in the phase strip rather than the header: every
                 other phase-scoped control lives here, and the header already
@@ -624,17 +631,22 @@ function Room({
         <main className="flex-1 px-6 py-6">
           {inLobby ? (
             <div className="mx-auto flex max-w-2xl flex-col gap-8">
-              <CarriedActions actions={state.actions} />
-              <PhasePlanPanel
-                phasePlan={phasePlan}
-                isAdmin={isAdmin}
-                locked={config?.phasePlanLocked ?? false}
-                icebreakerId={state.icebreakerId}
-                workingAgreements={state.workingAgreements}
-              />
+              {/* Who's in and how to get others in comes first — for the
+                  facilitator, inviting is the first job; for everyone else the
+                  first thing to know is that they are in and what happens next.
+                  The agenda follows. */}
               <div className="rounded-xl border border-zinc-200 bg-white p-5">
-                <p className="mb-4 text-sm text-zinc-500">
-                  {t("lobby.hint", { count: onlineCount })}
+                <p
+                  data-testid="lobby-hint"
+                  className={
+                    isAdmin
+                      ? "mb-4 text-sm text-zinc-500"
+                      : "mb-4 text-zinc-700"
+                  }
+                >
+                  {isAdmin
+                    ? t("lobby.hint", { count: onlineCount })
+                    : t("lobby.memberHint")}
                 </p>
                 {anonymous ? (
                   <p
@@ -655,7 +667,19 @@ function Room({
                   </div>
                 ) : null}
               </div>
-              <Roster participants={state.roster} youId={you.id} />
+              <CarriedActions actions={state.actions} />
+              <PhasePlanPanel
+                phasePlan={phasePlan}
+                isAdmin={isAdmin}
+                locked={config?.phasePlanLocked ?? false}
+                icebreakerId={state.icebreakerId}
+                workingAgreements={state.workingAgreements}
+              />
+              <Roster
+                participants={state.roster}
+                youId={you.id}
+                isAdmin={isAdmin}
+              />
             </div>
           ) : state.phase === "checkin" ? (
             <CheckinPanel
