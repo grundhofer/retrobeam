@@ -118,6 +118,8 @@ const resources = {
         done: "Done",
         next: "Next",
         startRetro: "Start retro",
+        finishQuestion: "Finish the retro? The board becomes read-only.",
+        finish: "Finish retro",
       },
       phasePlan: {
         title: "Plan this retro",
@@ -371,7 +373,25 @@ const resources = {
       },
       done: {
         title: "Retro finished",
-        body: "This board is archived and read-only.",
+        cards_one: "{{count}} card",
+        cards_other: "{{count}} cards",
+        people_one: "{{count}} person",
+        people_other: "{{count}} people",
+        actions_one: "{{count}} action item",
+        actions_other: "{{count}} action items",
+        retention:
+          "This board is read-only and deletes itself automatically on {{date}} — export what you want to keep before then.",
+        retentionKept:
+          "This board is read-only and is being kept — it won't delete itself automatically.",
+        export: "Save the results",
+        moreFormats: "More formats",
+        scopeHint: {
+          summary: "Top topics and action items.",
+          all: "Every card, the action items and the kudos.",
+        },
+        topTopics: "Top topics",
+        topTopicsHint: "From the vote, most votes first.",
+        allCards: "All cards",
       },
       deleted: {
         title: "Board deleted",
@@ -721,6 +741,8 @@ const resources = {
         done: "Fertig",
         next: "Weiter",
         startRetro: "Retro starten",
+        finishQuestion: "Retro beenden? Danach ist das Board schreibgeschützt.",
+        finish: "Retro beenden",
       },
       phasePlan: {
         title: "Ablauf festlegen",
@@ -982,7 +1004,25 @@ const resources = {
       },
       done: {
         title: "Retro abgeschlossen",
-        body: "Dieses Board ist archiviert und schreibgeschützt.",
+        cards_one: "{{count}} Karte",
+        cards_other: "{{count}} Karten",
+        people_one: "{{count}} Person",
+        people_other: "{{count}} Personen",
+        actions_one: "{{count}} Action Item",
+        actions_other: "{{count}} Action Items",
+        retention:
+          "Dieses Board ist schreibgeschützt und löscht sich am {{date}} automatisch — exportiere vorher, was ihr behalten wollt.",
+        retentionKept:
+          "Dieses Board ist schreibgeschützt und wird behalten — es löscht sich nicht automatisch.",
+        export: "Ergebnis sichern",
+        moreFormats: "Weitere Formate",
+        scopeHint: {
+          summary: "Top-Themen und Action Items.",
+          all: "Alle Karten, die Action Items und die Kudos.",
+        },
+        topTopics: "Top-Themen",
+        topTopicsHint: "Aus der Abstimmung, meiste Stimmen zuerst.",
+        allCards: "Alle Karten",
       },
       deleted: {
         title: "Board gelöscht",

@@ -157,6 +157,10 @@ export function BoardColumns(props: BoardColumnsProps) {
 
   // Reorganizing is frozen once voting starts (stacks are votables).
   const allowColumnDrop = phase === "write" || phase === "present";
+  // The finished board is frozen for the facilitator too — the server refuses
+  // every column command in "done", so the controls would only earn a reject
+  // and a resync. It is rendered read-only on the results page.
+  const manageColumns = isAdmin && phase !== "done";
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -192,7 +196,7 @@ export function BoardColumns(props: BoardColumnsProps) {
           />
         ))}
       </div>
-      {isAdmin ? (
+      {manageColumns ? (
         // Deliberately outside the grid: as a grid item this ghost claims a
         // whole track, so a facilitator would get four narrow columns where a
         // member gets three wide ones. A facilitator-only affordance must not
@@ -307,11 +311,14 @@ function BoardColumn({
   const newestFirst = phase === "write";
   const columnNotes = notes
     .filter((note) => note.columnId === column.id)
-    .sort((a, b) =>
+    .sort(
       newestFirst
-        ? (byOrder ? b.order - a.order : 0) || b.id.localeCompare(a.id)
-        : (byOrder ? a.order - b.order : 0) || a.id.localeCompare(b.id),
+        ? (a, b) =>
+            (byOrder ? b.order - a.order : 0) || b.id.localeCompare(a.id)
+        : readingOrder(byOrder),
     );
+
+  const ColumnTitle = phase === "done" ? "h3" : "h2";
 
   // Write-phase "cards exist" signal: how many of the column's cards belong to
   // OTHER people. Before the reveal the client only holds its own notes, so
@@ -461,7 +468,9 @@ function BoardColumn({
             />
           </form>
         ) : (
-          <h2 className="flex-1 truncate text-sm font-semibold tracking-wide text-zinc-600 uppercase">
+          // h3 in "done": there the board sits under the results page's "All
+          // cards" h2, and an h2 per column read as top-level sections.
+          <ColumnTitle className="flex-1 truncate text-sm font-semibold tracking-wide text-zinc-600 uppercase">
             {column.name}
             {column.hidden ? (
               <span
@@ -474,9 +483,9 @@ function BoardColumn({
             <span className="ml-1.5 font-normal text-zinc-400 tabular-nums">
               {columnNotes.length}
             </span>
-          </h2>
+          </ColumnTitle>
         )}
-        {isAdmin && !renaming ? (
+        {isAdmin && !renaming && phase !== "done" ? (
           <>
             <button
               type="button"
@@ -582,13 +591,7 @@ function BoardColumn({
               {item.kind === "note" ? (
                 <NoteCard note={item.note} revealIndex={index} {...cardProps} />
               ) : (
-                <div
-                  data-testid="note-stack"
-                  className="flex flex-col gap-1.5 rounded-2xl border border-accent/30 bg-accent/5 p-1.5"
-                >
-                  <span className="px-1.5 text-xs font-semibold text-accent-strong tabular-nums">
-                    ×{item.notes.length}
-                  </span>
+                <NoteStack count={item.notes.length}>
                   {item.notes.map((note) => (
                     <NoteCard
                       key={note.id}
@@ -597,7 +600,7 @@ function BoardColumn({
                       {...cardProps}
                     />
                   ))}
-                </div>
+                </NoteStack>
               )}
             </TargetFrame>
           );
@@ -627,9 +630,40 @@ function BoardColumn({
   );
 }
 
+// The order a revealed column is read in — ascending, ties by id. `byOrder`
+// is false on an anonymous board (see BoardColumn). Exported so the results
+// page lists a crowned stack's cards in the same order as the board.
+export function readingOrder(byOrder: boolean) {
+  return (a: Note, b: Note): number =>
+    (byOrder ? a.order - b.order : 0) || a.id.localeCompare(b.id);
+}
+
+// A stack's frame: its cards, bundled and counted. Shared with the results
+// page, whose crowned stacks must look like the ones the room voted on.
+export function NoteStack({
+  count,
+  children,
+}: {
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      data-testid="note-stack"
+      className="flex flex-col gap-1.5 rounded-2xl border border-accent/30 bg-accent/5 p-1.5"
+    >
+      <span className="px-1.5 text-xs font-semibold text-accent-strong tabular-nums">
+        ×{count}
+      </span>
+      {children}
+    </div>
+  );
+}
+
 // Chrome around each votable (ungrouped note or stack): the blind vote
-// control during voting, crown/tally/focus once discussion opened.
-function TargetFrame({
+// control during voting, crown/tally/focus once discussion opened. Exported
+// for the results page, which lists the crowned votables with the same chrome.
+export function TargetFrame({
   targetId,
   deciding,
   roster,

@@ -628,6 +628,12 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     kudos: z.array(kudoSchema),
     /** epoch-ms when the board auto-deletes; null once the admin kept it */
     retentionAt: z.number().nullable(),
+    /** how many people had joined when the retro finished — fixed at the
+     *  "done" transition, so someone opening the finished board to read it
+     *  is not counted as having taken part. null before "done", and on a
+     *  board finished before this was recorded. Defaulted so a snapshot from
+     *  an older server still parses. */
+    headcount: z.number().nullable().default(null),
     /** current check-in icebreaker (null until check-in has run) */
     icebreakerId: icebreakerIdSchema.nullable(),
     workingAgreements: z.string(),
@@ -713,6 +719,9 @@ export const serverEventSchema = z.discriminatedUnion("type", [
     type: z.literal("phase.changed"),
     seq: z.number(),
     phase: phaseSchema,
+    /** only on the change INTO "done": the sync's `headcount`, in the same
+     *  message, so the results page never draws a count it then corrects */
+    headcount: z.number().optional(),
   }),
   z.object({
     type: z.literal("timer.changed"),

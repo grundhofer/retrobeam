@@ -25,6 +25,7 @@ import { InviteButton } from "../components/InviteButton.js";
 import { CheckinPanel } from "../components/CheckinPanel.js";
 import { DiscussBar } from "../components/DiscussBar.js";
 import { KudosWall } from "../components/KudosWall.js";
+import { RetroResults } from "../components/RetroResults.js";
 import { RotiPoll } from "../components/RotiPoll.js";
 import { LanguageToggle } from "../components/LanguageToggle.js";
 import { LegalFooter } from "../components/LegalFooter.js";
@@ -672,36 +673,23 @@ function Room({
               <RotiPoll />
             </div>
           ) : state.phase === "done" ? (
-            <div className="mx-auto flex max-w-4xl flex-col items-center gap-8 py-12">
-              <div className="text-center">
-                <h2 className="text-2xl font-semibold text-zinc-900">
-                  {t("done.title")}
-                </h2>
-                <p className="mt-2 text-zinc-500">{t("done.body")}</p>
-              </div>
-              {/* The ROTI result is published exactly once, on leaving the
-                  closing phase — so the archived board is where the room
-                  actually reads it. */}
-              {state.roti.released ? <RotiPoll readOnly /> : null}
-              {state.kudos.length > 0 ? (
-                <KudosWall
-                  kudos={state.kudos}
-                  roster={state.roster}
-                  you={you}
-                  isAdmin={isAdmin}
-                  gifsEnabled={gifsEnabled}
-                  readOnly
-                />
-              ) : null}
-              {state.actions.length > 0 ? (
-                <ActionsPanel
-                  actions={state.actions}
-                  roster={state.roster}
-                  you={you}
-                  readOnly
-                />
-              ) : null}
-            </div>
+            <RetroResults
+              boardId={boardId}
+              columns={state.columns}
+              notes={state.notes}
+              roster={state.roster}
+              you={you}
+              isAdmin={isAdmin}
+              votes={state.votes}
+              actions={state.actions}
+              kudos={state.kudos}
+              rotiReleased={state.roti.released}
+              retentionAt={state.retentionAt}
+              headcount={state.headcount}
+              anonymous={anonymous}
+              voterNamesEnabled={config?.voterNamesEnabled ?? false}
+              gifsEnabled={gifsEnabled}
+            />
           ) : (
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
               <div className="min-w-0 flex-1">

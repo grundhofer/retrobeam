@@ -1444,10 +1444,21 @@ export class BoardRoom extends DurableObject<Env> {
     // Re-arm for retention (must NOT drop the retention alarm on phase change).
     detach("rescheduleAlarm(phase)", this.rescheduleAlarm());
 
+    // The results page says how many people took part. Everyone who ever
+    // joined has a participants row, and joining a finished board to read it
+    // adds one more — so the number is taken HERE, once ("done" is terminal),
+    // rather than counted from the roster later.
+    let headcount: number | undefined;
+    if (target === "done") {
+      headcount = this.roster().length;
+      this.setMeta("headcount", String(headcount));
+    }
+
     this.broadcastAll({
       type: "phase.changed",
       seq: this.nextSeq(),
       phase: target,
+      ...(headcount === undefined ? {} : { headcount }),
     });
 
     // Voting closes on the next enabled forward step: everyone gets the
@@ -4482,6 +4493,7 @@ export class BoardRoom extends DurableObject<Env> {
         yourScore: this.myRotiScore(participant.id),
       },
       retentionAt: this.retentionAt(),
+      headcount: this.headcount(),
       // The snapshot passes through the SAME visibility filter as live
       // events — including the hidden-column gate — the classic leak path.
       notes: visibleNotesFor(
@@ -4931,6 +4943,11 @@ export class BoardRoom extends DurableObject<Env> {
       // Default off for boards created before the field.
       focusMode: this.getMeta("focusMode") === "1",
     };
+  }
+
+  private headcount(): number | null {
+    const raw = this.getMeta("headcount");
+    return raw === null ? null : Number(raw);
   }
 
   private retentionAt(): number | null {

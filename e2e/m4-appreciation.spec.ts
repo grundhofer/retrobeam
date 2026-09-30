@@ -126,6 +126,7 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
 
   // Finish and archive: the wall persists read-only on the done screen.
   await anna.getByTestId("phase-next").click();
+  await anna.getByTestId("phase-done-confirm").click();
   await expect(
     anna.getByText(/retro finished|retro abgeschlossen/i),
   ).toBeVisible();

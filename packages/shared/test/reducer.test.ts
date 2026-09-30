@@ -94,6 +94,7 @@ const sync: ServerEvent = {
   workingAgreements: "Vegas rule",
   roti: { count: 0, average: 0, yourScore: null, released: false },
   retentionAt: null,
+  headcount: null,
 };
 
 function afterSync() {
@@ -254,6 +255,34 @@ describe("phase.changed", () => {
     });
     expect(state.notes).toHaveLength(1);
     expect(state.notes[0]?.groupId).toBeNull();
+  });
+
+  // The results page's "N people" is the count the server took at "done", in
+  // the same message — not the roster, which keeps growing with every reader
+  // of the finished board.
+  it("finishing carries the headcount, and later joins do not change it", () => {
+    let state = afterSync();
+    expect(state.headcount).toBeNull();
+    state = applyServerEvent(state, {
+      type: "phase.changed",
+      seq: 6,
+      phase: "close",
+    });
+    expect(state.headcount).toBeNull();
+    state = applyServerEvent(state, {
+      type: "phase.changed",
+      seq: 7,
+      phase: "done",
+      headcount: 2,
+    });
+    expect(state.headcount).toBe(2);
+    state = applyServerEvent(state, {
+      type: "presence.join",
+      seq: 8,
+      participant: { ...ben, id: "p3", name: "Cara" },
+    });
+    expect(state.roster).toHaveLength(3);
+    expect(state.headcount).toBe(2);
   });
 });
 

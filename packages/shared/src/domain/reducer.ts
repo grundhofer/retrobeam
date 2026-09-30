@@ -88,6 +88,8 @@ export interface ClientBoardState {
   };
   /** epoch-ms auto-delete deadline; null once the admin kept the board */
   retentionAt: number | null;
+  /** people who had joined when the retro finished; null before "done" */
+  headcount: number | null;
   /** set once the board is deleted (retention or admin) — client shows a
    *  closing screen and stops trying to reconnect */
   deleted: boolean;
@@ -122,6 +124,7 @@ export const initialBoardState: ClientBoardState = {
   workingAgreements: "",
   roti: { count: 0, average: null, yourScore: null, released: false },
   retentionAt: null,
+  headcount: null,
   deleted: false,
   lastSeq: 0,
 };
@@ -161,6 +164,7 @@ export function applyServerEvent(
         workingAgreements: event.workingAgreements,
         roti: event.roti,
         retentionAt: event.retentionAt,
+        headcount: event.headcount,
         deleted: false,
         lastSeq: event.seq,
       };
@@ -454,6 +458,8 @@ export function applyServerEvent(
         // keeps a fold equal to a fresh sync.
         spotlightId: null,
         kudos,
+        // "done" is terminal, so this is set once and never cleared.
+        headcount: event.headcount ?? state.headcount,
         lastSeq: seq(state, event.seq),
       };
     }

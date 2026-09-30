@@ -29,7 +29,7 @@ function harness() {
       _optimistic: ServerEvent | ServerEvent[],
     ) => sent.push(command),
   };
-  const view = (phase: "write" | "present") => (
+  const view = (phase: "write" | "present" | "discuss" | "close") => (
     <ConnectionProvider value={connection}>
       <PhaseStepper phase={phase} phasePlan={DEFAULT_PHASE_PLAN} isAdmin />
     </ConnectionProvider>
@@ -139,4 +139,116 @@ test("a phone gets the position, the phase list stays for screen readers", async
   await page.viewport(1024, 768);
   await expect.element(compact).not.toBeVisible();
   expect(list.element().getBoundingClientRect().width).toBeGreaterThan(300);
+});
+
+// Finishing cannot be undone and freezes the board for everyone, and it used to
+// be one click on the same button that walks every other phase. It asks now —
+// and only for that step.
+test("finishing asks first, and only the confirmation finishes", async () => {
+  const { sent, view } = harness();
+  const screen = await render(view("close"));
+
+  const next = screen.getByTestId("phase-next");
+  await expect.element(next).toHaveAccessibleName(/done|fertig/i);
+  await next.click();
+  expect(sent).toEqual([]);
+  await expect
+    .element(screen.getByTestId("phase-done-question"))
+    .toHaveTextContent(/read-only|schreibgeschützt/);
+  await expect.element(next).toHaveAttribute("aria-expanded", "true");
+  await expect.element(next).toHaveAccessibleName(/^(cancel|abbrechen)$/i);
+
+  await screen.getByTestId("phase-done-confirm").click();
+  expect(sent).toEqual([{ type: "admin.phase.set", phase: "done" }]);
+});
+
+test("cancelling the finish sends nothing and puts the button back", async () => {
+  const { sent, view } = harness();
+  const screen = await render(view("close"));
+
+  const next = screen.getByTestId("phase-next");
+  await next.click();
+  await expect.element(screen.getByTestId("phase-done-confirm")).toBeVisible();
+  await next.click();
+  await expect.element(next).toHaveAttribute("aria-expanded", "false");
+  expect(screen.getByTestId("phase-done-confirm").elements()).toHaveLength(0);
+  expect(sent).toEqual([]);
+});
+
+// The BoardMenu rule: the confirmation must never appear where the first click
+// was, or a double click on "Next: Done" confirms its own question. The trigger
+// keeps its box when it flips to "Cancel", and the confirmation is elsewhere.
+test("a double click on the finish button cancels instead of finishing", async () => {
+  const { sent, view } = harness();
+  const screen = await render(view("close"));
+
+  const next = screen.getByTestId("phase-next");
+  const before = next.element().getBoundingClientRect();
+  await next.click();
+  const confirm = screen.getByTestId("phase-done-confirm");
+  await expect.element(confirm).toBeVisible();
+  const after = next.element().getBoundingClientRect();
+  expect(after.width).toBeCloseTo(before.width, 0);
+  expect(after.left).toBeCloseTo(before.left, 0);
+  const box = confirm.element().getBoundingClientRect();
+  const overlaps =
+    box.left < before.right &&
+    box.right > before.left &&
+    box.top < before.bottom &&
+    box.bottom > before.top;
+  expect(overlaps).toBe(false);
+
+  await next.click();
+  expect(sent).toEqual([]);
+});
+
+test("every other step still goes in one click", async () => {
+  const { sent, view } = harness();
+  const screen = await render(view("discuss"));
+  await screen.getByTestId("phase-next").click();
+  expect(sent).toEqual([{ type: "admin.phase.set", phase: "close" }]);
+  expect(screen.getByTestId("phase-done-question").elements()).toHaveLength(0);
+});
+
+// In the header the stepper is centred (an `mx-auto` wrapper in a flex row).
+// The question used to share the phase row, whose intrinsic width counted one
+// more gap for it even at zero width, so the centred stepper grew 12px and the
+// trigger slid 6px left as it flipped to "Cancel" — the rightmost 6px of a
+// double click's first press then missed it on the second.
+test("in a centred header the finish trigger stays where it was clicked", async () => {
+  const { sent, view } = harness();
+  await page.viewport(1440, 900);
+  const screen = await render(
+    <div className="flex w-[1200px] items-center">
+      <div className="mx-auto">{view("close")}</div>
+    </div>,
+  );
+
+  const next = screen.getByTestId("phase-next");
+  const before = next.element().getBoundingClientRect();
+  await next.click();
+  await expect.element(screen.getByTestId("phase-done-confirm")).toBeVisible();
+  const after = next.element().getBoundingClientRect();
+  expect(after.left).toBeCloseTo(before.left, 1);
+  expect(after.width).toBeCloseTo(before.width, 1);
+  expect(sent).toEqual([]);
+});
+
+// The question is remembered as the phase it was asked in. Stepping away and
+// back used to find it still open — the one irreversible button on screen
+// without anybody having asked for it.
+test("stepping away and back does not bring the finish question back", async () => {
+  const { view } = harness();
+  const screen = await render(view("close"));
+
+  await screen.getByTestId("phase-next").click();
+  await expect.element(screen.getByTestId("phase-done-confirm")).toBeVisible();
+
+  await screen.rerender(view("discuss")); // a rewind, by anyone
+  await screen.rerender(view("close"));
+
+  expect(screen.getByTestId("phase-done-question").elements()).toHaveLength(0);
+  await expect
+    .element(screen.getByTestId("phase-next"))
+    .toHaveAttribute("aria-expanded", "false");
 });
