@@ -92,6 +92,7 @@ export function BoardPreview() {
             <ol className="-ml-3 flex flex-wrap items-center gap-y-1.5">
               {PHASES.map((step) => (
                 <li key={step} className="flex items-center">
+                  {/* contrast-ok: decorative separator */}
                   <span className="w-3 text-center text-zinc-300">·</span>
                   <span
                     className={

@@ -120,7 +120,7 @@ export function BoardMenu({
         {/* The server leaves them out whatever this box says; say so, so
                 the box cannot be read as a way to get them back. */}
         {anonymous ? (
-          <p className="-mt-1 mb-2 text-xs text-zinc-400">
+          <p className="-mt-1 mb-2 text-xs text-zinc-500">
             {t("menu.includeAuthorsAnonymous")}
           </p>
         ) : null}
@@ -213,7 +213,7 @@ export function BoardMenu({
             {t("menu.voterNamesEnabled")}
           </label>
           {anonymous || (voterNamesLocked(phase) && !voterNamesEnabled) ? (
-            <p className="-mt-1 mb-2 text-xs text-zinc-400">
+            <p className="-mt-1 mb-2 text-xs text-zinc-500">
               {anonymous
                 ? t("menu.voterNamesAnonymous")
                 : t("menu.voterNamesLocked")}
@@ -242,7 +242,7 @@ export function BoardMenu({
             </label>
           ) : null}
           {CURSORS_ACTIVATABLE && anonymous ? (
-            <p className="-mt-1 mb-2 text-xs text-zinc-400">
+            <p className="-mt-1 mb-2 text-xs text-zinc-500">
               {t("menu.cursorsAnonymous")}
             </p>
           ) : null}
@@ -310,7 +310,7 @@ export function BoardMenu({
             </>
           ) : null}
           <TemplateLinkButton columns={columns} />
-          <p className="mb-2 text-xs text-zinc-400">
+          <p className="mb-2 text-xs text-zinc-500">
             {retentionAt === null
               ? t("menu.retentionKept")
               : t("menu.retentionNotice", {

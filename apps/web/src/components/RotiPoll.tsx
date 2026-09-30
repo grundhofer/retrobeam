@@ -53,18 +53,18 @@ export function RotiPoll({ readOnly = false }: { readOnly?: boolean }) {
       ) : roti.released ? (
         // Closed with too few answers to summarise anonymously — say so, rather
         // than leave a promise of an average that will never arrive.
-        <p data-testid="roti-too-few" className="text-xs text-zinc-400">
+        <p data-testid="roti-too-few" className="text-xs text-zinc-500">
           {t("roti.tooFew")}
         </p>
       ) : roti.count > 0 ? (
         <p
           data-testid="roti-pending"
-          className="text-xs text-zinc-400 tabular-nums"
+          className="text-xs text-zinc-500 tabular-nums"
         >
           {t("roti.pending", { count: roti.count })}
         </p>
       ) : (
-        <p className="text-xs text-zinc-400">{t("roti.anonymous")}</p>
+        <p className="text-xs text-zinc-500">{t("roti.anonymous")}</p>
       )}
     </section>
   );

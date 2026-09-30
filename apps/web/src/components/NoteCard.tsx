@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   generateHexId,
@@ -41,6 +41,15 @@ export interface NoteCardProps {
   /** HTML5 drag affordance; the canvas turns this off and drags a wrapper via
    *  pointer events instead, while keeping edit/delete. Default true. */
   draggable?: boolean;
+  /** The keyboard and touch path for the two drag gestures (WCAG 2.1.1):
+   *  "Move to…" lists these columns and calls onMoveToColumn — the very
+   *  callback a column drop calls. Absent or null = no "Move to…" (the
+   *  canvas, the reader). */
+  moveTargets?: readonly { id: string; name: string }[];
+  onMoveToColumn?: ((sourceNoteId: string, columnId: string) => void) | null;
+  /** The cards of this card's column; "Stack with…" offers them and calls
+   *  onDropNote, exactly like dropping this card on the chosen one. */
+  stackCandidates?: readonly Note[];
 }
 
 export function NoteCard({
@@ -57,6 +66,9 @@ export function NoteCard({
   onUngroup,
   interactive = true,
   draggable = true,
+  moveTargets = [],
+  onMoveToColumn = null,
+  stackCandidates = [],
 }: NoteCardProps) {
   const { t } = useTranslation();
   const { mutate } = useConnection();
@@ -64,6 +76,9 @@ export function NoteCard({
   const [draft, setDraft] = useState(note.text);
   const [draftGif, setDraftGif] = useState(note.gifUrl);
   const [dropHover, setDropHover] = useState(false);
+  const [arranging, setArranging] = useState(false);
+  const arrangeId = useId();
+  const arrangeTrigger = useRef<HTMLButtonElement>(null);
 
   // An anonymous board shows no author chip at all — not even on your own
   // cards. Everyone else's arrive without an author anyway; your own would be
@@ -88,6 +103,22 @@ export function NoteCard({
   // card's own HTML5 drag while keeping edit/delete.
   const canDrag =
     interactive && draggable && (canCurate || (phase === "write" && mine));
+  // Same gates as the gestures they stand in for: a card may be moved exactly
+  // when it may be dragged, and stacked only where a drop on a card is taken
+  // (the presenting phase — the server refuses note.group anywhere else).
+  const moveOptions =
+    canDrag && onMoveToColumn !== null
+      ? moveTargets.filter((column) => column.id !== note.columnId)
+      : [];
+  // Not the card itself, nor a card already in its stack — groupNotes would
+  // drop that as a no-op, and an option that does nothing is a trap.
+  const stackOptions = canCurate
+    ? stackCandidates.filter(
+        (other) =>
+          other.id !== note.id && (other.groupId ?? other.id) !== note.groupId,
+      )
+    : [];
+  const canArrange = moveOptions.length > 0 || stackOptions.length > 0;
   const spotlighted = presenterId !== null && note.authorId === presenterId;
   // Stepped back, not hidden: the board is cumulative now, so most cards carry
   // this and they still have to be readable. A note whose authorship was
@@ -159,9 +190,29 @@ export function NoteCard({
     );
   }
 
+  // A move or a stack remounts this card elsewhere — another column, or
+  // inside a NoteStack — and the option button that had focus goes with the
+  // old one, dropping a keyboard user back to <body>. So once the echo has
+  // rendered, hand focus to the same card's ⋯ (or, if it has nothing left
+  // to offer, its first button). By id, not a ref: the ref dies with the
+  // old mount.
+  function refocusAfterArrange() {
+    requestAnimationFrame(() => {
+      const card = document.querySelector(`[data-note-id="${note.id}"]`);
+      const target =
+        card?.querySelector<HTMLElement>(
+          '[data-testid="note-arrange-toggle"]',
+        ) ?? card?.querySelector<HTMLElement>("button");
+      target?.focus();
+    });
+  }
+
   return (
     <article
       data-testid="note-card"
+      // Interactive cards only: the presenter reader can show the same note,
+      // and refocusAfterArrange must not land in it.
+      data-note-id={interactive ? note.id : undefined}
       draggable={canDrag && !editing}
       onDragStart={(event) => {
         event.dataTransfer.setData(NOTE_DRAG_MIME, note.id);
@@ -199,7 +250,7 @@ export function NoteCard({
           : pending
             ? "border border-dashed border-zinc-300"
             : "border border-zinc-200"
-      } ${spotlighted ? "shadow-md ring-2 ring-accent" : ""} ${dimmed ? "opacity-70" : ""} ${
+      } ${spotlighted ? "shadow-md ring-2 ring-accent" : ""} ${dimmed && !arranging ? "opacity-70" : ""} ${
         canDrag && !editing ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       style={{ animationDelay: `${Math.min(revealIndex, 12) * 45}ms` }}
@@ -273,7 +324,7 @@ export function NoteCard({
           ) : null}
           <div className="mt-2 flex items-center gap-1.5">
             {author ? (
-              <span className="flex items-center gap-1 text-xs text-zinc-400">
+              <span className="flex items-center gap-1 text-xs text-zinc-500">
                 <span
                   aria-hidden="true"
                   className="size-2 rounded-full"
@@ -283,13 +334,28 @@ export function NoteCard({
               </span>
             ) : null}
             <span className="ml-auto flex gap-0.5">
+              {canArrange ? (
+                <button
+                  ref={arrangeTrigger}
+                  type="button"
+                  data-testid="note-arrange-toggle"
+                  aria-label={t("note.arrange")}
+                  title={t("note.arrange")}
+                  aria-expanded={arranging}
+                  aria-controls={arranging ? arrangeId : undefined}
+                  onClick={() => setArranging(!arranging)}
+                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
+                >
+                  ⋯
+                </button>
+              ) : null}
               {note.groupId !== null && canCurate ? (
                 <button
                   type="button"
                   aria-label={t("group.ungroup")}
                   title={t("group.ungroup")}
                   onClick={() => onUngroup(note)}
-                  className="rounded px-1 text-xs text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   ⇱
                 </button>
@@ -303,7 +369,7 @@ export function NoteCard({
                     setDraftGif(note.gifUrl);
                     setEditing(true);
                   }}
-                  className="rounded px-1 text-xs text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   ✎
                 </button>
@@ -313,13 +379,77 @@ export function NoteCard({
                   type="button"
                   aria-label={t("note.delete")}
                   onClick={remove}
-                  className="rounded px-1 text-xs text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   🗑
                 </button>
               ) : null}
             </span>
           </div>
+          {/* Inline, not a floating menu: a dimmed card (opacity) or a hidden
+              column is its own stacking context, so a popover hung off the
+              card would be drawn under the next one and faded with it. Being
+              inside means taking the card's fade, though — at opacity-70 the
+              panel's zinc-500 labels are 2.8:1 — so the card drops its dim
+              while the panel is open (see the article's className). */}
+          {arranging && canArrange ? (
+            <div
+              id={arrangeId}
+              data-testid="note-arrange"
+              onKeyDown={(event) => {
+                if (event.key !== "Escape") return;
+                setArranging(false);
+                arrangeTrigger.current?.focus();
+              }}
+              className="mt-2 flex flex-col gap-2 border-t border-zinc-100 pt-2 text-xs"
+            >
+              {moveOptions.length > 0 ? (
+                <div role="group" aria-label={t("note.moveTo")}>
+                  <p className="mb-1 text-zinc-500">{t("note.moveTo")}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {moveOptions.map((column) => (
+                      <button
+                        key={column.id}
+                        type="button"
+                        data-testid="note-move-option"
+                        onClick={() => {
+                          setArranging(false);
+                          onMoveToColumn?.(note.id, column.id);
+                          refocusAfterArrange();
+                        }}
+                        className="max-w-full truncate rounded-full border border-zinc-200 px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+                      >
+                        {column.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {stackOptions.length > 0 ? (
+                <div role="group" aria-label={t("note.stackWith")}>
+                  <p className="mb-1 text-zinc-500">{t("note.stackWith")}</p>
+                  <div className="flex flex-col gap-1">
+                    {stackOptions.map((other) => (
+                      <button
+                        key={other.id}
+                        type="button"
+                        data-testid="note-stack-option"
+                        title={other.text}
+                        onClick={() => {
+                          setArranging(false);
+                          onDropNote(note.id, other);
+                          refocusAfterArrange();
+                        }}
+                        className="truncate rounded border border-zinc-200 px-2 py-0.5 text-left text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+                      >
+                        {other.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {revealed ? (
             <div className="mt-2 flex gap-1">
               {REACTION_EMOJI.map((emoji) => {
