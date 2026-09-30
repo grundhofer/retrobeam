@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import i18n from "../i18n.js";
 import { NotFoundPage } from "../pages/NotFoundPage.js";
@@ -79,5 +79,8 @@ test("the not-found page shows a whole board link, links home and is noindex whi
 
   await screen.getByRole("link", { name: i18n.t("pageNotFound.home") }).click();
   await expect.element(screen.getByText("home")).toBeVisible();
-  expect(robotsMeta().length).toBe(before);
+  // The tag goes in NoIndex's effect cleanup, which React may run after the
+  // new route has painted — so wait for it rather than read it in the same
+  // tick (a fast CI runner caught the old immediate read one frame early).
+  await vi.waitFor(() => expect(robotsMeta().length).toBe(before));
 });
