@@ -11,6 +11,7 @@ export type LegalLanguage = "de" | "en";
 export const LEGAL_PATHS = {
   privacy: { de: "/datenschutz", en: "/privacy" },
   imprint: { de: "/impressum", en: "/imprint" },
+  accessibility: { de: "/barrierefreiheit", en: "/accessibility" },
 } as const satisfies Record<string, Record<LegalLanguage, string>>;
 
 export type LegalPaths = (typeof LEGAL_PATHS)[keyof typeof LEGAL_PATHS];

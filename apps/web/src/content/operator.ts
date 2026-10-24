@@ -33,6 +33,17 @@ export const OPERATOR: Operator = {
 
 export const NOTICE_DATE = "2026-09-29";
 
+// The day of the check runs whose results the accessibility statement reports
+// (content/accessibility.*.tsx); it is the statement's date line and appears
+// in its text. Change it only together with that text, after the checks it
+// names have run again — before a release, from the CI run on that commit.
+export const ACCESSIBILITY_DATE = "2026-10-24";
+
+// The day the market surveillance authority's details in the accessibility
+// statement were copied from mlbf-barrierefrei.de. Fetch them again before a
+// release and replace this with that ISO date.
+export const AUTHORITY_CHECKED = "2026-10-24";
+
 // Confirm the Cloudflare dashboard settings named in privacy §6, then replace
 // this with the ISO date of that check. `pnpm check:legal` reports bracketed
 // values in this file when preparing a release.

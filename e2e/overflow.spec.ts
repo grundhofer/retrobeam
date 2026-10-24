@@ -28,6 +28,8 @@ const KNOWN: Record<string, string> = {
   "datenschutz 360@200%": WEBSITE_HEADER,
   "imprint 360@200%": WEBSITE_HEADER,
   "privacy 360@200%": WEBSITE_HEADER,
+  "barrierefreiheit 360@200%": WEBSITE_HEADER,
+  "accessibility 360@200%": WEBSITE_HEADER,
   "not-found 360@200%": WEBSITE_HEADER,
 };
 
@@ -54,6 +56,8 @@ for (const [name, path] of [
   ["datenschutz", "/datenschutz"],
   ["imprint", "/imprint"],
   ["privacy", "/privacy"],
+  ["barrierefreiheit", "/barrierefreiheit"],
+  ["accessibility", "/accessibility"],
   ["not-found", "/does-not-exist"],
 ] as const) {
   for (const size of SIZES) {

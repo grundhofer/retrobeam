@@ -4,8 +4,9 @@ SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 SPDX-License-Identifier: AGPL-3.0-or-later
 
 Only paths that exist and are meant to be found; boards never appear here.
-The legal pages have one path per language (German /impressum and
-/datenschutz, English /imprint and /privacy), so each version is listed and
+The legal pages have one path per language (German /impressum,
+/datenschutz and /barrierefreiheit, English /imprint, /privacy and
+/accessibility), so each version is listed and
 names both as hreflang alternates, the same pair the pages put in their head.
 The landing page and /new have no language in their path and no alternates.
 -->
@@ -31,5 +32,15 @@ The landing page and /new have no language in their path and no alternates.
     <loc>https://retrobeam.de/privacy</loc>
     <xhtml:link rel="alternate" hreflang="de" href="https://retrobeam.de/datenschutz"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/privacy"/>
+  </url>
+  <url>
+    <loc>https://retrobeam.de/barrierefreiheit</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://retrobeam.de/barrierefreiheit"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/accessibility"/>
+  </url>
+  <url>
+    <loc>https://retrobeam.de/accessibility</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://retrobeam.de/barrierefreiheit"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/accessibility"/>
   </url>
 </urlset>

@@ -11,7 +11,8 @@ import { LEGAL_PATHS } from "../lib/legalPaths.js";
 // carry the copyright notice, the licence terms and the warranty disclaimer.
 // Both are discharged here, on every screen a participant actually uses —
 // as are the two statutory pages: the privacy notice (Art. 13 GDPR) and the
-// imprint (§ 18 Abs. 1 MStV), which must be reachable from every page.
+// imprint (§ 18 Abs. 1 MStV), which must be reachable from every page. The
+// accessibility statement sits beside them (sebaro WEB-03: always linked).
 //
 // The commit is injected at build time (VITE_COMMIT_SHA — see deploy.yml and
 // the `deploy` script). Without it the links degrade to the default branch,
@@ -59,6 +60,15 @@ export function LegalFooter({
         className={linkClass}
       >
         {t("legal.imprint")}
+      </Link>
+      <span aria-hidden="true">·</span>
+      <Link
+        to={LEGAL_PATHS.accessibility[lang]}
+        target={legalLinkTarget}
+        rel={legalLinkRel}
+        className={linkClass}
+      >
+        {t("legal.accessibility")}
       </Link>
       <span aria-hidden="true">·</span>
       <a

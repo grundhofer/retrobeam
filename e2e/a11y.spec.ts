@@ -88,6 +88,8 @@ for (const [name, path] of [
   ["datenschutz", "/datenschutz"],
   ["imprint", "/imprint"],
   ["privacy", "/privacy"],
+  ["barrierefreiheit", "/barrierefreiheit"],
+  ["accessibility", "/accessibility"],
   ["not-found", "/does-not-exist"],
 ] as const) {
   test(`axe: ${name}`, async ({ browser }) => {
