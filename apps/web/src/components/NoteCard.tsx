@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   generateHexId,
@@ -16,6 +16,32 @@ import { useBoardStore } from "../store/boardStore.js";
 import { GifPickerButton } from "./GifPicker.js";
 
 const NOTE_DRAG_MIME = "application/x-retrobeam-note";
+
+export type NudgeDirection = "left" | "up" | "down" | "right";
+
+// The step buttons in keyboard order, each with the arrow key that does the
+// same while focus is in their group.
+const NUDGES = [
+  { direction: "left", key: "ArrowLeft", glyph: "←", label: "note.nudgeLeft" },
+  { direction: "up", key: "ArrowUp", glyph: "↑", label: "note.nudgeUp" },
+  { direction: "down", key: "ArrowDown", glyph: "↓", label: "note.nudgeDown" },
+  {
+    direction: "right",
+    key: "ArrowRight",
+    glyph: "→",
+    label: "note.nudgeRight",
+  },
+] as const;
+
+// The card's own surface and edge, shared with the canvas's ⋯ panel, which
+// hangs outside the card and has to read as part of it.
+const CARD_SURFACE = "rounded-xl bg-white p-3 shadow-sm";
+const CARD_EDGE = "border border-zinc-200";
+// One look for every single-press option in the ⋯ panel: the column chips
+// and the canvas's step buttons. A step that cannot go is muted, not faded
+// (sebaro STA-03).
+const ARRANGE_OPTION = `rounded-full ${CARD_EDGE} px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent`;
+const ARRANGE_LABEL = "mb-1 text-zinc-500";
 
 export interface NoteCardProps {
   note: Note;
@@ -47,9 +73,26 @@ export interface NoteCardProps {
    *  canvas, the reader). */
   moveTargets?: readonly { id: string; name: string }[];
   onMoveToColumn?: ((sourceNoteId: string, columnId: string) => void) | null;
+  /** Whether a move to that column would be taken — false for a canvas zone
+   *  with no free spot, which a drop refuses too. Default: always. */
+  canMoveTo?: (columnId: string) => boolean;
   /** The cards of this card's column; "Stack with…" offers them and calls
    *  onDropNote, exactly like dropping this card on the chosen one. */
   stackCandidates?: readonly Note[];
+  /** The canvas's twin of dragging a card around inside its zone (WCAG
+   *  2.5.7): one step per press of a step button or arrow key, each one
+   *  note.move like one drop. canNudge says whether a step that way would
+   *  move the card at all (the zone's edge, a neighbour in the way). Absent
+   *  or null = no steps (the columns, the reader). */
+  onNudge?: ((sourceNoteId: string, direction: NudgeDirection) => void) | null;
+  canNudge?: (sourceNoteId: string, direction: NudgeDirection) => boolean;
+  /** The canvas: the ⋯ panel hangs below the card instead of growing it, and
+   *  is scaled by this factor to undo the world's zoom. Absent or null = the
+   *  panel sits inside the card (the columns). */
+  arrangeScale?: number | null;
+  /** Told when the ⋯ panel opens and when it closes or unmounts, so the
+   *  canvas can lift the card above its neighbours. Keep it stable. */
+  onArrangeChange?: (noteId: string, open: boolean) => void;
 }
 
 export function NoteCard({
@@ -68,7 +111,12 @@ export function NoteCard({
   draggable = true,
   moveTargets = [],
   onMoveToColumn = null,
+  canMoveTo = () => true,
   stackCandidates = [],
+  onNudge = null,
+  canNudge = () => true,
+  arrangeScale = null,
+  onArrangeChange,
 }: NoteCardProps) {
   const { t } = useTranslation();
   const { mutate } = useConnection();
@@ -79,6 +127,13 @@ export function NoteCard({
   const [arranging, setArranging] = useState(false);
   const arrangeId = useId();
   const arrangeTrigger = useRef<HTMLButtonElement>(null);
+  // Open and close, including the close a remount is (a move elsewhere,
+  // mine or a teammate's): the canvas never keeps a closed card lifted.
+  useEffect(() => {
+    if (!arranging || onArrangeChange === undefined) return;
+    onArrangeChange(note.id, true);
+    return () => onArrangeChange(note.id, false);
+  }, [arranging, note.id, onArrangeChange]);
 
   // An anonymous board shows no author chip at all — not even on your own
   // cards. Everyone else's arrive without an author anyway; your own would be
@@ -99,17 +154,22 @@ export function NoteCard({
   // Reorganizing (drag to group/move, unstack) happens in write (own notes)
   // and present (everyone) — frozen once voting starts, stacks are votables.
   const canCurate = interactive && phase === "present";
+  // Whether this card may be moved at all — the server's note.move gate.
+  const canMove = interactive && (canCurate || (phase === "write" && mine));
   // The canvas positions cards via a pointer-drag wrapper, so it turns off the
   // card's own HTML5 drag while keeping edit/delete.
-  const canDrag =
-    interactive && draggable && (canCurate || (phase === "write" && mine));
+  const canDrag = canMove && draggable;
   // Same gates as the gestures they stand in for: a card may be moved exactly
-  // when it may be dragged, and stacked only where a drop on a card is taken
-  // (the presenting phase — the server refuses note.group anywhere else).
+  // when it may be dragged — by the card's own drag or the canvas wrapper's,
+  // hence canMove, not canDrag — and stacked only where a drop on a card is
+  // taken (the presenting phase — the server refuses note.group anywhere else).
   const moveOptions =
-    canDrag && onMoveToColumn !== null
-      ? moveTargets.filter((column) => column.id !== note.columnId)
+    canMove && onMoveToColumn !== null
+      ? moveTargets.filter(
+          (column) => column.id !== note.columnId && canMoveTo(column.id),
+        )
       : [];
+  const canStep = canMove && onNudge !== null;
   // Not the card itself, nor a card already in its stack — groupNotes would
   // drop that as a no-op, and an option that does nothing is a trap.
   const stackOptions = canCurate
@@ -118,7 +178,8 @@ export function NoteCard({
           other.id !== note.id && (other.groupId ?? other.id) !== note.groupId,
       )
     : [];
-  const canArrange = moveOptions.length > 0 || stackOptions.length > 0;
+  const canArrange =
+    moveOptions.length > 0 || stackOptions.length > 0 || canStep;
   const spotlighted = presenterId !== null && note.authorId === presenterId;
   // Stepped back, not hidden: the board is cumulative now, so most cards carry
   // this and they still have to be readable. A note whose authorship was
@@ -207,6 +268,12 @@ export function NoteCard({
     });
   }
 
+  // A step stays in the zone, so the card keeps its mount and the focused
+  // step button keeps focus: the panel stays open for the next one.
+  function step(direction: NudgeDirection) {
+    if (canNudge(note.id, direction)) onNudge?.(note.id, direction);
+  }
+
   return (
     <article
       data-testid="note-card"
@@ -244,12 +311,12 @@ export function NoteCard({
             ? t("note.notPresented")
             : undefined
       }
-      className={`reveal-in rounded-xl bg-white p-3 shadow-sm transition-opacity ${
+      className={`reveal-in ${CARD_SURFACE} transition-opacity ${
         dropHover
           ? "border border-accent ring-2 ring-accent/40"
           : pending
             ? "border border-dashed border-zinc-300"
-            : "border border-zinc-200"
+            : CARD_EDGE
       } ${spotlighted ? "shadow-md ring-2 ring-accent" : ""} ${dimmed && !arranging ? "opacity-70" : ""} ${
         canDrag && !editing ? "cursor-grab active:cursor-grabbing" : ""
       }`}
@@ -391,7 +458,13 @@ export function NoteCard({
               card would be drawn under the next one and faded with it. Being
               inside means taking the card's fade, though — at opacity-70 the
               panel's zinc-500 labels are 2.8:1 — so the card drops its dim
-              while the panel is open (see the article's className). */}
+              while the panel is open (see the article's className).
+              The canvas is the exception: its world is scaled, and options
+              inside the card would shrink with it (about half size at the
+              fitted zoom, under WCAG 2.5.8's 24px). There the panel hangs
+              below the card, unscaled back to its own size, and the canvas
+              lifts the card and its zone while it is open (onArrangeChange).
+              Still the card's child, so Tab goes from the ⋯ straight in. */}
           {arranging && canArrange ? (
             <div
               id={arrangeId}
@@ -401,11 +474,27 @@ export function NoteCard({
                 setArranging(false);
                 arrangeTrigger.current?.focus();
               }}
-              className="mt-2 flex flex-col gap-2 border-t border-zinc-100 pt-2 text-xs"
+              className={`flex flex-col gap-2 text-xs ${
+                arrangeScale === null
+                  ? "mt-2 border-t border-zinc-100 pt-2"
+                  : `mt-1 ${CARD_SURFACE} ${CARD_EDGE}`
+              }`}
+              style={
+                arrangeScale === null
+                  ? undefined
+                  : {
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      width: "100%",
+                      transform: `scale(${arrangeScale})`,
+                      transformOrigin: "top center",
+                    }
+              }
             >
               {moveOptions.length > 0 ? (
                 <div role="group" aria-label={t("note.moveTo")}>
-                  <p className="mb-1 text-zinc-500">{t("note.moveTo")}</p>
+                  <p className={ARRANGE_LABEL}>{t("note.moveTo")}</p>
                   <div className="flex flex-wrap gap-1">
                     {moveOptions.map((column) => (
                       <button
@@ -417,7 +506,7 @@ export function NoteCard({
                           onMoveToColumn?.(note.id, column.id);
                           refocusAfterArrange();
                         }}
-                        className="max-w-full truncate rounded-full border border-zinc-200 px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+                        className={`max-w-full truncate ${ARRANGE_OPTION}`}
                       >
                         {column.name}
                       </button>
@@ -425,9 +514,53 @@ export function NoteCard({
                   </div>
                 </div>
               ) : null}
+              {canStep ? (
+                <div
+                  role="group"
+                  aria-label={t("note.position")}
+                  onKeyDown={(event) => {
+                    const nudge = NUDGES.find((n) => n.key === event.key);
+                    if (nudge === undefined) return;
+                    // The page would scroll under the canvas otherwise.
+                    event.preventDefault();
+                    // A held key repeats some 30 times a second, and every
+                    // step is a frame on the wire (the socket's bucket refills
+                    // at 8 a second). One step per press, as one drop per drag.
+                    if (event.repeat) return;
+                    step(nudge.direction);
+                  }}
+                >
+                  <p className={ARRANGE_LABEL}>{t("note.position")}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {NUDGES.map((nudge) => (
+                      <button
+                        key={nudge.direction}
+                        type="button"
+                        data-testid={`note-nudge-${nudge.direction}`}
+                        aria-label={t(nudge.label)}
+                        // The tooltip names the key too (sebaro NAV-10); the
+                        // font's arrows are for keys only (ICO-06).
+                        title={`${t(nudge.label)} (${nudge.glyph})`}
+                        aria-keyshortcuts={nudge.key}
+                        // Not `disabled`: the button that just reached the
+                        // zone's edge has focus, and a disabled one drops it
+                        // to <body>.
+                        aria-disabled={!canNudge(note.id, nudge.direction)}
+                        onClick={() => step(nudge.direction)}
+                        className={`${ARRANGE_OPTION} aria-disabled:cursor-not-allowed aria-disabled:text-zinc-500 aria-disabled:hover:bg-transparent`}
+                      >
+                        {/* A stand-in for the arrow-left/-up/-down/-right
+                            icons (docs/sebaro-umbau.md §6.4), which the
+                            label already names. */}
+                        <span aria-hidden="true">{nudge.glyph}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {stackOptions.length > 0 ? (
                 <div role="group" aria-label={t("note.stackWith")}>
-                  <p className="mb-1 text-zinc-500">{t("note.stackWith")}</p>
+                  <p className={ARRANGE_LABEL}>{t("note.stackWith")}</p>
                   <div className="flex flex-col gap-1">
                     {stackOptions.map((other) => (
                       <button

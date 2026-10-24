@@ -208,6 +208,11 @@ const resources = {
         arrange: "Move or stack",
         moveTo: "Move to …",
         stackWith: "Stack with …",
+        position: "Position in the zone",
+        nudgeLeft: "Move left",
+        nudgeUp: "Move up",
+        nudgeDown: "Move down",
+        nudgeRight: "Move right",
       },
       column: {
         addColumn: "Add column",
@@ -915,6 +920,11 @@ const resources = {
         arrange: "Verschieben oder stapeln",
         moveTo: "Verschieben nach …",
         stackWith: "Stapeln mit …",
+        position: "Position in der Zone",
+        nudgeLeft: "Nach links verschieben",
+        nudgeUp: "Nach oben verschieben",
+        nudgeDown: "Nach unten verschieben",
+        nudgeRight: "Nach rechts verschieben",
       },
       column: {
         addColumn: "Spalte hinzufügen",
