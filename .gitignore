@@ -8,5 +8,6 @@ playwright-report/
 test-results/
 .vitest-attachments/
 **/__screenshots__/
+e2e/.visual-baseline/
 .DS_Store
 *.tsbuildinfo

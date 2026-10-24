@@ -6,14 +6,15 @@ Created 2026-07-17 from a multi-agent research pass (11 competitor deep-dives, C
 
 ## The plan
 
-| Doc                                                           | Contents                                                                                                                                                                        |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [01-product-spec.md](docs/01-product-spec.md)                 | Vision & positioning, roles, the 7-phase session flow, templates, privacy model, voting, pickers, appreciation wall, GIFs/emoji, exports, UX principles, MVP cut lines          |
-| [02-architecture.md](docs/02-architecture.md)                 | Stack decision (React 19 + Vite 7 + Workers/Durable Objects), system design, realtime protocol, data model, free-tier survival rules, security, 4-layer testing strategy, risks |
-| [03-competitive-analysis.md](docs/03-competitive-analysis.md) | Market read, feature matrix across 11 tools, table stakes, differentiators, deliberate skips, per-competitor profiles                                                           |
-| [04-roadmap.md](docs/04-roadmap.md)                           | M0 walking skeleton → M4 launch, then v1.x / v2 / later                                                                                                                         |
-| [05-privacy-gdpr.md](docs/05-privacy-gdpr.md)                 | GDPR + §87 BetrVG works-council playbook, data inventory, sub-processors, rollout checklist                                                                                     |
-| [06-legal.md](docs/06-legal.md)                               | AGPL-3.0 decision & monetisation model, CLA rationale, dependency-licence policy, trademark findings and filing plan, pre-launch legal checklist                                |
+| Doc                                                           | Contents                                                                                                                                                                                   |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [01-product-spec.md](docs/01-product-spec.md)                 | Vision & positioning, roles, the 7-phase session flow, templates, privacy model, voting, pickers, appreciation wall, GIFs/emoji, exports, UX principles, MVP cut lines                     |
+| [02-architecture.md](docs/02-architecture.md)                 | Stack decision (React 19 + Vite 7 + Workers/Durable Objects), system design, realtime protocol, data model, free-tier survival rules, security, 4-layer testing strategy, risks            |
+| [03-competitive-analysis.md](docs/03-competitive-analysis.md) | Market read, feature matrix across 11 tools, table stakes, differentiators, deliberate skips, per-competitor profiles                                                                      |
+| [04-roadmap.md](docs/04-roadmap.md)                           | M0 walking skeleton → M4 launch, then v1.x / v2 / later                                                                                                                                    |
+| [05-privacy-gdpr.md](docs/05-privacy-gdpr.md)                 | GDPR + §87 BetrVG works-council playbook, data inventory, sub-processors, rollout checklist                                                                                                |
+| [06-legal.md](docs/06-legal.md)                               | AGPL-3.0 decision & monetisation model, CLA rationale, dependency-licence policy, trademark findings and filing plan, pre-launch legal checklist                                           |
+| [sebaro-umbau.md](docs/sebaro-umbau.md)                       | Plan (in German) for moving the UI onto the sebaro design system: start conditions, owner answers (§2.4), stages and gates; gaps for sebaro in [sebaro-luecken.md](docs/sebaro-luecken.md) |
 
 ## Decisions locked (2026-07-17)
 

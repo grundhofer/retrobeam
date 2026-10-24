@@ -165,8 +165,12 @@ test("the non-commercial notice and the legal pages are reachable in both langua
 // The privacy notice argues under §25 TDDDG that merely reading the landing
 // page stores nothing on the visitor's device. Opening a FAQ item is the one
 // interaction the page offers; the language toggle is deliberately left alone
-// here because that choice IS allowed to persist.
-test("the landing page writes nothing to localStorage", async ({ browser }) => {
+// here because that choice IS allowed to persist. Every key counts, not only
+// RetroBeam's own, and sessionStorage too: the sebaro scripts bring keys of
+// their own, and none may appear without a choice the visitor made.
+test("the landing page writes nothing to browser storage", async ({
+  browser,
+}) => {
   const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/");
@@ -175,9 +179,10 @@ test("the landing page writes nothing to localStorage", async ({ browser }) => {
   await faq.locator("summary").first().click();
   await expect(faq.locator("details").first()).toHaveAttribute("open");
 
-  const keys = await page.evaluate(() =>
-    Object.keys(localStorage).filter((k) => k.startsWith("retrobeam.")),
-  );
+  const keys = await page.evaluate(() => [
+    ...Object.keys(localStorage),
+    ...Object.keys(sessionStorage),
+  ]);
   expect(keys).toEqual([]);
 
   await context.close();
