@@ -14,6 +14,7 @@ import {
 } from "@retrobeam/shared";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { SiteHeader } from "../components/SiteHeader.js";
+import { MAIN_ID } from "../components/SkipLink.js";
 import { createBoard } from "../lib/api.js";
 import { saveAdminToken } from "../lib/session.js";
 
@@ -85,7 +86,10 @@ export function HomePage() {
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       <SiteHeader />
-      <main className="flex flex-1 items-center justify-center px-6 pb-24">
+      <main
+        id={MAIN_ID}
+        className="flex flex-1 items-center justify-center px-6 pb-24"
+      >
         <div className="w-full max-w-md">
           <h1 className="text-2xl font-semibold text-zinc-900">
             {t("home.title")}
