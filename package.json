@@ -17,7 +17,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r run test",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test --project=chromium --project=firefox --project=webkit"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
