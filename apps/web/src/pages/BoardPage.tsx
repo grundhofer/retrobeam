@@ -38,6 +38,7 @@ import { PresenceRail } from "../components/PresenceRail.js";
 import { ReadyBar } from "../components/ReadyBar.js";
 import { Roster } from "../components/Roster.js";
 import { ShareLink } from "../components/ShareLink.js";
+import { MAIN_ID } from "../components/SkipLink.js";
 import { TimerPanel } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
@@ -185,7 +186,10 @@ function JoinGate({
         <BrandLogo compact />
         <LanguageToggle />
       </header>
-      <main className="flex flex-1 items-center justify-center px-6 pb-24">
+      <main
+        id={MAIN_ID}
+        className="flex flex-1 items-center justify-center px-6 pb-24"
+      >
         <form onSubmit={submit} className="flex w-full max-w-md flex-col gap-4">
           <h1 className="text-2xl font-semibold text-zinc-900">
             {t("join.title", { board: board.name })}
@@ -448,7 +452,10 @@ function Room({
   if (state.deleted) {
     return (
       <div className="flex min-h-dvh flex-col bg-zinc-50">
-        <main className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+        <main
+          id={MAIN_ID}
+          className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+        >
           <h1 className="text-2xl font-semibold text-zinc-900">
             {t("deleted.title")}
           </h1>
@@ -468,7 +475,10 @@ function Room({
   if (you === null || phasePlan === undefined) {
     return (
       <div className="flex min-h-dvh flex-col bg-zinc-50">
-        <main className="flex flex-1 items-center justify-center text-zinc-600">
+        <main
+          id={MAIN_ID}
+          className="flex flex-1 items-center justify-center text-zinc-600"
+        >
           {t("status.connecting")}
         </main>
         <LegalFooter openLegalLinksInNewTab />
@@ -634,7 +644,12 @@ function Room({
           </div>
         ) : null}
 
-        <main className="flex-1 px-6 py-6">
+        {/* Where "Zum Inhalt" lands: past the header and the phase strip, on
+            what the phase is about — the columns or the canvas with the rail
+            beside them, or the lobby, check-in, close and results that take
+            their place. The phase strip's controls (timer, votes left, ready)
+            sit right before it. */}
+        <main id={MAIN_ID} className="flex-1 px-6 py-6">
           {inLobby ? (
             <div className="mx-auto flex max-w-2xl flex-col gap-8">
               {/* Who's in and how to get others in comes first — for the
@@ -833,6 +848,7 @@ function LookupFailed({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       <main
+        id={MAIN_ID}
         data-testid="lookup-failed"
         className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
       >
@@ -857,7 +873,10 @@ function NotFound() {
   const { t } = useTranslation();
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
-      <main className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <main
+        id={MAIN_ID}
+        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+      >
         <h1 className="text-2xl font-semibold text-zinc-900">
           {t("notFound.title")}
         </h1>

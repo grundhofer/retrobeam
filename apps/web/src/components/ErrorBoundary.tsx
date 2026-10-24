@@ -5,6 +5,7 @@ import { isRouteErrorResponse, useRouteError } from "react-router";
 import { useTranslation } from "react-i18next";
 import { NotFoundPage } from "../pages/NotFoundPage.js";
 import { LegalFooter } from "./LegalFooter.js";
+import { MAIN_ID } from "./SkipLink.js";
 
 // Wired as the router's errorElement. Without it, a render exception anywhere
 // in the board unmounts the tree and leaves a blank page mid-retro, with the
@@ -31,6 +32,7 @@ export function ErrorBoundary() {
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       <main
+        id={MAIN_ID}
         className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center"
         data-testid="error-boundary"
       >
