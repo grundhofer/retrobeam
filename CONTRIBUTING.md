@@ -61,6 +61,9 @@ House rules:
   Keep the year of first publication; do not update it on later edits. If you are not the author of a
   new file's content, use your own name in the `SPDX-FileCopyrightText` line — the CLA handles the
   licensing.
+  Exception: the sebaro design-system export in `apps/web/src/sebaro/` and its copies in
+  `apps/web/public/` are generated, never edited by hand and carry no headers; `REUSE.toml` states their
+  licences (MIT, OFL-1.1, and all rights reserved for the sebaro marks).
 - **Both languages.** User-facing strings go through i18n with German and English.
 - **No new third-party network calls** without discussion. EU data residency and the no-tracking
   promise are product requirements, not preferences.

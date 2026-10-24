@@ -201,7 +201,7 @@ Pull requests need a signed [Contributor License Agreement](CLA.md) — a bot ch
 Copyright © 2026 Sebastian Grundhöfer.
 
 RetroBeam is free software under the **GNU Affero General Public License v3.0 or later** — see
-[LICENSE](LICENSE). Every source file carries an [SPDX](https://reuse.software) header.
+[LICENSE](LICENSE). Every source file carries an [SPDX](https://reuse.software) header; generated files without one, such as the sebaro design-system export, are covered by [REUSE.toml](REUSE.toml).
 
 If you run a modified RetroBeam and let others reach it over a network, AGPL §13 requires you to
 offer those users the source of your version. The licence rationale, the monetisation model it keeps

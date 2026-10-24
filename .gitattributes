@@ -1,0 +1,3 @@
+# The sebaro export is a byte-for-byte copy that its tool verifies by hash;
+# line-ending conversion would make every file look edited.
+apps/web/src/sebaro/** -text
