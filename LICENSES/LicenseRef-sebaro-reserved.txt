@@ -1,0 +1,11 @@
+All rights reserved.
+
+The name "sebaro" and the product names, the wordmark, the logo (mark and
+lockups), product marks, app signs (symbols, codes and tiles), app icons, and
+every file derived from them (favicons, web manifest icons, OG and social
+images, launcher and Tauri icons) are not licensed to you. Neither the
+AGPL-3.0-or-later licence of RetroBeam nor the MIT licence of the sebaro
+design system covers them. Using the MIT parts of sebaro grants no right to
+these names and marks.
+
+Copyright (c) 2026 Sebastian Grundhöfer
