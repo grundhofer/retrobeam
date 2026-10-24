@@ -31,9 +31,37 @@ export default defineConfig({
   // these specs assert, and a spoofed UA would make a real engine difference
   // harder to read, not easier.
   projects: [
-    { name: "chromium", use: { browserName: "chromium" } },
-    { name: "firefox", use: { browserName: "firefox" } },
-    { name: "webkit", use: { browserName: "webkit" } },
+    {
+      name: "chromium",
+      use: { browserName: "chromium" },
+      testIgnore: /visual\.spec\.ts/,
+    },
+    {
+      name: "firefox",
+      use: { browserName: "firefox" },
+      testIgnore: /visual\.spec\.ts/,
+    },
+    {
+      name: "webkit",
+      use: { browserName: "webkit" },
+      testIgnore: /visual\.spec\.ts/,
+    },
+    // The before/after picture report (.github/workflows/visual.yml), not a
+    // test of behaviour: one engine, a fixed language and time zone, and the
+    // pictures written outside the repo's history. A baseline is drawn fresh
+    // from each PR's base commit and never committed, so the folder is
+    // git-ignored and CI points VISUAL_BASELINE_DIR somewhere a checkout
+    // cannot wipe.
+    {
+      name: "visual",
+      testMatch: /visual\.spec\.ts/,
+      use: {
+        browserName: "chromium",
+        locale: "de-DE",
+        timezoneId: "Europe/Berlin",
+      },
+      snapshotPathTemplate: `${process.env.VISUAL_BASELINE_DIR ?? "{testDir}/.visual-baseline"}/{arg}{ext}`,
+    },
   ],
   // vite dev runs the SPA, the Worker and the BoardRoom DO in real workerd —
   // the e2e suite exercises the same runtime that production uses.

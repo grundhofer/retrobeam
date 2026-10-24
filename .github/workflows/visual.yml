@@ -1,0 +1,114 @@
+# A before/after picture report for every PR: the base commit draws the
+# baseline, the head commit is compared against it (e2e/visual.spec.ts). It is
+# a report, not a gate — every step that runs the code under test may fail
+# without failing the job, and what changed is in the summary and the artifact.
+name: Visual diff
+
+on:
+  pull_request:
+    branches: [main]
+
+# Reads the repo and uploads an artifact; no secrets, no writable token.
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      # The baseline goes to the runner's temp directory, outside the
+      # workspace: the head checkout below cleans the workspace, ignored files
+      # included, and would take an in-repo baseline with it.
+      - name: Baseline from the base commit
+        id: base
+        continue-on-error: true
+        shell: bash
+        env:
+          VISUAL_BASELINE_DIR: ${{ runner.temp }}/visual-baseline
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install chromium --with-deps
+          pnpm exec playwright test --project=visual --update-snapshots=all --reporter=list
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Compare the head commit
+        id: head
+        continue-on-error: true
+        shell: bash
+        env:
+          VISUAL_BASELINE_DIR: ${{ runner.temp }}/visual-baseline
+          PLAYWRIGHT_HTML_OPEN: never
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install chromium --with-deps
+          pnpm exec playwright test --project=visual --reporter=list,html
+      - uses: actions/upload-artifact@v7
+        id: upload
+        if: always()
+        continue-on-error: true
+        with:
+          name: visual-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+      # Playwright leaves <name>-diff.png next to every picture that changed,
+      # and only <name>-actual.png where there was nothing to compare against.
+      # A retry writes the same names again, hence the sort -u.
+      - name: Summary
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          BASE_OUTCOME: ${{ steps.base.outcome }}
+          HEAD_OUTCOME: ${{ steps.head.outcome }}
+          REPORT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          changed=""
+          missing=""
+          if [ -d test-results ]; then
+            changed=$(find test-results -name '*-diff.png' | sed -E 's#.*/##; s#-diff\.png$##' | sort -u)
+            missing=$(find test-results -name '*-actual.png' | while read -r actual; do
+              [ -e "${actual%-actual.png}-expected.png" ] || basename "${actual%-actual.png}"
+            done | sort -u)
+          fi
+          {
+            echo "## Visual diff"
+            echo
+            if [ "$BASE_OUTCOME" != "success" ]; then
+              echo "The base commit did not finish its baseline (outcome: $BASE_OUTCOME), so some views had nothing to compare against."
+              echo
+            fi
+            if [ -n "$changed" ]; then
+              echo "Views with a diff:"
+              echo
+              echo "$changed" | sed 's/^/- /'
+            elif [ "$HEAD_OUTCOME" = "success" ]; then
+              echo "No view changed."
+            else
+              echo "No picture differs, but the head run did not pass (outcome: $HEAD_OUTCOME); see the report."
+            fi
+            if [ -n "$missing" ]; then
+              echo
+              echo "Views without a baseline:"
+              echo
+              echo "$missing" | sed 's/^/- /'
+            fi
+            if [ -n "$REPORT_URL" ]; then
+              echo
+              echo "Expected, actual and diff pictures: [visual-report]($REPORT_URL)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
