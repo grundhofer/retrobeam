@@ -40,11 +40,18 @@ test("every waiver has a page, a rule, a target and a reason", () => {
 // The violations axe finds on the page as it is, minus the waived ones. A
 // waiver's target is matched against the node's selector and its HTML, because
 // axe picks whichever selector is shortest and that changes with the classes.
-async function audit(page: Page, name: string): Promise<string[]> {
+// `settle` runs after each resize, for a view that has to adapt to the width
+// before it is the view a visitor sees there.
+async function audit(
+  page: Page,
+  name: string,
+  settle?: () => Promise<void>,
+): Promise<string[]> {
   const found: string[] = [];
   for (const run of RUNS) {
     await page.setViewportSize({ width: run.width, height: run.height });
     await page.emulateMedia({ colorScheme: run.scheme });
+    await settle?.();
     await page.addScriptTag({ path: AXE });
     const violations = await page.evaluate(async (tags) => {
       // @ts-expect-error -- axe is the script injected above
@@ -145,5 +152,52 @@ test("axe: board", async ({ browser }) => {
   const write = await audit(page, "board-write");
 
   expect([...lobby, ...write]).toEqual([]);
+  await context.close();
+});
+
+// The canvas, with a card's ⋯ open on its move and step options: the drag's
+// keyboard twin has to pass the same audit as the rest of the write phase, at
+// the zoom a visitor gets — the fitted one, refitted at each width. The first
+// audit of the canvas at all, hence its waivers: the controls drawn in the
+// zoomed world, which shrink below 24px with it.
+test("axe: canvas arrange panel", async ({ browser }) => {
+  const context = await newContext(browser);
+  const page = await context.newPage();
+  await page.goto("/new");
+  await page.getByRole("textbox").fill("Sprint 51 retro");
+  await page.getByTestId("home-layout-canvas").click();
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await page.getByRole("textbox").fill("Anna");
+  await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
+  await expect(page.getByTestId("roster-item").first()).toBeVisible();
+  await page.getByTestId("phase-next").click();
+  await page.getByTestId("canvas-add-note").first().click();
+  await page.getByTestId("canvas-composer").fill("Deploys are slow");
+  await page.keyboard.press("Enter");
+  // The new card fades in; mid-fade its text would fail contrast.
+  await expect(page.getByTestId("note-card")).toHaveCSS("opacity", "1");
+  const toggle = page.getByTestId("note-arrange-toggle");
+  const panel = page.getByTestId("note-arrange");
+  const fit = page.getByRole("button", {
+    name: /fit to screen|an fenster anpassen/i,
+  });
+
+  expect(
+    await audit(page, "board-canvas-arrange", async () => {
+      // Fitted to this width, then the panel opened the way a visitor would.
+      if (await panel.isVisible()) {
+        await toggle.focus();
+        await page.keyboard.press("Enter");
+      }
+      await fit.click();
+      await toggle.focus();
+      await page.keyboard.press("Enter");
+      // axe skips what is off screen; the panel has to be there to count.
+      await expect(panel).toBeInViewport({ ratio: 1 });
+    }),
+  ).toEqual([]);
   await context.close();
 });

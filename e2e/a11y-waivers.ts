@@ -20,4 +20,32 @@ export const waivers: Waiver[] = [
     reason:
       "zinc-500 small caps on the tinted band fall short of 4.5:1. The landing is rebuilt in stage 4, without eyebrows and uppercase (spec/07 §3 rule 7).",
   },
+  {
+    page: "board-canvas-arrange",
+    rule: "target-size",
+    target: 'aria-label="Move or stack"',
+    reason:
+      "A canvas card's ⋯. Drawn inside the canvas's zoomed world, so at the fitted zoom (about half size on a desktop, a quarter on a phone) it is under 24px and closer than 24px to its neighbours (WCAG 2.5.8). Found by the canvas's first audit (2026-10-25), older than it; rebuilt with BoardCanvas in stage 5h. The ⋯ panel it opens is drawn at full size.",
+  },
+  {
+    page: "board-canvas-arrange",
+    rule: "target-size",
+    target: 'aria-label="Edit note"',
+    reason:
+      "A canvas card's ✎. Drawn inside the canvas's zoomed world, so at the fitted zoom (about half size on a desktop, a quarter on a phone) it is under 24px and closer than 24px to its neighbours (WCAG 2.5.8). Found by the canvas's first audit (2026-10-25), older than it; rebuilt with BoardCanvas in stage 5h.",
+  },
+  {
+    page: "board-canvas-arrange",
+    rule: "target-size",
+    target: 'aria-label="Delete note"',
+    reason:
+      "A canvas card's 🗑. Drawn inside the canvas's zoomed world, so at the fitted zoom (about half size on a desktop, a quarter on a phone) it is under 24px and closer than 24px to its neighbours (WCAG 2.5.8). Found by the canvas's first audit (2026-10-25), older than it; rebuilt with BoardCanvas in stage 5h.",
+  },
+  {
+    page: "board-canvas-arrange",
+    rule: "target-size",
+    target: 'data-testid="canvas-add-note"',
+    reason:
+      "A zone's \"+ Note\". Drawn inside the canvas's zoomed world, so at the fitted zoom (about half size on a desktop, a quarter on a phone) it is under 24px and closer than 24px to its neighbours (WCAG 2.5.8). Found by the canvas's first audit (2026-10-25), older than it; rebuilt with BoardCanvas in stage 5h.",
+  },
 ];
