@@ -5,3 +5,5 @@ coverage/
 playwright-report/
 test-results/
 worker-configuration.d.ts
+apps/web/src/sebaro/
+apps/web/public/theme-init.js
