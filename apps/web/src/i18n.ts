@@ -577,6 +577,7 @@ const resources = {
       },
       site: {
         nav: "Site",
+        skipToContent: "Skip to content",
       },
       pageNotFound: {
         title: "This page doesn't exist.",
@@ -1309,6 +1310,7 @@ const resources = {
       },
       site: {
         nav: "Website",
+        skipToContent: "Zum Inhalt",
       },
       pageNotFound: {
         title: "Diese Seite gibt es nicht.",

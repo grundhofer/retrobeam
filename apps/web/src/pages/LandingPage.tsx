@@ -7,6 +7,7 @@ import { Link, useLocation } from "react-router";
 import { BoardPreview } from "../components/BoardPreview.js";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { SiteHeader } from "../components/SiteHeader.js";
+import { MAIN_ID } from "../components/SkipLink.js";
 
 // The front door uses only the app's own visual vocabulary: zinc surfaces,
 // white cards, rounded controls, the teal accent and system type. The product
@@ -88,7 +89,7 @@ export function LandingPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       <SiteHeader />
-      <main className="flex-1">
+      <main id={MAIN_ID} className="flex-1">
         <section
           data-testid="landing-hero"
           className="border-b-[3px] border-zinc-900"
