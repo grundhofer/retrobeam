@@ -47,6 +47,11 @@ export function AccessibilityEn() {
 
       <ul>
         <li>
+          The first tab stop of every page is the “Skip to content” link. It
+          appears once it has focus and takes you past the page header to the
+          content.
+        </li>
+        <li>
           While you write a card, Enter saves it and Shift+Enter starts a new
           line. On the canvas, Escape cancels writing.
         </li>
@@ -59,9 +64,11 @@ export function AccessibilityEn() {
           again.
         </li>
         <li>
-          On the canvas, the “+ Note” button opens the field for writing a new
-          card, without a double-click. “Zoom out”, “Fit to screen” and “Zoom
-          in” are buttons.
+          On the canvas, the same button (⋯) on a card opens a choice: “Move to”
+          another zone, at a free spot, and steps up, down, left and right, as
+          buttons or with the arrow keys. Here too it replaces dragging. The “+
+          Note” button opens the field for writing a new card, without a
+          double-click. “Zoom out”, “Fit to screen” and “Zoom in” are buttons.
         </li>
         <li>
           The board menu (⋯) and “Invite” close with Escape, and on narrow
@@ -83,7 +90,9 @@ export function AccessibilityEn() {
         Phase changes, refused actions, changes while presenting, the result of
         the wheel of fortune and who is present are given out as status
         messages, and some errors as alerts, so that a screen reader can read
-        them. This has not been tested with a screen reader.
+        them. When a name or text is missing while creating a board, joining or
+        adding an action item, the message is at the field, linked to it, and
+        focus moves there. This has not been tested with a screen reader.
       </p>
 
       <h3>Language</h3>
@@ -125,10 +134,10 @@ export function AccessibilityEn() {
 
       <p>
         RetroBeam does not reach this target at present. At least two known
-        limitations miss it: the weak contrast on the start page, and cards on
-        the canvas that can only be moved by dragging. Whether the other
-        limitations below miss it has not been checked by hand, and much has not
-        been checked at all.
+        limitations miss it: the weak contrast on the start page, and controls
+        on the canvas that are smaller than 24&nbsp;pixels at the fitted zoom.
+        Whether the other limitations below miss it has not been checked by
+        hand, and much has not been checked at all.
       </p>
 
       <p>
@@ -148,16 +157,19 @@ export function AccessibilityEn() {
           2.1 (levels A and AA) and for WCAG 2.2 (level AA). In German and in
           English it checks the page for creating a board, the page for unknown
           addresses, the imprint, the privacy notice and this page; in English
-          only, the start page and a board in the lobby and while writing.
-          Result: passed on all of these pages except the start page. On the
-          start page, failed on one point, the contrast of the heading “Why
-          RetroBeam”, which is listed as a known limitation. Any other violation
-          fails the check. A tool like this finds only part of the possible
-          barriers.
+          only, the start page, a board in the lobby and while writing, and the
+          canvas with the move choice open. Result: passed on all of these pages
+          except the start page and the canvas. On the start page, failed on one
+          point, the contrast of the heading “Why RetroBeam”. On the canvas,
+          failed on four points: “⋯”, “✎”, “🗑” and “+ Note” are smaller than
+          24&nbsp;pixels at the fitted zoom. Both are listed as known
+          limitations. Any other violation fails the check. A tool like this
+          finds only part of the possible barriers.
         </li>
         <li>
           Sideways scrolling at 390&nbsp;pixels and 1440&nbsp;pixels wide, on
-          the same pages and on a board in the lobby and while writing: passed.
+          the same pages apart from the canvas and on a board in the lobby and
+          while writing: passed.
         </li>
         <li>
           Sideways scrolling at 360&nbsp;pixels wide with the text at double
@@ -176,6 +188,14 @@ export function AccessibilityEn() {
           Chromium, Firefox and WebKit that enter cards with Enter and close
           views with Escape: passed. Neither is a walk-through with the keyboard
           only.
+        </li>
+        <li>
+          Tests in Chromium, Firefox and WebKit that “Skip to content” is the
+          first tab stop and puts focus in the content, that cards on the canvas
+          move to another zone and step by step without dragging, and that the
+          forms for creating a board and for joining say at the field what is
+          missing: passed. For the action item form the same check runs as a
+          component test in Chromium and WebKit: passed.
         </li>
         <li>
           One test that walks a board through every phase at 390&nbsp;pixels
@@ -203,8 +223,8 @@ export function AccessibilityEn() {
         </li>
         <li>
           axe for the later phases of a board (present, vote, discuss, close,
-          results), for menus, dialogs, the wheel of fortune and the canvas:
-          open.
+          results), for menus, dialogs, the wheel of fortune and the canvas
+          other than while writing with the move choice open: open.
         </li>
         <li>
           axe for the German interface of the start page and a board: open.
@@ -244,13 +264,15 @@ export function AccessibilityEn() {
           header is to be rebuilt during the move.
         </li>
         <li>
-          On the canvas, cards can only be moved by dragging; there is no way
-          with the keyboard. The canvas is to be rebuilt during the move, but
-          there is no plan for this point yet.
+          On the canvas, the “⋯”, “✎”, “🗑” and “+ Note” buttons are smaller than
+          24&nbsp;pixels at the fitted zoom, because they shrink with the
+          canvas. The move choice is full size. The canvas is to be rebuilt
+          during the move.
         </li>
         <li>
-          A “Skip to content” link that skips the page header is missing. It is
-          planned for the move.
+          On the canvas, zones can only be moved and resized by dragging; there
+          is no way with the keyboard. This affects only the facilitator. The
+          canvas is to be rebuilt during the move.
         </li>
         <li>
           A choice between light and dark is missing. It is planned for the

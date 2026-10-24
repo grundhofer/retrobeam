@@ -37,7 +37,7 @@ export const NOTICE_DATE = "2026-09-29";
 // (content/accessibility.*.tsx); it is the statement's date line and appears
 // in its text. Change it only together with that text, after the checks it
 // names have run again — before a release, from the CI run on that commit.
-export const ACCESSIBILITY_DATE = "2026-10-24";
+export const ACCESSIBILITY_DATE = "2026-10-25";
 
 // The day the market surveillance authority's details in the accessibility
 // statement were copied from mlbf-barrierefrei.de. Fetch them again before a

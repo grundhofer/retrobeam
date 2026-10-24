@@ -51,6 +51,11 @@ export function AccessibilityDe() {
 
       <ul>
         <li>
+          Der erste Tabstopp jeder Seite ist der Link „Zum Inhalt“. Er
+          erscheint, sobald er den Fokus hat, und führt am Kopf der Seite vorbei
+          zum Inhalt.
+        </li>
+        <li>
           Beim Schreiben einer Karte speichert Enter die Karte, Umschalt+Enter
           beginnt eine neue Zeile. Auf dem Canvas bricht Escape das Schreiben
           ab.
@@ -65,9 +70,13 @@ export function AccessibilityDe() {
           an der Karte.
         </li>
         <li>
-          Auf dem Canvas öffnet die Schaltfläche „+ Notiz“ das Schreibfeld für
-          eine neue Karte, ohne Doppelklick. „Verkleinern“, „An Fenster
-          anpassen“ und „Vergrößern“ sind Schaltflächen.
+          Auf dem Canvas öffnet dieselbe Schaltfläche (⋯) an einer Karte eine
+          Auswahl: „Verschieben nach“ in eine andere Zone, an eine freie Stelle,
+          und Schritte nach oben, unten, links und rechts, als Schaltflächen
+          oder mit den Pfeiltasten. Sie ersetzt auch hier das Ziehen. Die
+          Schaltfläche „+ Notiz“ öffnet das Schreibfeld für eine neue Karte,
+          ohne Doppelklick. „Verkleinern“, „An Fenster anpassen“ und
+          „Vergrößern“ sind Schaltflächen.
         </li>
         <li>
           Das Board-Menü (⋯) und „Einladen“ schließen mit Escape, auf schmalen
@@ -90,7 +99,10 @@ export function AccessibilityDe() {
         Phasenwechsel, abgelehnte Aktionen, Wechsel beim Vorstellen, das
         Ergebnis des Glücksrads und wer anwesend ist, gibt RetroBeam als
         Statusmeldung aus, einige Fehler als Warnmeldung, damit ein Screenreader
-        sie vorlesen kann. Mit einem Screenreader getestet ist das nicht.
+        sie vorlesen kann. Fehlt beim Anlegen eines Boards, beim Beitreten oder
+        bei einem neuen Action Item der Name oder Text, steht die Meldung am
+        Feld, ist mit ihm verbunden, und der Fokus springt dorthin. Mit einem
+        Screenreader getestet ist das nicht.
       </p>
 
       <h3>Sprache</h3>
@@ -135,9 +147,10 @@ export function AccessibilityDe() {
       <p>
         RetroBeam erreicht dieses Ziel derzeit nicht. Mindestens zwei bekannte
         Einschränkungen verfehlen es: der zu schwache Kontrast auf der
-        Startseite und Karten auf dem Canvas, die sich nur durch Ziehen
-        verschieben lassen. Ob die übrigen Einschränkungen unten es verfehlen,
-        ist nicht von Hand geprüft, und vieles ist noch gar nicht geprüft.
+        Startseite und auf dem Canvas Bedienelemente, die beim angepassten Zoom
+        kleiner als 24&nbsp;Pixel sind. Ob die übrigen Einschränkungen unten es
+        verfehlen, ist nicht von Hand geprüft, und vieles ist noch gar nicht
+        geprüft.
       </p>
 
       <p>
@@ -157,18 +170,21 @@ export function AccessibilityDe() {
           2.1 (Stufen A und AA) und für WCAG 2.2 (Stufe AA). Auf Deutsch und auf
           Englisch prüft es die Seite zum Anlegen eines Boards, die Seite für
           unbekannte Adressen, Impressum, Datenschutzerklärung und diese Seite,
-          nur auf Englisch die Startseite und ein Board in der Lobby und beim
-          Schreiben. Ergebnis: bestanden auf allen diesen Seiten außer der
-          Startseite. Auf der Startseite nicht bestanden in einem Punkt, dem
-          Kontrast der Überschrift „Warum RetroBeam“; er ist als bekannte
+          nur auf Englisch die Startseite, ein Board in der Lobby und beim
+          Schreiben und den Canvas mit geöffneter Auswahl zum Verschieben.
+          Ergebnis: bestanden auf allen diesen Seiten außer der Startseite und
+          dem Canvas. Auf der Startseite nicht bestanden in einem Punkt, dem
+          Kontrast der Überschrift „Warum RetroBeam“. Auf dem Canvas nicht
+          bestanden in vier Punkten: „⋯“, „✎“, „🗑“ und „+ Notiz“ sind beim
+          angepassten Zoom kleiner als 24&nbsp;Pixel. Beides ist als bekannte
           Einschränkung eingetragen. Jeder andere Verstoß lässt die Prüfung
           scheitern. Ein solches Werkzeug findet nur einen Teil möglicher
           Barrieren.
         </li>
         <li>
           Seitliches Scrollen bei 390&nbsp;Pixel und 1440&nbsp;Pixel Breite, auf
-          denselben Seiten und auf einem Board in der Lobby und beim Schreiben:
-          bestanden.
+          denselben Seiten außer dem Canvas und auf einem Board in der Lobby und
+          beim Schreiben: bestanden.
         </li>
         <li>
           Seitliches Scrollen bei 360&nbsp;Pixel Breite mit doppelter
@@ -188,6 +204,15 @@ export function AccessibilityDe() {
           Tests in Chromium, Firefox und WebKit, die Karten mit Enter eingeben
           und Ansichten mit Escape schließen: bestanden. Beides ist kein
           Durchgang nur mit der Tastatur.
+        </li>
+        <li>
+          Tests in Chromium, Firefox und WebKit, dass „Zum Inhalt“ der erste
+          Tabstopp ist und den Fokus in den Inhalt setzt, dass Karten auf dem
+          Canvas ohne Ziehen in eine andere Zone und schrittweise wandern und
+          dass die Formulare zum Anlegen eines Boards und zum Beitreten am Feld
+          sagen, was fehlt: bestanden. Für das Formular für Action Items läuft
+          dieselbe Prüfung als Komponententest in Chromium und WebKit:
+          bestanden.
         </li>
         <li>
           Ein Test, der ein Board bei 390&nbsp;Pixel Breite durch alle Phasen
@@ -220,7 +245,8 @@ export function AccessibilityDe() {
         <li>
           axe für die späteren Phasen eines Boards (Vorstellen, Abstimmen,
           Diskutieren, Abschluss, Ergebnis), für Menüs, Dialoge, das Glücksrad
-          und den Canvas: offen.
+          und den Canvas außer beim Schreiben mit geöffneter Auswahl zum
+          Verschieben: offen.
         </li>
         <li>
           axe für die deutsche Oberfläche der Startseite und eines Boards:
@@ -263,13 +289,16 @@ export function AccessibilityDe() {
           werden.
         </li>
         <li>
-          Auf dem Canvas lassen sich Karten nur durch Ziehen verschieben; einen
-          Weg mit der Tastatur gibt es nicht. Der Canvas soll bei der Umstellung
-          neu gebaut werden, ein Plan für diesen Punkt steht noch nicht fest.
+          Auf dem Canvas sind die Schaltflächen „⋯“, „✎“, „🗑“ und „+ Notiz“ beim
+          angepassten Zoom kleiner als 24&nbsp;Pixel, weil sie mit der Fläche
+          verkleinert werden. Die Auswahl zum Verschieben hat volle Größe. Der
+          Canvas soll bei der Umstellung neu gebaut werden.
         </li>
         <li>
-          Ein Link „Zum Inhalt“, mit dem du den Kopf der Seite überspringst,
-          fehlt. Er ist für die Umstellung geplant.
+          Auf dem Canvas lassen sich Zonen nur durch Ziehen verschieben und in
+          der Größe ändern; einen Weg mit der Tastatur gibt es nicht. Das
+          betrifft nur die Moderation. Der Canvas soll bei der Umstellung neu
+          gebaut werden.
         </li>
         <li>
           Eine Wahl zwischen Hell und Dunkel fehlt. Sie ist für die Umstellung
