@@ -119,7 +119,7 @@ test("FAQ answers open on demand", async ({ browser }) => {
 test("the non-commercial notice and the legal pages are reachable in both languages", async ({
   browser,
 }) => {
-  const context = await newContext(browser);
+  const context = await newContext(browser, { locale: "de-DE" });
   const page = await context.newPage();
   await page.goto("/");
 
@@ -127,37 +127,241 @@ test("the non-commercial notice and the legal pages are reachable in both langua
 
   await page
     .getByTestId("legal-footer")
-    .getByRole("link", { name: /datenschutz|privacy/i })
+    .getByRole("link", { name: "Datenschutz" })
     .click();
   await expect(page).toHaveURL(/\/datenschutz$/);
   await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: /Datenschutzerklärung|Privacy notice/,
-    }),
+    page.getByRole("heading", { level: 1, name: "Datenschutzerklärung" }),
   ).toBeVisible();
   await expect(page.getByTestId("operator-block")).toBeVisible();
 
+  // On a legal page the switch is a link to the other version (sebaro
+  // WEB-10), named in the language it leads to and starting with what it
+  // shows (WCAG 2.5.3).
   await page.goto("/impressum");
   await expect(
-    page.getByRole("heading", { level: 1, name: /Impressum|Imprint/ }),
+    page.getByRole("heading", { level: 1, name: "Impressum" }),
+  ).toBeVisible();
+  const toEnglish = page.getByRole("link", {
+    name: "EN, switch to English",
+    exact: true,
+  });
+  await expect(toEnglish).toHaveText("EN");
+  await expect(toEnglish).toHaveAttribute("href", "/imprint");
+  await expect(toEnglish).toHaveAttribute("lang", "en");
+  await expect(toEnglish).toHaveAttribute("hreflang", "en");
+  await toEnglish.click();
+  await expect(page).toHaveURL(/\/imprint$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Imprint" }),
+  ).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(
+    page.getByRole("link", { name: "DE, auf Deutsch umschalten", exact: true }),
+  ).toHaveAttribute("href", "/impressum");
+
+  await context.close();
+});
+
+// A page without a language in its path (F18b) keeps the button: it flips the
+// visible text and <html lang>, and stores the choice.
+test("the language button switches and stores the UI language", async ({
+  browser,
+}) => {
+  const context = await newContext(browser, { locale: "de-DE" });
+  const page = await context.newPage();
+
+  // The other pages without a language URL have the same button, no link.
+  for (const path of ["/new", "/does-not-exist"]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "EN, switch to English", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /switch to English/ }),
+    ).toHaveCount(0);
+  }
+
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "de");
+
+  const toEnglish = page.getByRole("button", {
+    name: "EN, switch to English",
+    exact: true,
+  });
+  await expect(toEnglish).toHaveText("EN");
+  await expect(toEnglish).toHaveAttribute("lang", "en");
+  await toEnglish.click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(
+    page.getByTestId("legal-footer").getByRole("link", { name: "Privacy" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("retrobeam.lang")),
+  ).toBe("en");
+  await expect(
+    page.getByRole("button", {
+      name: "DE, auf Deutsch umschalten",
+      exact: true,
+    }),
+  ).toHaveAttribute("lang", "de");
+
+  await context.close();
+});
+
+// F18: the path decides a legal page's language — content, chrome, title and
+// <html lang> — never the stored UI language, which the page leaves alone:
+// the next page is in the reader's language again.
+for (const view of [
+  {
+    stored: "de",
+    path: "/privacy",
+    lang: "en",
+    title: "Privacy notice",
+    footer: ["/privacy", "/imprint"],
+    other: { name: "DE, auf Deutsch umschalten", href: "/datenschutz" },
+    home: ["/datenschutz", "/impressum"],
+  },
+  {
+    stored: "en",
+    path: "/datenschutz",
+    lang: "de",
+    title: "Datenschutzerklärung",
+    footer: ["/datenschutz", "/impressum"],
+    other: { name: "EN, switch to English", href: "/privacy" },
+    home: ["/privacy", "/imprint"],
+  },
+] as const) {
+  test(`${view.path} is in its own language when the stored one is ${view.stored}`, async ({
+    browser,
+  }) => {
+    const context = await newContext(browser);
+    await context.addInitScript((stored) => {
+      localStorage.setItem("retrobeam.lang", stored);
+    }, view.stored);
+    const page = await context.newPage();
+    const footerLinks = page
+      .getByTestId("legal-footer")
+      .locator("a[href^='/']");
+
+    await page.goto(view.path);
+    await expect(
+      page.getByRole("heading", { level: 1, name: view.title }),
+    ).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", view.lang);
+    await expect(page).toHaveTitle(`${view.title} · RetroBeam`);
+    await expect(
+      page.getByRole("link", { name: view.other.name, exact: true }),
+    ).toHaveAttribute("href", view.other.href);
+    expect(
+      await footerLinks.evaluateAll((links) =>
+        links.map((link) => link.getAttribute("href")),
+      ),
+    ).toEqual(view.footer);
+
+    // Back to the landing page: the reader's language again, still stored.
+    await page.getByRole("link", { name: "RetroBeam", exact: true }).click();
+    await expect(page.getByTestId("landing-hero")).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", view.stored);
+    expect(
+      await footerLinks.evaluateAll((links) =>
+        links.map((link) => link.getAttribute("href")),
+      ),
+    ).toEqual(view.home);
+    expect(
+      await page.evaluate(() => localStorage.getItem("retrobeam.lang")),
+    ).toBe(view.stored);
+
+    await context.close();
+  });
+}
+
+// The footer has no path of its own to follow, so it links the version in
+// the UI language — here from the browser language, nothing stored.
+for (const [locale, privacy, imprint] of [
+  ["de-DE", ["Datenschutz", "/datenschutz"], ["Impressum", "/impressum"]],
+  ["en-US", ["Privacy", "/privacy"], ["Imprint", "/imprint"]],
+] as const) {
+  test(`the footer links the ${locale} legal pages`, async ({ browser }) => {
+    const context = await newContext(browser, { locale });
+    const page = await context.newPage();
+    await page.goto("/");
+    const footer = page.getByTestId("legal-footer");
+    for (const [name, href] of [privacy, imprint]) {
+      await expect(
+        footer.getByRole("link", { name, exact: true }),
+      ).toHaveAttribute("href", href);
+    }
+    await context.close();
+  });
+}
+
+// Both versions of a legal page name each other for search engines, with
+// absolute URLs on the instance host; the landing page has no second version
+// and names none, and leaving a legal page takes its links away again.
+test("legal pages carry hreflang alternates, the landing page does not", async ({
+  browser,
+}) => {
+  const context = await newContext(browser);
+  const page = await context.newPage();
+  const alternates = page.locator('head link[rel="alternate"][hreflang]');
+
+  await page.goto("/");
+  await expect(page.getByTestId("landing-hero")).toBeVisible();
+  await expect(alternates).toHaveCount(0);
+
+  for (const pair of [
+    { de: "/impressum", en: "/imprint" },
+    { de: "/datenschutz", en: "/privacy" },
+  ]) {
+    for (const path of [pair.de, pair.en]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(alternates).toHaveCount(2);
+      for (const lang of ["de", "en"] as const) {
+        await expect(
+          page.locator(`head link[rel="alternate"][hreflang="${lang}"]`),
+        ).toHaveAttribute("href", `https://retrobeam.de${pair[lang]}`);
+      }
+    }
+  }
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+
+  await page.getByRole("link", { name: "RetroBeam", exact: true }).click();
+  await expect(page.getByTestId("landing-hero")).toBeVisible();
+  await expect(alternates).toHaveCount(0);
+
+  await context.close();
+});
+
+// The legal pages fall under the same §25 TDDDG argument as the landing page
+// below: reading them, and following the switch to the other version, stores
+// nothing.
+test("reading the legal pages writes nothing to browser storage", async ({
+  browser,
+}) => {
+  const context = await newContext(browser);
+  const page = await context.newPage();
+  await page.goto("/datenschutz");
+  await page
+    .getByRole("link", { name: "EN, switch to English", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await page
+    .getByTestId("legal-footer")
+    .getByRole("link", { name: "Imprint" })
+    .click();
+  await expect(page).toHaveURL(/\/imprint$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Imprint" }),
   ).toBeVisible();
 
-  // The toggle flips both the visible text and <html lang>, whichever
-  // language the browser started in.
-  const before = await page.locator("html").getAttribute("lang");
-  expect(before).toMatch(/^(de|en)$/);
-  const after = before === "de" ? "en" : "de";
-  await page
-    .getByRole("button", { name: /Auf Deutsch umschalten|Switch to English/ })
-    .click();
-  await expect(page.locator("html")).toHaveAttribute("lang", after);
-  await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: after === "de" ? /Impressum/ : /Imprint/,
-    }),
-  ).toBeVisible();
+  const keys = await page.evaluate(() => [
+    ...Object.keys(localStorage),
+    ...Object.keys(sessionStorage),
+  ]);
+  expect(keys).toEqual([]);
 
   await context.close();
 });
@@ -227,6 +431,12 @@ test("the served HTML carries the link-preview tags and a static fallback", asyn
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).toContain("<urlset");
   expect(sitemap).not.toContain("/board/");
+  for (const path of ["/impressum", "/imprint", "/datenschutz", "/privacy"]) {
+    expect(sitemap).toContain(`<loc>https://retrobeam.de${path}</loc>`);
+  }
+  expect(sitemap).toContain(
+    '<xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/privacy"/>',
+  );
 });
 
 // Once the app runs, the fallback is gone (createRoot replaced it) and the

@@ -1455,7 +1455,8 @@ function initialLanguage(): "de" | "en" {
 // index.html ships lang="de" (its static fallback text and link-preview tags
 // are German); screen readers and hyphenation pick their pronunciation/rules
 // from it, so it has to follow the actual UI language — on load and on every
-// switch.
+// switch. The legal pages are the exception: their path decides their
+// language, so LegalPage.tsx sets it from the path and hands it back on leaving.
 function syncDocumentLanguage(lang: string): void {
   if (typeof document !== "undefined") {
     document.documentElement.lang = lang.startsWith("de") ? "de" : "en";

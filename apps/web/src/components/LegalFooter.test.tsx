@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router";
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
-import "../i18n.js";
+import i18n from "../i18n.js";
+import { LEGAL_PATHS } from "../lib/legalPaths.js";
 import { LegalFooter } from "./LegalFooter.js";
 
 // The footer links into the app's own routes, so it needs a router around it.
@@ -47,8 +49,11 @@ test("both notices resolve into the repository", async () => {
 
   // Two statutory pages of our own, then the two AGPL notices in the repo.
   expect(links).toHaveLength(4);
-  expect(links[0]?.getAttribute("href")).toBe("/datenschutz");
-  expect(links[1]?.getAttribute("href")).toBe("/impressum");
+  const lang = i18n.language.startsWith("de") ? "de" : "en";
+  expect(links.slice(0, 2).map((link) => link.getAttribute("href"))).toEqual([
+    LEGAL_PATHS.privacy[lang],
+    LEGAL_PATHS.imprint[lang],
+  ]);
   for (const link of links.slice(2)) {
     expect(link.getAttribute("href")).toContain(
       "github.com/grundhofer/retrobeam",
@@ -67,6 +72,25 @@ test("links the privacy notice and the imprint", async () => {
   await expect
     .element(screen.getByRole("link", { name: /Impressum|Imprint/ }))
     .toBeInTheDocument();
+});
+
+// Each legal page has a path per language; the footer links the version in
+// the language it is rendered in.
+test("links the legal pages in the reader's language", async () => {
+  for (const [lng, privacy, imprint] of [
+    ["de", "/datenschutz", "/impressum"],
+    ["en", "/privacy", "/imprint"],
+  ] as const) {
+    const screen = await render(
+      <I18nextProvider i18n={i18n.cloneInstance({ lng })}>
+        {footer()}
+      </I18nextProvider>,
+    );
+    const links = screen.getByTestId("legal-footer").element();
+    expect(links.querySelector(`a[href="${privacy}"]`)).not.toBeNull();
+    expect(links.querySelector(`a[href="${imprint}"]`)).not.toBeNull();
+    await screen.unmount();
+  }
 });
 
 test("can preserve a live board when opening the legal pages", async () => {

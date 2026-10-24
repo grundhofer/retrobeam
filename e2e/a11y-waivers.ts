@@ -15,55 +15,6 @@ export type Waiver = {
 export const waivers: Waiver[] = [
   {
     page: "landing",
-    rule: "label-content-name-mismatch",
-    target: 'aria-label="Auf Deutsch umschalten"',
-    reason:
-      'The language toggle shows DE/EN but is named "Auf Deutsch umschalten" (WCAG 2.5.3). It is rebuilt with the language choice in stage 3a (F18b).',
-  },
-  {
-    page: "new-board",
-    rule: "label-content-name-mismatch",
-    target: 'aria-label="Auf Deutsch umschalten"',
-    reason:
-      'The language toggle shows DE/EN but is named "Auf Deutsch umschalten" (WCAG 2.5.3). It is rebuilt with the language choice in stage 3a (F18b).',
-  },
-  {
-    page: "impressum",
-    rule: "label-content-name-mismatch",
-    target: 'aria-label="Auf Deutsch umschalten"',
-    reason:
-      'The language toggle shows DE/EN but is named "Auf Deutsch umschalten" (WCAG 2.5.3). It is rebuilt with the language choice in stage 3a (F18b).',
-  },
-  {
-    page: "datenschutz",
-    rule: "label-content-name-mismatch",
-    target: 'aria-label="Auf Deutsch umschalten"',
-    reason:
-      'The language toggle shows DE/EN but is named "Auf Deutsch umschalten" (WCAG 2.5.3). It is rebuilt with the language choice in stage 3a (F18b).',
-  },
-  {
-    page: "not-found",
-    rule: "label-content-name-mismatch",
-    target: 'aria-label="Auf Deutsch umschalten"',
-    reason:
-      'The language toggle shows DE/EN but is named "Auf Deutsch umschalten" (WCAG 2.5.3). It is rebuilt with the language choice in stage 3a (F18b).',
-  },
-  {
-    page: "board-lobby",
-    rule: "label-content-name-mismatch",
-    target: 'aria-label="Auf Deutsch umschalten"',
-    reason:
-      'The language toggle shows DE/EN but is named "Auf Deutsch umschalten" (WCAG 2.5.3). It is rebuilt with the language choice in stage 3a (F18b).',
-  },
-  {
-    page: "board-write",
-    rule: "label-content-name-mismatch",
-    target: 'aria-label="Auf Deutsch umschalten"',
-    reason:
-      'The language toggle shows DE/EN but is named "Auf Deutsch umschalten" (WCAG 2.5.3). It is rebuilt with the language choice in stage 3a (F18b).',
-  },
-  {
-    page: "landing",
     rule: "color-contrast",
     target: "Why RetroBeam",
     reason:

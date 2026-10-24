@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
 import "../i18n.js";
+import { LEGAL_PATHS } from "../lib/legalPaths.js";
 import { ImprintDe } from "./imprint.de.js";
 import { ImprintEn } from "./imprint.en.js";
 import { PrivacyDe } from "./privacy.de.js";
@@ -13,6 +14,12 @@ import { PrivacyEn } from "./privacy.en.js";
 // The two languages of a legal text are the same document. Like the i18n
 // parity test for UI strings, this fingerprints the language-independent parts
 // so a missing section, link, list item, table row or placeholder cannot drift.
+// A link to a legal page is the exception: each version links the version in
+// its own language (F18), so the English paths are read as their German pair.
+const legal = Object.values(LEGAL_PATHS);
+const asGerman = (href: string | null) =>
+  legal.find((paths) => paths.en === href)?.de ?? href;
+
 function outline(root: Element): string[] {
   return [...root.querySelectorAll("h2, h3, table")].map((element) => {
     const section = element.textContent?.trim().match(/^\d+(?:\.\d+)?/)?.[0];
@@ -60,7 +67,7 @@ test("privacy notice: German and English share one structure", async () => {
   expect(de.rows).toBe(en.rows);
   expect(de.items).toBe(en.items);
   expect(de.marks).toBe(en.marks);
-  expect(de.hrefs).toEqual(en.hrefs);
+  expect(de.hrefs).toEqual(en.hrefs.map(asGerman));
   expect(de.codeKeys).toEqual(en.codeKeys);
   expect([de.h1, en.h1]).toEqual([0, 0]); // the page layout owns the title
   expect([de.operator, en.operator]).toEqual([1, 1]);
@@ -73,4 +80,24 @@ test("imprint: German and English share one structure", async () => {
   expect(de.outline).toEqual(en.outline);
   expect([de.operator, en.operator]).toEqual([1, 1]);
   expect([de.externalUnsafe, en.externalUnsafe]).toEqual([0, 0]);
+});
+
+// The path decides a legal page's language, so a link from one legal text to
+// another has to stay in that text's language.
+test("legal texts link the legal pages in their own language", async () => {
+  for (const [lang, views] of [
+    ["de", [<PrivacyDe key="p" />, <ImprintDe key="i" />]],
+    ["en", [<PrivacyEn key="p" />, <ImprintEn key="i" />]],
+  ] as const) {
+    for (const view of views) {
+      const { hrefs } = await structure(view);
+      const toLegal = hrefs.filter((href) =>
+        legal.some((paths) => paths.de === href || paths.en === href),
+      );
+      expect(toLegal.length).toBeGreaterThan(0);
+      for (const href of toLegal) {
+        expect(legal.map((paths) => paths[lang])).toContain(href);
+      }
+    }
+  }
 });

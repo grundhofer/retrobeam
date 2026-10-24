@@ -8,6 +8,7 @@ import "./index.css";
 import "./i18n.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { NoIndex } from "./components/NoIndex.js";
+import { LEGAL_PATHS } from "./lib/legalPaths.js";
 import { BoardPage } from "./pages/BoardPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { ImprintPage } from "./pages/ImprintPage.js";
@@ -18,9 +19,11 @@ import { PrivacyPage } from "./pages/PrivacyPage.js";
 // errorElement on every route: a render exception during a live retro must
 // offer a way back (the board itself is safe on the server), not a blank page.
 //
-// The legal pages answer to a German and an English path each; the language
-// of the text follows the UI language, not the path, so both spellings of a
-// link land on the same page.
+// The legal pages answer to a German and an English path each, and the path
+// decides the language (F18): /datenschutz and /impressum are German,
+// /privacy and /imprint English, whatever the UI language — which a legal page
+// neither changes nor stores (see LegalPage.tsx). The paths come from
+// lib/legalPaths.ts, which the links between the versions read too.
 //
 // The board route carries <NoIndex /> beside the page (a board URL is a
 // capability — see NoIndex.tsx), and "*" catches every other path, so a
@@ -29,23 +32,23 @@ const router = createBrowserRouter([
   { path: "/", element: <LandingPage />, errorElement: <ErrorBoundary /> },
   { path: "/new", element: <HomePage />, errorElement: <ErrorBoundary /> },
   {
-    path: "/datenschutz",
-    element: <PrivacyPage />,
+    path: LEGAL_PATHS.privacy.de,
+    element: <PrivacyPage lang="de" />,
     errorElement: <ErrorBoundary />,
   },
   {
-    path: "/privacy",
-    element: <PrivacyPage />,
+    path: LEGAL_PATHS.privacy.en,
+    element: <PrivacyPage lang="en" />,
     errorElement: <ErrorBoundary />,
   },
   {
-    path: "/impressum",
-    element: <ImprintPage />,
+    path: LEGAL_PATHS.imprint.de,
+    element: <ImprintPage lang="de" />,
     errorElement: <ErrorBoundary />,
   },
   {
-    path: "/imprint",
-    element: <ImprintPage />,
+    path: LEGAL_PATHS.imprint.en,
+    element: <ImprintPage lang="en" />,
     errorElement: <ErrorBoundary />,
   },
   {

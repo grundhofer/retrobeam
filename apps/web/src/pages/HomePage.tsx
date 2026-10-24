@@ -51,7 +51,7 @@ export function HomePage() {
   const title = t("home.title");
   const appName = t("app.name");
 
-  // Same pattern as LegalPage: the tab names the page, in the UI language.
+  // The tab names the page, in the UI language.
   useEffect(() => {
     document.title = `${title} · ${appName}`;
     return () => {

@@ -86,6 +86,8 @@ for (const [name, path] of [
   ["new-board", "/new"],
   ["impressum", "/impressum"],
   ["datenschutz", "/datenschutz"],
+  ["imprint", "/imprint"],
+  ["privacy", "/privacy"],
   ["not-found", "/does-not-exist"],
 ] as const) {
   test(`axe: ${name}`, async ({ browser }) => {
@@ -93,6 +95,26 @@ for (const [name, path] of [
     const page = await context.newPage();
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(await audit(page, name)).toEqual([]);
+    await context.close();
+  });
+}
+
+// The runs above have an English browser, so the switch on the pages without a
+// language URL reads "DE, auf Deutsch umschalten". A German browser gets the
+// other name, "EN, switch to English", checked here on the views that carry no
+// waiver.
+for (const [name, path] of [
+  ["new-board", "/new"],
+  ["not-found", "/does-not-exist"],
+] as const) {
+  test(`axe: ${name} in a German browser`, async ({ browser }) => {
+    const context = await newContext(browser, { locale: "de-DE" });
+    const page = await context.newPage();
+    await page.goto(path);
+    await expect(
+      page.getByRole("button", { name: "EN, switch to English", exact: true }),
+    ).toBeVisible();
     expect(await audit(page, name)).toEqual([]);
     await context.close();
   });

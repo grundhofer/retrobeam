@@ -5,16 +5,22 @@ import { useTranslation } from "react-i18next";
 import { NOTICE_DATE } from "../content/operator.js";
 import { PrivacyDe } from "../content/privacy.de.js";
 import { PrivacyEn } from "../content/privacy.en.js";
+import { LEGAL_PATHS, type LegalLanguage } from "../lib/legalPaths.js";
 import { LegalPage } from "./LegalPage.js";
 
-// Art. 13 GDPR notice, in the UI language. Reachable as /datenschutz and
-// /privacy; the content lives in content/privacy.*.tsx as plain HTML.
-export function PrivacyPage() {
-  const { t, i18n } = useTranslation();
-  const de = i18n.language.startsWith("de");
+// Art. 13 GDPR notice, in the language of its path: German at /datenschutz,
+// English at /privacy, whatever the UI language. The content lives in
+// content/privacy.*.tsx as plain HTML.
+export function PrivacyPage({ lang }: { lang: LegalLanguage }) {
+  const { t } = useTranslation(undefined, { lng: lang });
   return (
-    <LegalPage title={t("legal.privacyTitle")} updated={NOTICE_DATE}>
-      {de ? <PrivacyDe /> : <PrivacyEn />}
+    <LegalPage
+      lang={lang}
+      paths={LEGAL_PATHS.privacy}
+      title={t("legal.privacyTitle")}
+      updated={NOTICE_DATE}
+    >
+      {lang === "de" ? <PrivacyDe /> : <PrivacyEn />}
     </LegalPage>
   );
 }

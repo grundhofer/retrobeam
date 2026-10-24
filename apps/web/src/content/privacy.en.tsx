@@ -748,9 +748,9 @@ export function PrivacyEn() {
         <strong>Changes.</strong> This notice will be updated when the
         application changes — in particular when a service provider is added or
         removed. The current version is always at{" "}
-        <Link to="/datenschutz">https://retrobeam.de/datenschutz</Link>; the
-        date at the top shows the version. Separate notification is not
-        possible, as there are no accounts.
+        <Link to="/privacy">https://retrobeam.de/privacy</Link>; the date at the
+        top shows the version. Separate notification is not possible, as there
+        are no accounts.
       </p>
     </>
   );
