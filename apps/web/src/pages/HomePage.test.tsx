@@ -3,6 +3,7 @@
 
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import i18n from "../i18n.js";
 import { HomePage } from "./HomePage.js";
@@ -149,4 +150,91 @@ test("a clean /new says nothing about links", async () => {
   await expect
     .element(screen.getByTestId("home-link-columns"))
     .not.toBeInTheDocument();
+});
+
+// An empty name keeps the button pressable (sebaro STA-03): the press sends
+// nothing, says at the field what is missing and puts the cursor there.
+test("creating without a name says so at the field and sends nothing", async () => {
+  const seen = captureCreate();
+  const screen = await render(
+    <MemoryRouter initialEntries={["/new"]}>
+      <HomePage />
+    </MemoryRouter>,
+  );
+  const field = screen.getByRole("textbox", { name: i18n.t("home.boardName") });
+  const create = screen.getByRole("button", { name: i18n.t("home.create") });
+  await expect.element(create).toBeEnabled();
+  screen.getByRole("combobox").element().focus();
+
+  await create.click();
+  await expect
+    .element(screen.getByText(i18n.t("home.boardNameMissing")))
+    .toBeVisible();
+  await expect.element(field).toHaveFocus();
+  await expect.element(field).toHaveAttribute("aria-invalid", "true");
+  await expect
+    .element(field)
+    .toHaveAccessibleDescription(i18n.t("home.boardNameMissing"));
+  // The focus moved, so the field's description carries the message.
+  await expect.element(screen.getByRole("status")).toBeEmptyDOMElement();
+  expect(seen.body).toBeNull();
+
+  // Spaces alone leave the field empty, so the message stays.
+  await field.fill("  ");
+  await expect.element(field).toHaveAttribute("aria-invalid", "true");
+
+  await field.fill("Sprint 42");
+  await expect
+    .element(screen.getByText(i18n.t("home.boardNameMissing")))
+    .not.toBeInTheDocument();
+  await expect.element(field).not.toHaveAttribute("aria-invalid");
+  await create.click();
+  await expect.poll(() => seen.body?.name).toBe("Sprint 42");
+});
+
+// Enter in the field, which already has the focus: no focus event fires, so a
+// live region says the message instead (the press above moves focus and leaves
+// the region empty, or the message would be read twice).
+test("Enter in the empty name field says the message aloud", async () => {
+  const seen = captureCreate();
+  const screen = await render(
+    <MemoryRouter initialEntries={["/new"]}>
+      <HomePage />
+    </MemoryRouter>,
+  );
+  const field = screen.getByRole("textbox", { name: i18n.t("home.boardName") });
+  await expect.element(field).toHaveFocus();
+  await expect.element(screen.getByRole("status")).toBeEmptyDOMElement();
+
+  await userEvent.keyboard("{Enter}");
+  await expect.element(field).toHaveAttribute("aria-invalid", "true");
+  await expect
+    .element(screen.getByRole("status"))
+    .toHaveTextContent(i18n.t("home.boardNameMissing"));
+  await expect.element(field).toHaveFocus();
+  expect(seen.body).toBeNull();
+});
+
+// A failed create stays on screen until the next press; an empty-name press
+// sends nothing, so the old failure must not stand next to the new message.
+test("an empty-name press clears an earlier create failure", async () => {
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).endsWith("/api/boards")
+      ? Promise.reject(new TypeError("offline"))
+      : realFetch(input as RequestInfo, init)) as typeof fetch;
+  const screen = await fillForm();
+  const create = screen.getByRole("button", { name: i18n.t("home.create") });
+  await create.click();
+  await expect
+    .element(screen.getByRole("alert"))
+    .toHaveTextContent(i18n.t("home.createFailed"));
+
+  await screen
+    .getByRole("textbox", { name: i18n.t("home.boardName") })
+    .fill("");
+  await create.click();
+  await expect
+    .element(screen.getByText(i18n.t("home.boardNameMissing")))
+    .toBeVisible();
+  await expect.element(screen.getByRole("alert")).not.toBeInTheDocument();
 });
