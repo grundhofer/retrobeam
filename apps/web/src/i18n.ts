@@ -21,61 +21,61 @@ const resources = {
         layout: "Layout",
         layoutMode: { columns: "Columns", canvas: "Canvas" },
         layoutHint: {
-          columns: "Classic lists — one column per topic.",
-          canvas: "A freeform board — place notes anywhere in each zone.",
+          columns: "Classic lists – one column per topic.",
+          canvas: "A freeform board – place notes anywhere in each zone.",
         },
         anonymous: "Anonymous board",
         anonymousHint:
-          "Nobody sees who wrote which card — not even the facilitator. Can't be changed later.",
+          "Nobody sees who wrote which card – not even the facilitator. Can't be changed later.",
         nextStep:
           "Next you'll get a link and QR code for your team. You start the retro once everyone's in.",
         adminLinkHint:
-          "You'll also get a private facilitator link, so you can run the retro from another device — the meeting-room PC, say.",
+          "You'll also get a private facilitator link, so you can run the retro from another device – the meeting-room PC, say.",
         create: "Create board",
-        creating: "Creating…",
+        creating: "Creating …",
         createFailed: "Creating the board failed. Please try again.",
         linkColumns: "Custom columns from the link: {{columns}}",
         linkColumnsDrop: "Use a template instead",
         linkColumnsInvalid:
-          "The columns in this link could not be read — pick a template instead.",
+          "The columns in this link could not be read – pick a template instead.",
         linkTemplateInvalid:
-          "This link names a template we don't know — pick one here.",
+          "This link names an unknown template – pick one here.",
       },
       template: {
         "went-well": {
-          name: "Classic — Went well / To improve / Actions",
+          name: "Classic – Went well / To improve / Actions",
           hint: "The universal default. Right for almost every sprint retro.",
         },
         "start-stop-continue": {
           name: "Start / Stop / Continue",
-          hint: "Action-oriented and self-explanatory — great for new teams.",
+          hint: "Action-oriented and self-explanatory – great for new teams.",
         },
         "mad-sad-glad": {
           name: "Mad / Sad / Glad",
-          hint: "Emotional check — good after a stressful sprint.",
+          hint: "Emotional check – good after a stressful sprint.",
         },
         "four-ls": {
-          name: "4Ls — Liked / Learned / Lacked / Longed for",
+          name: "4Ls – Liked / Learned / Lacked / Longed for",
           hint: "Rounded review with a learning focus, ideal at milestones.",
         },
         sailboat: {
-          name: "Sailboat — Wind / Anchors / Rocks / Island",
+          name: "Sailboat – Wind / Anchors / Rocks / Island",
           hint: "Visual metaphor for drivers, blockers, risks and goals.",
         },
         starfish: {
-          name: "Starfish — Keep / Less / More / Stop / Start",
+          name: "Starfish – Keep / Less / More / Stop / Start",
           hint: "Finer-grained dial-up/dial-down for experienced teams.",
         },
         daki: {
-          name: "DAKI — Drop / Add / Keep / Improve",
+          name: "DAKI – Drop / Add / Keep / Improve",
           hint: "Sorts habits into what to stop, start, keep and sharpen.",
         },
         "rose-bud-thorn": {
           name: "Rose / Bud / Thorn",
-          hint: "Highlights, emerging ideas and pain points — quick and gentle.",
+          hint: "Highlights, emerging ideas and pain points – quick and gentle.",
         },
         kalm: {
-          name: "KALM — Keep / Add / Less / More",
+          name: "KALM – Keep / Add / Less / More",
           hint: "Tunes what the team already does rather than starting over.",
         },
       },
@@ -86,47 +86,47 @@ const resources = {
       },
       lobby: {
         hint_one:
-          "{{count}} person is here. Share the link — start the retro when everyone arrived.",
+          "{{count}}\u00a0person is here. Share the link – start the retro when everyone arrived.",
         hint_other:
-          "{{count}} people are here. Share the link — start the retro when everyone arrived.",
+          "{{count}}\u00a0people are here. Share the link – start the retro when everyone arrived.",
         memberHint:
           "You're in. The facilitator will start the retro once everyone has joined.",
         carried: {
           title: "Open action items from the last retro",
-          hint: "Carried over from “{{name}}” — start by checking where they stand.",
+          hint: "Carried over from “{{name}}” – start by checking where they stand.",
         },
       },
       board: {
         share: "Share link",
         copy: "Copy",
-        copied: "Copied!",
+        copied: "Copied",
         participants: "Who's here",
         facilitator: "Facilitator",
         you: "you",
         offline: "offline",
         anonymous: "Anonymous",
         anonymousHint:
-          "Anonymous board: nobody sees who wrote which card — not even the facilitator.",
+          "Anonymous board: nobody sees who wrote which card – not even the facilitator.",
       },
       adminLink: {
         label: "Facilitator link",
         private: "Private",
-        hint: "Your facilitator link — just for you. Opens this board with facilitator controls on any device. Don't share it in the team chat.",
+        hint: "Your facilitator link – just for you. Opens this board with facilitator controls on any device. Don't share it in the team chat.",
         show: "Show link",
         notAccepted:
-          "This facilitator link didn't give you facilitator controls — it may be incomplete, or your facilitator role on this board was removed.",
+          "This facilitator link didn't give you facilitator controls – it may be incomplete, or your facilitator role on this board was removed.",
         conflict:
           "This facilitator link doesn't match the one this browser already holds for this board, so it was ignored and the saved one kept.",
       },
       invite: {
         button: "Invite",
         title: "Invite your team",
-        hint: "Anyone with this link can join the board — even mid-retro.",
+        hint: "Anyone with this link can join the board – even mid-retro.",
         qrLabel: "QR code for the team link",
         qrHint: "For everyone in the room: scan the code with a phone to join.",
         enlarge: "Show QR code large",
         scan: "Scan to join the retro",
-        qrFailed: "QR code unavailable — reload the page.",
+        qrFailed: "QR code unavailable – reload the page.",
         close: "Close",
       },
       phase: {
@@ -187,7 +187,7 @@ const resources = {
       ready: {
         imDone: "I'm done",
         done: "Done",
-        count: "{{ready}}/{{total}} done",
+        count: "{{ready}} / {{total}} done",
       },
       timer: {
         pause: "Pause",
@@ -197,17 +197,17 @@ const resources = {
         sound: "Timer sound",
       },
       note: {
-        placeholder: "Write a note… (Enter to add)",
+        placeholder: "Write a note … (Enter to add)",
         add: "Add",
         edit: "Edit note",
         delete: "Delete note",
         save: "Save",
         cancel: "Cancel",
-        ghostWriting: "{{name}} is writing…",
+        ghostWriting: "{{name}} is writing …",
         notPresented: "Not presented yet",
         arrange: "Move or stack",
-        moveTo: "Move to…",
-        stackWith: "Stack with…",
+        moveTo: "Move to …",
+        stackWith: "Stack with …",
       },
       column: {
         addColumn: "Add column",
@@ -234,8 +234,8 @@ const resources = {
         finishRound: "Finish the round",
         presenting: "{{name}} is presenting",
         skip: "Skip",
-        winner: "{{name}} is up!",
-        everyone: "Everyone presented! 🎉",
+        winner: "{{name}} is up",
+        everyone: "Everyone has presented",
         exclude: "Take {{name}} off the wheel",
         current: "presenting",
         pick: "Choose",
@@ -243,8 +243,8 @@ const resources = {
       },
       rail: {
         online: "{{count}} online",
-        teamCards_one: "{{count}} card from the team",
-        teamCards_other: "{{count}} cards from the team",
+        teamCards_one: "{{count}}\u00a0card from the team",
+        teamCards_other: "{{count}}\u00a0cards from the team",
         youPresenting: "You're up",
         donePresenting: "Done presenting",
         waiting: "The facilitator is leading the round",
@@ -261,8 +261,8 @@ const resources = {
       present: {
         focus: {
           heading: "{{name}} is presenting",
-          count_one: "{{count}} card",
-          count_other: "{{count}} cards",
+          count_one: "{{count}}\u00a0card",
+          count_other: "{{count}}\u00a0cards",
           empty: "No cards in this zone.",
         },
         spotlight: "{{name}} is presenting this card",
@@ -287,9 +287,9 @@ const resources = {
       },
       vote: {
         yourVotes: "Your votes",
-        remaining_one: "{{count}} vote left",
-        remaining_other: "{{count}} votes left",
-        meter: "{{done}}/{{total}} finished voting",
+        remaining_one: "{{count}}\u00a0vote left",
+        remaining_other: "{{count}}\u00a0votes left",
+        meter: "{{done}} / {{total}} finished voting",
         settings: "Voting",
         votesPerPerson: "Votes per person",
         maxPerTarget: "Max per card",
@@ -300,10 +300,10 @@ const resources = {
         yours_one: "Your vote: {{count}}",
         yours_other: "Your votes: {{count}}",
         voterMulti: "{{name}} ×{{count}}",
-        voterLabel_one: "{{name}} gave {{count}} vote",
-        voterLabel_other: "{{name}} gave {{count}} votes",
+        voterLabel_one: "{{name}} gave {{count}}\u00a0vote",
+        voterLabel_other: "{{name}} gave {{count}}\u00a0votes",
         namesShown: "Names are shown with the result.",
-        namesBlind: "Blind vote — no names are shown.",
+        namesBlind: "Blind vote – no names are shown.",
       },
       discuss: {
         queue: "Discussion",
@@ -317,18 +317,18 @@ const resources = {
         unassigned: "Unassigned",
         toggle: "Mark as done",
         delete: "Delete action",
-        empty: "No action items yet — capture decisions while you discuss.",
+        empty: "No action items yet – capture decisions while you discuss.",
         carriedFrom: "from “{{name}}”",
       },
       kudos: {
         title: "Appreciation",
-        subtitle: "End on positives — send a teammate some love.",
-        empty: "No kudos yet. Be the first to appreciate someone!",
+        subtitle: "End on positives – send a teammate some love.",
+        empty: "No kudos yet. You can be the first to appreciate someone.",
         to: "To",
-        placeholder: "Say why (optional)…",
+        placeholder: "Say why (optional) …",
         send: "Send kudos",
-        from: "— {{name}}",
-        anonymous: "— anonymous",
+        from: "– {{name}}",
+        anonymous: "– anonymous",
         anonymousSend: "Send anonymously",
         someone: "someone",
         everyone: "Everyone",
@@ -343,15 +343,15 @@ const resources = {
       },
       gif: {
         add: "GIF",
-        search: "Search GIFs…",
-        loading: "Searching…",
+        search: "Search GIFs …",
+        loading: "Searching …",
         none: "No GIFs found.",
         hint: "Type to search for a GIF.",
         unavailable: "GIF search isn't set up for this board.",
         failed: "GIF search didn't respond. Try again in a moment.",
-        throttled: "That's a lot of GIF searching! Give it a few seconds.",
+        throttled: "That's a lot of GIF searching. Try again in a few seconds.",
         quota:
-          "We've hit this hour's GIF search limit. It comes back within the hour — the rest of the retro is unaffected.",
+          "This hour's GIF search limit has been reached. It comes back within the hour – the rest of the retro is unaffected.",
         remove: "Remove GIF",
         poweredBy: "Powered by KLIPY",
       },
@@ -367,16 +367,16 @@ const resources = {
         includeAuthors: "Include author names",
         includeAuthorsAnonymous:
           "Who wrote a card and who voted for it stay out on this board.",
-        rendering: "Rendering…",
+        rendering: "Rendering …",
         imageFailed: "The image could not be created. Try a smaller scope.",
         settings: "Board settings",
         gifsEnabled: "Allow GIFs",
-        cursorsEnabled: "Live cursors (1 update/s)",
+        cursorsEnabled: "Live cursors (1\u00a0update/s)",
         voterNamesEnabled: "Show who voted (after the reveal)",
         voterNamesLocked: "Locked once voting has started.",
         voterNamesAnonymous: "Not available on an anonymous board.",
         cursorsAnonymous:
-          "Not available on an anonymous board — a cursor would show who placed a card.",
+          "Not available on an anonymous board – a cursor would show who placed a card.",
         layout: "Board layout",
         layoutMode: {
           columns: "Columns",
@@ -392,11 +392,12 @@ const resources = {
         duplicateName: "Copy of {{name}}",
         followUp: "Prepare the next retro",
         followUpName: "Follow-up: {{name}}",
-        copyFailed: "That didn't work — please try again.",
+        copyFailed: "That didn't work – please try again.",
         templateLink: "Copy as template link",
         templateLinkHint:
-          "A /new link with the visible column names — no cards, nothing else.",
-        templateLinkTooMany: "A template link holds at most {{max}} columns.",
+          "A /new link with the visible column names – no cards, nothing else.",
+        templateLinkTooMany:
+          "A template link holds at most {{max}}\u00a0columns.",
         templateLinkNoVisible: "No visible columns to put in a link.",
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
@@ -413,13 +414,13 @@ const resources = {
           facilitator:
             "Everyone writes. Move on to presenting once everyone is done.",
           member:
-            "Write your cards — only you can see them until the presenting round.",
+            "Write your cards – only you can see them until the presenting round.",
           memberAnonymous:
-            "Write your cards — nobody sees them before the presenting round, and nobody ever sees who wrote them.",
+            "Write your cards – nobody sees them before the presenting round, and nobody ever sees who wrote them.",
         },
         present: {
           facilitator:
-            "Pick who presents next — stack similar cards once everyone has had a turn.",
+            "Pick who presents next – stack similar cards once everyone has had a turn.",
           member: "When you're picked, walk the room through your cards.",
           anonymous: "Read all cards together and stack similar ones.",
         },
@@ -433,7 +434,7 @@ const resources = {
           member: "Discuss the top topics and capture action items.",
         },
         close: {
-          facilitator: "Kudos and a quick rating — then finish the retro.",
+          facilitator: "Kudos and a quick rating – then finish the retro.",
           member: "Send kudos and rate the retro.",
         },
       },
@@ -445,16 +446,16 @@ const resources = {
       },
       done: {
         title: "Retro finished",
-        cards_one: "{{count}} card",
-        cards_other: "{{count}} cards",
-        people_one: "{{count}} person",
-        people_other: "{{count}} people",
-        actions_one: "{{count}} action item",
-        actions_other: "{{count}} action items",
+        cards_one: "{{count}}\u00a0card",
+        cards_other: "{{count}}\u00a0cards",
+        people_one: "{{count}}\u00a0person",
+        people_other: "{{count}}\u00a0people",
+        actions_one: "{{count}}\u00a0action item",
+        actions_other: "{{count}}\u00a0action items",
         retention:
-          "This board is read-only and deletes itself automatically on {{date}} — export what you want to keep before then.",
+          "This board is read-only and deletes itself automatically on {{date}} – export what you want to keep before then.",
         retentionKept:
-          "This board is read-only and is being kept — it won't delete itself automatically.",
+          "This board is read-only and is being kept – it won't delete itself automatically.",
         export: "Save the results",
         moreFormats: "More formats",
         scopeHint: {
@@ -466,14 +467,14 @@ const resources = {
         allCards: "All cards",
         followUp: "Prepare the next retro",
         followUpHint_one:
-          "Carries over the open action item and this board's columns — no cards, no names.",
+          "Carries over the open action item and this board's columns – no cards, no names.",
         followUpHint_other:
-          "Carries over the {{count}} open action items and this board's columns — no cards, no names.",
+          "Carries over the {{count}} open action items and this board's columns – no cards, no names.",
         followUpHintNone:
-          "Carries over this board's columns — there are no open action items.",
+          "Carries over this board's columns – there are no open action items.",
         followUpHintCapped:
-          "Carries over the oldest {{cap}} of the {{count}} open action items and this board's columns — no cards, no names.",
-        followUpFailed: "Couldn't create the next retro — please try again.",
+          "Carries over the oldest {{cap}} of the {{count}} open action items and this board's columns – no cards, no names.",
+        followUpFailed: "Couldn't create the next retro – please try again.",
       },
       deleted: {
         title: "Board deleted",
@@ -481,31 +482,31 @@ const resources = {
       },
       checkin: {
         icebreaker: "Check-in",
-        noQuestion: "Warming up…",
+        noQuestion: "Warming up …",
         shuffle: "New question",
         primeDirectiveTitle: "The Prime Directive",
         primeDirective:
           "Regardless of what we discover, we understand and truly believe that everyone did the best job they could, given what they knew at the time, their skills and abilities, the resources available, and the situation at hand.",
         agreements: "Working agreements",
         agreementsDefault:
-          "• Vegas rule — what's said here stays here\n• Attack problems, not people\n• One conversation at a time\n• Everyone's voice matters",
+          "• Vegas rule – what's said here stays here\n• Attack problems, not people\n• One conversation at a time\n• Everyone's voice matters",
         edit: "Edit",
       },
       roti: {
         title: "Return on time invested",
         question: "Was this retro a good use of your time?",
-        result: "Average {{average}} · {{count}} responses",
+        result: "Average {{average}} · {{count}}\u00a0responses",
         pending_one:
-          "{{count}} response so far · the average is shared when the retro closes",
+          "{{count}}\u00a0response so far · the average is shared when the retro closes",
         pending_other:
-          "{{count}} responses so far · the average is shared when the retro closes",
+          "{{count}}\u00a0responses so far · the average is shared when the retro closes",
         tooFew: "Too few responses to share an average anonymously.",
-        anonymous: "Anonymous — only the average is shared, once at the end.",
+        anonymous: "Anonymous – only the average is shared, once at the end.",
       },
       icebreaker: {
         "one-word": "In one word, how did this sprint feel?",
         weather:
-          "What's your weather report for this sprint? (sunny, stormy, foggy…)",
+          "What's your weather report for this sprint? (sunny, stormy, foggy …)",
         "sprint-emoji": "Which emoji sums up your sprint?",
         "energy-level": "What's your energy level right now, 1 to 10?",
         highlight: "What was your highlight of the sprint?",
@@ -526,12 +527,12 @@ const resources = {
         "one-wish": "One wish for the next sprint?",
         "team-word": "One word to describe the team this sprint?",
         "looking-forward": "What are you looking forward to next sprint?",
-        "waffle-or-pancake": "Waffles or pancakes — and why does it matter?",
+        "waffle-or-pancake": "Waffles or pancakes – and why does it matter?",
         "desert-island": "One tool you'd bring to a desert island?",
       },
       status: {
-        connecting: "Connecting…",
-        offline: "Connection lost — reconnecting…",
+        connecting: "Connecting …",
+        offline: "Connection lost – reconnecting …",
       },
       notFound: {
         title: "Board not found",
@@ -540,7 +541,7 @@ const resources = {
       },
       lookupFailed: {
         title: "Couldn't reach the board",
-        body: "The board may be fine — we just couldn't ask. Check your connection and try again.",
+        body: "The board may be fine – the request to the server just didn't go through. Check your connection and try again.",
         retry: "Try again",
       },
       reject: {
@@ -550,7 +551,7 @@ const resources = {
         NOT_AUTHOR: "You can only change your own cards.",
         NOT_FOUND: "That card is no longer there.",
         CONFLICT: "Someone changed that at the same moment. Try again.",
-        INVALID: "That didn't work — the board has been refreshed.",
+        INVALID: "That didn't work – the board has been refreshed.",
         VOTE_BUDGET: "You've used all your votes.",
         RATE_LIMIT: "Too many actions at once. Give it a second.",
         CURSOR_BUDGET:
@@ -563,7 +564,7 @@ const resources = {
       },
       error: {
         title: "Something went wrong",
-        body: "The board itself is safe — it lives on the server. Reloading rejoins it.",
+        body: "The board itself is safe – it lives on the server. Reloading rejoins it.",
         reload: "Reload the board",
       },
       site: {
@@ -571,7 +572,7 @@ const resources = {
       },
       pageNotFound: {
         title: "This page doesn't exist.",
-        body: "Maybe the link is incomplete — board links look like this: {{host}}/board/…",
+        body: "Maybe the link is incomplete – board links look like this: {{host}}/board/…",
         home: "Go to the home page",
       },
       landing: {
@@ -583,7 +584,7 @@ const resources = {
           private: "Others' notes don't leave the server until it's their turn",
           anonymous: "Anonymous if you want",
           eu: "Boards stored in the EU",
-          deletes: "Deletes itself after 90 days by default",
+          deletes: "Deletes itself after 90\u00a0days by default",
           openSource: "Open source",
         },
         howTitle: "How a retro runs",
@@ -592,7 +593,7 @@ const resources = {
         steps: {
           share: {
             title: "Share a link.",
-            text: "Create a board, drop the link in your team chat, type a name — you're in.",
+            text: "Create a board, drop the link in your team chat, type a name – you're in.",
           },
           write: {
             title: "Write · Present",
@@ -600,7 +601,7 @@ const resources = {
           },
           decide: {
             title: "Vote · Discuss · Close",
-            text: "Vote blind, discuss the top cards and capture action items — then close with kudos and a quick rating of whether the retro was worth it.",
+            text: "Vote blind, discuss the top cards and capture action items – then close with kudos and a quick rating of whether the retro was worth it.",
           },
         },
         preview: {
@@ -613,19 +614,19 @@ const resources = {
           author2: "Mira",
           author3: "Mira",
           hiddenNotes_one:
-            "+{{count}} note from others — hidden until the presenting round",
+            "+{{count}}\u00a0note from others – hidden until the presenting round",
           hiddenNotes_other:
-            "+{{count}} notes from others — hidden until the presenting round",
+            "+{{count}}\u00a0notes from others – hidden until the presenting round",
         },
         whyTitle: "Why RetroBeam",
         why: {
           private: {
             title: "Private means private.",
-            text: "Other people's notes don't leave the server until it's their turn — not just hidden in the browser. Boards are stored in EU data centres.",
+            text: "Other people's notes don't leave the server until it's their turn – not just hidden in the browser. Boards are stored in EU data centres.",
           },
           nothing: {
             title: "Nothing to manage.",
-            text: "No accounts, no tracking, no seat licences; by default, boards delete themselves after 90 days.",
+            text: "No accounts, no tracking, no seat licences; by default, boards delete themselves after 90\u00a0days.",
           },
           guided: {
             title: "Guided, and still fun.",
@@ -644,12 +645,12 @@ const resources = {
         },
         faq: {
           cost: {
-            q: "What does it cost — and where's the catch?",
-            a: "Nothing: no paid plans, no ads, no board caps. The catch: RetroBeam runs on Cloudflare's free tier, which has a daily budget for the whole instance. If an unusual number of teams run retros on the same day it can run dry — it resets at midnight UTC, and if you can't risk that, self-host.",
+            q: "What does it cost – and where's the catch?",
+            a: "Nothing: no paid plans, no ads, no board caps. The catch: RetroBeam runs on Cloudflare's free tier, which has a daily budget for the whole instance. If an unusual number of teams run retros on the same day it can run dry – it resets at midnight UTC, and if you can't risk that, self-host.",
           },
           account: {
             q: "Do I need an account, or install anything?",
-            a: "No. Open the link, type a name, you're in — no accounts, no e-mail, no extension. It runs in current browsers; it's tested with Chromium, Firefox and WebKit.",
+            a: "No. Open the link, type a name, you're in – no accounts, no e-mail, no extension. It runs in current browsers; it's tested with Chromium, Firefox and WebKit.",
           },
           where: {
             q: "Where does the data live?",
@@ -657,27 +658,27 @@ const resources = {
           },
           howLong: {
             q: "How long is it kept?",
-            a: "90 days from creation, then the board deletes itself. The facilitator can delete it right away at any time — or deliberately keep it, and then no clock runs. Our suggestion: export at the end, then delete; exports leave names out by default.",
+            a: "90\u00a0days from creation, then the board deletes itself. The facilitator can delete it right away at any time – or deliberately keep it, and then no clock runs. Our suggestion: export at the end, then delete; exports leave names out by default.",
           },
           whoReads: {
             q: "Who can read my notes, and when?",
-            a: "During the write phase, nobody — the facilitator included: the server never sends other people's notes to your browser. During the presenting round the room gets a person's cards from visible columns when the wheel calls them up — on an anonymous board, everyone's at once. After that everyone with the link sees the shared board; columns the facilitator keeps hidden remain facilitator-only. The link is the only key, so only hand it to your team.",
+            a: "During the write phase, nobody – the facilitator included: the server never sends other people's notes to your browser. During the presenting round the room gets a person's cards from visible columns when the wheel calls them up – on an anonymous board, everyone's at once. After that everyone with the link sees the shared board; columns the facilitator keeps hidden remain facilitator-only. The link is the only key, so only hand it to your team.",
           },
           facilitator: {
             q: "Does the facilitator see more than the team?",
-            a: "Not in the write phase. In the presenting round, yes: the facilitator sees the whole board from the start, names included, because they run the round and need to see what's still to come. On an anonymous board everyone gets every card at once, and nobody — the facilitator included — sees names. Once everyone has presented, everyone sees the same visible columns; any columns the facilitator keeps hidden remain facilitator-only.",
+            a: "Not in the write phase. In the presenting round, yes: the facilitator sees the whole board from the start, names included, because they run the round and need to see what's still to come. On an anonymous board everyone gets every card at once, and nobody – the facilitator included – sees names. Once everyone has presented, everyone sees the same visible columns; any columns the facilitator keeps hidden remain facilitator-only.",
           },
           hideAuthors: {
             q: "Can I hide who wrote which card?",
-            a: "Yes — tick “Anonymous board” when you create it. Then nobody sees who wrote which card, not even the facilitator: the server sends a card's authorship to its author only, nobody is called up to present their own cards, voter names stay off and the export leaves authors out. It's decided at creation and can't be changed later in either direction, so everyone writes under the same promise. Who is on the board and who is marked ready stay visible. On a normal board, names are on the cards once they're revealed, and by default the vote result shows who voted for what — the vote bar says so before anyone votes, and the facilitator can switch it off. Kudos and the closing ROTI poll can be anonymous on any board.",
+            a: "Yes – tick “Anonymous board” when you create it. Then nobody sees who wrote which card, not even the facilitator: the server sends a card's authorship to its author only, nobody is called up to present their own cards, voter names stay off and the export leaves authors out. It's decided at creation and can't be changed later in either direction, so everyone writes under the same promise. Who is on the board and who is marked ready stay visible. On a normal board, names are on the cards once they're revealed, and by default the vote result shows who voted for what – the vote bar says so before anyone votes, and the facilitator can switch it off. Kudos and the closing ROTI poll can be anonymous on any board.",
           },
           gifs: {
             q: "What about the GIFs?",
-            a: "GIF search goes through KLIPY, a US provider; search terms pass through our server, so KLIPY sees neither your IP address nor who's searching. The images themselves, though, load in your browser straight from KLIPY's CDN — and that CDN does see your IP address. To avoid that, ask the facilitator to switch GIFs off before anyone adds one. This prevents searches and new GIFs; GIFs already on the board keep loading from KLIPY until they are removed.",
+            a: "GIF search goes through KLIPY, a US provider; search terms pass through our server, so KLIPY sees neither your IP address nor who's searching. The images themselves, though, load in your browser straight from KLIPY's CDN – and that CDN does see your IP address. To avoid that, ask the facilitator to switch GIFs off before anyone adds one. This prevents searches and new GIFs; GIFs already on the board keep loading from KLIPY until they are removed.",
           },
           selfHost: {
             q: "Can I self-host it?",
-            a: "Yes. It's one Cloudflare Worker plus one Durable Object per board, with no separate database service to run, and it works on their free tier for you too; the README on GitHub has the steps. GIF search needs your own KLIPY key — without one it's simply off.",
+            a: "Yes. It's one Cloudflare Worker plus one Durable Object per board, with no separate database service to run, and it works on their free tier for you too; the README on GitHub has the steps. GIF search needs your own KLIPY key – without one it's simply off.",
           },
           license: {
             q: "What's the licence?",
@@ -685,11 +686,11 @@ const resources = {
           },
           commercial: {
             q: "Is this a commercial service?",
-            a: "No. RetroBeam is one person's private project — no company behind it, no paid plans, no ads, and no data is sold. The infrastructure uses Cloudflare's free tier; I pay the remaining costs, such as the domain, myself.",
+            a: "No. RetroBeam is one person's private project – no company behind it, no paid plans, no ads, and no data is sold. The infrastructure uses Cloudflare's free tier; I pay the remaining costs, such as the domain, myself.",
           },
           work: {
-            q: "Can I use this at work — and what about the works council?",
-            a: "Technically and licence-wise, yes; whether your company signs off is your company's call. In Germany a tool with live presence and per-person notes falls under co-determination (§ 87 (1) no. 6 BetrVG) — so talk to the works council before, not after; the data inventory, the sub-processors and the facilitator caveat are written up for exactly that in docs/05 in the repository. To be honest: retrobeam.de comes with no contract, no guarantees and no data-processing agreement — if you need those, self-host.",
+            q: "Can I use this at work – and what about the works council?",
+            a: "Technically and licence-wise, yes; whether your company signs off is your company's call. In Germany a tool with live presence and per-person notes falls under co-determination (§ 87 (1) no. 6 BetrVG) – so talk to the works council before, not after; the data inventory, the sub-processors and the facilitator caveat are written up for exactly that in docs/05 in the repository. To be honest: retrobeam.de comes with no contract, no guarantees and no data-processing agreement – if you need those, self-host.",
           },
         },
         closingTitle: "Your next retro, set up in a minute.",
@@ -725,62 +726,62 @@ const resources = {
         layout: "Layout",
         layoutMode: { columns: "Spalten", canvas: "Canvas" },
         layoutHint: {
-          columns: "Klassische Listen — eine Spalte pro Thema.",
-          canvas: "Ein freies Board — Notizen frei in jeder Zone platzieren.",
+          columns: "Klassische Listen – eine Spalte pro Thema.",
+          canvas: "Ein freies Board – Notizen frei in jeder Zone platzieren.",
         },
         anonymous: "Anonymes Board",
         anonymousHint:
-          "Niemand sieht, wer welche Karte geschrieben hat — auch die Moderation nicht. Lässt sich später nicht ändern.",
+          "Niemand sieht, wer welche Karte geschrieben hat – auch die Moderation nicht. Lässt sich später nicht ändern.",
         nextStep:
           "Im nächsten Schritt bekommst du einen Link und einen QR-Code für dein Team. Du startest die Retro, sobald alle da sind.",
         adminLinkHint:
-          "Du bekommst außerdem einen privaten Moderationslink — damit moderierst du auch von einem anderen Gerät aus, etwa vom Rechner im Meetingraum.",
+          "Du bekommst außerdem einen privaten Moderationslink – damit moderierst du auch von einem anderen Gerät aus, etwa vom Rechner im Meetingraum.",
         create: "Board erstellen",
-        creating: "Wird erstellt…",
+        creating: "Wird erstellt …",
         createFailed:
           "Das Board konnte nicht erstellt werden. Bitte versuch es erneut.",
         linkColumns: "Eigene Spalten aus dem Link: {{columns}}",
         linkColumnsDrop: "Stattdessen eine Vorlage nehmen",
         linkColumnsInvalid:
-          "Die Spalten aus diesem Link ließen sich nicht lesen — wähl stattdessen eine Vorlage.",
+          "Die Spalten aus diesem Link ließen sich nicht lesen – wähl stattdessen eine Vorlage.",
         linkTemplateInvalid:
-          "Die Vorlage aus diesem Link kennen wir nicht — wähl hier eine aus.",
+          "Die Vorlage aus diesem Link ist unbekannt – wähl hier eine aus.",
       },
       template: {
         "went-well": {
-          name: "Klassisch — Lief gut / Zu verbessern / Action Items",
+          name: "Klassisch – Lief gut / Zu verbessern / Action Items",
           hint: "Der universelle Standard. Passt für fast jede Sprint-Retro.",
         },
         "start-stop-continue": {
           name: "Anfangen / Aufhören / Weitermachen",
-          hint: "Handlungsorientiert und selbsterklärend — super für neue Teams.",
+          hint: "Handlungsorientiert und selbsterklärend – super für neue Teams.",
         },
         "mad-sad-glad": {
           name: "Wütend / Traurig / Froh",
-          hint: "Emotionaler Check — gut nach einem stressigen Sprint.",
+          hint: "Emotionaler Check – gut nach einem stressigen Sprint.",
         },
         "four-ls": {
-          name: "4Ls — Gefallen / Gelernt / Gefehlt / Gewünscht",
+          name: "4Ls – Gefallen / Gelernt / Gefehlt / Gewünscht",
           hint: "Ausgewogener Rückblick mit Lernfokus, ideal bei Meilensteinen.",
         },
         sailboat: {
-          name: "Segelboot — Wind / Anker / Felsen / Insel",
+          name: "Segelboot – Wind / Anker / Felsen / Insel",
           hint: "Visuelle Metapher für Antrieb, Bremsen, Risiken und Ziele.",
         },
         starfish: {
-          name: "Seestern — Beibehalten / Weniger / Mehr / Aufhören / Anfangen",
+          name: "Seestern – Beibehalten / Weniger / Mehr / Aufhören / Anfangen",
           hint: "Feinere Justierung für erfahrene Teams.",
         },
         daki: {
-          name: "DAKI — Weglassen / Hinzufügen / Beibehalten / Verbessern",
+          name: "DAKI – Weglassen / Hinzufügen / Beibehalten / Verbessern",
           hint: "Sortiert Gewohnheiten: was wegfällt, was dazukommt, was bleibt, was besser wird.",
         },
         "rose-bud-thorn": {
           name: "Rose / Knospe / Dorn",
-          hint: "Highlights, keimende Ideen und Schmerzpunkte — schnell und behutsam.",
+          hint: "Highlights, keimende Ideen und Schmerzpunkte – schnell und behutsam.",
         },
         kalm: {
-          name: "KALM — Beibehalten / Hinzufügen / Weniger / Mehr",
+          name: "KALM – Beibehalten / Hinzufügen / Weniger / Mehr",
           hint: "Justiert, was das Team schon tut, statt neu anzufangen.",
         },
       },
@@ -791,47 +792,47 @@ const resources = {
       },
       lobby: {
         hint_one:
-          "{{count}} Person ist da. Teile den Link — starte die Retro, wenn alle da sind.",
+          "{{count}}\u00a0Person ist da. Teile den Link – starte die Retro, wenn alle da sind.",
         hint_other:
-          "{{count}} Personen sind da. Teile den Link — starte die Retro, wenn alle da sind.",
+          "{{count}}\u00a0Personen sind da. Teile den Link – starte die Retro, wenn alle da sind.",
         memberHint:
           "Du bist drin. Die Moderation startet die Retro, sobald alle da sind.",
         carried: {
           title: "Offene Action Items aus der letzten Retro",
-          hint: "Übernommen aus „{{name}}“ — schaut zu Beginn, wie es damit steht.",
+          hint: "Übernommen aus „{{name}}“ – schaut zu Beginn, wie es damit steht.",
         },
       },
       board: {
         share: "Link teilen",
         copy: "Kopieren",
-        copied: "Kopiert!",
+        copied: "Kopiert",
         participants: "Wer ist da",
         facilitator: "Moderation",
         you: "du",
         offline: "offline",
         anonymous: "Anonym",
         anonymousHint:
-          "Anonymes Board: Niemand sieht, wer welche Karte geschrieben hat — auch die Moderation nicht.",
+          "Anonymes Board: Niemand sieht, wer welche Karte geschrieben hat – auch die Moderation nicht.",
       },
       adminLink: {
         label: "Moderationslink",
         private: "Privat",
-        hint: "Dein Moderationslink — nur für dich. Damit übernimmst du die Moderation auf jedem Gerät. Nicht im Team-Chat teilen.",
+        hint: "Dein Moderationslink – nur für dich. Damit übernimmst du die Moderation auf jedem Gerät. Nicht im Team-Chat teilen.",
         show: "Link anzeigen",
         notAccepted:
-          "Dieser Moderationslink hat dir keine Moderationsrechte gegeben — vielleicht ist er unvollständig, oder dir wurde die Moderation auf diesem Board entzogen.",
+          "Dieser Moderationslink hat dir keine Moderationsrechte gegeben – vielleicht ist er unvollständig, oder dir wurde die Moderation auf diesem Board entzogen.",
         conflict:
           "Dieser Moderationslink passt nicht zu dem, den dieser Browser für dieses Board schon gespeichert hat. Er wurde ignoriert, der gespeicherte bleibt.",
       },
       invite: {
         button: "Einladen",
         title: "Team einladen",
-        hint: "Mit diesem Link kommt jede:r ins Board — auch mitten in der Retro.",
+        hint: "Mit diesem Link kommen alle ins Board, auch mitten in der Retro.",
         qrLabel: "QR-Code für den Team-Link",
         qrHint: "Für alle im Raum: Code mit dem Handy scannen und mitmachen.",
         enlarge: "QR-Code groß anzeigen",
         scan: "Scannen und mitmachen",
-        qrFailed: "QR-Code nicht verfügbar — lade die Seite neu.",
+        qrFailed: "QR-Code nicht verfügbar – lade die Seite neu.",
         close: "Schließen",
       },
       phase: {
@@ -893,7 +894,7 @@ const resources = {
       ready: {
         imDone: "Ich bin fertig",
         done: "Fertig",
-        count: "{{ready}}/{{total}} fertig",
+        count: "{{ready}} / {{total}} fertig",
       },
       timer: {
         pause: "Pause",
@@ -903,17 +904,17 @@ const resources = {
         sound: "Timer-Ton",
       },
       note: {
-        placeholder: "Notiz schreiben… (Enter zum Hinzufügen)",
+        placeholder: "Notiz schreiben … (Enter zum Hinzufügen)",
         add: "Hinzufügen",
         edit: "Notiz bearbeiten",
         delete: "Notiz löschen",
         save: "Speichern",
         cancel: "Abbrechen",
-        ghostWriting: "{{name}} schreibt…",
+        ghostWriting: "{{name}} schreibt …",
         notPresented: "Noch nicht vorgestellt",
         arrange: "Verschieben oder stapeln",
-        moveTo: "Verschieben nach…",
-        stackWith: "Stapeln mit…",
+        moveTo: "Verschieben nach …",
+        stackWith: "Stapeln mit …",
       },
       column: {
         addColumn: "Spalte hinzufügen",
@@ -940,8 +941,8 @@ const resources = {
         finishRound: "Runde abschließen",
         presenting: "{{name}} präsentiert",
         skip: "Überspringen",
-        winner: "{{name}} ist dran!",
-        everyone: "Alle haben präsentiert! 🎉",
+        winner: "{{name}} ist dran",
+        everyone: "Alle haben präsentiert",
         exclude: "{{name}} vom Rad nehmen",
         current: "dran",
         pick: "Auswählen",
@@ -949,8 +950,8 @@ const resources = {
       },
       rail: {
         online: "{{count}} online",
-        teamCards_one: "{{count}} Karte vom Team",
-        teamCards_other: "{{count}} Karten vom Team",
+        teamCards_one: "{{count}}\u00a0Karte vom Team",
+        teamCards_other: "{{count}}\u00a0Karten vom Team",
         youPresenting: "Du bist dran",
         donePresenting: "Fertig mit Vorstellen",
         waiting: "Die Moderation führt durch die Runde",
@@ -967,8 +968,8 @@ const resources = {
       present: {
         focus: {
           heading: "{{name}} stellt vor",
-          count_one: "{{count}} Karte",
-          count_other: "{{count}} Karten",
+          count_one: "{{count}}\u00a0Karte",
+          count_other: "{{count}}\u00a0Karten",
           empty: "Keine Karten in dieser Zone.",
         },
         spotlight: "{{name}} stellt diese Karte gerade vor",
@@ -994,9 +995,9 @@ const resources = {
       },
       vote: {
         yourVotes: "Deine Stimmen",
-        remaining_one: "{{count}} Stimme übrig",
-        remaining_other: "{{count}} Stimmen übrig",
-        meter: "{{done}}/{{total}} fertig abgestimmt",
+        remaining_one: "{{count}}\u00a0Stimme übrig",
+        remaining_other: "{{count}}\u00a0Stimmen übrig",
+        meter: "{{done}} / {{total}} fertig abgestimmt",
         settings: "Abstimmung",
         votesPerPerson: "Stimmen pro Person",
         maxPerTarget: "Max. pro Karte",
@@ -1007,10 +1008,10 @@ const resources = {
         yours_one: "Deine Stimme: {{count}}",
         yours_other: "Deine Stimmen: {{count}}",
         voterMulti: "{{name}} ×{{count}}",
-        voterLabel_one: "{{name}} hat {{count}} Stimme gegeben",
-        voterLabel_other: "{{name}} hat {{count}} Stimmen gegeben",
+        voterLabel_one: "{{name}} hat {{count}}\u00a0Stimme gegeben",
+        voterLabel_other: "{{name}} hat {{count}}\u00a0Stimmen gegeben",
         namesShown: "Namen werden mit dem Ergebnis gezeigt.",
-        namesBlind: "Geheime Abstimmung — es werden keine Namen gezeigt.",
+        namesBlind: "Geheime Abstimmung – es werden keine Namen gezeigt.",
       },
       discuss: {
         queue: "Diskussion",
@@ -1021,22 +1022,22 @@ const resources = {
         title: "Action Items",
         placeholder: "Was nehmen wir uns vor?",
         add: "Hinzufügen",
-        unassigned: "Ohne Verantwortliche:n",
+        unassigned: "Nicht zugewiesen",
         toggle: "Als erledigt markieren",
         delete: "Action Item löschen",
         empty:
-          "Noch keine Action Items — haltet Entscheidungen beim Diskutieren fest.",
+          "Noch keine Action Items – haltet Entscheidungen beim Diskutieren fest.",
         carriedFrom: "aus „{{name}}“",
       },
       kudos: {
         title: "Wertschätzung",
-        subtitle: "Endet positiv — schick einem Teammitglied etwas Liebe.",
-        empty: "Noch kein Kudos. Sei die erste Person, die jemanden würdigt!",
+        subtitle: "Endet positiv – schick einem Teammitglied etwas Liebe.",
+        empty: "Noch kein Kudos. Du kannst als erste Person jemanden würdigen.",
         to: "An",
-        placeholder: "Sag warum (optional)…",
+        placeholder: "Sag warum (optional) …",
         send: "Kudos senden",
-        from: "— {{name}}",
-        anonymous: "— anonym",
+        from: "– {{name}}",
+        anonymous: "– anonym",
         anonymousSend: "Anonym senden",
         someone: "jemanden",
         everyone: "Alle",
@@ -1051,16 +1052,17 @@ const resources = {
       },
       gif: {
         add: "GIF",
-        search: "GIFs suchen…",
-        loading: "Suche…",
+        search: "GIFs suchen …",
+        loading: "Suche …",
         none: "Keine GIFs gefunden.",
         hint: "Tippe, um nach einem GIF zu suchen.",
         unavailable: "GIF-Suche ist für dieses Board nicht eingerichtet.",
         failed:
           "Die GIF-Suche hat nicht geantwortet. Versuch es gleich nochmal.",
-        throttled: "Ganz schön viele GIF-Suchen! Gib ihr ein paar Sekunden.",
+        throttled:
+          "Das sind gerade viele GIF-Suchen. Versuch es in ein paar Sekunden noch einmal.",
         quota:
-          "Das GIF-Limit für diese Stunde ist erreicht. Es kommt innerhalb der Stunde zurück — die Retro läuft normal weiter.",
+          "Das GIF-Limit für diese Stunde ist erreicht. Es kommt innerhalb der Stunde zurück – die Retro läuft normal weiter.",
         remove: "GIF entfernen",
         // NOT translated: KLIPY's API terms require the literal string
         // "Powered by KLIPY" (plus their logo, still to be added). An
@@ -1076,20 +1078,20 @@ const resources = {
           all: "Alles",
           summary: "Zusammenfassung",
         },
-        includeAuthors: "Namen der Autor:innen einschließen",
+        includeAuthors: "Zeigen, wer was geschrieben hat",
         includeAuthorsAnonymous:
           "Wer eine Karte geschrieben und wer dafür gestimmt hat, bleibt auf diesem Board draußen.",
-        rendering: "Wird erstellt…",
+        rendering: "Wird erstellt …",
         imageFailed:
           "Das Bild konnte nicht erstellt werden. Versuche einen kleineren Umfang.",
         settings: "Board-Einstellungen",
         gifsEnabled: "GIFs erlauben",
-        cursorsEnabled: "Live-Cursor (1 Aktualisierung/s)",
+        cursorsEnabled: "Live-Cursor (1\u00a0Aktualisierung/s)",
         voterNamesEnabled: "Zeigen, wer gestimmt hat (nach der Auflösung)",
         voterNamesLocked: "Ab Beginn der Abstimmung gesperrt.",
         voterNamesAnonymous: "Auf einem anonymen Board nicht verfügbar.",
         cursorsAnonymous:
-          "Auf einem anonymen Board nicht verfügbar — ein Cursor würde zeigen, wer eine Karte platziert hat.",
+          "Auf einem anonymen Board nicht verfügbar – ein Cursor würde zeigen, wer eine Karte platziert hat.",
         layout: "Board-Layout",
         layoutMode: {
           columns: "Spalten",
@@ -1105,12 +1107,12 @@ const resources = {
         duplicateName: "Kopie von {{name}}",
         followUp: "Folge-Retro vorbereiten",
         followUpName: "Folge-Retro: {{name}}",
-        copyFailed: "Das hat nicht geklappt — versuch es noch einmal.",
+        copyFailed: "Das hat nicht geklappt – versuch es noch einmal.",
         templateLink: "Als Vorlage-Link kopieren",
         templateLinkHint:
-          "Ein /new-Link mit den sichtbaren Spaltennamen — keine Karten, sonst nichts.",
+          "Ein /new-Link mit den sichtbaren Spaltennamen – keine Karten, sonst nichts.",
         templateLinkTooMany:
-          "Ein Vorlage-Link fasst höchstens {{max}} Spalten.",
+          "Ein Vorlage-Link fasst höchstens {{max}}\u00a0Spalten.",
         templateLinkNoVisible: "Keine sichtbaren Spalten für einen Link.",
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
@@ -1121,20 +1123,20 @@ const resources = {
       guide: {
         checkin: {
           facilitator:
-            "Zum Aufwärmen die Frage in die Runde geben — dann weiter zum Schreiben.",
+            "Zum Aufwärmen die Frage in die Runde geben – dann weiter zum Schreiben.",
           member: "Zum Aufwärmen: beantworte die Frage, wenn du dran bist.",
         },
         write: {
           facilitator:
             "Alle schreiben. Weiter zur Vorstellrunde, wenn alle fertig sind.",
           member:
-            "Schreib deine Karten — bis zur Vorstellrunde siehst nur du sie.",
+            "Schreib deine Karten – bis zur Vorstellrunde siehst nur du sie.",
           memberAnonymous:
-            "Schreib deine Karten — vor der Vorstellrunde sieht sie niemand, und wer sie geschrieben hat, sieht nie jemand.",
+            "Schreib deine Karten – vor der Vorstellrunde sieht sie niemand, und wer sie geschrieben hat, sieht nie jemand.",
         },
         present: {
           facilitator:
-            "Bestimm, wer als Nächstes vorstellt — ähnliche Karten stapelt ihr, wenn alle dran waren.",
+            "Bestimm, wer als Nächstes vorstellt – ähnliche Karten stapelt ihr, wenn alle dran waren.",
           member: "Wenn du gezogen wirst, stellst du deine Karten vor.",
           anonymous:
             "Lest alle Karten gemeinsam und stapelt ähnliche aufeinander.",
@@ -1152,7 +1154,7 @@ const resources = {
         },
         close: {
           facilitator:
-            "Kudos und eine kurze Bewertung — danach beendest du die Retro.",
+            "Kudos und eine kurze Bewertung – danach beendest du die Retro.",
           member: "Verteil Kudos und bewerte die Retro.",
         },
       },
@@ -1164,16 +1166,16 @@ const resources = {
       },
       done: {
         title: "Retro abgeschlossen",
-        cards_one: "{{count}} Karte",
-        cards_other: "{{count}} Karten",
-        people_one: "{{count}} Person",
-        people_other: "{{count}} Personen",
-        actions_one: "{{count}} Action Item",
-        actions_other: "{{count}} Action Items",
+        cards_one: "{{count}}\u00a0Karte",
+        cards_other: "{{count}}\u00a0Karten",
+        people_one: "{{count}}\u00a0Person",
+        people_other: "{{count}}\u00a0Personen",
+        actions_one: "{{count}}\u00a0Action Item",
+        actions_other: "{{count}}\u00a0Action Items",
         retention:
-          "Dieses Board ist schreibgeschützt und löscht sich am {{date}} automatisch — exportiere vorher, was ihr behalten wollt.",
+          "Dieses Board ist schreibgeschützt und löscht sich am {{date}} automatisch – exportiere vorher, was ihr behalten wollt.",
         retentionKept:
-          "Dieses Board ist schreibgeschützt und wird behalten — es löscht sich nicht automatisch.",
+          "Dieses Board ist schreibgeschützt und wird behalten – es löscht sich nicht automatisch.",
         export: "Ergebnis sichern",
         moreFormats: "Weitere Formate",
         scopeHint: {
@@ -1185,15 +1187,15 @@ const resources = {
         allCards: "Alle Karten",
         followUp: "Folge-Retro vorbereiten",
         followUpHint_one:
-          "Übernimmt das offene Action Item und die Spalten dieses Boards — ohne Karten, ohne Namen.",
+          "Übernimmt das offene Action Item und die Spalten dieses Boards – ohne Karten, ohne Namen.",
         followUpHint_other:
-          "Übernimmt die {{count}} offenen Action Items und die Spalten dieses Boards — ohne Karten, ohne Namen.",
+          "Übernimmt die {{count}} offenen Action Items und die Spalten dieses Boards – ohne Karten, ohne Namen.",
         followUpHintNone:
-          "Übernimmt die Spalten dieses Boards — offene Action Items gibt es keine.",
+          "Übernimmt die Spalten dieses Boards – offene Action Items gibt es keine.",
         followUpHintCapped:
-          "Übernimmt die ältesten {{cap}} der {{count}} offenen Action Items und die Spalten dieses Boards — ohne Karten, ohne Namen.",
+          "Übernimmt die ältesten {{cap}} der {{count}} offenen Action Items und die Spalten dieses Boards – ohne Karten, ohne Namen.",
         followUpFailed:
-          "Die Folge-Retro ließ sich nicht anlegen — versuch es noch einmal.",
+          "Die Folge-Retro ließ sich nicht anlegen – versuch es noch einmal.",
       },
       deleted: {
         title: "Board gelöscht",
@@ -1201,37 +1203,37 @@ const resources = {
       },
       checkin: {
         icebreaker: "Check-in",
-        noQuestion: "Aufwärmen…",
+        noQuestion: "Aufwärmen …",
         shuffle: "Neue Frage",
         primeDirectiveTitle: "Die oberste Direktive",
         primeDirective:
           "Ungeachtet dessen, was wir herausfinden, verstehen und glauben wir aufrichtig, dass jede:r die bestmögliche Arbeit geleistet hat — angesichts des damaligen Wissensstands, der Fähigkeiten, der verfügbaren Ressourcen und der jeweiligen Situation.",
         agreements: "Arbeitsvereinbarungen",
         agreementsDefault:
-          "• Vegas-Regel — was hier gesagt wird, bleibt hier\n• Probleme angreifen, nicht Personen\n• Immer nur ein Gespräch\n• Jede Stimme zählt",
+          "• Vegas-Regel – was hier gesagt wird, bleibt hier\n• Probleme angreifen, nicht Personen\n• Immer nur ein Gespräch\n• Jede Stimme zählt",
         edit: "Bearbeiten",
       },
       roti: {
         title: "Return on Time Invested",
         question: "War diese Retro deine Zeit wert?",
-        result: "Durchschnitt {{average}} · {{count}} Antworten",
+        result: "Durchschnitt {{average}} · {{count}}\u00a0Antworten",
         pending_one:
-          "{{count}} Antwort bisher · der Durchschnitt wird zum Abschluss geteilt",
+          "{{count}}\u00a0Antwort bisher · der Durchschnitt wird zum Abschluss geteilt",
         pending_other:
-          "{{count}} Antworten bisher · der Durchschnitt wird zum Abschluss geteilt",
+          "{{count}}\u00a0Antworten bisher · der Durchschnitt wird zum Abschluss geteilt",
         tooFew: "Zu wenige Antworten, um den Durchschnitt anonym zu teilen.",
         anonymous:
-          "Anonym — nur der Durchschnitt wird geteilt, einmal am Ende.",
+          "Anonym – nur der Durchschnitt wird geteilt, einmal am Ende.",
       },
       icebreaker: {
         "one-word": "Beschreibe diesen Sprint in einem Wort.",
         weather:
-          "Wie ist dein Wetterbericht für den Sprint? (sonnig, stürmisch, neblig…)",
+          "Wie ist dein Wetterbericht für den Sprint? (sonnig, stürmisch, neblig …)",
         "sprint-emoji": "Welches Emoji fasst deinen Sprint zusammen?",
         "energy-level": "Wie ist dein Energielevel gerade, 1 bis 10?",
         highlight: "Was war dein Highlight des Sprints?",
         learned: "Was hast du kürzlich gelernt?",
-        superpower: "Wenn du diesen Sprint eine Superkraft hättest — welche?",
+        superpower: "Wenn du diesen Sprint eine Superkraft hättest – welche?",
         "movie-title": "Wäre dieser Sprint ein Film, wie hieße er?",
         song: "Welcher Song beschreibt deine Woche?",
         animal: "Welches Tier passt heute zu deiner Stimmung?",
@@ -1249,12 +1251,12 @@ const resources = {
         "team-word": "Ein Wort für das Team in diesem Sprint?",
         "looking-forward": "Worauf freust du dich im nächsten Sprint?",
         "waffle-or-pancake":
-          "Waffeln oder Pfannkuchen — und warum ist das wichtig?",
+          "Waffeln oder Pfannkuchen – und warum ist das wichtig?",
         "desert-island": "Welches Tool nähmst du auf eine einsame Insel mit?",
       },
       status: {
-        connecting: "Verbinde…",
-        offline: "Verbindung verloren – verbinde neu…",
+        connecting: "Verbinde …",
+        offline: "Verbindung verloren – verbinde neu …",
       },
       notFound: {
         title: "Board nicht gefunden",
@@ -1263,8 +1265,8 @@ const resources = {
       },
       lookupFailed: {
         title: "Board nicht erreichbar",
-        body: "Das Board ist vermutlich in Ordnung — wir konnten nur nicht nachfragen. Prüfe deine Verbindung und versuche es erneut.",
-        retry: "Erneut versuchen",
+        body: "Das Board ist vermutlich in Ordnung – nur die Anfrage an den Server kam nicht durch. Prüfe deine Verbindung und versuche es erneut.",
+        retry: "Noch mal versuchen",
       },
       reject: {
         title: "Das hat nicht geklappt",
@@ -1273,7 +1275,7 @@ const resources = {
         NOT_AUTHOR: "Du kannst nur deine eigenen Karten ändern.",
         NOT_FOUND: "Diese Karte gibt es nicht mehr.",
         CONFLICT: "Jemand hat das gleichzeitig geändert. Versuch es nochmal.",
-        INVALID: "Das hat nicht funktioniert — das Board wurde aktualisiert.",
+        INVALID: "Das hat nicht funktioniert – das Board wurde aktualisiert.",
         VOTE_BUDGET: "Du hast alle Stimmen vergeben.",
         RATE_LIMIT: "Zu viele Aktionen auf einmal. Kurz durchatmen.",
         CURSOR_BUDGET:
@@ -1286,7 +1288,7 @@ const resources = {
       },
       error: {
         title: "Da ist etwas schiefgelaufen",
-        body: "Das Board selbst ist sicher — es liegt auf dem Server. Neu laden verbindet dich wieder.",
+        body: "Das Board selbst ist sicher – es liegt auf dem Server. Neu laden verbindet dich wieder.",
         reload: "Board neu laden",
       },
       site: {
@@ -1294,7 +1296,7 @@ const resources = {
       },
       pageNotFound: {
         title: "Diese Seite gibt es nicht.",
-        body: "Vielleicht ist der Link unvollständig — Board-Links sehen so aus: {{host}}/board/…",
+        body: "Vielleicht ist der Link unvollständig – Board-Links sehen so aus: {{host}}/board/…",
         home: "Zur Startseite",
       },
       landing: {
@@ -1307,7 +1309,7 @@ const resources = {
             "Fremde Notizen verlassen den Server erst, wenn sie dran sind",
           anonymous: "Anonym möglich",
           eu: "Boards in der EU gespeichert",
-          deletes: "Löscht sich standardmäßig nach 90 Tagen",
+          deletes: "Löscht sich standardmäßig nach 90\u00a0Tagen",
           openSource: "Open Source",
         },
         howTitle: "So läuft eine Retro",
@@ -1316,7 +1318,7 @@ const resources = {
         steps: {
           share: {
             title: "Link teilen.",
-            text: "Board erstellen, Link in den Team-Chat, Namen eintippen — drin.",
+            text: "Board erstellen, Link in den Team-Chat, Namen eintippen – drin.",
           },
           write: {
             title: "Schreiben · Vorstellen",
@@ -1324,7 +1326,7 @@ const resources = {
           },
           decide: {
             title: "Abstimmen · Diskutieren · Abschluss",
-            text: "Verdeckt abstimmen, die Top-Karten diskutieren und Action Items festhalten — zum Abschluss Kudos und eine kurze Bewertung, ob sich die Retro gelohnt hat.",
+            text: "Verdeckt abstimmen, die Top-Karten diskutieren und Action Items festhalten – zum Abschluss Kudos und eine kurze Bewertung, ob sich die Retro gelohnt hat.",
           },
         },
         preview: {
@@ -1333,24 +1335,24 @@ const resources = {
           note1:
             "Pairing am Donnerstag hat den Bug in zwanzig Minuten gefunden.",
           note2: "Die Review-Queue ist wieder zu lang.",
-          note3: "Täglicher Review-Slot um 11 Uhr",
+          note3: "Täglicher Review-Slot um 11\u00a0Uhr",
           author1: "Mira",
           author2: "Mira",
           author3: "Mira",
           hiddenNotes_one:
-            "+{{count}} Notiz von anderen — verborgen bis zur Vorstellrunde",
+            "+{{count}}\u00a0Notiz von anderen – verborgen bis zur Vorstellrunde",
           hiddenNotes_other:
-            "+{{count}} Notizen von anderen — verborgen bis zur Vorstellrunde",
+            "+{{count}}\u00a0Notizen von anderen – verborgen bis zur Vorstellrunde",
         },
         whyTitle: "Warum RetroBeam",
         why: {
           private: {
             title: "Privat heißt privat.",
-            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind — nicht nur im Browser versteckt. Boards werden in EU-Rechenzentren gespeichert.",
+            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind – nicht nur im Browser versteckt. Boards werden in EU-Rechenzentren gespeichert.",
           },
           nothing: {
             title: "Nichts zu verwalten.",
-            text: "Kein Account, kein Tracking, keine Sitzlizenzen; standardmäßig löschen sich Boards nach 90 Tagen von selbst.",
+            text: "Kein Account, kein Tracking, keine Sitzlizenzen; standardmäßig löschen sich Boards nach 90\u00a0Tagen von selbst.",
           },
           guided: {
             title: "Geführt, und trotzdem Spaß.",
@@ -1369,12 +1371,12 @@ const resources = {
         },
         faq: {
           cost: {
-            q: "Was kostet das — und wo ist der Haken?",
-            a: "Nichts: keine Bezahlpläne, keine Werbung, keine Board-Obergrenze. Der Haken: RetroBeam läuft auf dem kostenlosen Tarif von Cloudflare, und der hat ein Tageskontingent für die ganze Instanz. Wenn an einem Tag ungewöhnlich viele Teams Retro machen, kann es knapp werden — ab Mitternacht UTC geht es weiter, und wer das nicht riskieren will, hostet selbst.",
+            q: "Was kostet das – und wo ist der Haken?",
+            a: "Nichts: keine Bezahlpläne, keine Werbung, keine Board-Obergrenze. Der Haken: RetroBeam läuft auf dem kostenlosen Tarif von Cloudflare, und der hat ein Tageskontingent für die ganze Instanz. Wenn an einem Tag ungewöhnlich viele Teams Retro machen, kann es knapp werden – ab Mitternacht UTC geht es weiter, und wer das nicht riskieren will, hostet selbst.",
           },
           account: {
             q: "Brauche ich einen Account oder muss ich etwas installieren?",
-            a: "Nein. Link öffnen, Namen eintippen, drin — keine Accounts, keine E-Mail-Abfrage, keine Erweiterung. Es läuft in aktuellen Browsern; getestet wird mit Chromium, Firefox und WebKit.",
+            a: "Nein. Link öffnen, Namen eintippen, drin – keine Accounts, keine E-Mail-Abfrage, keine Erweiterung. Es läuft in aktuellen Browsern; getestet wird mit Chromium, Firefox und WebKit.",
           },
           where: {
             q: "Wo liegen die Daten?",
@@ -1382,27 +1384,27 @@ const resources = {
           },
           howLong: {
             q: "Wie lange bleiben die Daten?",
-            a: "90 Tage ab Erstellung, dann löscht sich das Board von selbst. Die Moderation kann es jederzeit sofort löschen — oder ausdrücklich behalten, dann läuft keine Frist mehr. Empfehlung: Am Ende exportieren, dann löschen; der Export lässt Namen standardmäßig weg.",
+            a: "90\u00a0Tage ab Erstellung, dann löscht sich das Board von selbst. Die Moderation kann es jederzeit sofort löschen – oder ausdrücklich behalten, dann läuft keine Frist mehr. Empfehlung: Am Ende exportieren, dann löschen; der Export lässt Namen standardmäßig weg.",
           },
           whoReads: {
-            q: "Wer kann meine Notizen lesen — und wann?",
-            a: "In der Schreibphase niemand, auch nicht die Moderation: Der Server schickt fremde Notizen gar nicht erst an andere Browser. In der Vorstellrunde bekommt das Team die Karten einer Person aus den sichtbaren Spalten, sobald das Glücksrad sie aufruft — auf einem anonymen Board alle auf einmal. Danach sehen alle mit dem Link das freigegebene Board; Spalten, die die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar. Der Link ist der einzige Schlüssel, also gib ihn nur deinem Team.",
+            q: "Wer kann meine Notizen lesen – und wann?",
+            a: "In der Schreibphase niemand, auch nicht die Moderation: Der Server schickt fremde Notizen gar nicht erst an andere Browser. In der Vorstellrunde bekommt das Team die Karten einer Person aus den sichtbaren Spalten, sobald das Glücksrad sie aufruft – auf einem anonymen Board alle auf einmal. Danach sehen alle mit dem Link das freigegebene Board; Spalten, die die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar. Der Link ist der einzige Schlüssel, also gib ihn nur deinem Team.",
           },
           facilitator: {
             q: "Sieht die Moderation mehr als das Team?",
-            a: "In der Schreibphase nicht. In der Vorstellrunde ja: Die Moderation sieht von Anfang an das ganze Board, samt Namen, weil sie die Runde leitet und wissen muss, was noch kommt. Auf einem anonymen Board bekommen alle sofort alle Karten, und niemand — auch die Moderation nicht — sieht Namen. Sobald alle vorgestellt haben, sehen alle dieselben sichtbaren Spalten; Spalten, welche die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar.",
+            a: "In der Schreibphase nicht. In der Vorstellrunde ja: Die Moderation sieht von Anfang an das ganze Board, samt Namen, weil sie die Runde leitet und wissen muss, was noch kommt. Auf einem anonymen Board bekommen alle sofort alle Karten, und niemand – auch die Moderation nicht – sieht Namen. Sobald alle vorgestellt haben, sehen alle dieselben sichtbaren Spalten; Spalten, welche die Moderation ausgeblendet lässt, bleiben nur für sie sichtbar.",
           },
           hideAuthors: {
             q: "Kann ich ausblenden, wer welche Karte geschrieben hat?",
-            a: "Ja — setz beim Anlegen den Haken bei „Anonymes Board“. Dann sieht niemand, wer welche Karte geschrieben hat, auch die Moderation nicht: Der Server schickt die Urheberschaft einer Karte nur an die Person, die sie geschrieben hat, niemand wird zum Vorstellen der eigenen Karten aufgerufen, Namen bei der Abstimmung bleiben aus, und der Export lässt die Namen weg. Das wird beim Anlegen entschieden und lässt sich danach in keine Richtung ändern — so schreiben alle unter demselben Versprechen. Wer auf dem Board ist und wer „fertig“ gemeldet hat, bleibt sichtbar. Auf einem normalen Board stehen die Namen an den Karten, sobald sie aufgedeckt sind, und das Abstimmungsergebnis zeigt standardmäßig, wer wofür gestimmt hat — die Abstimmungsleiste sagt das, bevor jemand abstimmt, und die Moderation kann es abschalten. Kudos und die ROTI-Umfrage am Ende kannst du auf jedem Board anonym abgeben.",
+            a: "Ja – setz beim Anlegen den Haken bei „Anonymes Board“. Dann sieht niemand, wer welche Karte geschrieben hat, auch die Moderation nicht: Der Server schickt die Urheberschaft einer Karte nur an die Person, die sie geschrieben hat, niemand wird zum Vorstellen der eigenen Karten aufgerufen, Namen bei der Abstimmung bleiben aus, und der Export lässt die Namen weg. Das wird beim Anlegen entschieden und lässt sich danach in keine Richtung ändern – so schreiben alle unter demselben Versprechen. Wer auf dem Board ist und wer „fertig“ gemeldet hat, bleibt sichtbar. Auf einem normalen Board stehen die Namen an den Karten, sobald sie aufgedeckt sind, und das Abstimmungsergebnis zeigt standardmäßig, wer wofür gestimmt hat – die Abstimmungsleiste sagt das, bevor jemand abstimmt, und die Moderation kann es abschalten. Kudos und die ROTI-Umfrage am Ende kannst du auf jedem Board anonym abgeben.",
           },
           gifs: {
             q: "Was ist mit den GIFs?",
-            a: "Die GIF-Suche läuft über KLIPY, einen US-Anbieter; Suchbegriffe gehen über unseren Server, KLIPY sieht also weder deine IP-Adresse noch wer sucht. Die Bilder selbst lädt dein Browser aber direkt von KLIPYs CDN — und dabei sieht deren CDN deine IP-Adresse. Wer das vermeiden will, lässt GIFs von der Moderation abschalten, bevor jemand eines einfügt. Das verhindert Suchen und neue GIFs; bereits eingefügte GIFs werden bis zum Entfernen weiter von KLIPY geladen.",
+            a: "Die GIF-Suche läuft über KLIPY, einen US-Anbieter; Suchbegriffe gehen über unseren Server, KLIPY sieht also weder deine IP-Adresse noch wer sucht. Die Bilder selbst lädt dein Browser aber direkt von KLIPYs CDN – und dabei sieht deren CDN deine IP-Adresse. Wer das vermeiden will, lässt GIFs von der Moderation abschalten, bevor jemand eines einfügt. Das verhindert Suchen und neue GIFs; bereits eingefügte GIFs werden bis zum Entfernen weiter von KLIPY geladen.",
           },
           selfHost: {
             q: "Kann ich RetroBeam selbst hosten?",
-            a: "Ja. Es ist ein Cloudflare Worker plus ein Durable Object pro Board, ohne separaten Datenbankdienst, und läuft auch bei dir auf dem kostenlosen Tarif; die Schritte stehen im README auf GitHub. Für die GIF-Suche brauchst du einen eigenen KLIPY-Schlüssel — ohne ihn ist sie einfach aus.",
+            a: "Ja. Es ist ein Cloudflare Worker plus ein Durable Object pro Board, ohne separaten Datenbankdienst, und läuft auch bei dir auf dem kostenlosen Tarif; die Schritte stehen im README auf GitHub. Für die GIF-Suche brauchst du einen eigenen KLIPY-Schlüssel – ohne ihn ist sie einfach aus.",
           },
           license: {
             q: "Unter welcher Lizenz steht der Code?",
@@ -1410,11 +1412,11 @@ const resources = {
           },
           commercial: {
             q: "Ist das ein kommerzielles Angebot?",
-            a: "Nein. RetroBeam ist das private Projekt einer Person — keine Firma dahinter, keine Bezahlpläne, keine Werbung, und es werden keine Daten verkauft. Die Infrastruktur läuft auf Cloudflares kostenlosem Tarif; die übrigen Kosten, etwa für die Domain, trage ich selbst.",
+            a: "Nein. RetroBeam ist das private Projekt einer Person – keine Firma dahinter, keine Bezahlpläne, keine Werbung, und es werden keine Daten verkauft. Die Infrastruktur läuft auf Cloudflares kostenlosem Tarif; die übrigen Kosten, etwa für die Domain, trage ich selbst.",
           },
           work: {
-            q: "Darf ich das im Unternehmen einsetzen — und was sagt der Betriebsrat?",
-            a: "Technisch und lizenzrechtlich ja; ob dein Unternehmen es freigibt, entscheidet dein Unternehmen. In Deutschland fällt ein Tool mit Live-Anwesenheit und Notizen pro Person unter die Mitbestimmung (§ 87 Abs. 1 Nr. 6 BetrVG) — sprich den Betriebsrat also vorher an; die Datenaufstellung, die Auftragsverarbeiter und die Sache mit der Moderation stehen in docs/05 im Repository. Ehrlicherweise: Für retrobeam.de gibt es keinen Vertrag, keine Zusagen und keinen Auftragsverarbeitungsvertrag — wer das braucht, hostet selbst.",
+            q: "Darf ich das im Unternehmen einsetzen – und was sagt der Betriebsrat?",
+            a: "Technisch und lizenzrechtlich ja; ob dein Unternehmen es freigibt, entscheidet dein Unternehmen. In Deutschland fällt ein Tool mit Live-Anwesenheit und Notizen pro Person unter die Mitbestimmung (§ 87 Abs. 1 Nr. 6 BetrVG) – sprich den Betriebsrat also vorher an; die Datenaufstellung, die Auftragsverarbeiter und die Sache mit der Moderation stehen in docs/05 im Repository. Ehrlicherweise: Für retrobeam.de gibt es keinen Vertrag, keine Zusagen und keinen Auftragsverarbeitungsvertrag – wer das braucht, hostet selbst.",
           },
         },
         closingTitle: "Deine nächste Retro, in einer Minute vorbereitet.",
