@@ -138,6 +138,7 @@ export function PhasePlanPanel({
                   </span>
                   <span className="block text-xs text-zinc-500">
                     {t(`phasePlan.phase.${phase}.description`)}
+                    {!optional ? ` · ${t("phasePlan.alwaysIncluded")}` : ""}
                   </span>
                 </span>
               </label>
