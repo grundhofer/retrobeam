@@ -10,7 +10,11 @@ import { LanguageToggle } from "./LanguageToggle.js";
 // The header of every page outside a board: wordmark back to the landing
 // page, one text link to the source, the language switch. Nothing else — the
 // landing page's one primary action lives in its hero, not up here.
-export function SiteHeader() {
+//
+// `languageTo` is the same page in the other language, for the pages that
+// have one (the legal pages): the switch then links there instead of storing
+// a choice.
+export function SiteHeader({ languageTo }: { languageTo?: string }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   return (
@@ -31,7 +35,7 @@ export function SiteHeader() {
         >
           GitHub
         </a>
-        <LanguageToggle />
+        <LanguageToggle to={languageTo} />
       </nav>
     </header>
   );

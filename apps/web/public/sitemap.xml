@@ -3,13 +3,33 @@
 SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-Only paths that exist and are meant to be found. The English aliases
-(/privacy, /imprint) render the same pages and are left out; boards never
-appear here.
+Only paths that exist and are meant to be found; boards never appear here.
+The legal pages have one path per language (German /impressum and
+/datenschutz, English /imprint and /privacy), so each version is listed and
+names both as hreflang alternates, the same pair the pages put in their head.
+The landing page and /new have no language in their path and no alternates.
 -->
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url><loc>https://retrobeam.de/</loc></url>
   <url><loc>https://retrobeam.de/new</loc></url>
-  <url><loc>https://retrobeam.de/impressum</loc></url>
-  <url><loc>https://retrobeam.de/datenschutz</loc></url>
+  <url>
+    <loc>https://retrobeam.de/impressum</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://retrobeam.de/impressum"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/imprint"/>
+  </url>
+  <url>
+    <loc>https://retrobeam.de/imprint</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://retrobeam.de/impressum"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/imprint"/>
+  </url>
+  <url>
+    <loc>https://retrobeam.de/datenschutz</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://retrobeam.de/datenschutz"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/privacy"/>
+  </url>
+  <url>
+    <loc>https://retrobeam.de/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://retrobeam.de/datenschutz"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/privacy"/>
+  </url>
 </urlset>

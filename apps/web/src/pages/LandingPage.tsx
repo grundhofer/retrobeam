@@ -70,7 +70,7 @@ export function LandingPage() {
   const tagline = t("app.tagline");
 
   // index.html carries the German title for crawlers and link previews; once
-  // the app runs, the tab follows the UI language. Same pattern as LegalPage.
+  // the app runs, the tab follows the UI language.
   useEffect(() => {
     document.title = `${appName} — ${tagline}`;
     return () => {

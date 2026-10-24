@@ -4,6 +4,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { REPO_URL } from "../content/operator.js";
+import { LEGAL_PATHS } from "../lib/legalPaths.js";
 
 // AGPL §13 obliges a version reachable over a network to offer its users the
 // Corresponding Source *of that version*; §5(d) obliges the interactive UI to
@@ -23,12 +24,16 @@ const shortCommit = commit ? commit.slice(0, 7) : null;
 const linkClass =
   "inline-block py-1 underline underline-offset-2 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-accent";
 
+// The legal pages have a path per language (lib/legalPaths.ts), so the links
+// lead to the version in the reader's language: the UI language, or on a legal
+// page that page's own language.
 export function LegalFooter({
   openLegalLinksInNewTab = false,
 }: {
   openLegalLinksInNewTab?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language.startsWith("de") ? "de" : "en";
   const legalLinkTarget = openLegalLinksInNewTab ? "_blank" : undefined;
   const legalLinkRel = openLegalLinksInNewTab ? "noreferrer" : undefined;
   return (
@@ -39,7 +44,7 @@ export function LegalFooter({
       <span>© 2026 Sebastian Grundhöfer</span>
       <span aria-hidden="true">·</span>
       <Link
-        to="/datenschutz"
+        to={LEGAL_PATHS.privacy[lang]}
         target={legalLinkTarget}
         rel={legalLinkRel}
         className={linkClass}
@@ -48,7 +53,7 @@ export function LegalFooter({
       </Link>
       <span aria-hidden="true">·</span>
       <Link
-        to="/impressum"
+        to={LEGAL_PATHS.imprint[lang]}
         target={legalLinkTarget}
         rel={legalLinkRel}
         className={linkClass}

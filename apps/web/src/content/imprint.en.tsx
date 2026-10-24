@@ -19,7 +19,7 @@ export function ImprintEn() {
       <h2>Privacy</h2>
       <p>
         Which data is processed when you open this site and when you use a board
-        is described in the <Link to="/datenschutz">privacy notice</Link>.
+        is described in the <Link to="/privacy">privacy notice</Link>.
       </p>
       <h2>Source and licence</h2>
       <p>

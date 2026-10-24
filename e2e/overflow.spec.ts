@@ -26,6 +26,8 @@ const KNOWN: Record<string, string> = {
   "new-board 360@200%": WEBSITE_HEADER,
   "impressum 360@200%": WEBSITE_HEADER,
   "datenschutz 360@200%": WEBSITE_HEADER,
+  "imprint 360@200%": WEBSITE_HEADER,
+  "privacy 360@200%": WEBSITE_HEADER,
   "not-found 360@200%": WEBSITE_HEADER,
 };
 
@@ -50,6 +52,8 @@ for (const [name, path] of [
   ["new-board", "/new"],
   ["impressum", "/impressum"],
   ["datenschutz", "/datenschutz"],
+  ["imprint", "/imprint"],
+  ["privacy", "/privacy"],
   ["not-found", "/does-not-exist"],
 ] as const) {
   for (const size of SIZES) {
