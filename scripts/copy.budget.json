@@ -1,0 +1,30 @@
+{
+  "de": {
+    "em-dash": 76,
+    "ellipsis": 13,
+    "wir": 5,
+    "unit-space": 17,
+    "exclamation": 5,
+    "gender-sign": 4,
+    "required-mark": 1,
+    "fraction": 2,
+    "emoji": 1,
+    "abbreviation": 1,
+    "retry": 1,
+    "privacy-claim": 6,
+    "banned-word": 2
+  },
+  "en": {
+    "ellipsis": 13,
+    "unit-space": 15,
+    "exclamation": 5,
+    "fraction": 2,
+    "emoji": 1,
+    "banned-word": 2
+  },
+  "index.html": {
+    "em-dash": 7,
+    "unit-space": 1,
+    "privacy-claim": 1
+  }
+}
