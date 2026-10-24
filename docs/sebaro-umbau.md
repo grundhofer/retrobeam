@@ -725,6 +725,7 @@ Es gibt 77 Icons [D].
 | `✎`         | `edit`                     |
 | Mülleimer   | `trash`                    |
 | `←`/`→`     | `arrow-left`/`arrow-right` |
+| `↑`/`↓`     | `arrow-up`/`arrow-down`    |
 | `✓`         | `check`/`success`          |
 | `▸`         | `chevron-right`            |
 | Glocke      | `bell`                     |

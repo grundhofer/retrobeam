@@ -1,7 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   clampUnit,
@@ -18,7 +24,7 @@ import {
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { GifPickerButton } from "./GifPicker.js";
-import { NoteCard } from "./NoteCard.js";
+import { NoteCard, type NudgeDirection } from "./NoteCard.js";
 
 export interface BoardCanvasProps {
   columns: Column[];
@@ -77,6 +83,9 @@ const CURSOR_MIN_DISTANCE_PX = 10;
 const CARD_WIDTH_PX = 176;
 const CARD_HEIGHT_PX = 112;
 const CARD_GAP_PX = 12;
+// One step of a card moved without dragging, in world pixels: fine enough to
+// place it, coarse enough that six presses cross a card's own width.
+const NUDGE_PX = 32;
 
 interface CanvasPoint {
   x: number;
@@ -174,6 +183,20 @@ export function BoardCanvas({
     x: number;
     y: number;
   } | null>(null);
+  // The cards whose ⋯ panel is open. The panel hangs below its card, so the
+  // card and its zone are lifted above their neighbours and the zone stops
+  // clipping while it is open (WCAG 2.4.11: a focused option is never under
+  // another card or cut off at the zone's edge).
+  const [arranging, setArranging] = useState<ReadonlySet<string>>(new Set());
+  const onArrangeChange = useCallback((noteId: string, open: boolean) => {
+    setArranging((current) => {
+      if (current.has(noteId) === open) return current;
+      const next = new Set(current);
+      if (open) next.add(noteId);
+      else next.delete(noteId);
+      return next;
+    });
+  }, []);
 
   const ordered = [...columns].sort((a, b) => a.order - b.order);
   function rectOf(column: Column): ZoneRect {
@@ -207,6 +230,53 @@ export function BoardCanvas({
     didFit.current = true;
     fitView();
   }, []);
+
+  // An open ⋯ panel is panned into view whole: one opened on a card at the
+  // canvas's edge — on a phone, at the fitted zoom, most of them — or carried
+  // there by a step would otherwise be cut off at the viewport, focused
+  // option included (WCAG 2.4.11). Only when it opens or its card moves; a
+  // pan of the user's own is left alone.
+  const arrangedAt = notes
+    .filter((n) => arranging.has(n.id))
+    .map((n) => `${n.id}:${n.columnId}:${n.x}:${n.y}`)
+    .join(" ");
+  function panArrangingIntoView() {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    // The visible inside, less the border and a little room to breathe.
+    const outer = vp.getBoundingClientRect();
+    const left = outer.left + vp.clientLeft + 8;
+    const top = outer.top + vp.clientTop + 8;
+    const box = {
+      left,
+      top,
+      right: left + vp.clientWidth - 16,
+      bottom: top + vp.clientHeight - 16,
+    };
+    for (const panel of vp.querySelectorAll('[data-testid="note-arrange"]')) {
+      const r = panel.getBoundingClientRect();
+      // Left and top win where a panel is larger than the viewport.
+      const dx =
+        r.left < box.left
+          ? box.left - r.left
+          : r.right > box.right
+            ? Math.max(box.left - r.left, box.right - r.right)
+            : 0;
+      const dy =
+        r.top < box.top
+          ? box.top - r.top
+          : r.bottom > box.bottom
+            ? Math.max(box.top - r.top, box.bottom - r.bottom)
+            : 0;
+      if (dx !== 0 || dy !== 0) {
+        setView((v) => ({ ...v, panX: v.panX + dx, panY: v.panY + dy }));
+        return;
+      }
+    }
+  }
+  useLayoutEffect(() => {
+    if (arrangedAt !== "") panArrangingIntoView();
+  }, [arrangedAt]);
 
   // Non-passive wheel: ctrl/⌘ + wheel zooms around the cursor, plain wheel pans.
   useEffect(() => {
@@ -431,14 +501,20 @@ export function BoardCanvas({
     if (note.x !== null && note.y !== null) return { x: note.x, y: note.y };
     return scatterPos(note.id);
   }
-  function openPosition(
-    columnId: string,
-    preferred: CanvasPoint,
-    excludedNoteId?: string,
-  ): CanvasPoint | null {
+  // A zone's card area and what already sits in it, in world pixels: the
+  // zone's rect less its header and borders. Not the on-screen box: the ⋯
+  // panel asks during render, when a zoom or a teammate's resize is in the
+  // props already but not yet in the DOM. The header and borders are the one
+  // part that changes with neither.
+  function footprint(columnId: string, excludedNoteId?: string) {
     const zone = zoneRefs.current.get(columnId);
-    if (!zone) return preferred;
-    const box = zone.getBoundingClientRect();
+    const section = zone?.parentElement;
+    const column = columns.find((c) => c.id === columnId);
+    if (!zone || !section || !column) return null;
+    const rect = rectOf(column);
+    const width = rect.w * WORLD_W - (section.offsetWidth - zone.offsetWidth);
+    const height =
+      rect.h * WORLD_H - (section.offsetHeight - zone.offsetHeight);
     const occupied = [
       ...notes
         .filter(
@@ -449,11 +525,26 @@ export function BoardCanvas({
         .filter((slot) => slot.columnId === columnId)
         .map(({ x, y }) => ({ x, y })),
     ];
+    return {
+      width,
+      height,
+      occupied,
+      separationX: (CARD_WIDTH_PX + CARD_GAP_PX) / width,
+      separationY: (CARD_HEIGHT_PX + CARD_GAP_PX) / height,
+    };
+  }
+  function openPosition(
+    columnId: string,
+    preferred: CanvasPoint,
+    excludedNoteId?: string,
+  ): CanvasPoint | null {
+    const fit = footprint(columnId, excludedNoteId);
+    if (!fit) return preferred;
     return nearestOpenCanvasPosition(
       preferred,
-      occupied,
-      ((CARD_WIDTH_PX + CARD_GAP_PX) * view.zoom) / box.width,
-      ((CARD_HEIGHT_PX + CARD_GAP_PX) * view.zoom) / box.height,
+      fit.occupied,
+      fit.separationX,
+      fit.separationY,
     );
   }
   function canMove(note: Note): boolean {
@@ -513,7 +604,15 @@ export function BoardCanvas({
       note.id,
     );
     if (open === null) return;
-    target = { ...target, ...open };
+    commitMove(note, { ...target, ...open });
+  }
+
+  // The one note.move a drop, a "Move to …" or a step sends — the keyboard
+  // paths are the drag's twins, not a second code path.
+  function commitMove(
+    note: Note,
+    target: { columnId: string; x: number; y: number },
+  ) {
     if (
       target.columnId === note.columnId &&
       note.x === target.x &&
@@ -543,6 +642,68 @@ export function BoardCanvas({
         },
       },
     );
+  }
+
+  // "Move to …" from the card's ⋯ (WCAG 2.5.7): the card lands where "+ Note"
+  // opens the composer — the zone's centre, nudged to the nearest free spot.
+  // null for a full zone, which a drop refuses too; the ⋯ does not offer it.
+  function landingSpot(columnId: string): CanvasPoint | null {
+    return openPosition(columnId, { x: 0.5, y: 0.5 });
+  }
+  function moveToZone(sourceNoteId: string, columnId: string) {
+    const note = notes.find((n) => n.id === sourceNoteId);
+    const open = landingSpot(columnId);
+    if (note && open) commitMove(note, { columnId, ...open });
+  }
+
+  // Where one step moves a card inside its zone, or null at the zone's edge.
+  // Straight along the step's axis only: a neighbour in the way is hopped
+  // over to the first free spot behind it on the same line, never sidestepped
+  // into another row the way a drop snaps. The same footprint as a drop, so a
+  // step never covers another card or a teammate's placeholder.
+  function nudgeTarget(
+    note: Note,
+    direction: NudgeDirection,
+  ): CanvasPoint | null {
+    const fit = footprint(note.columnId, note.id);
+    if (!fit || fit.width <= 0 || fit.height <= 0) return null;
+    const alongX = direction === "left" || direction === "right";
+    const sign = direction === "left" || direction === "up" ? -1 : 1;
+    const step = NUDGE_PX / (alongX ? fit.width : fit.height);
+    const from = positionOf(note);
+    let reached = alongX ? from.x : from.y;
+    for (let k = 1; ; k++) {
+      const wanted = alongX
+        ? { x: from.x + sign * k * step, y: from.y }
+        : { x: from.x, y: from.y + sign * k * step };
+      // Kept inside the zone the way every placement is; nothing occupied,
+      // so never null.
+      const spot = nearestOpenCanvasPosition(
+        wanted,
+        [],
+        fit.separationX,
+        fit.separationY,
+      )!;
+      const main = alongX ? spot.x : spot.y;
+      if ((main - reached) * sign <= 0) return null;
+      reached = main;
+      const open = nearestOpenCanvasPosition(
+        spot,
+        fit.occupied,
+        fit.separationX,
+        fit.separationY,
+      );
+      if (open !== null && open.x === spot.x && open.y === spot.y) return open;
+    }
+  }
+  function canNudge(sourceNoteId: string, direction: NudgeDirection) {
+    const note = notes.find((n) => n.id === sourceNoteId);
+    return note !== undefined && nudgeTarget(note, direction) !== null;
+  }
+  function nudgeNote(sourceNoteId: string, direction: NudgeDirection) {
+    const note = notes.find((n) => n.id === sourceNoteId);
+    const open = note ? nudgeTarget(note, direction) : null;
+    if (note && open) commitMove(note, { columnId: note.columnId, ...open });
   }
 
   function createNote(
@@ -606,13 +767,15 @@ export function BoardCanvas({
           >
             −
           </button>
+          {/* Named after what it shows first (WCAG 2.5.3): a speech user says
+              the "49%" they see, then the name tells what it does. */}
           <button
             type="button"
-            aria-label={t("canvas.fit")}
             onClick={fitView}
             className="min-w-11 border-x border-zinc-200 px-1 py-1 text-center text-xs tabular-nums hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
           >
             {Math.round(view.zoom * 100)}%
+            <span className="sr-only"> – {t("canvas.fit")}</span>
           </button>
           <button
             type="button"
@@ -632,6 +795,22 @@ export function BoardCanvas({
         onPointerMove={onViewportPointerMove}
         onPointerUp={onViewportPointerUp}
         onPointerCancel={onViewportPointerCancel}
+        // Focus can land on a card or ⋯ option outside the visible part (Tab,
+        // or the focus a move hands back), and the browser scrolls this
+        // overflow-hidden box to show it — a shift the pan knows nothing of,
+        // which would offset every later pan and zoom. Taken over as pan.
+        onScroll={(event) => {
+          const vp = event.currentTarget;
+          const { scrollLeft, scrollTop } = vp;
+          if (scrollLeft === 0 && scrollTop === 0) return;
+          vp.scrollLeft = 0;
+          vp.scrollTop = 0;
+          setView((v) => ({
+            ...v,
+            panX: v.panX - scrollLeft,
+            panY: v.panY - scrollTop,
+          }));
+        }}
         className="relative h-[72vh] overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-100/40"
         style={{ touchAction: "none" }}
       >
@@ -651,6 +830,7 @@ export function BoardCanvas({
               phase === "write"
                 ? Math.max(0, (columnCounts[column.id] ?? 0) - zoneNotes.length)
                 : 0;
+            const arrangingHere = zoneNotes.some((n) => arranging.has(n.id));
             return (
               <section
                 key={column.id}
@@ -663,6 +843,8 @@ export function BoardCanvas({
                   top: rect.y * WORLD_H,
                   width: rect.w * WORLD_W,
                   height: rect.h * WORLD_H,
+                  // Above the zones after it, which an open panel may reach.
+                  zIndex: arrangingHere ? 30 : undefined,
                 }}
               >
                 <header
@@ -744,6 +926,7 @@ export function BoardCanvas({
                     });
                   }}
                   className="relative flex-1 overflow-hidden rounded-b-2xl"
+                  style={arrangingHere ? { overflow: "visible" } : undefined}
                 >
                   {phase === "write"
                     ? canvasOccupancy
@@ -773,6 +956,7 @@ export function BoardCanvas({
                     return (
                       <div
                         key={note.id}
+                        data-testid="canvas-card"
                         onPointerDown={(event) => beginDrag(event, note)}
                         onPointerMove={moveDrag}
                         onPointerUp={(event) => endDrag(event, note)}
@@ -785,7 +969,7 @@ export function BoardCanvas({
                           transform: dragging
                             ? `translate(calc(-50% + ${drag.dx / view.zoom}px), calc(-50% + ${drag.dy / view.zoom}px))`
                             : "translate(-50%, -50%)",
-                          zIndex: dragging ? 30 : 1,
+                          zIndex: dragging || arranging.has(note.id) ? 30 : 1,
                           cursor: canMove(note) ? "grab" : "default",
                           touchAction: "none",
                         }}
@@ -801,6 +985,21 @@ export function BoardCanvas({
                           unpresentedAuthorIds={unpresentedAuthorIds}
                           gifsEnabled={gifsEnabled}
                           draggable={false}
+                          // The drag's keyboard and single-pointer twins
+                          // (WCAG 2.5.7), behind the card's own move gate.
+                          moveTargets={ordered}
+                          // Asked as the panel renders: full zones come and
+                          // go with every card and placeholder that moves.
+                          canMoveTo={(columnId) =>
+                            landingSpot(columnId) !== null
+                          }
+                          onMoveToColumn={moveToZone}
+                          onNudge={nudgeNote}
+                          canNudge={canNudge}
+                          // Undo the world's zoom: the panel's options keep
+                          // their size at any zoom (WCAG 2.5.8).
+                          arrangeScale={1 / view.zoom}
+                          onArrangeChange={onArrangeChange}
                           onDropNote={() => {}}
                           onUngroup={(n) =>
                             mutate(

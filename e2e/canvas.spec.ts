@@ -95,6 +95,87 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
   await context.close();
 });
 
+// WCAG 2.5.7 and 2.1.1: a canvas card moves without a drag — to another zone
+// through the card's ⋯, and step by step with the arrow keys — and the real
+// server takes every one of those note.moves: a reload shows them kept.
+test("canvas layout: a card moves by keyboard alone", async ({ browser }) => {
+  const context = await newContext(browser, { reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.goto("/new");
+  await page.getByRole("textbox").fill("Canvas keyboard retro");
+  await page.getByTestId("home-layout-canvas").click();
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(page, "Anna");
+  await page.getByTestId("phase-next").click();
+
+  const zones = page.getByTestId(/^zone-/);
+  await expect(zones.nth(1)).toBeVisible();
+  await page.getByTestId("canvas-add-note").first().focus();
+  await page.keyboard.press("Enter");
+  await page.getByTestId("canvas-composer").fill("Keyboard card");
+  await page.keyboard.press("Enter");
+  const card = page.getByTestId("note-card");
+  await expect(zones.nth(0).getByTestId("note-card")).toContainText(
+    "Keyboard card",
+  );
+
+  // "Move to …" the second zone; focus comes back to the card's ⋯ there.
+  await card.getByTestId("note-arrange-toggle").focus();
+  await page.keyboard.press("Enter");
+  const target = card.getByTestId("note-move-option").first();
+  const zoneName = (await target.textContent()) ?? "";
+  await target.focus();
+  await page.keyboard.press("Enter");
+  await expect(zones.nth(1).getByTestId("note-card")).toContainText(
+    "Keyboard card",
+  );
+  await expect(card.getByTestId("note-arrange-toggle")).toBeFocused();
+  await expect(page.getByRole("region", { name: zoneName })).toContainText(
+    "Keyboard card",
+  );
+
+  // Two steps down and one to the right with the arrow keys. The position
+  // lives on the card's drag wrapper.
+  const wrapper = page.getByTestId("canvas-card").filter({ has: card });
+  const placed = () =>
+    wrapper.evaluate((el) => [
+      (el as HTMLElement).style.left,
+      (el as HTMLElement).style.top,
+    ]);
+  const [left0, top0] = await placed();
+  await page.keyboard.press("Enter");
+  await card.getByTestId("note-nudge-down").focus();
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(async () => (await placed())[1]).not.toBe(top0);
+  const [, top1] = await placed();
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(async () => (await placed())[1]).not.toBe(top1);
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(async () => (await placed())[0]).not.toBe(left0);
+  await expect(card.getByTestId("note-nudge-down")).toBeFocused();
+  const stepped = await placed();
+  expect(parseFloat(stepped[1]!)).toBeGreaterThan(parseFloat(top0!));
+  expect(parseFloat(stepped[0]!)).toBeGreaterThan(parseFloat(left0!));
+
+  // Escape closes the panel and hands focus back to the ⋯.
+  await page.keyboard.press("Escape");
+  await expect(card.getByTestId("note-arrange")).toHaveCount(0);
+  await expect(card.getByTestId("note-arrange-toggle")).toBeFocused();
+
+  // Kept by the server: the same zone and spot after a reload.
+  await page.reload();
+  await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
+  await expect(zones.nth(1).getByTestId("note-card")).toContainText(
+    "Keyboard card",
+  );
+  await expect.poll(placed).toEqual(stepped);
+
+  await context.close();
+});
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
