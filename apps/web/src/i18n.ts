@@ -13,10 +13,14 @@ const resources = {
         name: "RetroBeam",
         tagline: "Retros your team will look forward to.",
       },
+      form: {
+        optional: "(optional)",
+      },
       home: {
         title: "Create a retro board",
         boardName: "Board name",
         boardNamePlaceholder: "Sprint 42 retro",
+        boardNameMissing: "Board name is missing.",
         template: "Template",
         layout: "Layout",
         layoutMode: { columns: "Columns", canvas: "Canvas" },
@@ -82,6 +86,7 @@ const resources = {
       join: {
         title: "Join “{{board}}”",
         yourName: "Your name",
+        nameMissing: "Your name is missing.",
         submit: "Join",
       },
       lobby: {
@@ -151,7 +156,6 @@ const resources = {
         adminHint: "Choose the optional phases before you start.",
         memberHint: "This is the planned agenda for the retro.",
         locked: "The agenda is locked because this retro has already started.",
-        required: "Required",
         checkin: {
           question: "Icebreaker question",
           randomOnStart: "Choose a random question when the check-in starts",
@@ -292,7 +296,7 @@ const resources = {
         meter: "{{done}} / {{total}} finished voting",
         settings: "Voting",
         votesPerPerson: "Votes per person",
-        maxPerTarget: "Max per card",
+        maxPerTarget: "Maximum per card",
         topN: "Top cards",
         apply: "Apply",
         plus: "Add a vote",
@@ -313,8 +317,10 @@ const resources = {
       action: {
         title: "Action items",
         placeholder: "What are we going to do?",
+        textMissing: "Action item is missing.",
         add: "Add",
-        unassigned: "Unassigned",
+        owner: "Owner",
+        ownerNone: "None",
         toggle: "Mark as done",
         delete: "Delete action",
         empty: "No action items yet – capture decisions while you discuss.",
@@ -325,7 +331,8 @@ const resources = {
         subtitle: "End on positives – send a teammate some love.",
         empty: "No kudos yet. You can be the first to appreciate someone.",
         to: "To",
-        placeholder: "Say why (optional) …",
+        reason: "Reason",
+        placeholder: "Say why …",
         send: "Send kudos",
         from: "– {{name}}",
         anonymous: "– anonymous",
@@ -718,10 +725,14 @@ const resources = {
         name: "RetroBeam",
         tagline: "Retros, auf die sich dein Team freut.",
       },
+      form: {
+        optional: "(optional)",
+      },
       home: {
         title: "Retro-Board erstellen",
         boardName: "Name des Boards",
         boardNamePlaceholder: "Sprint-42-Retro",
+        boardNameMissing: "Name des Boards fehlt.",
         template: "Vorlage",
         layout: "Layout",
         layoutMode: { columns: "Spalten", canvas: "Canvas" },
@@ -788,6 +799,7 @@ const resources = {
       join: {
         title: "„{{board}}“ beitreten",
         yourName: "Dein Name",
+        nameMissing: "Dein Name fehlt.",
         submit: "Beitreten",
       },
       lobby: {
@@ -858,7 +870,6 @@ const resources = {
         memberHint: "Das ist der geplante Ablauf dieser Retro.",
         locked:
           "Der Ablauf ist gesperrt, da diese Retro bereits gestartet wurde.",
-        required: "Pflichtphase",
         checkin: {
           question: "Icebreaker-Frage",
           randomOnStart: "Beim Check-in eine zufällige Frage auswählen",
@@ -1000,7 +1011,7 @@ const resources = {
         meter: "{{done}} / {{total}} fertig abgestimmt",
         settings: "Abstimmung",
         votesPerPerson: "Stimmen pro Person",
-        maxPerTarget: "Max. pro Karte",
+        maxPerTarget: "Höchstens pro Karte",
         topN: "Top-Karten",
         apply: "Übernehmen",
         plus: "Stimme hinzufügen",
@@ -1021,8 +1032,10 @@ const resources = {
       action: {
         title: "Action Items",
         placeholder: "Was nehmen wir uns vor?",
+        textMissing: "Action Item fehlt.",
         add: "Hinzufügen",
-        unassigned: "Nicht zugewiesen",
+        owner: "Verantwortlich",
+        ownerNone: "Keine",
         toggle: "Als erledigt markieren",
         delete: "Action Item löschen",
         empty:
@@ -1034,7 +1047,8 @@ const resources = {
         subtitle: "Endet positiv – schick einem Teammitglied etwas Liebe.",
         empty: "Noch kein Kudos. Du kannst als erste Person jemanden würdigen.",
         to: "An",
-        placeholder: "Sag warum (optional) …",
+        reason: "Begründung",
+        placeholder: "Sag warum …",
         send: "Kudos senden",
         from: "– {{name}}",
         anonymous: "– anonym",

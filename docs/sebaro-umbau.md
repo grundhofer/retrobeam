@@ -339,6 +339,7 @@ Jede Antwort mit Datum und Wortlaut. Eine Frage gilt erst als entschieden, wenn 
 | S4             | 2026-10-24       | —                                                                           | **erfüllt:** Skizzenseite zu F5, F5b, F7 mit je zwei bis drei Wegen gerendert (hell, dunkel, 390/1440 px, 200 % Schrift) und beantwortet. Die Seite lag nur im Scratchpad der Session vom 2026-10-24 und ist nicht im Repo                                                                                                                                                                                                                                                                                                                |
 | Wörter         | 2026-10-24       | Befund der Skizze                                                           | Der Code sagt „Diskutieren“ und „Retro beenden“; wo dieser Plan „Besprechen“ und „Retro abschließen“ schreibt, gelten die Wörter aus `i18n.ts`                                                                                                                                                                                                                                                                                                                                                                                            |
 | Prüfung        | 2026-10-24 19:05 | —                                                                           | **S5 erfüllt:** D100/D101 committet (`SD` `0f40a10`). **S1 nicht erfüllt:** novalis `sebaro-umbau` hat 5 Commits über `main` (Kürzel, Menü, Seitenleiste, `d3978e1`), aber keinen Export (`apps/desktop/ui/src/sebaro` fehlt), nichts auf `main`, kein PR. Gefilterter Export (F32) fehlt: `export_system.py` steht weiter auf 1.5.0. S2 fehlt                                                                                                                                                                                            |
+| STA-03 vorab   | 2026-10-25       | „ja, mach das bitte“                                                        | §7.2 B, erste drei Punkte, vorgezogen auf `main`, abweichend von F4 („UI-Stopp auf `main`“): Board anlegen, Beitreten und Action Item lassen die Taste drückbar und sagen am Feld „… fehlt.“ (sebaro STA-03, D98 V2); „(optional)“ an Begründung, Verantwortlich (mit „Keine“) und Höchstens pro Karte (D99); „Pflichtphase“ und „Max.“ gestrichen. Offen: ein Satz ohne „Pflicht“, warum feste Phasen nicht abwählbar sind                                                                                                               |
 
 ---
 
@@ -760,8 +761,8 @@ Quelle: `W/i18n.ts`, DE `:714-1466`, EN `:10-712` [D]. Jede Änderung gilt für 
 | Brüche                       | `\{\{\w+\}\}/\{\{\w+\}\}`                                                                            | `:896`, `:999` (EN `:190`, `:292`) [D]                                                                          |
 | Emoji in der UI              | Emoji-Bereich                                                                                        | `:944` [D]; `picker.startSlots` mit 🎰 (`PresenceRail.test.tsx:56` [B])                                         |
 | Verbotene Datenschutzwörter  | „kein Tracking“, „in der EU gespeichert“, „EU-Rechenzentren“                                         | `:1353`, `:1424`, `:1309`, `:1349`, `:1422`; EN `:585`, `:624`, `:628`, `:697`, `:699` [D]; `index.html:84` [B] |
-| Abkürzungen                  | „Max.“                                                                                               | `:1002` [B]                                                                                                     |
-| Pflichtmarken                | `Pflicht`, `\*` in Labels                                                                            | `:860` [B] (EN `:154`)                                                                                          |
+| Abkürzungen                  | „Max.“                                                                                               | erledigt 2026-10-25 (war `:1002`)                                                                               |
+| Pflichtmarken                | `Pflicht`, `\*` in Labels                                                                            | erledigt 2026-10-25 (war `:860`, EN `:154`)                                                                     |
 
 ### 7.2 Gruppen
 
@@ -775,9 +776,9 @@ Quelle: `W/i18n.ts`, DE `:714-1466`, EN `:10-712` [D]. Jede Änderung gilt für 
   - „{{ready}} / {{total}} fertig“ (siehe §2.4, Zeile „Brüche“)
   - leere Zustände „Noch keine …“
 - **B, mit der Ansicht (Stufen 3–5):**
-  - „Name des Boards fehlt.“, „Dein Name fehlt.“, „Action Item fehlt.“
-  - „Begründung (optional)“, „Verantwortlich (optional)“ mit „Keine“, „Höchstens pro Karte (optional)“
-  - „Pflichtphase“ streichen
+  - „Name des Boards fehlt.“, „Dein Name fehlt.“, „Action Item fehlt.“ (erledigt 2026-10-25, §2.4)
+  - „Begründung (optional)“, „Verantwortlich (optional)“ mit „Keine“, „Höchstens pro Karte (optional)“ (erledigt 2026-10-25, §2.4)
+  - „Pflichtphase“ streichen (erledigt 2026-10-25, §2.4)
   - „{{count}} Min.“
   - „Speichern“/„Übernehmen“ → „Sichern“ (bricht e2e `/^(save|speichern)$/`, mitziehen)
   - „Kudo entfernen“ → „Kudo löschen“

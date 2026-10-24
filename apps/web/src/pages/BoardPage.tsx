@@ -53,6 +53,7 @@ import {
   saveSessionKey,
 } from "../lib/session.js";
 import { BoardSocket } from "../lib/socket.js";
+import { useMissingField } from "../lib/useMissingField.js";
 import { useBoardStore } from "../store/boardStore.js";
 
 type Gate =
@@ -167,11 +168,17 @@ function JoinGate({
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState(() => loadDisplayName() ?? "");
+  // Same as the create form: the button stays pressable and an empty name is
+  // answered at the field (sebaro STA-03).
+  const nameField = useMissingField();
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = name.trim();
-    if (trimmed === "") return;
+    if (trimmed === "") {
+      nameField.report();
+      return;
+    }
     saveDisplayName(trimmed);
     // Start the audio context while the join click is still on the stack — the
     // autoplay policy will not let us open one later, when the timer ends.
@@ -190,22 +197,34 @@ function JoinGate({
           <h1 className="text-2xl font-semibold text-zinc-900">
             {t("join.title", { board: board.name })}
           </h1>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-zinc-700">
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor={nameField.fieldProps.id}
+              className="text-sm font-medium text-zinc-700"
+            >
               {t("join.yourName")}
-            </span>
+            </label>
             <input
+              {...nameField.fieldProps}
               autoFocus
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                nameField.typed(event.target.value);
+              }}
               maxLength={40}
               className="rounded-lg border border-zinc-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
             />
-          </label>
+            {nameField.missing ? (
+              <p id={nameField.messageId}>{t("join.nameMissing")}</p>
+            ) : null}
+            <p role="status" className="sr-only">
+              {nameField.spoken ? t("join.nameMissing") : ""}
+            </p>
+          </div>
           <button
             type="submit"
-            disabled={name.trim() === ""}
-            className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {t("join.submit")}
           </button>

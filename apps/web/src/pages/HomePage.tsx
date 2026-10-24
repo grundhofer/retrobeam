@@ -16,12 +16,16 @@ import { LegalFooter } from "../components/LegalFooter.js";
 import { SiteHeader } from "../components/SiteHeader.js";
 import { createBoard } from "../lib/api.js";
 import { saveAdminToken } from "../lib/session.js";
+import { useMissingField } from "../lib/useMissingField.js";
 
 export function HomePage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [name, setName] = useState("");
+  // An empty name does not grey the button out (sebaro STA-03): the press
+  // says so at the field and puts the cursor there instead.
+  const nameField = useMissingField();
   // Template links: `?template=<key>` preselects a built-in one, `?columns=A|B`
   // brings somebody's own set. A link is typed, pasted and truncated by chat
   // tools, so nothing in it may break the form — anything unreadable is
@@ -61,7 +65,14 @@ export function HomePage() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (busy || name.trim() === "") return;
+    if (busy) return;
+    if (name.trim() === "") {
+      // Nothing was sent on this press, so an earlier failure no longer
+      // stands next to the message.
+      setFailed(false);
+      nameField.report();
+      return;
+    }
     setBusy(true);
     setFailed(false);
     try {
@@ -99,19 +110,34 @@ export function HomePage() {
             onSubmit={(event) => void submit(event)}
             className="flex flex-col gap-4"
           >
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-zinc-700">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor={nameField.fieldProps.id}
+                className="text-sm font-medium text-zinc-700"
+              >
                 {t("home.boardName")}
-              </span>
+              </label>
               <input
+                {...nameField.fieldProps}
                 autoFocus
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  nameField.typed(event.target.value);
+                }}
                 placeholder={t("home.boardNamePlaceholder")}
                 maxLength={40}
                 className="rounded-lg border border-zinc-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
               />
-            </label>
+              {nameField.missing ? (
+                <p id={nameField.messageId}>{t("home.boardNameMissing")}</p>
+              ) : null}
+              {/* Mounted from the start: a region inserted together with its
+                  text is not reliably announced. */}
+              <p role="status" className="sr-only">
+                {nameField.spoken ? t("home.boardNameMissing") : ""}
+              </p>
+            </div>
             {linkColumns !== null ? (
               <div
                 data-testid="home-link-columns"
@@ -233,7 +259,7 @@ export function HomePage() {
             </p>
             <button
               type="submit"
-              disabled={busy || name.trim() === ""}
+              disabled={busy}
               className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
             >
               {busy ? t("home.creating") : t("home.create")}

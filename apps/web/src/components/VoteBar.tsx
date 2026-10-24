@@ -103,8 +103,11 @@ function VoteSettings({ config }: { config: BoardConfig }) {
             value={votesPerPerson}
             onChange={setVotesPerPerson}
           />
+          {/* Left empty, a card takes any number of votes: "(optional)". */}
           <label className="flex items-center justify-between gap-2 text-sm text-zinc-700">
-            {t("vote.maxPerTarget")}
+            <span>
+              {t("vote.maxPerTarget")} <span>{t("form.optional")}</span>
+            </span>
             <input
               type="number"
               min={1}

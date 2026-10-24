@@ -84,6 +84,65 @@ test("a refresh keeps identity: no duplicate participant", async ({
   await context.close();
 });
 
+// An empty field keeps the button pressable (sebaro STA-03): the press sends
+// nothing, names what is missing at the field and puts the cursor there.
+test("an empty name is answered at the field, on create and on join", async ({
+  browser,
+}) => {
+  const context = await newContext(browser);
+  const page = await context.newPage();
+  const creates: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/api/boards"))
+      creates.push(request.url());
+  });
+  await page.goto("/new");
+  const boardName = page.getByRole("textbox");
+  await page.getByRole("combobox").focus();
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(boardName).toBeFocused();
+  await expect(boardName).toHaveAttribute("aria-invalid", "true");
+  await expect(boardName).toHaveAccessibleDescription(
+    /^(board name is missing|name des boards fehlt)\.$/i,
+  );
+  await expect(page).toHaveURL(/\/new$/);
+  expect(creates).toHaveLength(0);
+  await boardName.fill("Empty fields");
+  await expect(boardName).not.toHaveAttribute("aria-invalid");
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  expect(creates).toHaveLength(1);
+
+  // Enter in the field, which has the focus already: a live region says it.
+  const yourName = page.getByRole("textbox");
+  const missingName = /^(your name is missing|dein name fehlt)\.$/i;
+  await expect(yourName).toBeFocused();
+  await yourName.press("Enter");
+  await expect(yourName).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    page.getByRole("status").filter({ hasText: missingName }),
+  ).toHaveCount(1);
+
+  // The button, with the focus on it first: the press moves it to the field.
+  const join = page.getByRole("button", { name: /join|beitreten/i });
+  await join.focus();
+  await join.click();
+  await expect(yourName).toBeFocused();
+  await expect(yourName).toHaveAttribute("aria-invalid", "true");
+  await expect(yourName).toHaveAccessibleDescription(missingName);
+  await expect(page.getByTestId("roster-item")).toHaveCount(0);
+  await yourName.fill("Anna");
+  await expect(page.getByText(missingName)).toHaveCount(0);
+  await join.click();
+  await expect(page.getByTestId("roster-item")).toHaveCount(1);
+
+  await context.close();
+});
+
 test("an unknown board id shows the not-found page", async ({ page }) => {
   await page.goto(`/board/${"0".repeat(32)}`);
   await expect(
