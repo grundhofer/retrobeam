@@ -58,9 +58,9 @@ test("write → reveal core loop with two participants", async ({ browser }) => 
 
   // Ready-check aggregates across the room.
   await ben.getByTestId("ready-toggle").click();
-  await expect(anna.getByTestId("ready-count")).toContainText("1/2");
+  await expect(anna.getByTestId("ready-count")).toContainText("1 / 2");
   await anna.getByTestId("ready-toggle").click();
-  await expect(anna.getByTestId("ready-count")).toContainText("2/2");
+  await expect(anna.getByTestId("ready-count")).toContainText("2 / 2");
 
   // Present: the facilitator gets the board straight away, a member gets each
   // person's cards as the rotation reaches them.
