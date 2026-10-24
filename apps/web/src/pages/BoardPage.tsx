@@ -38,6 +38,7 @@ import { PresenceRail } from "../components/PresenceRail.js";
 import { ReadyBar } from "../components/ReadyBar.js";
 import { Roster } from "../components/Roster.js";
 import { ShareLink } from "../components/ShareLink.js";
+import { MAIN_ID } from "../components/SkipLink.js";
 import { TimerPanel } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
@@ -53,6 +54,7 @@ import {
   saveSessionKey,
 } from "../lib/session.js";
 import { BoardSocket } from "../lib/socket.js";
+import { useMissingField } from "../lib/useMissingField.js";
 import { useBoardStore } from "../store/boardStore.js";
 
 type Gate =
@@ -167,11 +169,17 @@ function JoinGate({
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState(() => loadDisplayName() ?? "");
+  // Same as the create form: the button stays pressable and an empty name is
+  // answered at the field (sebaro STA-03).
+  const nameField = useMissingField();
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = name.trim();
-    if (trimmed === "") return;
+    if (trimmed === "") {
+      nameField.report();
+      return;
+    }
     saveDisplayName(trimmed);
     // Start the audio context while the join click is still on the stack — the
     // autoplay policy will not let us open one later, when the timer ends.
@@ -185,27 +193,42 @@ function JoinGate({
         <BrandLogo compact />
         <LanguageToggle />
       </header>
-      <main className="flex flex-1 items-center justify-center px-6 pb-24">
+      <main
+        id={MAIN_ID}
+        className="flex flex-1 items-center justify-center px-6 pb-24"
+      >
         <form onSubmit={submit} className="flex w-full max-w-md flex-col gap-4">
           <h1 className="text-2xl font-semibold text-zinc-900">
             {t("join.title", { board: board.name })}
           </h1>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-zinc-700">
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor={nameField.fieldProps.id}
+              className="text-sm font-medium text-zinc-700"
+            >
               {t("join.yourName")}
-            </span>
+            </label>
             <input
+              {...nameField.fieldProps}
               autoFocus
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                nameField.typed(event.target.value);
+              }}
               maxLength={40}
               className="rounded-lg border border-zinc-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
             />
-          </label>
+            {nameField.missing ? (
+              <p id={nameField.messageId}>{t("join.nameMissing")}</p>
+            ) : null}
+            <p role="status" className="sr-only">
+              {nameField.spoken ? t("join.nameMissing") : ""}
+            </p>
+          </div>
           <button
             type="submit"
-            disabled={name.trim() === ""}
-            className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {t("join.submit")}
           </button>
@@ -448,7 +471,10 @@ function Room({
   if (state.deleted) {
     return (
       <div className="flex min-h-dvh flex-col bg-zinc-50">
-        <main className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+        <main
+          id={MAIN_ID}
+          className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+        >
           <h1 className="text-2xl font-semibold text-zinc-900">
             {t("deleted.title")}
           </h1>
@@ -468,7 +494,10 @@ function Room({
   if (you === null || phasePlan === undefined) {
     return (
       <div className="flex min-h-dvh flex-col bg-zinc-50">
-        <main className="flex flex-1 items-center justify-center text-zinc-600">
+        <main
+          id={MAIN_ID}
+          className="flex flex-1 items-center justify-center text-zinc-600"
+        >
           {t("status.connecting")}
         </main>
         <LegalFooter openLegalLinksInNewTab />
@@ -634,7 +663,12 @@ function Room({
           </div>
         ) : null}
 
-        <main className="flex-1 px-6 py-6">
+        {/* Where "Zum Inhalt" lands: past the header and the phase strip, on
+            what the phase is about — the columns or the canvas with the rail
+            beside them, or the lobby, check-in, close and results that take
+            their place. The phase strip's controls (timer, votes left, ready)
+            sit right before it. */}
+        <main id={MAIN_ID} className="flex-1 px-6 py-6">
           {inLobby ? (
             <div className="mx-auto flex max-w-2xl flex-col gap-8">
               {/* Who's in and how to get others in comes first — for the
@@ -833,6 +867,7 @@ function LookupFailed({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       <main
+        id={MAIN_ID}
         data-testid="lookup-failed"
         className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
       >
@@ -857,7 +892,10 @@ function NotFound() {
   const { t } = useTranslation();
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
-      <main className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <main
+        id={MAIN_ID}
+        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+      >
         <h1 className="text-2xl font-semibold text-zinc-900">
           {t("notFound.title")}
         </h1>
