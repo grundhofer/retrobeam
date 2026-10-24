@@ -232,15 +232,22 @@ function KudoComposer({
         </select>
       </div>
 
-      <textarea
-        value={text}
-        data-testid="kudo-text"
-        onChange={(event) => setText(event.target.value)}
-        maxLength={300}
-        rows={2}
-        placeholder={t("kudos.placeholder")}
-        className="resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
-      />
+      {/* A kudo may go without a reason, so the label says "(optional)".
+          The type size sits on the label; the textarea inherits it. */}
+      <label className="flex flex-col gap-1 text-sm">
+        <span>
+          {t("kudos.reason")} <span>{t("form.optional")}</span>
+        </span>
+        <textarea
+          value={text}
+          data-testid="kudo-text"
+          onChange={(event) => setText(event.target.value)}
+          maxLength={300}
+          rows={2}
+          placeholder={t("kudos.placeholder")}
+          className="resize-none rounded-lg border border-zinc-200 px-3 py-2 placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
+        />
+      </label>
 
       {gifUrl !== null ? (
         <div className="relative w-fit">

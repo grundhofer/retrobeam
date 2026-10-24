@@ -57,7 +57,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
 
   // Blindness: Ben sees no counts from Anna — his own counts are all 0 and
   // no tallies/crowns exist anywhere.
-  await expect(ben.getByTestId("vote-meter")).toContainText("1/2");
+  await expect(ben.getByTestId("vote-meter")).toContainText("1 / 2");
   await expect(ben.getByTestId("crown")).toHaveCount(0);
   await expect(ben.getByTestId("tally")).toHaveCount(0);
   // The names go with them: last round's attribution must not sit on the cards
@@ -78,7 +78,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
     .filter({ hasText: "Slow deploys" })
     .getByTestId("vote-plus");
   await benDeploysPlus.click();
-  await expect(anna.getByTestId("vote-meter")).toContainText("2/2");
+  await expect(anna.getByTestId("vote-meter")).toContainText("2 / 2");
 
   // Voting is blind, and the bar says so BEFORE anyone spends a dot — that
   // disclosure is what makes naming the voters afterwards a consented setting
@@ -197,7 +197,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
     await expect(ben.getByTestId("results-export-pdf")).toBeVisible();
     // Two people finished it — however many opened it since.
     await expect(ben.getByTestId("results-recap")).toContainText(
-      /2 (people|Personen)/,
+      /2\u00a0(people|Personen)/,
     );
   }
   // The whole board is one click away, read-only.

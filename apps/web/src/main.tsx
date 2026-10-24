@@ -8,6 +8,7 @@ import "./index.css";
 import "./i18n.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { NoIndex } from "./components/NoIndex.js";
+import { SkipLink } from "./components/SkipLink.js";
 import { LEGAL_PATHS } from "./lib/legalPaths.js";
 import { AccessibilityPage } from "./pages/AccessibilityPage.js";
 import { BoardPage } from "./pages/BoardPage.js";
@@ -30,6 +31,10 @@ import { PrivacyPage } from "./pages/PrivacyPage.js";
 // The board route carries <NoIndex /> beside the page (a board URL is a
 // capability — see NoIndex.tsx), and "*" catches every other path, so a
 // mistyped link gets a not-found page rather than the error boundary.
+//
+// The skip link sits above the router rather than in a page: it has to be the
+// first tab stop of every screen, error pages and every board state included,
+// and each of them gives its <main> the id it jumps to (SkipLink.tsx).
 const router = createBrowserRouter([
   { path: "/", element: <LandingPage />, errorElement: <ErrorBoundary /> },
   { path: "/new", element: <HomePage />, errorElement: <ErrorBoundary /> },
@@ -78,6 +83,7 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
+    <SkipLink />
     <RouterProvider router={router} />
   </StrictMode>,
 );

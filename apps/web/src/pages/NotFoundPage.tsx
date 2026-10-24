@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { NoIndex } from "../components/NoIndex.js";
 import { SiteHeader } from "../components/SiteHeader.js";
+import { MAIN_ID } from "../components/SkipLink.js";
 
 // Every path the router does not know lands here instead of in the
 // ErrorBoundary, which used to print "[object Object]" for a mistyped link.
@@ -37,6 +38,7 @@ export function NotFoundPage() {
       <NoIndex />
       <SiteHeader />
       <main
+        id={MAIN_ID}
         data-testid="page-not-found"
         className="flex flex-1 flex-col items-center justify-center gap-4 px-6 pb-24 text-center"
       >

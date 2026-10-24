@@ -5,6 +5,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { SiteHeader } from "../components/SiteHeader.js";
+import { MAIN_ID } from "../components/SkipLink.js";
 import { INSTANCE_HOST } from "../content/operator.js";
 import type { LegalLanguage, LegalPaths } from "../lib/legalPaths.js";
 
@@ -98,7 +99,10 @@ function LegalLayout({
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       <SiteHeader languageTo={languageTo} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 sm:px-10">
+      <main
+        id={MAIN_ID}
+        className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 sm:px-10"
+      >
         <h1 className="text-3xl font-semibold tracking-tight break-words text-zinc-900 sm:text-4xl">
           {title}
         </h1>
