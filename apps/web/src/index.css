@@ -37,8 +37,10 @@
    the styling lives here once instead of on every element. Element styles
    only — no new colors, radii or type sizes beyond what the app already uses. */
 @layer components {
+  /* A long address or code name breaks rather than push the page sideways
+     at large text (WCAG 1.4.10); the tables scroll in their own box. */
   .legal-prose {
-    @apply text-[17px] leading-[1.65] text-zinc-700;
+    @apply text-[17px] leading-[1.65] break-words text-zinc-700;
   }
   .legal-prose h2 {
     @apply mt-12 mb-4 text-2xl font-semibold tracking-tight text-zinc-900;

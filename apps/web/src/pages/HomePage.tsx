@@ -213,7 +213,7 @@ export function HomePage() {
               <span className="text-sm font-medium text-zinc-700">
                 {t("home.layout")}
               </span>
-              <div className="flex gap-2" role="group">
+              <div className="flex flex-wrap gap-2" role="group">
                 {layoutModes.map((mode) => (
                   <button
                     key={mode}
