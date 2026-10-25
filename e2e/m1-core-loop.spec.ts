@@ -92,7 +92,7 @@ test("write → reveal core loop with two participants", async ({ browser }) => 
   await expect(ben.getByText("Ben's point")).toBeVisible();
 
   // Timer: admin starts 5 minutes, both see the countdown; Ben has no controls.
-  await anna.getByRole("button", { name: "5m", exact: true }).click();
+  await anna.getByRole("button", { name: /^5\s(min|Min\.)$/ }).click();
   await expect(anna.getByTestId("timer-display")).toContainText(
     /0?4:5\d|05:00/,
   );

@@ -226,7 +226,7 @@ test("editing a card can add a GIF it was written without", async () => {
   await screen.getByTestId("note-edit-gif").click();
   await screen.getByTestId("gif-search").fill("ship it");
   await screen.getByTestId("gif-result").click();
-  await screen.getByRole("button", { name: /^(save|speichern)$/i }).click();
+  await screen.getByRole("button", { name: /^(save|sichern)$/i }).click();
 
   expect(sent).toEqual([
     expect.objectContaining({
@@ -252,7 +252,7 @@ test("editing a card can drop its GIF, and never adds one to an emptied text", a
     .element(screen.getByTestId("note-edit-gif"))
     .not.toBeInTheDocument();
   await screen.getByRole("textbox").fill("Deploys are slow");
-  await screen.getByRole("button", { name: /^(save|speichern)$/i }).click();
+  await screen.getByRole("button", { name: /^(save|sichern)$/i }).click();
 
   expect(sent).toEqual([
     expect.objectContaining({ type: "note.update", gifUrl: null }),
@@ -265,7 +265,7 @@ test("a text-only edit leaves the stored GIF alone", async () => {
 
   await screen.getByRole("button", { name: /edit note|bearbeiten/i }).click();
   await screen.getByRole("textbox").fill("Deploys are painfully slow");
-  await screen.getByRole("button", { name: /^(save|speichern)$/i }).click();
+  await screen.getByRole("button", { name: /^(save|sichern)$/i }).click();
 
   expect(sent).toHaveLength(1);
   // Omitted, not re-sent: a board whose GIFs were switched off since would
