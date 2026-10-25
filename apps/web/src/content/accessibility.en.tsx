@@ -132,22 +132,6 @@ export function AccessibilityEn() {
       <h2>Requirements and checks</h2>
 
       <p>
-        The target is level AA of the Web Content Accessibility Guidelines
-        (WCAG) 2.2. The European standard EN&nbsp;301&nbsp;549 refers to WCAG
-        2.1 level AA in version V3.2.1. Version V4.1.1 refers to WCAG 2.2 level
-        AA; it is published, but not yet cited in the Official Journal of the
-        EU.
-      </p>
-
-      <p>
-        RetroBeam does not reach this target at present. At least one known
-        limitation misses it: controls on the canvas that are smaller than
-        24&nbsp;pixels at the fitted zoom. Whether the other limitations below
-        miss it has not been checked by hand, and much has not been checked at
-        all.
-      </p>
-
-      <p>
         Each check below has one of four states: passed, open, skipped (with a
         reason) or failed. The results come from the runs on{" "}
         <PlaceholderField value={ACCESSIBILITY_DATE} />. The automated checks
