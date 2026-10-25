@@ -14,13 +14,6 @@ export type Waiver = {
 
 export const waivers: Waiver[] = [
   {
-    page: "landing",
-    rule: "color-contrast",
-    target: "Why RetroBeam",
-    reason:
-      "zinc-500 small caps on the tinted band fall short of 4.5:1. The landing is rebuilt in stage 4, without eyebrows and uppercase (spec/07 §3 rule 7).",
-  },
-  {
     page: "board-canvas-arrange",
     rule: "target-size",
     target: 'aria-label="Move or stack"',

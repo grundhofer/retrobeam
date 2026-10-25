@@ -18,7 +18,7 @@ export function SiteHeader({ languageTo }: { languageTo?: string }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   return (
-    <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 sm:px-10">
+    <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4 sm:px-10">
       <Link
         to="/"
         aria-current={pathname === "/" ? "page" : undefined}

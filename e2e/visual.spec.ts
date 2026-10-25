@@ -148,7 +148,7 @@ test("board through every phase", async ({ browser }) => {
     }
     await expect(target.getByTestId("vote-count")).toHaveText(String(dots));
   }
-  await expect(anna.getByTestId("vote-meter")).toContainText("2/2");
+  await expect(anna.getByTestId("vote-meter")).toContainText("2 / 2");
   await shoot(anna, "board-vote");
 
   await step(anna, ben, /discuss|diskutieren/i);
