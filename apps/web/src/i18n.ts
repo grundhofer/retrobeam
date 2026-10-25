@@ -267,6 +267,14 @@ const resources = {
         zoomOut: "Zoom out",
         fit: "Fit to screen",
         resize: "Resize zone",
+        zones: "Zones",
+        zone: "Zone",
+        zonePosition: "Position",
+        zoneSize: "Size",
+        narrower: "Narrower",
+        shorter: "Shorter",
+        taller: "Taller",
+        wider: "Wider",
       },
       present: {
         focus: {
@@ -988,6 +996,14 @@ const resources = {
         zoomOut: "Verkleinern",
         fit: "An Fenster anpassen",
         resize: "Zone skalieren",
+        zones: "Zonen",
+        zone: "Zone",
+        zonePosition: "Position",
+        zoneSize: "Größe",
+        narrower: "Schmaler",
+        shorter: "Niedriger",
+        taller: "Höher",
+        wider: "Breiter",
       },
       present: {
         focus: {

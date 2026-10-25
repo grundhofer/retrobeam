@@ -153,11 +153,12 @@ test("axe: board", async ({ browser }) => {
   await context.close();
 });
 
-// The canvas, with a card's ⋯ open on its move and step options: the drag's
-// keyboard twin has to pass the same audit as the rest of the write phase, at
-// the zoom a visitor gets — the fitted one, refitted at each width. The first
-// audit of the canvas at all, hence its waivers: the controls drawn in the
-// zoomed world, which shrink below 24px with it.
+// The canvas, with a card's ⋯ open on its move and step options, then the
+// facilitator's zone panel: the drags' keyboard twins have to pass the same
+// audit as the rest of the write phase, at the zoom a visitor gets — the
+// fitted one, refitted at each width. The first audit of the canvas at all,
+// hence its waivers: the controls drawn in the zoomed world, which shrink
+// below 24px with it.
 test("axe: canvas arrange panel", async ({ browser }) => {
   const context = await newContext(browser);
   const page = await context.newPage();
@@ -195,6 +196,21 @@ test("axe: canvas arrange panel", async ({ browser }) => {
       await page.keyboard.press("Enter");
       // axe skips what is off screen; the panel has to be there to count.
       await expect(panel).toBeInViewport({ ratio: 1 });
+    }),
+  ).toEqual([]);
+
+  // The facilitator's zone panel, the zone drag's twin: the same canvas, the
+  // card's panel closed.
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(panel).toHaveCount(0);
+  const zones = page.getByTestId("zones-toggle");
+  const zonePanel = page.getByTestId("zones-panel");
+  expect(
+    await audit(page, "board-canvas-arrange", async () => {
+      if (!(await zonePanel.isVisible())) await zones.click();
+      await fit.click();
+      await expect(zonePanel).toBeInViewport({ ratio: 1 });
     }),
   ).toEqual([]);
   await context.close();

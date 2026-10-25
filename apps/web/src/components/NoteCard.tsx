@@ -20,8 +20,9 @@ const NOTE_DRAG_MIME = "application/x-retrobeam-note";
 export type NudgeDirection = "left" | "up" | "down" | "right";
 
 // The step buttons in keyboard order, each with the arrow key that does the
-// same while focus is in their group.
-const NUDGES = [
+// same while focus is in their group. The canvas's zone panel steps the same
+// way.
+export const NUDGES = [
   { direction: "left", key: "ArrowLeft", glyph: "←", label: "note.nudgeLeft" },
   { direction: "up", key: "ArrowUp", glyph: "↑", label: "note.nudgeUp" },
   { direction: "down", key: "ArrowDown", glyph: "↓", label: "note.nudgeDown" },
@@ -34,14 +35,18 @@ const NUDGES = [
 ] as const;
 
 // The card's own surface and edge, shared with the canvas's ⋯ panel, which
-// hangs outside the card and has to read as part of it.
-const CARD_SURFACE = "rounded-xl bg-white p-3 shadow-sm";
-const CARD_EDGE = "border border-zinc-200";
+// hangs outside the card and has to read as part of it, and with the zone
+// panel, which reads as one of these.
+export const CARD_SURFACE = "rounded-xl bg-white p-3 shadow-sm";
+export const CARD_EDGE = "border border-zinc-200";
 // One look for every single-press option in the ⋯ panel: the column chips
-// and the canvas's step buttons. A step that cannot go is muted, not faded
-// (sebaro STA-03).
-const ARRANGE_OPTION = `rounded-full ${CARD_EDGE} px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent`;
-const ARRANGE_LABEL = "mb-1 text-zinc-500";
+// and the canvas's step buttons, the zone panel's too. A step that cannot go
+// is muted, not faded (sebaro STA-03).
+export const ARRANGE_OPTION = `rounded-full ${CARD_EDGE} px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent`;
+export const ARRANGE_LABEL = "mb-1 text-zinc-500";
+// A step button, which stays pressable where it cannot go.
+export const ARRANGE_STEP = `${ARRANGE_OPTION} aria-disabled:cursor-not-allowed aria-disabled:text-zinc-500 aria-disabled:hover:bg-transparent`;
+export const ARRANGE_PANEL = "flex flex-col gap-2 text-xs";
 
 export interface NoteCardProps {
   note: Note;
@@ -474,7 +479,7 @@ export function NoteCard({
                 setArranging(false);
                 arrangeTrigger.current?.focus();
               }}
-              className={`flex flex-col gap-2 text-xs ${
+              className={`${ARRANGE_PANEL} ${
                 arrangeScale === null
                   ? "mt-2 border-t border-zinc-100 pt-2"
                   : `mt-1 ${CARD_SURFACE} ${CARD_EDGE}`
@@ -547,7 +552,7 @@ export function NoteCard({
                         // to <body>.
                         aria-disabled={!canNudge(note.id, nudge.direction)}
                         onClick={() => step(nudge.direction)}
-                        className={`${ARRANGE_OPTION} aria-disabled:cursor-not-allowed aria-disabled:text-zinc-500 aria-disabled:hover:bg-transparent`}
+                        className={ARRANGE_STEP}
                       >
                         {/* A stand-in for the arrow-left/-up/-down/-right
                             icons (docs/sebaro-umbau.md §6.4), which the
