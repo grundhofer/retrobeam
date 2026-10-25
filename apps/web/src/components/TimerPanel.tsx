@@ -68,7 +68,7 @@ export function TimerPanel({
                   }
                   className="rounded-lg border border-zinc-200 px-2 py-0.5 text-sm text-zinc-600 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
                 >
-                  {minutes}m
+                  {t("timer.minutes", { count: minutes })}
                 </button>
               ))}
             </>
