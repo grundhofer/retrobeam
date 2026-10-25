@@ -176,6 +176,64 @@ test("canvas layout: a card moves by keyboard alone", async ({ browser }) => {
   await context.close();
 });
 
+test("canvas layout: the facilitator moves and sizes a zone by keyboard alone", async ({
+  browser,
+}) => {
+  const context = await newContext(browser, { reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.goto("/new");
+  await page.getByRole("textbox").fill("Canvas zone retro");
+  await page.getByTestId("home-layout-canvas").click();
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(page, "Anna");
+  await page.getByTestId("phase-next").click();
+
+  // The second zone's box, in world pixels, from its own style.
+  const zone = page.locator("section").filter({
+    has: page.getByTestId(/^zone-/),
+  });
+  const second = zone.nth(1);
+  const box = () =>
+    second.evaluate((el) =>
+      ["left", "top", "width", "height"].map((side) =>
+        parseFloat((el as HTMLElement).style.getPropertyValue(side)),
+      ),
+    );
+  const [left0, top0, width0, height0] = await box();
+
+  await page.getByTestId("zones-toggle").focus();
+  await page.keyboard.press("Enter");
+  const option = page.getByTestId("zones-option").nth(1);
+  await option.focus();
+  await page.keyboard.press("Enter");
+  await expect(option).toHaveAttribute("aria-pressed", "true");
+
+  // One step right, then one taller, with the arrow keys.
+  await page.getByTestId("zones-move-left").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(async () => (await box())[0]).toBeGreaterThan(left0!);
+  await page.getByTestId("zones-size-left").focus();
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(async () => (await box())[3]).toBeGreaterThan(height0!);
+  const arranged = await box();
+  expect(arranged[1]).toBe(top0);
+  expect(arranged[2]).toBe(width0);
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("zones-panel")).toHaveCount(0);
+  await expect(page.getByTestId("zones-toggle")).toBeFocused();
+
+  // Kept by the server.
+  await page.reload();
+  await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
+  await expect.poll(box).toEqual(arranged);
+
+  await context.close();
+});
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();

@@ -79,6 +79,14 @@ export function AccessibilityDe() {
           „Vergrößern“ sind Schaltflächen.
         </li>
         <li>
+          Die Moderation verschiebt Zonen auf dem Canvas und ändert ihre Größe
+          über die Schaltfläche „Zonen“ neben dem Zoom: Dort wählt sie eine Zone
+          und hat Schritte für Position und Größe, als Schaltflächen oder mit
+          den Pfeiltasten. Das ersetzt das Ziehen an der Zone und an ihrem
+          Griff. Escape schließt die Auswahl und setzt den Fokus zurück auf die
+          Schaltfläche.
+        </li>
+        <li>
           Das Board-Menü (⋯) und „Einladen“ schließen mit Escape, auf schmalen
           Bildschirmen auch mit ×; der Fokus kehrt dann zur Schaltfläche zurück,
           die sie geöffnet hat. Escape schließt auch die vergrößerte Ansicht des
@@ -145,12 +153,11 @@ export function AccessibilityDe() {
       </p>
 
       <p>
-        RetroBeam erreicht dieses Ziel derzeit nicht. Mindestens zwei bekannte
-        Einschränkungen verfehlen es: der zu schwache Kontrast auf der
-        Startseite und auf dem Canvas Bedienelemente, die beim angepassten Zoom
-        kleiner als 24&nbsp;Pixel sind. Ob die übrigen Einschränkungen unten es
-        verfehlen, ist nicht von Hand geprüft, und vieles ist noch gar nicht
-        geprüft.
+        RetroBeam erreicht dieses Ziel derzeit nicht. Mindestens eine bekannte
+        Einschränkung verfehlt es: Bedienelemente auf dem Canvas, die beim
+        angepassten Zoom kleiner als 24&nbsp;Pixel sind. Ob die übrigen
+        Einschränkungen unten es verfehlen, ist nicht von Hand geprüft, und
+        vieles ist noch gar nicht geprüft.
       </p>
 
       <p>
@@ -171,15 +178,14 @@ export function AccessibilityDe() {
           Englisch prüft es die Seite zum Anlegen eines Boards, die Seite für
           unbekannte Adressen, Impressum, Datenschutzerklärung und diese Seite,
           nur auf Englisch die Startseite, ein Board in der Lobby und beim
-          Schreiben und den Canvas mit geöffneter Auswahl zum Verschieben.
-          Ergebnis: bestanden auf allen diesen Seiten außer der Startseite und
-          dem Canvas. Auf der Startseite nicht bestanden in einem Punkt, dem
-          Kontrast der Überschrift „Warum RetroBeam“. Auf dem Canvas nicht
-          bestanden in vier Punkten: „⋯“, „✎“, „🗑“ und „+ Notiz“ sind beim
-          angepassten Zoom kleiner als 24&nbsp;Pixel. Beides ist als bekannte
-          Einschränkung eingetragen. Jeder andere Verstoß lässt die Prüfung
-          scheitern. Ein solches Werkzeug findet nur einen Teil möglicher
-          Barrieren.
+          Schreiben und den Canvas, einmal mit geöffneter Auswahl zum
+          Verschieben einer Karte und einmal mit geöffneter Auswahl der Zonen.
+          Ergebnis: bestanden auf allen diesen Seiten außer dem Canvas. Auf dem
+          Canvas nicht bestanden in vier Punkten: „⋯“, „✎“, „🗑“ und „+ Notiz“
+          sind beim angepassten Zoom kleiner als 24&nbsp;Pixel. Das ist als
+          bekannte Einschränkung eingetragen. Jeder andere Verstoß lässt die
+          Prüfung scheitern. Ein solches Werkzeug findet nur einen Teil
+          möglicher Barrieren.
         </li>
         <li>
           Seitliches Scrollen bei 390&nbsp;Pixel und 1440&nbsp;Pixel Breite, auf
@@ -188,11 +194,7 @@ export function AccessibilityDe() {
         </li>
         <li>
           Seitliches Scrollen bei 360&nbsp;Pixel Breite mit doppelter
-          Schriftgröße (200&nbsp;%): bestanden für das Board in der Lobby und
-          beim Schreiben. Nicht bestanden für alle anderen Seiten, weil die
-          Kopfzeile über den Rand ragt, siehe unten. Bis die Kopfzeile neu
-          gebaut ist, sind diese Läufe als bekannter Fehler eingetragen und
-          werden übersprungen.
+          Schriftgröße (200&nbsp;%), auf denselben Seiten wie oben: bestanden.
         </li>
         <li>
           Eine Prüfung im Quelltext auf zwei zu helle Grautöne für Text, neben
@@ -208,10 +210,11 @@ export function AccessibilityDe() {
         <li>
           Tests in Chromium, Firefox und WebKit, dass „Zum Inhalt“ der erste
           Tabstopp ist und den Fokus in den Inhalt setzt, dass Karten auf dem
-          Canvas ohne Ziehen in eine andere Zone und schrittweise wandern und
-          dass die Formulare zum Anlegen eines Boards und zum Beitreten am Feld
-          sagen, was fehlt: bestanden. Für das Formular für Action Items läuft
-          dieselbe Prüfung als Komponententest in Chromium und WebKit:
+          Canvas ohne Ziehen in eine andere Zone und schrittweise wandern, dass
+          die Moderation Zonen ohne Ziehen verschiebt und in der Größe ändert
+          und dass die Formulare zum Anlegen eines Boards und zum Beitreten am
+          Feld sagen, was fehlt: bestanden. Für das Formular für Action Items
+          läuft dieselbe Prüfung als Komponententest in Chromium und WebKit:
           bestanden.
         </li>
         <li>
@@ -275,30 +278,10 @@ export function AccessibilityDe() {
 
       <ul>
         <li>
-          Auf der Startseite ist die kleine Überschrift „Warum RetroBeam“ zu
-          schwach gegen den getönten Hintergrund; der Kontrast liegt unter
-          4,5:1. Die Startseite soll bei der Umstellung neu gebaut werden.
-        </li>
-        <li>
-          Bei 360&nbsp;Pixel Breite und doppelter Schriftgröße passt die
-          Kopfzeile der Website nicht auf den Bildschirm. Der Link „GitHub“ und
-          die Umschaltung der Sprache ragen über den Rand, und die Seite scrollt
-          seitlich. Das betrifft die Startseite, die Seite zum Anlegen eines
-          Boards, Impressum, Datenschutzerklärung, diese Seite und die Seite für
-          unbekannte Adressen. Die Kopfzeile soll bei der Umstellung neu gebaut
-          werden.
-        </li>
-        <li>
           Auf dem Canvas sind die Schaltflächen „⋯“, „✎“, „🗑“ und „+ Notiz“ beim
           angepassten Zoom kleiner als 24&nbsp;Pixel, weil sie mit der Fläche
           verkleinert werden. Die Auswahl zum Verschieben hat volle Größe. Der
           Canvas soll bei der Umstellung neu gebaut werden.
-        </li>
-        <li>
-          Auf dem Canvas lassen sich Zonen nur durch Ziehen verschieben und in
-          der Größe ändern; einen Weg mit der Tastatur gibt es nicht. Das
-          betrifft nur die Moderation. Der Canvas soll bei der Umstellung neu
-          gebaut werden.
         </li>
         <li>
           Eine Wahl zwischen Hell und Dunkel fehlt. Sie ist für die Umstellung

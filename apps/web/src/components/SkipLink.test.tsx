@@ -14,8 +14,10 @@ const page = () => (
     <header>
       <button type="button">Menu</button>
     </header>
+    {/* A field, not a button: WebKit on macOS tabs past buttons unless
+        the system setting says otherwise. */}
     <main id={MAIN_ID}>
-      <button type="button">Inside</button>
+      <input aria-label="Inside" />
     </main>
   </>
 );
@@ -37,7 +39,7 @@ test("Enter moves the focus to main and leaves the URL alone", async () => {
   expect(location.href).toBe(url);
   await userEvent.tab();
   await expect
-    .element(screen.getByRole("button", { name: "Inside" }))
+    .element(screen.getByRole("textbox", { name: "Inside" }))
     .toHaveFocus();
   expect(screen.getByRole("main").element().hasAttribute("tabindex")).toBe(
     false,

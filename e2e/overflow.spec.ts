@@ -16,22 +16,7 @@ const SIZES = [
   { name: "360@200%", width: 360, height: 800, fontSize: "200%" },
 ] as const;
 
-// The website header keeps its links on one row: at 200 % text the "GitHub"
-// link and the language toggle push it 88 px past a 360 px screen. The
-// header is rebuilt in stage 3a.
-const WEBSITE_HEADER =
-  "stage 3a: the website header does not wrap at 200 % text";
-const KNOWN: Record<string, string> = {
-  "landing 360@200%": WEBSITE_HEADER,
-  "new-board 360@200%": WEBSITE_HEADER,
-  "impressum 360@200%": WEBSITE_HEADER,
-  "datenschutz 360@200%": WEBSITE_HEADER,
-  "imprint 360@200%": WEBSITE_HEADER,
-  "privacy 360@200%": WEBSITE_HEADER,
-  "barrierefreiheit 360@200%": WEBSITE_HEADER,
-  "accessibility 360@200%": WEBSITE_HEADER,
-  "not-found 360@200%": WEBSITE_HEADER,
-};
+const KNOWN: Record<string, string> = {};
 
 async function sideways(page: Page, fontSize: string): Promise<number> {
   await page.evaluate((size) => {

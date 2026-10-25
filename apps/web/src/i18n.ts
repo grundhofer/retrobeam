@@ -200,6 +200,7 @@ const resources = {
         stop: "Stop",
         paused: "paused",
         sound: "Timer sound",
+        minutes: "{{count}}\u00a0min",
       },
       note: {
         placeholder: "Write a note … (Enter to add)",
@@ -267,6 +268,14 @@ const resources = {
         zoomOut: "Zoom out",
         fit: "Fit to screen",
         resize: "Resize zone",
+        zones: "Zones",
+        zone: "Zone",
+        zonePosition: "Position",
+        zoneSize: "Size",
+        narrower: "Narrower",
+        shorter: "Shorter",
+        taller: "Taller",
+        wider: "Wider",
       },
       present: {
         focus: {
@@ -576,7 +585,7 @@ const resources = {
         reload: "Reload",
       },
       error: {
-        title: "Something went wrong",
+        title: "The page could not be shown",
         body: "The board itself is safe – it lives on the server. Reloading rejoins it.",
         reload: "Reload the board",
       },
@@ -757,9 +766,9 @@ const resources = {
         adminLinkHint:
           "Du bekommst außerdem einen privaten Moderationslink – damit moderierst du auch von einem anderen Gerät aus, etwa vom Rechner im Meetingraum.",
         create: "Board erstellen",
-        creating: "Wird erstellt …",
+        creating: "Wird angelegt …",
         createFailed:
-          "Das Board konnte nicht erstellt werden. Bitte versuch es erneut.",
+          "Board anlegen hat nicht geklappt. Versuch es noch einmal.",
         linkColumns: "Eigene Spalten aus dem Link: {{columns}}",
         linkColumnsDrop: "Stattdessen eine Vorlage nehmen",
         linkColumnsInvalid:
@@ -923,13 +932,14 @@ const resources = {
         stop: "Stopp",
         paused: "pausiert",
         sound: "Timer-Ton",
+        minutes: "{{count}}\u00a0Min.",
       },
       note: {
         placeholder: "Notiz schreiben … (Enter zum Hinzufügen)",
         add: "Hinzufügen",
         edit: "Notiz bearbeiten",
         delete: "Notiz löschen",
-        save: "Speichern",
+        save: "Sichern",
         cancel: "Abbrechen",
         ghostWriting: "{{name}} schreibt …",
         notPresented: "Noch nicht vorgestellt",
@@ -990,6 +1000,14 @@ const resources = {
         zoomOut: "Verkleinern",
         fit: "An Fenster anpassen",
         resize: "Zone skalieren",
+        zones: "Zonen",
+        zone: "Zone",
+        zonePosition: "Position",
+        zoneSize: "Größe",
+        narrower: "Schmaler",
+        shorter: "Niedriger",
+        taller: "Höher",
+        wider: "Breiter",
       },
       present: {
         focus: {
@@ -1028,7 +1046,7 @@ const resources = {
         votesPerPerson: "Stimmen pro Person",
         maxPerTarget: "Höchstens pro Karte",
         topN: "Top-Karten",
-        apply: "Übernehmen",
+        apply: "Sichern",
         plus: "Stimme hinzufügen",
         minus: "Stimme entfernen",
         yours_one: "Deine Stimme: {{count}}",
@@ -1070,7 +1088,7 @@ const resources = {
         anonymousSend: "Anonym senden",
         someone: "jemanden",
         everyone: "Alle",
-        remove: "Kudo entfernen",
+        remove: "Kudo löschen",
         card: {
           "thank-you": "Danke",
           "great-job": "Super gemacht",
@@ -1316,7 +1334,7 @@ const resources = {
         reload: "Neu laden",
       },
       error: {
-        title: "Da ist etwas schiefgelaufen",
+        title: "Die Seite ließ sich nicht anzeigen",
         body: "Das Board selbst ist sicher – es liegt auf dem Server. Neu laden verbindet dich wieder.",
         reload: "Board neu laden",
       },

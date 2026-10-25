@@ -71,6 +71,13 @@ export function AccessibilityEn() {
           double-click. “Zoom out”, “Fit to screen” and “Zoom in” are buttons.
         </li>
         <li>
+          The facilitator moves and resizes zones on the canvas with the “Zones”
+          button next to the zoom: there they pick a zone and have steps for
+          position and size, as buttons or with the arrow keys. This replaces
+          dragging the zone and its handle. Escape closes the choice and puts
+          focus back on the button.
+        </li>
+        <li>
           The board menu (⋯) and “Invite” close with Escape, and on narrow
           screens also with ×; focus then returns to the button that opened
           them. Escape also closes the enlarged QR code, a second Escape the
@@ -133,11 +140,11 @@ export function AccessibilityEn() {
       </p>
 
       <p>
-        RetroBeam does not reach this target at present. At least two known
-        limitations miss it: the weak contrast on the start page, and controls
-        on the canvas that are smaller than 24&nbsp;pixels at the fitted zoom.
-        Whether the other limitations below miss it has not been checked by
-        hand, and much has not been checked at all.
+        RetroBeam does not reach this target at present. At least one known
+        limitation misses it: controls on the canvas that are smaller than
+        24&nbsp;pixels at the fitted zoom. Whether the other limitations below
+        miss it has not been checked by hand, and much has not been checked at
+        all.
       </p>
 
       <p>
@@ -158,13 +165,12 @@ export function AccessibilityEn() {
           English it checks the page for creating a board, the page for unknown
           addresses, the imprint, the privacy notice and this page; in English
           only, the start page, a board in the lobby and while writing, and the
-          canvas with the move choice open. Result: passed on all of these pages
-          except the start page and the canvas. On the start page, failed on one
-          point, the contrast of the heading “Why RetroBeam”. On the canvas,
-          failed on four points: “⋯”, “✎”, “🗑” and “+ Note” are smaller than
-          24&nbsp;pixels at the fitted zoom. Both are listed as known
-          limitations. Any other violation fails the check. A tool like this
-          finds only part of the possible barriers.
+          canvas, once with a card's move choice open and once with the zone
+          choice open. Result: passed on all of these pages except the canvas.
+          On the canvas, failed on four points: “⋯”, “✎”, “🗑” and “+ Note” are
+          smaller than 24&nbsp;pixels at the fitted zoom. This is listed as a
+          known limitation. Any other violation fails the check. A tool like
+          this finds only part of the possible barriers.
         </li>
         <li>
           Sideways scrolling at 390&nbsp;pixels and 1440&nbsp;pixels wide, on
@@ -173,10 +179,7 @@ export function AccessibilityEn() {
         </li>
         <li>
           Sideways scrolling at 360&nbsp;pixels wide with the text at double
-          size (200&nbsp;%): passed for the board in the lobby and while
-          writing. Failed for all other pages, because the header sticks out
-          past the edge, see below. Until the header is rebuilt, these runs are
-          listed as a known failure and skipped.
+          size (200&nbsp;%), on the same pages as above: passed.
         </li>
         <li>
           A check of the source code for two too-light grays for text with no
@@ -192,7 +195,8 @@ export function AccessibilityEn() {
         <li>
           Tests in Chromium, Firefox and WebKit that “Skip to content” is the
           first tab stop and puts focus in the content, that cards on the canvas
-          move to another zone and step by step without dragging, and that the
+          move to another zone and step by step without dragging, that the
+          facilitator moves and resizes zones without dragging, and that the
           forms for creating a board and for joining say at the field what is
           missing: passed. For the action item form the same check runs as a
           component test in Chromium and WebKit: passed.
@@ -251,28 +255,10 @@ export function AccessibilityEn() {
 
       <ul>
         <li>
-          On the start page, the small heading “Why RetroBeam” is too weak
-          against the tinted background; the contrast is below 4.5:1. The start
-          page is to be rebuilt during the move.
-        </li>
-        <li>
-          At 360&nbsp;pixels wide with the text at double size, the website
-          header does not fit the screen. The “GitHub” link and the language
-          switch stick out past the edge, and the page scrolls sideways. This
-          affects the start page, the page for creating a board, the imprint,
-          the privacy notice, this page and the page for unknown addresses. The
-          header is to be rebuilt during the move.
-        </li>
-        <li>
           On the canvas, the “⋯”, “✎”, “🗑” and “+ Note” buttons are smaller than
           24&nbsp;pixels at the fitted zoom, because they shrink with the
           canvas. The move choice is full size. The canvas is to be rebuilt
           during the move.
-        </li>
-        <li>
-          On the canvas, zones can only be moved and resized by dragging; there
-          is no way with the keyboard. This affects only the facilitator. The
-          canvas is to be rebuilt during the move.
         </li>
         <li>
           A choice between light and dark is missing. It is planned for the

@@ -95,7 +95,7 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   await anna.getByTestId("checkin-question-select").selectOption("weather");
   await anna.getByTestId("agreements-edit").click();
   await anna.getByTestId("agreements-input").fill("Cameras on, phones away.");
-  await anna.getByRole("button", { name: /^(save|speichern)$/i }).click();
+  await anna.getByRole("button", { name: /^(save|sichern)$/i }).click();
   await expect(ben.getByTestId("checkin-setup")).toHaveCount(0);
   await expect(ben.getByText("Cameras on, phones away.")).toHaveCount(0);
 

@@ -780,12 +780,12 @@ Quelle: `W/i18n.ts`, DE `:714-1466`, EN `:10-712` [D]. Jede Änderung gilt für 
   - „Name des Boards fehlt.“, „Dein Name fehlt.“, „Action Item fehlt.“ (erledigt 2026-10-25, §2.4)
   - „Begründung (optional)“, „Verantwortlich (optional)“ mit „Keine“, „Höchstens pro Karte (optional)“ (erledigt 2026-10-25, §2.4)
   - „Pflichtphase“ streichen (erledigt 2026-10-25, §2.4)
-  - „{{count}} Min.“
-  - „Speichern“/„Übernehmen“ → „Sichern“ (bricht e2e `/^(save|speichern)$/`, mitziehen)
-  - „Kudo entfernen“ → „Kudo löschen“
-  - „Wird erstellt…“ → „Wird angelegt …“
-  - „Board anlegen hat nicht geklappt. Versuch es noch einmal.“
-  - `:1288` konkret fassen
+  - „{{count}} Min.“ (erledigt 2026-10-25)
+  - „Speichern“/„Übernehmen“ → „Sichern“ (bricht e2e `/^(save|speichern)$/`, mitziehen) (erledigt 2026-10-25)
+  - „Kudo entfernen“ → „Kudo löschen“ (erledigt 2026-10-25)
+  - „Wird erstellt…“ → „Wird angelegt …“ (erledigt 2026-10-25)
+  - „Board anlegen hat nicht geklappt. Versuch es noch einmal.“ (erledigt 2026-10-25)
+  - `:1288` konkret fassen: „Die Seite ließ sich nicht anzeigen“ (erledigt 2026-10-25)
   - Großbuchstaben und Eyebrows weg
 - **C, mit Wortlaut von Owner oder Rechtsprüfung:**
   - Datenschutzwörter auf der Landing (F21)
