@@ -273,6 +273,27 @@ export function BoardCanvas({
   const ordered = [...columns].sort((a, b) => a.order - b.order);
   const arrangedZone =
     ordered.find((c) => c.id === zoneTarget) ?? ordered[0] ?? null;
+  // Shut, not just hidden, once there is nothing to arrange or nobody to
+  // arrange it: a facilitator made a member would keep the zone's ring, and
+  // the panel would reopen unasked if they were made facilitator again.
+  if (zonePanel && (!isAdmin || arrangedZone === null)) setZonePanel(false);
+  const zonesOpen = zonePanel && isAdmin && arrangedZone !== null;
+
+  // Escape closes it from anywhere outside the canvas, on the window as in
+  // HeaderPopover: WebKit does not focus a clicked button, so after a click
+  // on the toggle focus is not inside the panel. Inside the canvas Escape is
+  // a card panel's or the composer's.
+  useEffect(() => {
+    if (!zonesOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (viewportRef.current?.contains(event.target as Node)) return;
+      setZonePanel(false);
+      zoneToggle.current?.focus();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [zonesOpen]);
   function rectOf(column: Column): ZoneRect {
     if (zoneDrag?.columnId === column.id) return zoneDrag.rect;
     if (column.rect) return column.rect;
@@ -852,51 +873,20 @@ export function BoardCanvas({
             ref={zoneToggle}
             type="button"
             data-testid="zones-toggle"
-            aria-expanded={zonePanel}
-            aria-controls={zonePanel ? zonePanelId : undefined}
+            aria-expanded={zonesOpen}
+            aria-controls={zonesOpen ? zonePanelId : undefined}
             onClick={() => setZonePanel(!zonePanel)}
             className={`${CONTROL_SURFACE} ${CONTROL_BUTTON} px-2 py-1 text-xs`}
           >
             {t("canvas.zones")}
           </button>
         ) : null}
-        <div className={`flex items-center ${CONTROL_SURFACE}`}>
-          <button
-            type="button"
-            aria-label={t("canvas.zoomOut")}
-            onClick={() => zoomBy(0.8)}
-            className={`px-2 py-1 ${CONTROL_BUTTON}`}
-          >
-            −
-          </button>
-          {/* Named after what it shows first (WCAG 2.5.3): a speech user says
-              the "49%" they see, then the name tells what it does. */}
-          <button
-            type="button"
-            onClick={fitView}
-            className={`min-w-11 border-x border-zinc-200 px-1 py-1 text-center text-xs tabular-nums ${CONTROL_BUTTON}`}
-          >
-            {Math.round(view.zoom * 100)}%
-            <span className="sr-only"> – {t("canvas.fit")}</span>
-          </button>
-          <button
-            type="button"
-            aria-label={t("canvas.zoomIn")}
-            onClick={() => zoomBy(1.25)}
-            className={`px-2 py-1 ${CONTROL_BUTTON}`}
-          >
-            +
-          </button>
-        </div>
-        {zonePanel && isAdmin && arrangedZone !== null ? (
+        {/* Right after its toggle, so Tab goes from one straight into the
+            other; placed by position, not by order. */}
+        {zonesOpen ? (
           <div
             id={zonePanelId}
             data-testid="zones-panel"
-            onKeyDown={(event) => {
-              if (event.key !== "Escape") return;
-              setZonePanel(false);
-              zoneToggle.current?.focus();
-            }}
             className={`absolute top-full right-0 mt-1 w-56 max-w-[calc(100vw-2rem)] ${ARRANGE_PANEL} ${CARD_SURFACE} ${CARD_EDGE}`}
           >
             <div role="group" aria-label={t("canvas.zone")}>
@@ -966,11 +956,43 @@ export function BoardCanvas({
             })}
           </div>
         ) : null}
+        <div className={`flex items-center ${CONTROL_SURFACE}`}>
+          <button
+            type="button"
+            aria-label={t("canvas.zoomOut")}
+            onClick={() => zoomBy(0.8)}
+            className={`px-2 py-1 ${CONTROL_BUTTON}`}
+          >
+            −
+          </button>
+          {/* Named after what it shows first (WCAG 2.5.3): a speech user says
+              the "49%" they see, then the name tells what it does. */}
+          <button
+            type="button"
+            onClick={fitView}
+            className={`min-w-11 border-x border-zinc-200 px-1 py-1 text-center text-xs tabular-nums ${CONTROL_BUTTON}`}
+          >
+            {Math.round(view.zoom * 100)}%
+            <span className="sr-only"> – {t("canvas.fit")}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={t("canvas.zoomIn")}
+            onClick={() => zoomBy(1.25)}
+            className={`px-2 py-1 ${CONTROL_BUTTON}`}
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <div
         ref={viewportRef}
         data-testid="canvas-viewport"
+        // Focus going into the canvas closes the zone panel, which hangs
+        // over its top right corner and would hide what got focus there
+        // (WCAG 2.4.11).
+        onFocus={() => setZonePanel(false)}
         onPointerDown={onViewportPointerDown}
         onPointerMove={onViewportPointerMove}
         onPointerUp={onViewportPointerUp}
@@ -1019,7 +1041,7 @@ export function BoardCanvas({
                   column.hidden ? "opacity-60" : ""
                 } ${
                   zoneDrag?.columnId === column.id ||
-                  (zonePanel && arrangedZone?.id === column.id)
+                  (zonesOpen && arrangedZone?.id === column.id)
                     ? "ring-2 ring-accent/40"
                     : ""
                 }`}
@@ -1245,6 +1267,8 @@ export function BoardCanvas({
                     onPointerDown={(event) =>
                       beginZoneDrag(event, column, "resize")
                     }
+                    // Nor does a press focus it, hidden as it is.
+                    onMouseDown={(event) => event.preventDefault()}
                     className="absolute right-0 bottom-0 size-5 cursor-nwse-resize rounded-br-2xl text-zinc-500 hover:text-zinc-700"
                     style={{ touchAction: "none" }}
                   >

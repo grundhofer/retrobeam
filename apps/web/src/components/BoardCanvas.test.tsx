@@ -947,3 +947,36 @@ test("only the facilitator arranges zones, and the drag handle is no focus stop"
     expect(handle.getAttribute("aria-hidden")).toBe("true");
   }
 });
+
+test("the zone panel follows its button, and closes on Escape, on focus in the canvas and for a member", async () => {
+  const screen = await render(canvas({}));
+  const toggle = screen.getByTestId("zones-toggle");
+  await toggle.click();
+  // Next in the tab order, before the zoom.
+  expect(toggle.element().nextElementSibling).toBe(
+    screen.getByTestId("zones-panel").element(),
+  );
+
+  // Escape from outside the panel: WebKit leaves a clicked button unfocused.
+  (document.activeElement as HTMLElement | null)?.blur();
+  await userEvent.keyboard("{Escape}");
+  expect(screen.getByTestId("zones-panel").elements()).toHaveLength(0);
+  await expect.element(toggle).toHaveFocus();
+
+  // Focus going into the canvas, which the panel would cover.
+  await toggle.click();
+  (screen.getByTestId("note-arrange-toggle").element() as HTMLElement).focus();
+  await expect
+    .element(screen.getByTestId("zones-panel"))
+    .not.toBeInTheDocument();
+  await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+
+  // Made a member and back: shut, with no ring left on the zone.
+  await toggle.click();
+  await screen.rerender(canvas({ isAdmin: false }));
+  expect(screen.container.querySelector(".ring-2")).toBe(null);
+  await screen.rerender(canvas({}));
+  await expect
+    .element(screen.getByTestId("zones-toggle"))
+    .toHaveAttribute("aria-expanded", "false");
+});
