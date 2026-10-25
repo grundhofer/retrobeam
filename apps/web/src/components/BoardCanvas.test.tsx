@@ -5,13 +5,24 @@ import { afterEach, expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { useState } from "react";
 import { userEvent } from "vitest/browser";
-import type { Column, Note, Participant, ServerEvent } from "@retrobeam/shared";
+import {
+  defaultZoneRect,
+  type Column,
+  type Note,
+  type Participant,
+  type ServerEvent,
+  type ZoneRect,
+} from "@retrobeam/shared";
 import i18n from "../i18n.js";
 // The zones' flex layout gives their card area its height; without the
 // styles it is 0px tall and no step has room.
 import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
-import { BoardCanvas, nearestOpenCanvasPosition } from "./BoardCanvas.js";
+import {
+  BoardCanvas,
+  nearestOpenCanvasPosition,
+  zoneStep,
+} from "./BoardCanvas.js";
 
 const you: Participant = {
   id: "p1",
@@ -810,4 +821,162 @@ test("the canvas's ⋯ panel is on top, unclipped and full size", async () => {
     .element()
     .getBoundingClientRect();
   expect(edge.bottom).toBeGreaterThan(zone.bottom);
+});
+
+// WCAG 2.5.7: a zone moved and sized by dragging only. The facilitator's
+// "Zones" panel picks a zone and steps it — position or size, by button or
+// arrow key — each press one admin.column.setRect, the command a drag sends.
+test("a zone step moves or sizes by one card step and stays in the world", () => {
+  const rect: ZoneRect = { x: 0.2, y: 0.3, w: 0.4, h: 0.5 };
+  // Steps are fractions of the world, so compared to the float, not exactly.
+  const expectRect = (got: ZoneRect | null, want: ZoneRect) => {
+    expect(got).not.toBe(null);
+    for (const key of ["x", "y", "w", "h"] as const) {
+      expect(got![key]).toBeCloseTo(want[key]);
+    }
+  };
+  expectRect(zoneStep(rect, "move", "right"), { ...rect, x: 0.22 });
+  expectRect(zoneStep(rect, "move", "up"), { ...rect, y: 0.268 });
+  expectRect(zoneStep(rect, "size", "right"), { ...rect, w: 0.42 });
+  expectRect(zoneStep(rect, "size", "up"), { ...rect, h: 0.468 });
+
+  // At the world's edge, or its own size floor, a step has nowhere to go.
+  expect(zoneStep({ ...rect, x: 0 }, "move", "left")).toBe(null);
+  expect(zoneStep({ ...rect, x: 0.6 }, "move", "right")).toBe(null);
+  expect(zoneStep({ ...rect, x: 0.6 }, "size", "right")).toBe(null);
+  expect(zoneStep({ ...rect, w: 0.05 }, "size", "left")).toBe(null);
+  // Short of the edge, the last step only goes as far as the edge.
+  expectRect(zoneStep({ ...rect, x: 0.59 }, "move", "right"), {
+    ...rect,
+    x: 0.6,
+  });
+
+  // A zone dragged half out of the world comes back in, never further out.
+  const out = { ...rect, x: 0.8 };
+  expect(zoneStep(out, "move", "right")).toBe(null);
+  expectRect(zoneStep(out, "move", "left"), { ...out, x: 0.78 });
+});
+
+test("the facilitator moves and sizes a zone without dragging", async () => {
+  const mutate = vi.fn();
+  const screen = await render(canvas({}, mutate));
+  const toggle = screen.getByTestId("zones-toggle");
+  await toggle.click();
+  await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
+
+  // The first zone until another is picked.
+  const options = screen.getByTestId("zones-option");
+  expect(options.elements().map((el) => el.textContent)).toEqual(
+    zones.map((z) => z.name),
+  );
+  await expect.element(options.nth(0)).toHaveAttribute("aria-pressed", "true");
+  await options.nth(1).click();
+  await expect.element(options.nth(1)).toHaveAttribute("aria-pressed", "true");
+
+  const start = defaultZoneRect(1, zones.length);
+  await screen.getByTestId("zones-move-right").click();
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const [moved, echo] = mutate.mock.calls[0] as [
+    { type: string; columnId: string; rect: ZoneRect },
+    { type: string; column: Column },
+  ];
+  expect(moved).toMatchObject({
+    type: "admin.column.setRect",
+    columnId: zones[1]!.id,
+    rect: { y: start.y, w: start.w, h: start.h },
+  });
+  expect(moved.rect.x).toBeGreaterThan(start.x);
+  expect(echo).toMatchObject({
+    type: "column.updated",
+    column: { ...zones[1], rect: moved.rect },
+  });
+
+  // The arrow keys size it while focus is in the size group; a held key's
+  // repeats are not a stream of frames.
+  const taller = screen.getByTestId("zones-size-down").element() as HTMLElement;
+  taller.focus();
+  await userEvent.keyboard("{ArrowDown}");
+  expect(mutate).toHaveBeenCalledTimes(2);
+  const sized = (mutate.mock.calls[1]?.[0] as { rect: ZoneRect }).rect;
+  expect(sized).toMatchObject({ x: start.x, y: start.y, w: start.w });
+  expect(sized.h).toBeGreaterThan(start.h);
+  taller.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "ArrowDown",
+      repeat: true,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  expect(mutate).toHaveBeenCalledTimes(2);
+
+  // Escape closes the panel and hands focus back to its button.
+  await userEvent.keyboard("{Escape}");
+  expect(screen.getByTestId("zones-panel").elements()).toHaveLength(0);
+  await expect.element(toggle).toHaveFocus();
+});
+
+test("a zone step that cannot go is marked and sends nothing", async () => {
+  const mutate = vi.fn();
+  const atEdge = { ...column, rect: { x: 0, y: 0.1, w: 0.3, h: 0.5 } };
+  const screen = await render(canvas({ columns: [atEdge] }, mutate));
+  await screen.getByTestId("zones-toggle").click();
+  const left = screen.getByTestId("zones-move-left");
+  await expect.element(left).toHaveAttribute("aria-disabled", "true");
+  await expect
+    .element(screen.getByTestId("zones-move-right"))
+    .toHaveAttribute("aria-disabled", "false");
+  (left.element() as HTMLElement).click();
+  (left.element() as HTMLElement).focus();
+  await userEvent.keyboard("{ArrowLeft}");
+  expect(mutate).not.toHaveBeenCalled();
+});
+
+test("only the facilitator arranges zones, and the drag handle is no focus stop", async () => {
+  let screen = await render(canvas({ you: ben, isAdmin: false }));
+  expect(screen.getByTestId("zones-toggle").elements()).toHaveLength(0);
+  await screen.unmount();
+
+  screen = await render(canvas({}));
+  const handles = screen.container.querySelectorAll<HTMLElement>(
+    "button[data-zone-handle]",
+  );
+  expect(handles).toHaveLength(zones.length);
+  for (const handle of handles) {
+    expect(handle.tabIndex).toBe(-1);
+    expect(handle.getAttribute("aria-hidden")).toBe("true");
+  }
+});
+
+test("the zone panel follows its button, and closes on Escape, on focus in the canvas and for a member", async () => {
+  const screen = await render(canvas({}));
+  const toggle = screen.getByTestId("zones-toggle");
+  await toggle.click();
+  // Next in the tab order, before the zoom.
+  expect(toggle.element().nextElementSibling).toBe(
+    screen.getByTestId("zones-panel").element(),
+  );
+
+  // Escape from outside the panel: WebKit leaves a clicked button unfocused.
+  (document.activeElement as HTMLElement | null)?.blur();
+  await userEvent.keyboard("{Escape}");
+  expect(screen.getByTestId("zones-panel").elements()).toHaveLength(0);
+  await expect.element(toggle).toHaveFocus();
+
+  // Focus going into the canvas, which the panel would cover.
+  await toggle.click();
+  (screen.getByTestId("note-arrange-toggle").element() as HTMLElement).focus();
+  await expect
+    .element(screen.getByTestId("zones-panel"))
+    .not.toBeInTheDocument();
+  await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+
+  // Made a member and back: shut, with no ring left on the zone.
+  await toggle.click();
+  await screen.rerender(canvas({ isAdmin: false }));
+  expect(screen.container.querySelector(".ring-2")).toBe(null);
+  await screen.rerender(canvas({}));
+  await expect
+    .element(screen.getByTestId("zones-toggle"))
+    .toHaveAttribute("aria-expanded", "false");
 });

@@ -4,6 +4,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -24,7 +25,17 @@ import {
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { GifPickerButton } from "./GifPicker.js";
-import { NoteCard, type NudgeDirection } from "./NoteCard.js";
+import {
+  ARRANGE_LABEL,
+  ARRANGE_OPTION,
+  ARRANGE_PANEL,
+  ARRANGE_STEP,
+  CARD_EDGE,
+  CARD_SURFACE,
+  NoteCard,
+  NUDGES,
+  type NudgeDirection,
+} from "./NoteCard.js";
 
 export interface BoardCanvasProps {
   columns: Column[];
@@ -135,6 +146,58 @@ export function nearestOpenCanvasPosition(
   return candidates.find((candidate) => !overlaps(candidate)) ?? null;
 }
 
+// The canvas's own controls, over its top right corner: the zoom and the
+// facilitator's zone panel button.
+const CONTROL_SURFACE =
+  "rounded-lg border border-zinc-200 bg-white text-zinc-600 shadow-sm";
+const CONTROL_BUTTON =
+  "hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent";
+
+type ZoneStepKind = "move" | "size";
+
+// The size steps on the move steps' arrows: a zone is sized from its
+// bottom-right corner, the way the ⤡ handle drags it.
+const SIZE_LABELS: Record<NudgeDirection, string> = {
+  left: "canvas.narrower",
+  up: "canvas.shorter",
+  down: "canvas.taller",
+  right: "canvas.wider",
+};
+
+// Where one step of the zone panel moves or sizes a zone, or null when it
+// cannot go that way. One step is a card's step. Unlike a drag, a step keeps
+// the zone inside the world: one dragged half out comes back step by step,
+// but no step pushes one out.
+export function zoneStep(
+  rect: ZoneRect,
+  kind: ZoneStepKind,
+  direction: NudgeDirection,
+): ZoneRect | null {
+  const alongX = direction === "left" || direction === "right";
+  const sign = direction === "left" || direction === "up" ? -1 : 1;
+  const step = NUDGE_PX / (alongX ? WORLD_W : WORLD_H);
+  const next = { ...rect };
+  if (kind === "move" && alongX) {
+    next.x =
+      sign < 0
+        ? Math.max(0, rect.x - step)
+        : Math.min(1 - rect.w, rect.x + step);
+  } else if (kind === "move") {
+    next.y =
+      sign < 0
+        ? Math.max(0, rect.y - step)
+        : Math.min(1 - rect.h, rect.y + step);
+  } else if (alongX) {
+    next.w = sign < 0 ? rect.w - step : Math.min(1 - rect.x, rect.w + step);
+  } else {
+    next.h = sign < 0 ? rect.h - step : Math.min(1 - rect.y, rect.h + step);
+  }
+  // The floor on a zone's size is clampZoneRect's, as for a drag.
+  const clamped = clampZoneRect(next);
+  const key = kind === "move" ? (alongX ? "x" : "y") : alongX ? "w" : "h";
+  return (clamped[key] - rect[key]) * sign > 1e-9 ? clamped : null;
+}
+
 function clampZoom(z: number): number {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
 }
@@ -198,7 +261,39 @@ export function BoardCanvas({
     });
   }, []);
 
+  // The facilitator's zone panel, the zone drag's keyboard and single-pointer
+  // twin (WCAG 2.5.7), and the zone it arranges: the first until one is
+  // picked. In the canvas's controls, not on the zone: drawn in the zoomed
+  // world, its button would shrink under 24px with it (WCAG 2.5.8).
+  const [zonePanel, setZonePanel] = useState(false);
+  const [zoneTarget, setZoneTarget] = useState<string | null>(null);
+  const zonePanelId = useId();
+  const zoneToggle = useRef<HTMLButtonElement>(null);
+
   const ordered = [...columns].sort((a, b) => a.order - b.order);
+  const arrangedZone =
+    ordered.find((c) => c.id === zoneTarget) ?? ordered[0] ?? null;
+  // Shut, not just hidden, once there is nothing to arrange or nobody to
+  // arrange it: a facilitator made a member would keep the zone's ring, and
+  // the panel would reopen unasked if they were made facilitator again.
+  if (zonePanel && (!isAdmin || arrangedZone === null)) setZonePanel(false);
+  const zonesOpen = zonePanel && isAdmin && arrangedZone !== null;
+
+  // Escape closes it from anywhere outside the canvas, on the window as in
+  // HeaderPopover: WebKit does not focus a clicked button, so after a click
+  // on the toggle focus is not inside the panel. Inside the canvas Escape is
+  // a card panel's or the composer's.
+  useEffect(() => {
+    if (!zonesOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (viewportRef.current?.contains(event.target as Node)) return;
+      setZonePanel(false);
+      zoneToggle.current?.focus();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [zonesOpen]);
   function rectOf(column: Column): ZoneRect {
     if (zoneDrag?.columnId === column.id) return zoneDrag.rect;
     if (column.rect) return column.rect;
@@ -450,25 +545,40 @@ export function BoardCanvas({
         original.w !== zd.rect.w ||
         original.h !== zd.rect.h
       ) {
-        mutate(
-          {
-            type: "admin.column.setRect",
-            opId: generateHexId(),
-            columnId: zd.columnId,
-            rect: zd.rect,
-          },
-          column
-            ? {
-                type: "column.updated",
-                seq: 0,
-                column: { ...column, rect: zd.rect },
-              }
-            : [],
-        );
+        commitZoneRect(zd.columnId, zd.rect);
       }
       return;
     }
     if (panning.current?.pointerId === event.pointerId) panning.current = null;
+  }
+
+  // One admin.column.setRect: where a zone drag lands, or one step of the
+  // zone panel.
+  function commitZoneRect(columnId: string, rect: ZoneRect) {
+    const column = columns.find((c) => c.id === columnId);
+    mutate(
+      {
+        type: "admin.column.setRect",
+        opId: generateHexId(),
+        columnId,
+        rect,
+      },
+      column
+        ? { type: "column.updated", seq: 0, column: { ...column, rect } }
+        : [],
+    );
+  }
+
+  function canStepZone(kind: ZoneStepKind, direction: NudgeDirection) {
+    return (
+      arrangedZone !== null &&
+      zoneStep(rectOf(arrangedZone), kind, direction) !== null
+    );
+  }
+  function stepZone(kind: ZoneStepKind, direction: NudgeDirection) {
+    if (arrangedZone === null) return;
+    const next = zoneStep(rectOf(arrangedZone), kind, direction);
+    if (next !== null) commitZoneRect(arrangedZone.id, next);
   }
 
   function beginZoneDrag(
@@ -756,14 +866,102 @@ export function BoardCanvas({
     <div className="relative">
       <div
         data-canvas-control
-        className="absolute top-2 right-2 z-40 flex items-center gap-1.5"
+        className="absolute top-2 right-2 z-40 flex flex-wrap items-center justify-end gap-1.5"
       >
-        <div className="flex items-center rounded-lg border border-zinc-200 bg-white text-zinc-600 shadow-sm">
+        {isAdmin && arrangedZone !== null ? (
+          <button
+            ref={zoneToggle}
+            type="button"
+            data-testid="zones-toggle"
+            aria-expanded={zonesOpen}
+            aria-controls={zonesOpen ? zonePanelId : undefined}
+            onClick={() => setZonePanel(!zonePanel)}
+            className={`${CONTROL_SURFACE} ${CONTROL_BUTTON} px-2 py-1 text-xs`}
+          >
+            {t("canvas.zones")}
+          </button>
+        ) : null}
+        {/* Right after its toggle, so Tab goes from one straight into the
+            other; placed by position, not by order. */}
+        {zonesOpen ? (
+          <div
+            id={zonePanelId}
+            data-testid="zones-panel"
+            className={`absolute top-full right-0 mt-1 w-56 max-w-[calc(100vw-2rem)] ${ARRANGE_PANEL} ${CARD_SURFACE} ${CARD_EDGE}`}
+          >
+            <div role="group" aria-label={t("canvas.zone")}>
+              <p className={ARRANGE_LABEL}>{t("canvas.zone")}</p>
+              <div className="flex flex-wrap gap-1">
+                {ordered.map((column) => (
+                  <button
+                    key={column.id}
+                    type="button"
+                    data-testid="zones-option"
+                    aria-pressed={column.id === arrangedZone.id}
+                    onClick={() => setZoneTarget(column.id)}
+                    className={`max-w-full truncate ${ARRANGE_OPTION} aria-pressed:border-accent aria-pressed:bg-accent/10 aria-pressed:text-accent-strong`}
+                  >
+                    {column.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {(["move", "size"] as const).map((kind) => {
+              const label =
+                kind === "move" ? "canvas.zonePosition" : "canvas.zoneSize";
+              return (
+                <div
+                  key={kind}
+                  role="group"
+                  aria-label={t(label)}
+                  onKeyDown={(event) => {
+                    const nudge = NUDGES.find((n) => n.key === event.key);
+                    if (nudge === undefined) return;
+                    event.preventDefault();
+                    // One step per press, as for a card: every step is a
+                    // frame on the wire.
+                    if (event.repeat) return;
+                    stepZone(kind, nudge.direction);
+                  }}
+                >
+                  <p className={ARRANGE_LABEL}>{t(label)}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {NUDGES.map((nudge) => {
+                      const name = t(
+                        kind === "move"
+                          ? nudge.label
+                          : SIZE_LABELS[nudge.direction],
+                      );
+                      return (
+                        <button
+                          key={nudge.direction}
+                          type="button"
+                          data-testid={`zones-${kind}-${nudge.direction}`}
+                          aria-label={name}
+                          title={`${name} (${nudge.glyph})`}
+                          aria-keyshortcuts={nudge.key}
+                          // Not `disabled`, as for a card's steps: the
+                          // button that just reached the edge keeps focus.
+                          aria-disabled={!canStepZone(kind, nudge.direction)}
+                          onClick={() => stepZone(kind, nudge.direction)}
+                          className={ARRANGE_STEP}
+                        >
+                          <span aria-hidden="true">{nudge.glyph}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+        <div className={`flex items-center ${CONTROL_SURFACE}`}>
           <button
             type="button"
             aria-label={t("canvas.zoomOut")}
             onClick={() => zoomBy(0.8)}
-            className="px-2 py-1 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
+            className={`px-2 py-1 ${CONTROL_BUTTON}`}
           >
             −
           </button>
@@ -772,7 +970,7 @@ export function BoardCanvas({
           <button
             type="button"
             onClick={fitView}
-            className="min-w-11 border-x border-zinc-200 px-1 py-1 text-center text-xs tabular-nums hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
+            className={`min-w-11 border-x border-zinc-200 px-1 py-1 text-center text-xs tabular-nums ${CONTROL_BUTTON}`}
           >
             {Math.round(view.zoom * 100)}%
             <span className="sr-only"> – {t("canvas.fit")}</span>
@@ -781,7 +979,7 @@ export function BoardCanvas({
             type="button"
             aria-label={t("canvas.zoomIn")}
             onClick={() => zoomBy(1.25)}
-            className="px-2 py-1 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
+            className={`px-2 py-1 ${CONTROL_BUTTON}`}
           >
             +
           </button>
@@ -791,6 +989,10 @@ export function BoardCanvas({
       <div
         ref={viewportRef}
         data-testid="canvas-viewport"
+        // Focus going into the canvas closes the zone panel, which hangs
+        // over its top right corner and would hide what got focus there
+        // (WCAG 2.4.11).
+        onFocus={() => setZonePanel(false)}
         onPointerDown={onViewportPointerDown}
         onPointerMove={onViewportPointerMove}
         onPointerUp={onViewportPointerUp}
@@ -837,7 +1039,12 @@ export function BoardCanvas({
                 aria-label={column.name}
                 className={`absolute flex flex-col rounded-2xl border border-zinc-200 bg-white/60 ${
                   column.hidden ? "opacity-60" : ""
-                } ${zoneDrag?.columnId === column.id ? "ring-2 ring-accent/40" : ""}`}
+                } ${
+                  zoneDrag?.columnId === column.id ||
+                  (zonesOpen && arrangedZone?.id === column.id)
+                    ? "ring-2 ring-accent/40"
+                    : ""
+                }`}
                 style={{
                   left: rect.x * WORLD_W,
                   top: rect.y * WORLD_H,
@@ -1048,13 +1255,20 @@ export function BoardCanvas({
                 </div>
 
                 {isAdmin ? (
+                  // Pointer only: its keyboard twin is the zone panel's size
+                  // steps, and a focus stop that does nothing on Enter would
+                  // be a dead end.
                   <button
                     type="button"
                     data-zone-handle=""
+                    tabIndex={-1}
+                    aria-hidden="true"
                     aria-label={t("canvas.resize")}
                     onPointerDown={(event) =>
                       beginZoneDrag(event, column, "resize")
                     }
+                    // Nor does a press focus it, hidden as it is.
+                    onMouseDown={(event) => event.preventDefault()}
                     className="absolute right-0 bottom-0 size-5 cursor-nwse-resize rounded-br-2xl text-zinc-500 hover:text-zinc-700"
                     style={{ touchAction: "none" }}
                   >
