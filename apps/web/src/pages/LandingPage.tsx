@@ -61,7 +61,7 @@ function openFaq(id: string): HTMLElement | null {
 const ctaClass =
   "inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const labelClass =
-  "text-sm font-semibold tracking-wide text-zinc-500 uppercase";
+  "text-sm font-semibold tracking-wide text-zinc-600 uppercase";
 const sectionInnerClass = "mx-auto w-full max-w-6xl px-6 sm:px-10";
 
 export function LandingPage() {
