@@ -73,7 +73,7 @@ test("check-in setup stays in the facilitator's lobby", async () => {
   await screen.getByTestId("checkin-question-select").selectOptions("weather");
   await screen.getByTestId("agreements-edit").click();
   await screen.getByTestId("agreements-input").fill("Listen first.");
-  await screen.getByRole("button", { name: /save|speichern/i }).click();
+  await screen.getByRole("button", { name: /save|sichern/i }).click();
 
   expect(sent).toEqual([
     {
