@@ -40,9 +40,62 @@ jobs:
       - run: pnpm build && test -f apps/web/dist/client/index.html
       - run: pnpm --filter @retrobeam/shared test
       - run: pnpm --filter @retrobeam/worker test
-      # One install feeds BOTH the component tests and the e2e run — the root
-      # @playwright/test and apps/web's playwright resolve to the same version.
-      - run: pnpm exec playwright install chromium firefox webkit --with-deps
+      # One install feeds BOTH the component tests and the e2e run. The root
+      # @playwright/test and apps/web's playwright may resolve to different
+      # patch releases, so the cache key names every playwright-core version in
+      # the lockfile; the runner image is in it because the browser builds are
+      # distro-specific, and the browser set because visual.yml caches
+      # chromium alone.
+      - name: Playwright cache key
+        id: pw-key
+        run: |
+          versions=$(grep -oE '^  playwright-core@[^:]+' pnpm-lock.yaml | sed 's/.*@//' | sort -u | paste -sd+ -)
+          test -n "$versions"
+          echo "key=playwright-${RUNNER_OS}-${RUNNER_ARCH}-${ImageOS}-${versions}-chromium-firefox-webkit" >> "$GITHUB_OUTPUT"
+      - name: Restore Playwright browsers
+        id: pw-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.pw-key.outputs.key }}
+      # The install used to hang until the 20-minute job timeout. Each attempt
+      # now has its own budget and there is exactly one retry, so a hang costs
+      # this step and not the run. On a cache hit only the system packages are
+      # installed; the binaries are already in place.
+      - name: Install Playwright browsers
+        id: pw-install
+        timeout-minutes: 5
+        continue-on-error: true
+        env:
+          CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            pnpm exec playwright install-deps chromium firefox webkit
+          else
+            pnpm exec playwright install chromium firefox webkit --with-deps
+          fi
+      # A hang may have left a half-extracted browser behind; a miss starts the
+      # retry from an empty browser directory.
+      - name: Install Playwright browsers (retry)
+        if: steps.pw-install.outcome == 'failure'
+        timeout-minutes: 5
+        env:
+          CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            pnpm exec playwright install-deps chromium firefox webkit
+          else
+            rm -rf ~/.cache/ms-playwright
+            pnpm exec playwright install chromium firefox webkit --with-deps
+          fi
+      # Saved straight after the install rather than at the end of the job, so
+      # a red test run still leaves a warm cache for the next one.
+      - name: Save Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.pw-key.outputs.key }}
       - run: pnpm --filter @retrobeam/web test
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7

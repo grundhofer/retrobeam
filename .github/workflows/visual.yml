@@ -29,6 +29,70 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      # The browser install is split out of the test steps as in ci.yml: the
+      # binaries are cached per lockfile, each attempt has its own timeout and
+      # there is exactly one retry. Like everything else here it may fail
+      # without failing the job — a missing browser fails the test step after
+      # it, and that outcome is what the summary reports. The base and the
+      # head may pin different Playwright releases, so each computes its key
+      # from its own lockfile.
+      - name: Install the base commit's dependencies
+        continue-on-error: true
+        run: pnpm install --frozen-lockfile
+      - name: Playwright cache key (base)
+        id: base-pw-key
+        continue-on-error: true
+        shell: bash
+        run: |
+          versions=$(grep -oE '^  playwright-core@[^:]+' pnpm-lock.yaml | sed 's/.*@//' | sort -u | paste -sd+ -)
+          test -n "$versions"
+          echo "key=playwright-${RUNNER_OS}-${RUNNER_ARCH}-${ImageOS}-${versions}-chromium" >> "$GITHUB_OUTPUT"
+      - name: Restore Playwright browsers (base)
+        id: base-pw-cache
+        if: steps.base-pw-key.outputs.key != ''
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.base-pw-key.outputs.key }}
+      - name: Install Playwright browsers (base)
+        id: base-pw-install
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: bash
+        env:
+          CACHE_HIT: ${{ steps.base-pw-cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            pnpm exec playwright install chromium --with-deps
+          fi
+      - name: Install Playwright browsers (base, retry)
+        id: base-pw-retry
+        if: steps.base-pw-install.outcome == 'failure'
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: bash
+        env:
+          CACHE_HIT: ${{ steps.base-pw-cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            rm -rf ~/.cache/ms-playwright
+            pnpm exec playwright install chromium --with-deps
+          fi
+      - name: Save Playwright browsers (base)
+        if: >-
+          steps.base-pw-key.outputs.key != '' &&
+          steps.base-pw-cache.outputs.cache-hit != 'true' &&
+          (steps.base-pw-install.outcome == 'success' || steps.base-pw-retry.outcome == 'success')
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.base-pw-key.outputs.key }}
       # The baseline goes to the runner's temp directory, outside the
       # workspace: the head checkout below cleans the workspace, ignored files
       # included, and would take an in-repo baseline with it.
@@ -38,13 +102,67 @@ jobs:
         shell: bash
         env:
           VISUAL_BASELINE_DIR: ${{ runner.temp }}/visual-baseline
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm exec playwright install chromium --with-deps
-          pnpm exec playwright test --project=visual --update-snapshots=all --reporter=list
+        run: pnpm exec playwright test --project=visual --update-snapshots=all --reporter=list
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install the head commit's dependencies
+        continue-on-error: true
+        run: pnpm install --frozen-lockfile
+      - name: Playwright cache key (head)
+        id: head-pw-key
+        continue-on-error: true
+        shell: bash
+        run: |
+          versions=$(grep -oE '^  playwright-core@[^:]+' pnpm-lock.yaml | sed 's/.*@//' | sort -u | paste -sd+ -)
+          test -n "$versions"
+          echo "key=playwright-${RUNNER_OS}-${RUNNER_ARCH}-${ImageOS}-${versions}-chromium" >> "$GITHUB_OUTPUT"
+      - name: Restore Playwright browsers (head)
+        id: head-pw-cache
+        if: steps.head-pw-key.outputs.key != ''
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.head-pw-key.outputs.key }}
+      - name: Install Playwright browsers (head)
+        id: head-pw-install
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: bash
+        env:
+          CACHE_HIT: ${{ steps.head-pw-cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            pnpm exec playwright install chromium --with-deps
+          fi
+      - name: Install Playwright browsers (head, retry)
+        id: head-pw-retry
+        if: steps.head-pw-install.outcome == 'failure'
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: bash
+        env:
+          CACHE_HIT: ${{ steps.head-pw-cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            rm -rf ~/.cache/ms-playwright
+            pnpm exec playwright install chromium --with-deps
+          fi
+      - name: Save Playwright browsers (head)
+        if: >-
+          steps.head-pw-key.outputs.key != '' &&
+          steps.head-pw-cache.outputs.cache-hit != 'true' &&
+          (steps.head-pw-install.outcome == 'success' || steps.head-pw-retry.outcome == 'success')
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.head-pw-key.outputs.key }}
       - name: Compare the head commit
         id: head
         continue-on-error: true
@@ -52,10 +170,7 @@ jobs:
         env:
           VISUAL_BASELINE_DIR: ${{ runner.temp }}/visual-baseline
           PLAYWRIGHT_HTML_OPEN: never
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm exec playwright install chromium --with-deps
-          pnpm exec playwright test --project=visual --reporter=list,html
+        run: pnpm exec playwright test --project=visual --reporter=list,html
       - uses: actions/upload-artifact@v7
         id: upload
         if: always()
