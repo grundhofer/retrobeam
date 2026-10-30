@@ -9,8 +9,8 @@ import { newContext } from "./helpers.js";
 // phone and a desktop width (docs/sebaro-umbau.md §4.2, gate G9). The same
 // axe version and waiver fields as the sebaro guide's check, so one finding
 // reads the same in both places. A violation fails unless e2e/a11y-waivers.ts
-// names it with a reason; the waivers that exist were the state before the
-// sebaro move and go away view by view. Chromium only: axe's verdicts are the
+// names it with a reason: the state before the sebaro move, going away view
+// by view, or a trade-off decided under sebaro D103. Chromium only: axe's verdicts are the
 // engine's computed styles, and one engine keeps the waivers comparable.
 //
 // The script is loaded by path (relative to the repo root, where Playwright
