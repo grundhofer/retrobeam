@@ -181,6 +181,116 @@ Viele Annahmen hängen am Stand vom 2026-10-24: Vertrag 1.9, ≈ 1.220 Klassen, 
 8. Die novalis-Lehren aus S3 einarbeiten.
 9. Das Ergebnis kommt als Nachtrag nach `docs/sebaro-umbau.md`. Weicht mehr ab als Zeilennummern, wird der Plan neu vorgelegt.
 
+### 1.8 Nachtrag: Neuprüfung nach §1.7 vom 2026-10-30
+
+Geprüft gegen sebaroDesign `0b40e1a`. Gepinnt ist `e1bff9a`: Dieser Commit bringt nur D114 und einen Satz in `SB/spec/03`, keine exportierte Datei ändert sich. Dazu kamen sebaro-guide `05e3897` (Katalog 2.18.0) und novalis `main` `192a5ae`. Gelesen wurde nur über git, nie der Arbeitsbaum von SD. Jeder Befund ist von einer zweiten Prüfung gegengeprüft. **Es weicht mehr ab als Zeilennummern. Nach Punkt 9 wird der Plan deshalb mit diesem Nachtrag neu vorgelegt.** 2b geht erst weiter, wenn F33–F37 beantwortet sind.
+
+**Startbedingungen**
+
+- **S1:**
+  - Nachweise (1) und (2) sind erfüllt: Der Export liegt auf novalis `main`, und 40 Dateien der App (mit Tests) nutzen `sb-`-Klassen.
+  - (3) ist in der Sache erfüllt: novalis prüft in der CI mit einem eigenen Node-Skript (ADR-0051 #37), nicht wörtlich mit `export_system.py --verify --files-only`.
+  - (4) ist nicht erfüllt: ADR-0051 hält 66 Antworten im Wortlaut fest, aber keine Sichtung durch den Owner. Die Bilder haben Agenten geprüft.
+  - Die Voraussetzung ist wörtlich offen: Runde 6, Etappe 3 wartet laut `runde-6-plan.md:10` weiter auf Schlüssel und Secrets.
+  - D109 setzt beides faktisch außer Kraft (F33).
+- **S2:** D109 (`DEC:118`).
+- **S3:** Eine eigene Lehren-ADR gibt es nicht. Die novalis-Befunde stehen in `NV/docs/sebaro-luecken.md` und `SB/CHECKS.md` §29 ff., nicht in `TOOL-ISSUES.md` (F33).
+- **S4–S7:** erfüllt. S6: L1–L12 sind geliefert oder entfallen, siehe die Lückenliste. S7: #46 und #27 sind gemergt, #28, #29 und #31 geschlossen.
+
+**Zitate**
+
+- Die Zeilennummern dieses Plans stammen aus `f8bdbee`.
+- In §0–§5 sind von den Zitat-Vorkommen etwa 47 unverändert, 51 nur verschoben und 55 inhaltlich geändert. Verschwunden ist keines.
+- `DEC` ist bis D101 byte-gleich; D102–D114 stehen auf `DEC:111-123`.
+- Jeder Stufen-PR liest seine Zitate am Pin nach. Inhaltliche Änderungen stehen unten.
+
+**Geänderte Fakten mit Folge für den Plan**
+
+1. **Export und Werkzeug:**
+   - `export_system.py` steht bei 1.14.0, der Vertrag bei 1.10.
+   - Das Paket `@grundhofer/sebaro` ist privat veröffentlicht, mit den Tags v1.10.0–v1.10.4. 1.10.0 ist ungefiltert und kommt nie in RetroBeam.
+   - Der Web-Export für RetroBeam hat 84 Dateien plus `sebaro-export.json` (der Plan erwartete 55–72). Neu sind `checks/` (`verify-export.mjs`, `sb-colour-count.js`) und `editor/`.
+   - Er nennt kein anderes Produkt (F32 ist geliefert). Erzeugt wird er mit `--from-commit <Pin>` aus einem Klon beim Pin, nie aus dem Arbeitsbaum.
+2. **2a und 2b:**
+   - `apps/web/tsconfig.json` braucht `"exclude": ["src/sebaro"]`, sonst scheitert `pnpm check` an `editor/sebaro-codemirror.ts` (TS2307). Mit `--no-editor` (F37) entfällt das.
+   - `@source not "./sebaro";` gehört schon in 2b, nicht erst in 2c. Ohne die Zeile wächst das CSS um 361 B, obwohl nichts importiert wird. Mit der Zeile ist es byte-gleich mit `main`, gemessen.
+   - Die Begründung „`ADO:225` schreibt `../RetroBeam/`“ entfällt, R15 ebenso.
+3. **G6:**
+   - Der Export bringt `checks/verify-export.mjs` mit. Mit `--strict` scheitert es an geänderten, fehlenden und fremden Dateien, gegengeprobt.
+   - Das vendorte `export_system.py --files-only` meldet eine fremde Datei nur als `WARN` (F34).
+4. **Tailwind und Kaskade:**
+   - Die Probe aus §5.2 ist wiederhergestellt und lief neu: Bei `b3f9bc1` fallen 1.214 Vorkommen still weg. Das ≈ 1.220 stimmt, die Kennzeichnung wird [B].
+   - `--font-*: initial` lässt `font-medium/semibold/bold` stehen; damit ist der Widerspruch in §5.2 aufgelöst.
+   - `drop-shadow*` (2 Stellen) übersteht die Brücke. G7 braucht dafür eine eigene Regel.
+   - `@apply` in `.legal-prose` bricht den Build mit der Brücke, gemessen.
+   - Zu ergänzen sind in §5.4: der Grund auf `:root`, `overflow-wrap`, die Regeln für `code`, `::selection` und `mark`, und `h1` unter 640 px.
+   - Gerendert in drei Browsern: `max-w-*` auf `<p>` wirkt nicht mehr (9 Stellen), und Tasten verlieren ihr Schriftgewicht. Beides gehört in den Bildsatz von 2c.
+   - D102 (49) erlaubt die Brückenreihenfolge, verlangt die Brücke aber „am Ende von 5h“ (F41).
+5. **F13 hält:**
+   - `sebaro.css` minifiziert ergibt 28,7 KB gzip, `tokens.css` 3,85 KB, `sprite.css` dazu.
+   - Mit dem heutigen eigenen CSS sind es rund 42 von 75 KB.
+   - Das Sprite (7,9 KB gzip, über `?raw` im JS) gehört in den Größenbericht G17.
+   - Bestätigt wird das erst mit dem Build in 2c.
+6. **Icons:**
+   - Es sind 116 Icons statt 77, alle 16 L2-Icons sind `stable`, „Platz“ ist `rank`.
+   - `review` gilt als freigegeben (`spec/04:449`).
+   - §6.4 fehlt die 16-px-Regel aus `spec/04:126-127`.
+7. **Skripte unter React:**
+   - `sb-board.js` hat `setup` und `teardown` (L12) und zählt Stimmen und dreht das Rad (`[data-sb-votes]`, `[data-sb-wheel-turn]`). RetroBeam darf diese Attribute nicht setzen, weil Stimmen und Rad Serverzustand sind.
+   - Für 5h ist `sbWheel.turnTo` mit dem Namen vom Server nutzbar.
+   - `sb-fit.js` fehlt im Plan ganz. Laut `ADO:244` gehört es auf jede Seite mit Segmenten, Schritten oder umbrechenden Dialogtasten, und es ändert das DOM (F38).
+8. **Klassische Skripte und Startkachel:**
+   - `theme-init.js` liest weiter nur, neu ist das optionale `sb-lang`.
+   - Die Startkachel ohne Speicher ist mit `data-sb-start="nostore"` gelöst (F15).
+   - Nach `ADO:467-487` braucht sie ein Vite-Plugin und `public/sb-start.js` (F39, F40).
+9. **Lesart B ist definiert** (D102 (45), `SB/spec/03` §6.6):
+   - Taste „Hell oder Dunkel“ im Kopf, Einstellungsansicht als Route, ⌘K, Fuß ohne „Darstellung“ (D104 (29)), `Retro&shy;Beam` (D104 (30)).
+   - §2.1 „Theme-Wahl: nicht definiert“ und die Bedingungen „bis L11“ in F2 und 5a sind überholt.
+10. **L3 ist gebaut** (`SB/spec/02` §3.29, §4.6): Zeitbox, Stimmen mit Budget, blindes Aufdecken, freie Fläche, Zeiger, Einladen, Rad, endgültiger Schritt ohne Löschen. Die Hinweise „nach L3“ in 5c/5g/5h und R19 zeigen jetzt dorthin.
+11. **Texte:**
+    - Der Toast hat vier Fälle (`SB/spec/07:162-185`).
+    - „Weiter: <Ziel>“ gilt in jedem festen Ablauf.
+    - Die ruhige Restzeit einer Zeitbox ist kein Countdown (`SB/spec/07:572-576`).
+    - TXT8 findet `jede:r` (L8), die Begründung in §7.1 entfällt.
+    - §7.4 wartet nur noch auf F20 (D102 (47)).
+    - Eine Menüzeile mit Datenweg folgt D105 (40): Der Export aus `BoardMenu` wird in 5a zu „Exportieren …“ mit eigenem Dialog.
+12. **Katalog:**
+    - RJ steht bei 2.18.0. WEB-03, NAV-06 und HAL-05 haben die D102-Antworten übernommen.
+    - D109, D112 und D113 fehlen dort noch.
+13. **SD-CI:** Sie läuft seit dem 2026-10-27 auf dem eigenen Mac-Runner (`PACKAGES.md:265-272`). Die Laufnummer 40084216639 steht in `PACKAGES.md:222`, das [O] in §1.3 entfällt.
+14. **Arbeitsweise in novalis:**
+    - 66 Antworten in sechs Runden während des Baus.
+    - Sechs Re-Exporte in sechs Tagen.
+    - Die Bildrunden haben Agenten gemacht (F42, F43).
+15. **Konflikte aus der Lückenliste §3:** Sie gelten weiter: F2a, F16, F18b, F25, F22, D106 (14) und AKT-11. Nr. 7 (Rad) ist mit D114 entschieden.
+
+**Neue Fragen an den Owner**
+
+Einzeln zu stellen. F33–F37 vor 2b, F42 und F43 jetzt, die übrigen vor ihrer Stufe.
+
+| #   | Frage                                      | Wege                                                                                                                                                                                                                                                                           | Empfehlung                  |
+| --- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
+| F33 | Reicht D109 für S1 und S3?                 | a) ja: D109 gilt als Sichtung, als Verzicht auf Runde 6 Etappe 3, und ADR-0051 mit der novalis-Lückenliste gilt als Gegenstück zu ADR-0050; b) erst eine novalis-ADR mit Sichtung und eine I-Zeile zu Etappe 3; c) der Owner sichtet novalis jetzt, der Wortlaut kommt hierher | a                           |
+| F34 | G6                                         | a) `node apps/web/src/sebaro/checks/verify-export.mjs --strict` aus dem Export, ohne Python und ohne vendortes Skript; b) vendortes `export_system.py --verify --files-only` mit WARN-grep (F12); c) eigenes Skript wie novalis                                                | a                           |
+| F35 | Pin und Re-Export                          | a) ein SD-Commit je Stufe, Re-Export nur zwischen Stufen mit `--from-commit` und einer Bildrunde; b) jeder neuen D-Zeile sofort folgen                                                                                                                                         | a                           |
+| F36 | Stufe 0                                    | a) die Skizzenseite entfällt, alle ihre Fragen sind beantwortet; eine Skizze nur, wenn eine Antwort zu §3 zwei Wege braucht; b) Skizzenseite wie geplant                                                                                                                       | a                           |
+| F37 | Ordner `editor/`                           | a) Export mit `--no-editor` (kommt mit der D115-Runde), der tsconfig-Ausschluss entfällt; b) `editor/` behalten und von `tsc` ausnehmen                                                                                                                                        | a                           |
+| F38 | `sb-fit.js` unter React (vor 2c)           | a) laden und nach jedem Rendern `sbFit.refresh` aufrufen, je Teil erproben; b) nicht laden wie novalis, die breiten Formen bleiben                                                                                                                                             | a                           |
+| F39 | Klassische Skripte (vor 2c)                | a) Kopien in `public/` plus `cmp` nach ADO §4.1, `sb-start.js` kommt in G13; b) Vite-Plugin wie novalis, im Build per `emitFile`                                                                                                                                               | b                           |
+| F40 | Startkachel: wann (vor 2c)                 | a) in 2c; b) eigene Stufe vor 6; c) Stufe 7 (F15 sagt „im Umbau“, Stufe 7 „optional“)                                                                                                                                                                                          | a                           |
+| F41 | Brücke                                     | a) 6a gilt als Ende von 5h, an SD melden; b) die Brücke kommt in den letzten 5h-PR                                                                                                                                                                                             | a                           |
+| F42 | Sichtung (G18)                             | a) der Owner sichtet jede PR (etwa 25); b) Agenten prüfen die Bilder je PR, der Owner sichtet je Stufe und vor dem Schluss-Merge                                                                                                                                               | b                           |
+| F43 | Fragen während der Stufen                  | a) je Stufe sammeln und vor ihrem Merge einzeln stellen; b) Folge-Entscheidungen erst nach dem Schluss-Merge (§11)                                                                                                                                                             | a                           |
+| F44 | `sebaro.css`                               | a) die ganze Datei; b) nur nötige Teile aus `css/parts/`                                                                                                                                                                                                                       | a                           |
+| F45 | Phasenanzeige mit 4–8 Phasen (vor 5a)      | a) Phasenzeile im Kopf („Abstimmen · noch 3 Min.“) und „Phase 3 von 7“ ohne Segmente; b) Segmente nur für eingeschaltete Phasen ohne Lobby und Ergebnis; c) SD um eine Form für mehr als vier Schritte bitten                                                                  | a                           |
+| F46 | Einstellungsansicht (vor 5a)               | a) eigene Route je Board, die Verbindung bleibt; b) Ansicht im Board ohne neue URL. Dazu: Wandern die Board-Schalter der Moderation aus `BoardMenu` dorthin?                                                                                                                   | a, Schalter bleiben im Menü |
+| F47 | Lobby-Link und AdminLink (vor 5b)          | a) beide als Satz mit `code.sb-file-name`, der AdminLink maskiert mit „Anzeigen“ und „Kopieren“ (§6.1 a bleibt in der Sache); b) nur lesbare Felder behalten und an SD melden                                                                                                  | a                           |
+| F48 | Verdecktes Schreiben (vor 5g)              | a) heutiges Verhalten behalten: fremde Karten werden vor dem Aufdecken nicht gesendet, die Zahl je Person bleibt geheim; Abweichung an SD melden; b) leere Karten ohne Namen, nur auf nicht anonymen Boards; c) D104 (10) ganz                                                 | a                           |
+| F49 | Board (vor 5g)                             | a) `sb-board.js` nur für Wischen und Positionsleiste, Stimmen und Rad als Serverzustand; b) React-Gegenstück wie novalis, `sb-board.js` wird nicht geladen                                                                                                                     | a                           |
+| F50 | Teilen-Bilder öffentlicher Seiten (vor 6c) | a) Rechtsseiten bekommen kein eigenes Bild, diese Lesart an SD melden; b) Bilder je öffentlicher Seite schon in 6c                                                                                                                                                             | a                           |
+
+**Schon umgesetzt, vorläufig bis zur Antwort:** Auf dem lokalen Zweig `sebaro-umbau` liegen der Export aus `e1bff9a`, `@source not`, der tsconfig-Ausschluss und G6 nach F34 a. Gepusht ist noch nichts. Fällt eine Antwort anders aus, wird der Zweig angepasst.
+
 ---
 
 ## 2 Was feststeht, was offen ist, was sebaroDesign liefern muss
@@ -340,6 +450,11 @@ Jede Antwort mit Datum und Wortlaut. Eine Frage gilt erst als entschieden, wenn 
 | Wörter         | 2026-10-24       | Befund der Skizze                                                           | Der Code sagt „Diskutieren“ und „Retro beenden“; wo dieser Plan „Besprechen“ und „Retro abschließen“ schreibt, gelten die Wörter aus `i18n.ts`                                                                                                                                                                                                                                                                                                                                                                                            |
 | Prüfung        | 2026-10-24 19:05 | —                                                                           | **S5 erfüllt:** D100/D101 committet (`SD` `0f40a10`). **S1 nicht erfüllt:** novalis `sebaro-umbau` hat 5 Commits über `main` (Kürzel, Menü, Seitenleiste, `d3978e1`), aber keinen Export (`apps/desktop/ui/src/sebaro` fehlt), nichts auf `main`, kein PR. Gefilterter Export (F32) fehlt: `export_system.py` steht weiter auf 1.5.0. S2 fehlt                                                                                                                                                                                            |
 | STA-03 vorab   | 2026-10-25       | „ja, mach das bitte“                                                        | §7.2 B, erste drei Punkte, vorgezogen auf `main`, abweichend von F4 („UI-Stopp auf `main`“): Board anlegen, Beitreten und Action Item lassen die Taste drückbar und sagen am Feld „… fehlt.“ (sebaro STA-03, D98 V2); „(optional)“ an Begründung, Verantwortlich (mit „Keine“) und Höchstens pro Karte (D99); „Pflichtphase“ und „Max.“ gestrichen. Feste Phasen sagen „Gehört immer dazu“ / „Always included“ (Owner-Antwort 2026-10-25, „„Gehört immer dazu“ (Empfohlen)“)                                                              |
+| Ausnahmen D103 | 2026-10-25       | „Neue mit Begründung“                                                       | Eine neue axe-Ausnahme ist erlaubt, wenn eine Abwägung nach D103 gegen die Barrierefreiheit ausgeht; sie nennt D103 und das Ziel, gegen das abgewogen wurde (`e2e/a11y-waivers.ts`)                                                                                                                                                                                                                                                                                                                                                       |
+| F17 Ziel       | 2026-10-25       | „Kein Ziel nennen“                                                          | Die Erklärung zur Barrierefreiheit (#55) nennt kein WCAG-Niveau mehr                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Start 2b       | 2026-10-30       | „Ja, mit 2b starten (Empfohlen)“                                            | S1 (novalis `main` `192a5ae`) und S2 (D109) gelten als erfüllt; vor 2b läuft §1.7, Ergebnis in §1.8                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| F7 Rad         | 2026-10-30       | „Bewusst bei 4,5 s bleiben“                                                 | Das Rad dreht weiter 4,5 s mit 4 bis 6 Umdrehungen und steht bei reduzierter Bewegung still; genehmigte Abweichung von D105 (6) als D114 (`SD` `e1bff9a`)                                                                                                                                                                                                                                                                                                                                                                                 |
+| CI-Folge       | 2026-10-30       | „Ja, kleine Lösung“                                                         | Cloud-Auftrag für apt-Wiederholungen und -Zeitgrenzen in der CI, zusätzlich zu #64                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ---
 
@@ -990,11 +1105,11 @@ Größte Unsicherheit: 5g und 5h (L3, L12) sowie F2 und L11. Eine Kalenderschät
 | Keine Referenzbilder; Zustände nie gesehen              | Bild-Diff-Bericht je PR; Fortschritt und Fehler der Hauptaktion als eigene Bildzustände |
 | Erste Sichtung führte zu ADR-0050                       | Sichtung je PR, Folge-Entscheidungen nach dem Schluss-Merge                             |
 | Kürzel-Kollision ⌘K                                     | erst Stufe 7, mit `check_shortcuts.py`                                                  |
-| Neue Einstellung `reduceMotion` brauchte eine ADR       | Board-Einstellungen in `docs/sebaro-umbau## Anhang A: An sebaroDesign melden            |
+| Neue Einstellung `reduceMotion` brauchte eine ADR       | Board-Einstellungen in `docs/sebaro-umbau.md`                                           |
 
-Steht jetzt in [`docs/sebaro-luecken.md`](sebaro-luecken.md) §2 (in dieser Session nicht an sebaroDesign gemeldet und dort nichts geändert).
+## Anhang A: An sebaroDesign melden
 
-nen die Sprache eine gespeicherte Wahl ist (F18b). 30. Manifest `theme_color #F4F5F8` gibt installierten Apps auch im Dunkelmodus eine helle Titelleiste (F29). 31. Laufnummer der gescheiterten CI (40084216639) steht in keiner SD-Datei. `PACKAGES.md:189` nennt nur „billing block“.
+Steht jetzt in [`docs/sebaro-luecken.md`](sebaro-luecken.md) §2.
 
 ## Anhang B: Prüfbefehle je PR (Ausführungs-Session, erst nach S1 und S2)
 

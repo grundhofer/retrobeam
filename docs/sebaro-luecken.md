@@ -74,6 +74,13 @@ Diese Arbeit macht **eine sebaroDesign-Session nach `SD/AGENTS.md`, nach S2**. D
       - Eine neue Ausnahme ist erlaubt, wenn eine Abwägung nach D103 gegen die Barrierefreiheit ausgeht. Sie nennt D103 und das Ziel, gegen das abgewogen wurde (`e2e/a11y-waivers.ts`).
       - Die Erklärung nennt kein Ziel mehr.
 
+39. **Kopier-Toast im Einladen-Dialog (2026-10-30, Pin `0b40e1a`):** `SB/spec/02:1817` verlangt beim Kopieren des Links einen Toast, `SB/spec/07:173-177` erlaubt ihn nur für einen Befehl aus Palette oder Menü, nie für eine Taste, die ihr Ergebnis selbst zeigt. RetroBeam zeigt bis zur Antwort „Kopiert“ an der Taste, ohne Toast.
+40. **`shared/ACCESSIBILITY-STATEMENT.md` kennt D103 nicht:** Die Vorlage verspricht weiter WCAG 2.2 AA (`:35-36`, `:56`, `:80`). RetroBeams Erklärung nennt nach der Antwort zu F17 kein Ziel.
+41. **ADO §4.1 zur Startkachel (`:467-487`):** Die Vorlage sagt, novalis kopiere `sb-start.js` nach `public/`. Tatsächlich nutzt novalis ein Vite-Plugin (im Dev aus dem Export, im Build per `emitFile`).
+42. **D109 in ADOPTION:** `ADO:28-32` und `:582` nennen RetroBeam noch „later“ bzw. „not scheduled“.
+43. **README im Export:** `README.md:196-198` des Exports nennt `--from-commit` nicht. Wer daraus neu exportiert, nimmt den Arbeitsbaum von sebaroDesign mit.
+44. **`editor/` im Web-Export:** Ohne CodeMirror scheitert `tsc` an `editor/sebaro-codemirror.ts`, wenn der Export unter `src/` liegt. Laut der SD-Session kommt `--no-editor` mit der D115-Runde.
+
 ## 3 Folgen von D102, D104, D105 und D106 für den Plan
 
 Stand `ef6121d`. Vor der jeweiligen Stufe mit dem Inhaber klären, einzeln:
