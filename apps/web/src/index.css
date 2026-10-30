@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* The sebaro export is sebaroDesign's CSS, not class names for Tailwind to
+   scan: without this its files would add utilities to the build. */
+@source not "./sebaro";
 
 @theme {
   /* Calm neutral surface, one teal accent; sticky notes will be the only

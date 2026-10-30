@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sebaro:og-pages:1.0",
+  "title": "sebaro share-image page list 1.0",
+  "description": "Input of brand/og/render.mjs (spec/09 §18.1, D96): one entry per page that has a title of its own. The script validates a page list against this file itself (the keywords it reads: type, required, properties, additionalProperties, enum, pattern, minLength, maxLength, minimum, maximum, items, minItems, maxItems, uniqueItems, $ref), so the schema is the one definition of the format. Words are the page's own: the image says nothing the page does not say.",
+  "type": "object",
+  "required": ["site", "pages"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "$comment": { "type": "string" },
+    "site": {
+      "description": "Defaults of the whole site.",
+      "type": "object",
+      "required": ["product", "name", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "product": { "$ref": "#/$defs/product", "description": "The site's product id (its tile and name in the head); a page may name another." },
+        "name": { "$ref": "#/$defs/text", "description": "og:site_name: the site's name as it writes it." },
+        "origin": { "type": "string", "pattern": "^https?://[^/\\s?#]+$", "description": "Scheme and host without a trailing slash, e.g. https://example.org; og:url, og:image and canonical are absolute from it, and its host ends the meta line." },
+        "lang": { "type": "string", "enum": ["de", "en"], "description": "Language of the words the script adds (reading time, date) and of og:locale (de_DE, en_GB). Default de. Right to left is not supported." },
+        "imageBase": { "type": "string", "pattern": "^/([^\\s?#]*/)?$", "description": "Path under origin where the site serves the PNGs, with slashes at both ends. Default /og/." }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/page" }
+    }
+  },
+  "$defs": {
+    "product": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "A product id with brand/inline/tile-<id>.svg in the export (export with --product <id>; the umbrella product studio exports every tile)." },
+    "text": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "^[^\\u0000-\\u001F\\u007F]+$" },
+    "page": {
+      "type": "object",
+      "required": ["id", "url", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Unique id of the page; the file name of its image unless output is set." },
+        "url": { "type": "string", "pattern": "^/[^\\s?#]*$", "description": "The page's path under origin, e.g. /phase-5/state/; canonical and og:url." },
+        "title": { "$ref": "#/$defs/text", "description": "The page's own title (its h1, the <title> without „ · sebaro“). At most three lines fit; a longer title fails with the page id, it is never cut or set smaller. Mark break points in long compounds with U+00AD (soft hyphen); the template breaks only there and at spaces." },
+        "path": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "$ref": "#/$defs/text" }, "description": "The page's breadcrumb steps as the page shows them, e.g. [„<site name>“, „<section>“, „<page>“]; drawn with the chevron icon between them (D82). One line; a longer path fails." },
+        "readingMinutes": { "type": "integer", "minimum": 1, "maximum": 999, "description": "Reading time the page states: „12 Min. Lesezeit“ (de), „12 min read“ (en)." },
+        "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "description": "ISO date the page states; rendered „26.04.2026“ (de) or „2026-04-26“ (en), spec/07 §3 item 5." },
+        "dateKind": { "type": "string", "enum": ["updated", "published"], "description": "Word before the date: „aktualisiert am“ / „veröffentlicht am“ (de), „updated“ / „published“ (en). Default updated." },
+        "product": { "$ref": "#/$defs/product", "description": "Product of this page if it is not site.product." },
+        "output": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$", "description": "File name without .png; default id. Unique in the list." },
+        "description": { "$ref": "#/$defs/text", "description": "The page's own description: meta description and og:description. Never drawn into the image." },
+        "type": { "type": "string", "enum": ["article", "website"], "description": "og:type; default article, website for the start page." },
+        "alt": { "$ref": "#/$defs/text", "description": "og:image:alt; default „<product name>: <title>“, with apps followed by the sentence naming their signs." },
+        "apps": { "type": "array", "minItems": 1, "maxItems": 6, "uniqueItems": true, "items": { "$ref": "#/$defs/product" }, "description": "App signs with their names in the foot, for a page that lists those apps (the studio start page). One line; too many fail." }
+      }
+    }
+  }
+}

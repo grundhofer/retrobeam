@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="{{lang}}" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>OG · {{docTitle}}</title>
+<!-- {{generatedNote}} -->
+<!-- sebaro share image, 1200 x 630, light ground like paper (spec/09 §18.1, W6a, W8a; D96). The one template of the
+     workshop and of every website: brand/og/render.mjs fills it per page from a page list (brand/og/pages.schema.json)
+     and renders it in Chromium; the workshop's brand/src/og/*.html are written from it (brand/src/og/*.pages.json).
+     Two forms: a page with a path or meta (crumb, title 68/76 px, meta line) and a start page without both (title
+     76/84 px). The umbrella product (studio) shows the large sebaro lockup in the head, every other product its tile
+     and name, with the small lockup at the bottom. Colours and type only from tokens; the tiles keep their one fixed
+     colour pair (D40). Text only from the page list: the image says nothing the page does not say (spec/09 §18.1).
+     Edit this file in sebaroDesign only; the shared look of every share image lives here. -->
+<link rel="stylesheet" href="{{fontsCss}}">
+<link rel="stylesheet" href="{{tokensCss}}">
+<link rel="stylesheet" href="{{spriteCss}}">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    box-sizing: border-box; padding: 72px 80px 64px;
+    background: var(--sb-color-bg); color: var(--sb-color-text); font-family: var(--sb-font-family-ui);
+    font-synthesis: none; display: grid; grid-template-rows: auto 1fr auto; row-gap: 32px;
+  }
+  body.og--start { row-gap: 40px; }
+  .og-product { display: flex; align-items: center; gap: 16px; min-width: 0; white-space: nowrap;
+                font-size: 28px; line-height: 36px; font-weight: var(--sb-type-title-weight);
+                letter-spacing: var(--sb-type-title-tracking); }
+  .og-product svg { display: block; flex: none; width: 56px; height: 56px; }
+  .og-lockup svg { display: block; height: 56px; width: auto; color: var(--sb-color-text); }
+  .og-text { align-self: center; min-width: 0; }
+  .og-crumb { display: flex; align-items: center; gap: 8px; margin: 0 0 20px; white-space: nowrap;
+              font-size: 26px; line-height: 36px; color: var(--sb-color-text-muted);
+              letter-spacing: var(--sb-type-body-tracking); }
+  .og-crumb .sb-icon { color: var(--sb-color-text-muted); }
+  .og-title { margin: 0; max-width: 20ch; font-size: 68px; line-height: 76px; font-weight: var(--sb-type-display-weight);
+              letter-spacing: var(--sb-type-display-tracking); hyphens: manual; overflow-wrap: normal; }
+  .og--start .og-title { max-width: 15ch; font-size: 76px; line-height: 84px; }
+  .og-foot { display: flex; align-items: center; justify-content: space-between; gap: 32px; min-width: 0; }
+  .og-meta { white-space: nowrap; font-size: 24px; line-height: 32px; color: var(--sb-color-text-muted);
+             letter-spacing: var(--sb-type-body-tracking); }
+  .og-mark svg { display: block; height: 32px; width: auto; color: var(--sb-color-text); }
+  .og-apps { display: flex; gap: 24px; margin: 0; padding: 0; list-style: none; }
+  .og-apps li { display: flex; align-items: center; gap: 12px; white-space: nowrap; font-size: 22px; line-height: 32px;
+                font-weight: var(--sb-type-label-weight); letter-spacing: var(--sb-type-label-tracking); }
+  .og-apps svg { display: block; flex: none; width: 48px; height: 48px; }
+</style>
+</head>
+<body class="og og--{{variant}}">
+{{#umbrella}}
+  <div class="og-lockup">{{{lockupLarge}}}</div>
+{{/umbrella}}
+{{^umbrella}}
+  <div class="og-product">{{{tile}}}{{productName}}</div>
+{{/umbrella}}
+  <div class="og-text">
+{{#crumb.length}}
+    <p class="og-crumb">{{#crumb}}{{#sep}}{{{chevron}}}{{/sep}}<span>{{text}}</span>{{/crumb}}</p>
+{{/crumb.length}}
+    <h1 class="og-title">{{title}}</h1>
+  </div>
+  <div class="og-foot">
+{{#apps.length}}
+    <ul class="og-apps">
+{{#apps}}
+      <li>{{{tile}}}{{name}}</li>
+{{/apps}}
+    </ul>
+{{/apps.length}}
+{{#meta}}
+    <span class="og-meta">{{meta}}</span>
+{{/meta}}
+{{^umbrella}}
+    <div class="og-mark">{{{lockupSmall}}}</div>
+{{/umbrella}}
+  </div>
+</body>
+</html>
