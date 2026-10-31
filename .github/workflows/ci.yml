@@ -63,7 +63,11 @@ jobs:
       # too. With these settings a stalled mirror connection times out after
       # 20 s and the download is retried, instead of the step sitting there
       # until its timeout. The file stays in place for the retry step below.
-      # The dump in the log shows the settings apt actually loaded.
+      # The runner image already sets Retries 1 and Timeout 15 in its own
+      # apt.conf.d file, and apt reads that directory in name order with the
+      # last file winning, so the name is chosen to sort after every numbered
+      # file. The step lists the files that set these keys, prints what apt
+      # actually loaded, and fails if any of the three values did not win.
       - name: Configure apt retries and timeouts
         timeout-minutes: 1
         run: |
@@ -71,9 +75,13 @@ jobs:
             'Acquire::Retries "3";' \
             'Acquire::http::Timeout "20";' \
             'Acquire::https::Timeout "20";' \
-            | sudo tee /etc/apt/apt.conf.d/80-retries > /dev/null
+            | sudo tee /etc/apt/apt.conf.d/zz-retries > /dev/null
+          grep -il -E 'Acquire::(Retries|https?::Timeout)' /etc/apt/apt.conf.d/* || true
           apt-config dump | grep -i acquire
-          apt-config dump | grep -qx 'Acquire::Retries "3";'
+          dump=$(apt-config dump)
+          grep -qx 'Acquire::Retries "3";' <<< "$dump"
+          grep -qx 'Acquire::http::Timeout "20";' <<< "$dump"
+          grep -qx 'Acquire::https::Timeout "20";' <<< "$dump"
       # The install used to hang until the 20-minute job timeout. Each attempt
       # now has its own budget and there is exactly one retry, so a hang costs
       # this step and not the run. On a cache hit only the system packages are
