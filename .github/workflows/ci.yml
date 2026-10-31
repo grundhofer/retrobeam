@@ -58,6 +58,22 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: ${{ steps.pw-key.outputs.key }}
+      # A run once stalled inside apt-get against the runner's Ubuntu mirror,
+      # not in the browser download, and install-deps runs apt on a warm cache
+      # too. With these settings a stalled mirror connection times out after
+      # 20 s and the download is retried, instead of the step sitting there
+      # until its timeout. The file stays in place for the retry step below.
+      # The dump in the log shows the settings apt actually loaded.
+      - name: Configure apt retries and timeouts
+        timeout-minutes: 1
+        run: |
+          printf '%s\n' \
+            'Acquire::Retries "3";' \
+            'Acquire::http::Timeout "20";' \
+            'Acquire::https::Timeout "20";' \
+            | sudo tee /etc/apt/apt.conf.d/80-retries > /dev/null
+          apt-config dump | grep -i acquire
+          apt-config dump | grep -qx 'Acquire::Retries "3";'
       # The install used to hang until the 20-minute job timeout. Each attempt
       # now has its own budget and there is exactly one retry, so a hang costs
       # this step and not the run. On a cache hit only the system packages are

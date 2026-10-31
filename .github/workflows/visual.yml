@@ -55,6 +55,22 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: ${{ steps.base-pw-key.outputs.key }}
+      # Stalled apt mirror connections time out after 20 s and are retried,
+      # as in ci.yml. The file is outside the workspace, so the head checkout
+      # below keeps it, but the head installs get their own step so each
+      # install's log shows the settings apt loaded.
+      - name: Configure apt retries and timeouts (base)
+        timeout-minutes: 1
+        continue-on-error: true
+        shell: bash
+        run: |
+          printf '%s\n' \
+            'Acquire::Retries "3";' \
+            'Acquire::http::Timeout "20";' \
+            'Acquire::https::Timeout "20";' \
+            | sudo tee /etc/apt/apt.conf.d/80-retries > /dev/null
+          apt-config dump | grep -i acquire
+          apt-config dump | grep -qx 'Acquire::Retries "3";'
       - name: Install Playwright browsers (base)
         id: base-pw-install
         timeout-minutes: 5
@@ -125,6 +141,18 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: ${{ steps.head-pw-key.outputs.key }}
+      - name: Configure apt retries and timeouts (head)
+        timeout-minutes: 1
+        continue-on-error: true
+        shell: bash
+        run: |
+          printf '%s\n' \
+            'Acquire::Retries "3";' \
+            'Acquire::http::Timeout "20";' \
+            'Acquire::https::Timeout "20";' \
+            | sudo tee /etc/apt/apt.conf.d/80-retries > /dev/null
+          apt-config dump | grep -i acquire
+          apt-config dump | grep -qx 'Acquire::Retries "3";'
       - name: Install Playwright browsers (head)
         id: head-pw-install
         timeout-minutes: 5
