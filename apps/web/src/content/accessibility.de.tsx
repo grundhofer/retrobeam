@@ -6,10 +6,11 @@ import { OperatorBlock, PlaceholderField } from "./OperatorBlock.js";
 import { ACCESSIBILITY_DATE, AUTHORITY_CHECKED } from "./operator.js";
 
 // German accessibility statement (F17 in docs/sebaro-umbau.md), after the
-// template in sebaroDesign's shared/ACCESSIBILITY-STATEMENT.md. It names no
-// target level, because under sebaro D103 accessibility can lose a
-// trade-off, and it claims no conformance: every check carries one of the four state words (sebaro
-// HAL-04), only checks that ran say "bestanden" (ZUG-07), and "keine bekannt"
+// template in sebaroDesign's shared/ACCESSIBILITY-STATEMENT.md. It names WCAG
+// 2.2 AA as the target, not as a result, and lists every deliberate deviation
+// under sebaro D103 with its reason (D116 (2)). It claims no conformance:
+// every check carries one of the four state words (sebaro HAL-04), only
+// checks that ran say "bestanden" (ZUG-07), and "keine bekannt"
 // stays out until a manual check has run. Not yet reviewed by a lawyer; the
 // review comes before it goes live, and it has to replace the sentence that
 // says the BFSG question is not legally checked with its own conclusion.
@@ -144,6 +145,29 @@ export function AccessibilityDe() {
       </p>
 
       <h2>Anforderungen und Prüfstand</h2>
+
+      <p>
+        Als Ziel gilt die Stufe AA der Web Content Accessibility Guidelines
+        (WCAG) 2.2. Die europäische Norm EN&nbsp;301&nbsp;549 verweist in der
+        Fassung V3.2.1 auf WCAG 2.1 Stufe AA. Die Fassung V4.1.1 verweist auf
+        WCAG 2.2 Stufe AA; sie ist veröffentlicht, im Amtsblatt der EU aber noch
+        nicht genannt.
+      </p>
+
+      <p>
+        RetroBeam erreicht dieses Ziel derzeit nicht. Mindestens eine bekannte
+        Einschränkung verfehlt es: Bedienelemente auf dem Canvas, die beim
+        angepassten Zoom kleiner als 24&nbsp;Pixel sind. Ob die übrigen
+        Einschränkungen unten es verfehlen, ist nicht von Hand geprüft, und
+        vieles ist noch gar nicht geprüft.
+      </p>
+
+      <p>
+        Wird bei einer Entscheidung Barrierefreiheit gegen ein anderes Ziel
+        abgewogen, kann das andere Ziel vorgehen. Jede solche bewusste
+        Abweichung steht mit ihrem Grund unter den bekannten Einschränkungen.
+        Derzeit gibt es keine.
+      </p>
 
       <p>
         Jede Prüfung unten hat einen von vier Zuständen: bestanden, offen,
