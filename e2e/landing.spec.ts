@@ -219,18 +219,18 @@ for (const view of [
     path: "/privacy",
     lang: "en",
     title: "Privacy notice",
-    footer: ["/privacy", "/imprint"],
+    footer: ["/privacy", "/imprint", "/accessibility"],
     other: { name: "DE, auf Deutsch umschalten", href: "/datenschutz" },
-    home: ["/datenschutz", "/impressum"],
+    home: ["/datenschutz", "/impressum", "/barrierefreiheit"],
   },
   {
     stored: "en",
     path: "/datenschutz",
     lang: "de",
     title: "Datenschutzerklärung",
-    footer: ["/datenschutz", "/impressum"],
+    footer: ["/datenschutz", "/impressum", "/barrierefreiheit"],
     other: { name: "EN, switch to English", href: "/privacy" },
-    home: ["/privacy", "/imprint"],
+    home: ["/privacy", "/imprint", "/accessibility"],
   },
 ] as const) {
   test(`${view.path} is in its own language when the stored one is ${view.stored}`, async ({
@@ -277,18 +277,106 @@ for (const view of [
   });
 }
 
+// The accessibility statement (F17) is a legal page like the other two: each
+// path renders its language whatever the browser says, links its counterpart,
+// and carries the feedback address with the c/o line the post needs, and the
+// authority. It claims no conformance (sebaro ZUG-07).
+for (const view of [
+  {
+    locale: "en-US",
+    path: "/barrierefreiheit",
+    lang: "de",
+    title: "Barrierefreiheit",
+    other: { name: "EN, switch to English", href: "/accessibility" },
+    sections: [
+      "Was RetroBeam ist",
+      "So benutzt du RetroBeam",
+      "Anforderungen und Prüfstand",
+      "Bekannte Einschränkungen",
+      "Rückmeldung",
+      "Zuständige Behörde",
+    ],
+  },
+  {
+    locale: "de-DE",
+    path: "/accessibility",
+    lang: "en",
+    title: "Accessibility",
+    other: { name: "DE, auf Deutsch umschalten", href: "/barrierefreiheit" },
+    sections: [
+      "What RetroBeam is",
+      "How to use RetroBeam",
+      "Requirements and checks",
+      "Known limitations",
+      "Feedback",
+      "Competent authority",
+    ],
+  },
+] as const) {
+  test(`${view.path} is the accessibility statement in ${view.lang}`, async ({
+    browser,
+  }) => {
+    const context = await newContext(browser, { locale: view.locale });
+    const page = await context.newPage();
+    await page.goto(view.path);
+    await expect(
+      page.getByRole("heading", { level: 1, name: view.title }),
+    ).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", view.lang);
+    await expect(page).toHaveTitle(`${view.title} · RetroBeam`);
+    expect(
+      await page.getByRole("heading", { level: 2 }).allTextContents(),
+    ).toEqual(view.sections);
+    await expect(page.getByTestId("operator-block")).toContainText("c/o");
+    await expect(page.getByTestId("authority-block")).toContainText(
+      "39112 Magdeburg",
+    );
+    await expect(page.locator("main")).not.toContainText(
+      /konform|conform|complian|complies|vollständig barrierefrei|fully accessible/i,
+    );
+
+    const other = page.getByRole("link", {
+      name: view.other.name,
+      exact: true,
+    });
+    await expect(other).toHaveAttribute("href", view.other.href);
+    await expect(other).toHaveAttribute(
+      "hreflang",
+      view.lang === "de" ? "en" : "de",
+    );
+    await other.click();
+    await expect(page).toHaveURL(new RegExp(`${view.other.href}$`));
+    await expect(page.locator("html")).toHaveAttribute(
+      "lang",
+      view.lang === "de" ? "en" : "de",
+    );
+
+    await context.close();
+  });
+}
+
 // The footer has no path of its own to follow, so it links the version in
 // the UI language — here from the browser language, nothing stored.
-for (const [locale, privacy, imprint] of [
-  ["de-DE", ["Datenschutz", "/datenschutz"], ["Impressum", "/impressum"]],
-  ["en-US", ["Privacy", "/privacy"], ["Imprint", "/imprint"]],
+for (const [locale, privacy, imprint, accessibility] of [
+  [
+    "de-DE",
+    ["Datenschutz", "/datenschutz"],
+    ["Impressum", "/impressum"],
+    ["Barrierefreiheit", "/barrierefreiheit"],
+  ],
+  [
+    "en-US",
+    ["Privacy", "/privacy"],
+    ["Imprint", "/imprint"],
+    ["Accessibility", "/accessibility"],
+  ],
 ] as const) {
   test(`the footer links the ${locale} legal pages`, async ({ browser }) => {
     const context = await newContext(browser, { locale });
     const page = await context.newPage();
     await page.goto("/");
     const footer = page.getByTestId("legal-footer");
-    for (const [name, href] of [privacy, imprint]) {
+    for (const [name, href] of [privacy, imprint, accessibility]) {
       await expect(
         footer.getByRole("link", { name, exact: true }),
       ).toHaveAttribute("href", href);
@@ -314,6 +402,7 @@ test("legal pages carry hreflang alternates, the landing page does not", async (
   for (const pair of [
     { de: "/impressum", en: "/imprint" },
     { de: "/datenschutz", en: "/privacy" },
+    { de: "/barrierefreiheit", en: "/accessibility" },
   ]) {
     for (const path of [pair.de, pair.en]) {
       await page.goto(path);
@@ -355,6 +444,18 @@ test("reading the legal pages writes nothing to browser storage", async ({
   await expect(page).toHaveURL(/\/imprint$/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Imprint" }),
+  ).toBeVisible();
+  await page
+    .getByTestId("legal-footer")
+    .getByRole("link", { name: "Accessibility" })
+    .click();
+  await expect(page).toHaveURL(/\/accessibility$/);
+  await page
+    .getByRole("link", { name: "DE, auf Deutsch umschalten", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/barrierefreiheit$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Barrierefreiheit" }),
   ).toBeVisible();
 
   const keys = await page.evaluate(() => [
@@ -431,11 +532,21 @@ test("the served HTML carries the link-preview tags and a static fallback", asyn
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).toContain("<urlset");
   expect(sitemap).not.toContain("/board/");
-  for (const path of ["/impressum", "/imprint", "/datenschutz", "/privacy"]) {
+  for (const path of [
+    "/impressum",
+    "/imprint",
+    "/datenschutz",
+    "/privacy",
+    "/barrierefreiheit",
+    "/accessibility",
+  ]) {
     expect(sitemap).toContain(`<loc>https://retrobeam.de${path}</loc>`);
   }
   expect(sitemap).toContain(
     '<xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/privacy"/>',
+  );
+  expect(sitemap).toContain(
+    '<xhtml:link rel="alternate" hreflang="en" href="https://retrobeam.de/accessibility"/>',
   );
 });
 

@@ -32,6 +32,8 @@ const HOST_FILES = [
   "apps/web/src/content/imprint.de.tsx",
   "apps/web/src/content/privacy.en.tsx",
   "apps/web/src/content/privacy.de.tsx",
+  "apps/web/src/content/accessibility.en.tsx",
+  "apps/web/src/content/accessibility.de.tsx",
 ];
 
 const base = mkdtempSync(join(tmpdir(), "check-legal-"));

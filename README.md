@@ -117,6 +117,9 @@ deploys from it. Before your first deployment, make it yours:
 - `apps/web/src/content/imprint.{en,de}.tsx` and `privacy.{en,de}.tsx` — the
   imprint and privacy notice describe retrobeam.de; as the operator you are
   the controller of your instance, so they have to describe yours.
+- `apps/web/src/content/accessibility.{en,de}.tsx` — the accessibility
+  statement says what retrobeam.de's operator checked and when; as the
+  operator of your instance it is yours to check and sign.
 - `apps/web/src/i18n.ts` — the landing page's "Not a commercial service" line
   and the "Can I use this at work" FAQ answer (EN and DE) speak for
   retrobeam.de.
