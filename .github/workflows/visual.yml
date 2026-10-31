@@ -69,7 +69,7 @@ jobs:
             'Acquire::http::Timeout "20";' \
             'Acquire::https::Timeout "20";' \
             | sudo tee /etc/apt/apt.conf.d/zz-retries > /dev/null
-          grep -il -E 'Acquire::(Retries|https?::Timeout)' /etc/apt/apt.conf.d/* || true
+          grep -il -E 'retries|timeout' /etc/apt/apt.conf.d/* || true
           apt-config dump | grep -i acquire
           dump=$(apt-config dump)
           grep -qx 'Acquire::Retries "3";' <<< "$dump"
@@ -155,7 +155,7 @@ jobs:
             'Acquire::http::Timeout "20";' \
             'Acquire::https::Timeout "20";' \
             | sudo tee /etc/apt/apt.conf.d/zz-retries > /dev/null
-          grep -il -E 'Acquire::(Retries|https?::Timeout)' /etc/apt/apt.conf.d/* || true
+          grep -il -E 'retries|timeout' /etc/apt/apt.conf.d/* || true
           apt-config dump | grep -i acquire
           dump=$(apt-config dump)
           grep -qx 'Acquire::Retries "3";' <<< "$dump"

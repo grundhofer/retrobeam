@@ -64,10 +64,12 @@ jobs:
       # 20 s and the download is retried, instead of the step sitting there
       # until its timeout. The file stays in place for the retry step below.
       # The runner image already sets Retries 1 and Timeout 15 in its own
-      # apt.conf.d file, and apt reads that directory in name order with the
-      # last file winning, so the name is chosen to sort after every numbered
-      # file. The step lists the files that set these keys, prints what apt
-      # actually loaded, and fails if any of the three values did not win.
+      # apt.conf.d files (one of them is called 80-retries), and apt reads
+      # that directory in name order with the last file winning, so the name
+      # is chosen to sort after every numbered file and leaves the image's
+      # files alone. The step lists every file there that mentions retries or
+      # timeouts, in whatever syntax, prints what apt actually loaded, and
+      # fails if any of the three values did not win.
       - name: Configure apt retries and timeouts
         timeout-minutes: 1
         run: |
@@ -76,7 +78,7 @@ jobs:
             'Acquire::http::Timeout "20";' \
             'Acquire::https::Timeout "20";' \
             | sudo tee /etc/apt/apt.conf.d/zz-retries > /dev/null
-          grep -il -E 'Acquire::(Retries|https?::Timeout)' /etc/apt/apt.conf.d/* || true
+          grep -il -E 'retries|timeout' /etc/apt/apt.conf.d/* || true
           apt-config dump | grep -i acquire
           dump=$(apt-config dump)
           grep -qx 'Acquire::Retries "3";' <<< "$dump"
