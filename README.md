@@ -165,7 +165,7 @@ pnpm dev          # SPA + Worker + BoardRoom DO in real workerd, one command
 ```sh
 pnpm --filter @retrobeam/shared test   # 1. pure domain logic (node)
 pnpm --filter @retrobeam/worker test   # 2. Worker + DO in workerd, incl. WebSocket flows
-pnpm --filter @retrobeam/web test      # 3. components in Chromium + WebKit
+pnpm --filter @retrobeam/web test      # 3. components in Chromium, WebKit and Firefox
 pnpm test:e2e                           # 4. e2e in Chromium, Firefox and WebKit
 pnpm check && pnpm lint                 # types + lint
 ```
