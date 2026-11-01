@@ -10,6 +10,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { NoIndex } from "./components/NoIndex.js";
 import { SkipLink } from "./components/SkipLink.js";
 import { LEGAL_PATHS } from "./lib/legalPaths.js";
+import { AccessibilityPage } from "./pages/AccessibilityPage.js";
 import { BoardPage } from "./pages/BoardPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { ImprintPage } from "./pages/ImprintPage.js";
@@ -21,10 +22,11 @@ import { PrivacyPage } from "./pages/PrivacyPage.js";
 // offer a way back (the board itself is safe on the server), not a blank page.
 //
 // The legal pages answer to a German and an English path each, and the path
-// decides the language (F18): /datenschutz and /impressum are German,
-// /privacy and /imprint English, whatever the UI language — which a legal page
-// neither changes nor stores (see LegalPage.tsx). The paths come from
-// lib/legalPaths.ts, which the links between the versions read too.
+// decides the language (F18): /datenschutz, /impressum and /barrierefreiheit
+// are German, /privacy, /imprint and /accessibility English, whatever the UI
+// language — which a legal page neither changes nor stores (see
+// LegalPage.tsx). The paths come from lib/legalPaths.ts, which the links
+// between the versions read too.
 //
 // The board route carries <NoIndex /> beside the page (a board URL is a
 // capability — see NoIndex.tsx), and "*" catches every other path, so a
@@ -54,6 +56,16 @@ const router = createBrowserRouter([
   {
     path: LEGAL_PATHS.imprint.en,
     element: <ImprintPage lang="en" />,
+    errorElement: <ErrorBoundary />,
+  },
+  {
+    path: LEGAL_PATHS.accessibility.de,
+    element: <AccessibilityPage lang="de" />,
+    errorElement: <ErrorBoundary />,
+  },
+  {
+    path: LEGAL_PATHS.accessibility.en,
+    element: <AccessibilityPage lang="en" />,
     errorElement: <ErrorBoundary />,
   },
   {

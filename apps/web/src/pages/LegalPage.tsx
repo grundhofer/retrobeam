@@ -74,10 +74,11 @@ export function LegalPage({ lang, paths, ...layout }: LegalPageProps) {
   );
 }
 
-// The reading layout the privacy notice and the imprint share: the site
-// header, a title, then a 65ch prose column (`.legal-prose` in index.css
-// styles the plain HTML the content files emit). Same ground, same footer as
-// every other screen, so the click from a board into the notice has no jolt.
+// The reading layout the privacy notice, the imprint and the accessibility
+// statement share: the site header, a title, then a 65ch prose column
+// (`.legal-prose` in index.css styles the plain HTML the content files
+// emit). Same ground, same footer as every other screen, so the click from a
+// board into the notice has no jolt.
 function LegalLayout({
   languageTo,
   title,

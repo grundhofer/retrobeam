@@ -117,6 +117,9 @@ deploys from it. Before your first deployment, make it yours:
 - `apps/web/src/content/imprint.{en,de}.tsx` and `privacy.{en,de}.tsx` — the
   imprint and privacy notice describe retrobeam.de; as the operator you are
   the controller of your instance, so they have to describe yours.
+- `apps/web/src/content/accessibility.{en,de}.tsx` — the accessibility
+  statement says what retrobeam.de's operator checked and when; as the
+  operator of your instance it is yours to check and sign.
 - `apps/web/src/i18n.ts` — the landing page's "Not a commercial service" line
   and the "Can I use this at work" FAQ answer (EN and DE) speak for
   retrobeam.de.
@@ -162,7 +165,7 @@ pnpm dev          # SPA + Worker + BoardRoom DO in real workerd, one command
 ```sh
 pnpm --filter @retrobeam/shared test   # 1. pure domain logic (node)
 pnpm --filter @retrobeam/worker test   # 2. Worker + DO in workerd, incl. WebSocket flows
-pnpm --filter @retrobeam/web test      # 3. components in Chromium + WebKit
+pnpm --filter @retrobeam/web test      # 3. components in Chromium, WebKit and Firefox
 pnpm test:e2e                           # 4. e2e in Chromium, Firefox and WebKit
 pnpm check && pnpm lint                 # types + lint
 ```

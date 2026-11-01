@@ -6,6 +6,8 @@ import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
 import "../i18n.js";
 import { LEGAL_PATHS } from "../lib/legalPaths.js";
+import { AccessibilityDe } from "./accessibility.de.js";
+import { AccessibilityEn } from "./accessibility.en.js";
 import { ImprintDe } from "./imprint.de.js";
 import { ImprintEn } from "./imprint.en.js";
 import { PrivacyDe } from "./privacy.de.js";
@@ -48,6 +50,7 @@ async function structure(view: React.ReactElement) {
       (code.textContent ?? "").replace(/<[^>]+>/g, "<board-id>").toLowerCase(),
     ),
     h1: root.querySelectorAll("h1").length,
+    authority: root.querySelectorAll('[data-testid="authority-block"]').length,
     operator: root.querySelectorAll('[data-testid="operator-block"]').length,
     externalUnsafe: [...root.querySelectorAll('a[href^="http"]')].filter(
       (a) =>
@@ -82,12 +85,43 @@ test("imprint: German and English share one structure", async () => {
   expect([de.externalUnsafe, en.externalUnsafe]).toEqual([0, 0]);
 });
 
+// Both versions of the accessibility statement name the same sections,
+// checks, open checks, limitations and contacts (the e2e test in
+// landing.spec.ts looks for a conformance claim).
+test("accessibility: German and English share one structure", async () => {
+  const de = await structure(<AccessibilityDe />);
+  const en = await structure(<AccessibilityEn />);
+  expect(de.h2).toBe(6);
+  expect(de.outline).toEqual(en.outline);
+  expect(de.items).toBe(en.items);
+  expect(de.hrefs).toEqual(en.hrefs.map(asGerman));
+  expect([de.h1, en.h1]).toEqual([0, 0]); // the page layout owns the title
+  expect([de.operator, en.operator]).toEqual([1, 1]);
+  expect([de.authority, en.authority]).toEqual([1, 1]);
+  expect(de.marks).toBe(en.marks);
+  expect([de.externalUnsafe, en.externalUnsafe]).toEqual([0, 0]);
+});
+
 // The path decides a legal page's language, so a link from one legal text to
 // another has to stay in that text's language.
 test("legal texts link the legal pages in their own language", async () => {
   for (const [lang, views] of [
-    ["de", [<PrivacyDe key="p" />, <ImprintDe key="i" />]],
-    ["en", [<PrivacyEn key="p" />, <ImprintEn key="i" />]],
+    [
+      "de",
+      [
+        <PrivacyDe key="p" />,
+        <ImprintDe key="i" />,
+        <AccessibilityDe key="a" />,
+      ],
+    ],
+    [
+      "en",
+      [
+        <PrivacyEn key="p" />,
+        <ImprintEn key="i" />,
+        <AccessibilityEn key="a" />,
+      ],
+    ],
   ] as const) {
     for (const view of views) {
       const { hrefs } = await structure(view);

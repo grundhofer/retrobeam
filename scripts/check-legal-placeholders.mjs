@@ -27,7 +27,10 @@ const OPERATOR_FILE = "apps/web/src/content/operator.ts";
 const WRANGLER_FILE = "apps/worker/wrangler.jsonc";
 // Files that name the host outside operator.ts: crawlers and link previews
 // need absolute URLs, and the privacy notice and imprint describe the
-// instance by name — a self-hoster is the controller of a different one.
+// instance by name — a self-hoster is the controller of a different one. The
+// accessibility statement is listed for a literal host mention only; its
+// check results are retrobeam.de's, and README.md asks the operator of
+// another instance to run the checks again.
 const HOST_FILES = [
   "apps/web/index.html",
   "apps/web/public/robots.txt",
@@ -36,6 +39,8 @@ const HOST_FILES = [
   "apps/web/src/content/imprint.de.tsx",
   "apps/web/src/content/privacy.en.tsx",
   "apps/web/src/content/privacy.de.tsx",
+  "apps/web/src/content/accessibility.en.tsx",
+  "apps/web/src/content/accessibility.de.tsx",
 ];
 
 // retrobeam.de's own values. Only compared against, never rendered.
@@ -210,7 +215,7 @@ if (problems.length > 0) {
       "Self-hosting? README.md → Self-hosting lists every file to change: " +
         "operator.ts (OPERATOR, REPO_URL, WORKERS_DEV_HOST, INSTANCE_HOST), " +
         "wrangler.jsonc routes, index.html og:image, public/robots.txt, public/sitemap.xml, " +
-        "the imprint and privacy notice in apps/web/src/content/.",
+        "the imprint, privacy notice and accessibility statement in apps/web/src/content/.",
     ].join("\n"),
   );
   process.exitCode = 1;

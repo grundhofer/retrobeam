@@ -19,6 +19,15 @@ updates:
         applies-to: version-updates
         dependency-type: development
         update-types: [minor, patch]
+    # The owner keeps RetroBeam on Vitest 4 for now (2026-10-31): the Worker's
+    # test pool, @cloudflare/vitest-pool-workers 0.23.0, requires vitest
+    # ^4.1.0, and no release supports Vitest 5 yet, so a major bump only
+    # opens a red PR (#69). Minor and patch updates of Vitest 4 still come.
+    ignore:
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
