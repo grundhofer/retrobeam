@@ -445,7 +445,7 @@ export function PrivacyEn() {
             </tr>
             <tr>
               <td>
-                <code>retrobeam.lang</code>
+                <code>sb-lang</code>
               </td>
               <td>Chosen language (de/en)</td>
               <td>Remember the language</td>
