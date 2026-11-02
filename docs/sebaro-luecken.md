@@ -80,6 +80,9 @@ Diese Arbeit macht **eine sebaroDesign-Session nach `SD/AGENTS.md`, nach S2**. D
 42. **D109 in ADOPTION:** `ADO:28-32` und `:582` nennen RetroBeam noch „later“ bzw. „not scheduled“.
 43. **README im Export:** `README.md:196-198` des Exports nennt `--from-commit` nicht. Wer daraus neu exportiert, nimmt den Arbeitsbaum von sebaroDesign mit.
 44. **`editor/` im Web-Export:** Ohne CodeMirror scheitert `tsc` an `editor/sebaro-codemirror.ts`, wenn der Export unter `src/` liegt. Laut der SD-Session kommt `--no-editor` mit der D115-Runde.
+45. **Listenzeichen unter Tailwinds Preflight (2026-11-02, Export `fb7f5b4`):** `sebaro.css` stellt in `sb-prose` nur den Einzug der Listen wieder her, nicht `list-style-type`; unter Tailwind fehlen Aufzählungszeichen und Nummern. RetroBeam setzt sie bis dahin in `index.css` (Stufe 3e).
+46. **Verdecktes Schreiben (F48, D104 (10)):** RetroBeam zeigt vor dem Aufdecken keine leeren Karten mit Namen; fremde Karten werden nicht gesendet und die Zahl je Person bleibt geheim (Anonymität, §6.1). Bewusste Abweichung, Entscheidung des Owners 2026-11-02.
+47. **Teilen-Bilder (F50, WEB-09):** RetroBeams Rechtsseiten bekommen kein eigenes Teilen-Bild, nur `/` hat eines (F28 a). Lesart: Rechtsseiten sind keine Seiten zum Teilen.
 
 ## 3 Folgen von D102, D104, D105 und D106 für den Plan
 
