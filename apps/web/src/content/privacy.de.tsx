@@ -469,7 +469,7 @@ export function PrivacyDe() {
             </tr>
             <tr>
               <td>
-                <code>retrobeam.lang</code>
+                <code>sb-lang</code>
               </td>
               <td>Gewählte Sprache (de/en)</td>
               <td>Sprache merken</td>

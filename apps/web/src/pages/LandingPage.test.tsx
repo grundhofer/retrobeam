@@ -20,10 +20,11 @@ const storedKeys = () =>
 // after the long-form content, and both instances lead to the create form.
 test("keeps the create action clear at the start and end", async () => {
   const screen = await render(page());
-  await expect.element(screen.getByTestId("brand-logo")).toBeVisible();
-  expect(
-    screen.getByTestId("brand-logo").element().querySelector("img")?.src,
-  ).toMatch(/\/brand-mark\.svg$/);
+  // The header's lockup: sebaro's tile and the name, back to this page.
+  const lockup = screen.getByRole("link", { name: "RetroBeam", exact: true });
+  await expect.element(lockup).toBeVisible();
+  expect(lockup.element().getAttribute("href")).toBe("/");
+  expect(lockup.element().querySelector(".sb-sign-tile svg")).not.toBeNull();
   const cta = screen.getByTestId("landing-cta");
   await expect.element(cta).toBeVisible();
   expect(cta.element().getAttribute("href")).toBe("/new");

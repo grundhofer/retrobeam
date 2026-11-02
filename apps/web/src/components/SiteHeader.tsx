@@ -3,40 +3,48 @@
 
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
-import { REPO_URL } from "../content/operator.js";
-import { BrandLogo } from "./BrandLogo.js";
-import { LanguageToggle } from "./LanguageToggle.js";
+import tile from "../sebaro/brand/inline/tile-retrobeam-small.svg?raw";
+import { LanguageSwitch } from "./LanguageSwitch.js";
 
-// The header of every page outside a board: wordmark back to the landing
-// page, one text link to the source, the language switch. Nothing else — the
-// landing page's one primary action lives in its hero, not up here.
+// The header of every page outside a board, as sebaro builds it for a web app
+// without a window (spec/03 §6.6, D102 (45)): the 32 px tile and the name
+// back to the landing page, DE / EN, and the button „Hell oder Dunkel“. No
+// navigation words; „Einstellungen“ joins with the settings view (5a), and
+// the link to the source is in the footer (D102 (48)). The name carries a
+// soft hyphen, so at large text it breaks as „Retro-“ / „Beam“ (D104 (30));
+// translate="no" keeps translators and sb-fit.js off it.
+//
+// The theme button is in the markup but hidden until stage 6b switches dark
+// mode on (plan §5.3).
 //
 // `languageTo` is the same page in the other language, for the pages that
-// have one (the legal pages): the switch then links there instead of storing
-// a choice.
+// have one (the legal pages): DE / EN then links there instead of storing a
+// choice.
 export function SiteHeader({ languageTo }: { languageTo?: string }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   return (
-    <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4 sm:px-10">
+    <header className="sb-site-header">
       <Link
         to="/"
+        className="sb-lockup"
         aria-current={pathname === "/" ? "page" : undefined}
-        className="group rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        <BrandLogo />
+        <span
+          className="sb-sign-tile sb-sign-tile--32"
+          aria-hidden="true"
+          dangerouslySetInnerHTML={{ __html: tile }}
+        />
+        <span className="sb-wordmark" translate="no">
+          Retro{"­"}Beam
+        </span>
       </Link>
-      <nav className="flex items-center gap-3" aria-label={t("site.nav")}>
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded px-2 py-1 text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          GitHub
-        </a>
-        <LanguageToggle to={languageTo} />
-      </nav>
+      <div className="sb-site-header__links">
+        <LanguageSwitch to={languageTo} />
+      </div>
+      <button className="sb-theme-button" type="button" hidden>
+        {t("site.theme")}
+      </button>
     </header>
   );
 }

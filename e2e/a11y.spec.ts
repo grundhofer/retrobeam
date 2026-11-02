@@ -139,10 +139,9 @@ for (const [name, path] of [
   });
 }
 
-// The runs above have an English browser, so the switch on the pages without a
-// language URL reads "DE, auf Deutsch umschalten". A German browser gets the
-// other name, "EN, switch to English", checked here on the views that carry no
-// waiver.
+// The runs above have an English browser. A German browser renders the same
+// views in German, with DE chosen in the header's language choice, checked
+// here on the views that carry no waiver.
 for (const [name, path] of [
   ["new-board", "/new"],
   ["not-found", "/does-not-exist"],
@@ -153,8 +152,10 @@ for (const [name, path] of [
     const page = await context.newPage();
     await page.goto(path);
     await expect(
-      page.getByRole("button", { name: "EN, switch to English", exact: true }),
-    ).toBeVisible();
+      page.getByRole("group", { name: "Sprache" }).getByRole("radio", {
+        name: "DE",
+      }),
+    ).toBeChecked();
     expect(await audit(page, name)).toEqual([]);
     await context.close();
   });

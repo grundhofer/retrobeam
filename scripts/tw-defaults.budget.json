@@ -34,7 +34,6 @@
   "apps/web/src/components/Roster.tsx": 19,
   "apps/web/src/components/RotiPoll.tsx": 23,
   "apps/web/src/components/ShareLink.tsx": 24,
-  "apps/web/src/components/SiteHeader.tsx": 7,
   "apps/web/src/components/TimerPanel.tsx": 24,
   "apps/web/src/components/VoteBar.tsx": 39,
   "apps/web/src/components/WheelOverlay.tsx": 81,

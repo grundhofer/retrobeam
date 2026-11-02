@@ -4,7 +4,11 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-const LANG_KEY = "retrobeam.lang";
+// The stored UI language uses sebaro's key (D102 (50)). Before the move it
+// was retrobeam.lang; a value there is taken over once and the old key
+// removed (plan §2.4 F18b, 2026-11-02).
+const LANG_KEY = "sb-lang";
+const LEGACY_LANG_KEY = "retrobeam.lang";
 
 const resources = {
   en: {
@@ -590,8 +594,9 @@ const resources = {
         reload: "Reload the board",
       },
       site: {
-        nav: "Site",
         skipToContent: "Skip to content",
+        language: "Language",
+        theme: "Light or dark",
       },
       pageNotFound: {
         title: "This page doesn't exist.",
@@ -1339,8 +1344,9 @@ const resources = {
         reload: "Board neu laden",
       },
       site: {
-        nav: "Website",
         skipToContent: "Zum Inhalt",
+        language: "Sprache",
+        theme: "Hell oder Dunkel",
       },
       pageNotFound: {
         title: "Diese Seite gibt es nicht.",
@@ -1496,6 +1502,12 @@ function initialLanguage(): "de" | "en" {
   try {
     const stored = localStorage.getItem(LANG_KEY);
     if (stored === "de" || stored === "en") return stored;
+    const legacy = localStorage.getItem(LEGACY_LANG_KEY);
+    localStorage.removeItem(LEGACY_LANG_KEY);
+    if (legacy === "de" || legacy === "en") {
+      localStorage.setItem(LANG_KEY, legacy);
+      return legacy;
+    }
   } catch {
     // fall through to the navigator language
   }
@@ -1529,6 +1541,11 @@ export function setLanguage(lang: "de" | "en"): void {
   }
   syncDocumentLanguage(lang);
   void i18n.changeLanguage(lang);
+  // sebaro's contract for a stored language choice (spec/03 §6.6): its
+  // scripts and any listener learn the new language from this event.
+  document.dispatchEvent(
+    new CustomEvent("sb-language-change", { detail: { lang } }),
+  );
 }
 
 /** Exported for the DE/EN parity test — not part of the runtime surface. */
