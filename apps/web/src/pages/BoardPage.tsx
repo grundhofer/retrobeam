@@ -38,7 +38,9 @@ import { PresenceRail } from "../components/PresenceRail.js";
 import { ReadyBar } from "../components/ReadyBar.js";
 import { Roster } from "../components/Roster.js";
 import { ShareLink } from "../components/ShareLink.js";
+import { Icon } from "../components/Icon.js";
 import { MAIN_ID } from "../components/SkipLink.js";
+import { StateView } from "../components/StateView.js";
 import { TimerPanel } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
@@ -470,35 +472,28 @@ function Room({
 
   if (state.deleted) {
     return (
-      <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
-        <main
-          id={MAIN_ID}
-          className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
-        >
-          <h1 className="text-2xl font-semibold text-zinc-900">
-            {t("deleted.title")}
-          </h1>
-          <p className="text-zinc-500">{t("deleted.body")}</p>
-          <Link
-            to="/new"
-            className="text-accent underline underline-offset-4 hover:text-accent-strong"
-          >
+      <StateView
+        view="board"
+        title={t("deleted.title")}
+        text={t("deleted.body")}
+        action={
+          <Link to="/new" className="sb-primary-action">
             {t("notFound.home")}
           </Link>
-        </main>
-        <LegalFooter />
-      </div>
+        }
+        footer={<LegalFooter />}
+      />
     );
   }
 
   if (you === null || phasePlan === undefined) {
     return (
-      <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
-        <main
-          id={MAIN_ID}
-          className="flex flex-1 items-center justify-center text-zinc-600"
-        >
-          {t("status.connecting")}
+      <div data-sb-view="board" className="flex min-h-dvh flex-col">
+        <main id={MAIN_ID} className="sb-container sb-section flex-1">
+          <p className="sb-loading" role="status">
+            <Icon name="loader" size={20} className="sb-spinner" />
+            {t("status.connecting")}
+          </p>
         </main>
         <LegalFooter openLegalLinksInNewTab />
       </div>
@@ -521,19 +516,24 @@ function Room({
         anonymous={anonymous}
       />
       {staleBuild ? (
+        // A note, not an error: the board works on, and reloading fetches the
+        // new version (sebaro spec/02 §3.11, one sentence with an action).
         <div
           role="status"
           data-testid="stale-build"
-          className="flex items-center justify-center gap-3 bg-amber-100 px-4 py-2 text-sm text-amber-900"
+          className="sb-callout sb-callout--note m-(--sb-space-2)"
         >
-          {t("update.available")}
-          <button
-            type="button"
-            onClick={() => location.reload()}
-            className="rounded-md bg-amber-900 px-2 py-0.5 font-medium text-white"
-          >
-            {t("update.reload")}
-          </button>
+          <Icon name="info--filled" size={20} />
+          <p className="sb-callout__text">{t("update.available")}</p>
+          <div className="sb-callout__actions">
+            <button
+              type="button"
+              onClick={() => location.reload()}
+              className="sb-secondary-action sb-secondary-action--compact"
+            >
+              {t("update.reload")}
+            </button>
+          </div>
         </div>
       ) : null}
       {/* overflow-x: clip is a safety net, not the fix: every known cause of
@@ -865,49 +865,34 @@ function Room({
 function LookupFailed({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
   return (
-    <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
-      <main
-        id={MAIN_ID}
-        data-testid="lookup-failed"
-        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
-      >
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {t("lookupFailed.title")}
-        </h1>
-        <p className="max-w-prose text-zinc-500">{t("lookupFailed.body")}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
+    <StateView
+      view="board"
+      testId="lookup-failed"
+      title={t("lookupFailed.title")}
+      text={t("lookupFailed.body")}
+      action={
+        <button type="button" onClick={onRetry} className="sb-primary-action">
           {t("lookupFailed.retry")}
         </button>
-      </main>
-      <LegalFooter />
-    </div>
+      }
+      footer={<LegalFooter />}
+    />
   );
 }
 
 function NotFound() {
   const { t } = useTranslation();
   return (
-    <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
-      <main
-        id={MAIN_ID}
-        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
-      >
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {t("notFound.title")}
-        </h1>
-        <p className="text-zinc-500">{t("notFound.body")}</p>
-        <Link
-          to="/new"
-          className="text-accent underline underline-offset-4 hover:text-accent-strong"
-        >
+    <StateView
+      view="board"
+      title={t("notFound.title")}
+      text={t("notFound.body")}
+      action={
+        <Link to="/new" className="sb-primary-action">
           {t("notFound.home")}
         </Link>
-      </main>
-      <LegalFooter />
-    </div>
+      }
+      footer={<LegalFooter />}
+    />
   );
 }
