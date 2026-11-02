@@ -500,7 +500,7 @@ test("the served HTML carries the link-preview tags and a static fallback", asyn
 }) => {
   const html = await (await request.get("/")).text();
   for (const tag of [
-    /<html lang="de">/,
+    /<html lang="de"[\s>]/,
     /<meta\s+name="description"\s+content="[^"]+"/,
     /<meta property="og:type" content="website"/,
     /<meta property="og:site_name" content="RetroBeam"/,

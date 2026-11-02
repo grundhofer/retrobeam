@@ -87,7 +87,7 @@ export function LandingPage() {
   }, [hash]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="landing" className="flex min-h-dvh flex-col bg-zinc-50">
       <SiteHeader />
       <main id={MAIN_ID} className="flex-1">
         <section

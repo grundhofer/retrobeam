@@ -34,7 +34,10 @@ export function NotFoundPage() {
   }, [appName, title]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div
+      data-sb-view="not-found"
+      className="flex min-h-dvh flex-col bg-zinc-50"
+    >
       <NoIndex />
       <SiteHeader />
       <main

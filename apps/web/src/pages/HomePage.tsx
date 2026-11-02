@@ -95,7 +95,10 @@ export function HomePage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div
+      data-sb-view="new-board"
+      className="flex min-h-dvh flex-col bg-zinc-50"
+    >
       <SiteHeader />
       <main
         id={MAIN_ID}
