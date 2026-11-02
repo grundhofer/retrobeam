@@ -19,49 +19,41 @@ const footer = (openLegalLinksInNewTab = false) => (
 // AGPL §0 defines the Appropriate Legal Notices that §5(d) makes mandatory for
 // an interactive UI: a copyright notice, the fact that recipients may convey
 // the work under this licence, the absence of warranty, and how to view the
-// licence. §13 adds the source offer. All five are asserted here — this footer
-// is the only place the deployed app discharges them.
+// licence. §13 adds the source offer. All of them are asserted here — this
+// footer is the only place the deployed app discharges them.
 test("carries the copyright, licence, warranty and source notices", async () => {
   const screen = await render(footer());
-
+  const line = screen.getByText(/© 2026 Sebastian Grundhöfer/);
+  await expect.element(line).toHaveTextContent(/AGPL-3\.0-or-later/);
+  await expect.element(line).toHaveTextContent(/redistribution|Weitergabe/);
   await expect
-    .element(screen.getByText(/© 2026 Sebastian Grundhöfer/))
-    .toBeInTheDocument();
-  await expect
-    .element(screen.getByText(/AGPL-3\.0-or-later/))
-    .toBeInTheDocument();
-  await expect
-    .element(screen.getByText(/Redistribution|Weitergabe/))
-    .toBeInTheDocument();
-  await expect
-    .element(screen.getByText(/no warranty|ohne Gewährleistung/))
-    .toBeInTheDocument();
-  await expect
-    .element(screen.getByRole("link", { name: /Source code|Quelltext/ }))
-    .toBeInTheDocument();
+    .element(line)
+    .toHaveTextContent(/no warranty|ohne Gewährleistung/);
+  const github = screen.getByRole("link", { name: "GitHub" });
+  expect(github.element().getAttribute("href")).toContain(
+    "github.com/grundhofer/retrobeam",
+  );
+  expect(github.element().getAttribute("title")).toMatch(
+    /Source code|Quelltext/,
+  );
 });
 
-test("both notices resolve into the repository", async () => {
+// sebaro's order (spec/02 §5): the three pages of our own, GitHub, then the
+// fonts' licence texts, which the build serves next to the fonts.
+test("links in sebaro's order, the fonts' licences last", async () => {
   const screen = await render(footer());
   const links = [
     ...screen.getByTestId("legal-footer").element().querySelectorAll("a"),
   ];
-
-  // Three pages of our own (the two statutory ones and the accessibility
-  // statement), then the two AGPL notices in the repo.
-  expect(links).toHaveLength(5);
   const lang = i18n.language.startsWith("de") ? "de" : "en";
-  expect(links.slice(0, 3).map((link) => link.getAttribute("href"))).toEqual([
-    LEGAL_PATHS.privacy[lang],
+  expect(links.map((link) => link.getAttribute("href"))).toEqual([
     LEGAL_PATHS.imprint[lang],
+    LEGAL_PATHS.privacy[lang],
     LEGAL_PATHS.accessibility[lang],
+    "https://github.com/grundhofer/retrobeam",
+    "/fonts/sebaro-sans-OFL.txt",
+    "/fonts/sebaro-mono-OFL.txt",
   ]);
-  for (const link of links.slice(3)) {
-    expect(link.getAttribute("href")).toContain(
-      "github.com/grundhofer/retrobeam",
-    );
-  }
-  expect(links[3]?.getAttribute("href")).toContain("/LICENSE");
 });
 
 // Art. 13 GDPR and § 18 Abs. 1 MStV both require their page to be reachable

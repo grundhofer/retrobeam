@@ -5,25 +5,27 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { REPO_URL } from "../content/operator.js";
 import { LEGAL_PATHS } from "../lib/legalPaths.js";
+import { Icon } from "./Icon.js";
 
-// AGPL §13 obliges a version reachable over a network to offer its users the
-// Corresponding Source *of that version*; §5(d) obliges the interactive UI to
-// carry the copyright notice, the licence terms and the warranty disclaimer.
-// Both are discharged here, on every screen a participant actually uses —
-// as are the two statutory pages: the privacy notice (Art. 13 GDPR) and the
-// imprint (§ 18 Abs. 1 MStV), which must be reachable from every page. The
-// accessibility statement sits beside them (sebaro WEB-03: always linked).
+// sebaro's website footer (spec/02 §5, WEB-03) as a web app without a window
+// has it (spec/03 §6.6): the copyright line, then Impressum, Datenschutz,
+// Barrierefreiheit and GitHub, without „Darstellung“ (D104 (29)). It is on
+// every screen a participant uses, so the two statutory pages (Art. 13 GDPR,
+// § 18 Abs. 1 MStV) and the accessibility statement are always one step away.
+//
+// AGPL: §13 asks a version reachable over a network to offer its users the
+// source of that version, so „GitHub“ leads to the commit that is running
+// (owner F16, 2026-11-02, within sebaro's single GitHub link, D102 (48)).
+// §5(d)'s Appropriate Legal Notices (copyright, the licence, that the work may
+// be conveyed, no warranty) stand as text in the copyright line, and the
+// repository shows the licence itself. The fonts' OFL texts are linked too, as
+// their licence asks for (plan §2.4).
 //
 // The commit is injected at build time (VITE_COMMIT_SHA — see deploy.yml and
-// the `deploy` script). Without it the links degrade to the default branch,
-// which is correct for dev and tests but not for a deployed build.
+// the `deploy` script). Without it the link degrades to the repository, which
+// is right for dev and tests but not for a deployed build.
 const commit = import.meta.env.VITE_COMMIT_SHA;
 const sourceUrl = commit ? `${REPO_URL}/tree/${commit}` : REPO_URL;
-const licenseUrl = `${REPO_URL}/blob/${commit ?? "main"}/LICENSE`;
-const shortCommit = commit ? commit.slice(0, 7) : null;
-
-const linkClass =
-  "inline-block py-1 underline underline-offset-2 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-accent";
 
 // The legal pages have a path per language (lib/legalPaths.ts), so the links
 // lead to the version in the reader's language: the UI language, or on a legal
@@ -35,63 +37,52 @@ export function LegalFooter({
 }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language.startsWith("de") ? "de" : "en";
-  const legalLinkTarget = openLegalLinksInNewTab ? "_blank" : undefined;
-  const legalLinkRel = openLegalLinksInNewTab ? "noreferrer" : undefined;
+  const target = openLegalLinksInNewTab ? "_blank" : undefined;
+  const rel = openLegalLinksInNewTab ? "noreferrer" : undefined;
   return (
-    <footer
-      data-testid="legal-footer"
-      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-6 py-4 text-xs text-zinc-600"
-    >
-      <span>© 2026 Sebastian Grundhöfer</span>
-      <span aria-hidden="true">·</span>
-      <Link
-        to={LEGAL_PATHS.privacy[lang]}
-        target={legalLinkTarget}
-        rel={legalLinkRel}
-        className={linkClass}
-      >
-        {t("legal.privacy")}
-      </Link>
-      <span aria-hidden="true">·</span>
-      <Link
-        to={LEGAL_PATHS.imprint[lang]}
-        target={legalLinkTarget}
-        rel={legalLinkRel}
-        className={linkClass}
-      >
-        {t("legal.imprint")}
-      </Link>
-      <span aria-hidden="true">·</span>
-      <Link
-        to={LEGAL_PATHS.accessibility[lang]}
-        target={legalLinkTarget}
-        rel={legalLinkRel}
-        className={linkClass}
-      >
-        {t("legal.accessibility")}
-      </Link>
-      <span aria-hidden="true">·</span>
-      <a
-        href={licenseUrl}
-        target="_blank"
-        rel="noreferrer"
-        className={linkClass}
-      >
-        {t("legal.license")}
-      </a>
-      <span aria-hidden="true">·</span>
-      <span>{t("legal.redistribute")}</span>
-      <span aria-hidden="true">·</span>
-      <a
-        href={sourceUrl}
-        target="_blank"
-        rel="noreferrer"
-        aria-label={t("legal.sourceVersion")}
-        className={linkClass}
-      >
-        {t("legal.source")}
-        {shortCommit ? ` ${shortCommit}` : null}
-      </a>
+    <footer data-testid="legal-footer" className="sb-site-footer">
+      <p>
+        © 2026 Sebastian Grundhöfer · <span translate="no">RetroBeam</span> ·{" "}
+        {t("legal.notice")}
+      </p>
+      <ul className="sb-site-footer__links">
+        <li>
+          <Link to={LEGAL_PATHS.imprint[lang]} target={target} rel={rel}>
+            {t("legal.imprint")}
+          </Link>
+        </li>
+        <li>
+          <Link to={LEGAL_PATHS.privacy[lang]} target={target} rel={rel}>
+            {t("legal.privacy")}
+          </Link>
+        </li>
+        <li>
+          <Link to={LEGAL_PATHS.accessibility[lang]} target={target} rel={rel}>
+            {t("legal.accessibility")}
+          </Link>
+        </li>
+        <li>
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            title={t("legal.source")}
+          >
+            GitHub
+            <Icon name="external-link" size={16} />
+          </a>
+        </li>
+        <li>
+          {t("legal.fonts")}{" "}
+          <a href="/fonts/sebaro-sans-OFL.txt" target="_blank" rel="noreferrer">
+            {t("legal.fontSans")}
+          </a>{" "}
+          ·{" "}
+          <a href="/fonts/sebaro-mono-OFL.txt" target="_blank" rel="noreferrer">
+            {t("legal.fontMono")}
+          </a>
+        </li>
+      </ul>
     </footer>
   );
 }
