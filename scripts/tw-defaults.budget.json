@@ -36,11 +36,10 @@
   "apps/web/src/components/TimerPanel.tsx": 24,
   "apps/web/src/components/VoteBar.tsx": 39,
   "apps/web/src/components/WheelOverlay.tsx": 81,
-  "apps/web/src/index.css": 26,
+  "apps/web/src/index.css": 3,
   "apps/web/src/lib/exportImage.ts": 7,
   "apps/web/src/pages/BoardPage.tsx": 68,
   "apps/web/src/pages/HomePage.tsx": 60,
   "apps/web/src/pages/LandingPage.tsx": 73,
-  "apps/web/src/pages/LegalPage.tsx": 6,
   "apps/web/src/pages/NotFoundPage.tsx": 9
 }

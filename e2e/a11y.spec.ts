@@ -37,17 +37,10 @@ test.skip(
 // and runs as test.fixme; the stage takes it out, and from then on axe must
 // pass there (owner decision of 2026-11-02). The waiver list is not used for
 // this, and the list must be empty before the final merge to main.
-const FRAME = "stages 3a and 3b (site header and footer)";
 const KNOWN: Record<string, string> = {
-  landing: `${FRAME}, 4c (landing)`,
-  "new-board": `${FRAME}, 4a (/new)`,
-  impressum: `${FRAME}, 3d (legal pages)`,
-  datenschutz: `${FRAME}, 3d (legal pages)`,
-  imprint: `${FRAME}, 3d (legal pages)`,
-  privacy: `${FRAME}, 3d (legal pages)`,
-  barrierefreiheit: `${FRAME}, 3c (accessibility statement)`,
-  accessibility: `${FRAME}, 3c (accessibility statement)`,
-  "not-found": `${FRAME}, 3e (not-found and error views)`,
+  landing: "stage 4c (landing)",
+  "new-board": "stage 4a (/new)",
+  "not-found": "stage 3e (not-found and error views)",
   "board-lobby": "stages 5a (board frame) and 5b (lobby)",
   "board-write": "stages 5a (board frame), 5c and 5g (board core)",
   "board-canvas-arrange": "stage 5h (free canvas)",

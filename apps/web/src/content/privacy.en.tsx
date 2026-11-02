@@ -164,7 +164,7 @@ export function PrivacyEn() {
       </p>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Stored board data"
         tabIndex={0}
@@ -422,7 +422,7 @@ export function PrivacyEn() {
       </p>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Local browser storage"
         tabIndex={0}
@@ -605,7 +605,7 @@ export function PrivacyEn() {
       <h2>7. Recipients and transfers to third countries</h2>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Recipients and transfers to third countries"
         tabIndex={0}

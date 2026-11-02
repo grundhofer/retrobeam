@@ -174,7 +174,7 @@ export function PrivacyDe() {
       </p>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Gespeicherte Board-Daten"
         tabIndex={0}
@@ -446,7 +446,7 @@ export function PrivacyDe() {
       </p>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Lokale Browser-Speicherung"
         tabIndex={0}
@@ -635,7 +635,7 @@ export function PrivacyDe() {
       <h2>7. Empfänger und Übermittlung in Drittländer</h2>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Empfänger und Drittlandübermittlungen"
         tabIndex={0}
