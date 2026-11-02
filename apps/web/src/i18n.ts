@@ -728,10 +728,12 @@ const resources = {
           "Not a commercial service: RetroBeam is a private open-source project by Sebastian Grundhöfer — no company, no ads, no tracking, no sale of data.",
       },
       legal: {
-        license: "Free software: AGPL-3.0-or-later",
-        redistribute: "Redistribution and modification permitted, no warranty.",
-        source: "Source code",
-        sourceVersion: "Source code of the version running here",
+        notice:
+          "Free software under AGPL-3.0-or-later: redistribution and modification permitted, no warranty.",
+        source: "Source code of the version running here",
+        fonts: "Fonts:",
+        fontSans: "Sans",
+        fontMono: "Mono",
         privacy: "Privacy",
         privacyTitle: "Privacy notice",
         imprint: "Imprint",
@@ -1480,10 +1482,12 @@ const resources = {
           "Kein kommerzielles Angebot: RetroBeam ist ein privates Open-Source-Projekt von Sebastian Grundhöfer — keine Firma, keine Werbung, kein Tracking, kein Verkauf von Daten.",
       },
       legal: {
-        license: "Freie Software: AGPL-3.0-or-later",
-        redistribute: "Weitergabe und Änderung erlaubt, ohne Gewährleistung.",
-        source: "Quelltext",
-        sourceVersion: "Quelltext der hier laufenden Version",
+        notice:
+          "Freie Software unter AGPL-3.0-or-later: Weitergabe und Änderung erlaubt, ohne Gewährleistung.",
+        source: "Quelltext der hier laufenden Version",
+        fonts: "Schriften:",
+        fontSans: "Sans",
+        fontMono: "Mono",
         privacy: "Datenschutz",
         privacyTitle: "Datenschutzerklärung",
         imprint: "Impressum",
