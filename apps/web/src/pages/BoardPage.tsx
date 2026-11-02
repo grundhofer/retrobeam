@@ -188,7 +188,7 @@ function JoinGate({
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
       <header className="flex items-center justify-between px-6 py-4">
         <BrandLogo compact />
         <LanguageToggle />
@@ -470,7 +470,7 @@ function Room({
 
   if (state.deleted) {
     return (
-      <div className="flex min-h-dvh flex-col bg-zinc-50">
+      <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
         <main
           id={MAIN_ID}
           className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
@@ -493,7 +493,7 @@ function Room({
 
   if (you === null || phasePlan === undefined) {
     return (
-      <div className="flex min-h-dvh flex-col bg-zinc-50">
+      <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
         <main
           id={MAIN_ID}
           className="flex flex-1 items-center justify-center text-zinc-600"
@@ -865,7 +865,7 @@ function Room({
 function LookupFailed({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
       <main
         id={MAIN_ID}
         data-testid="lookup-failed"
@@ -891,7 +891,7 @@ function LookupFailed({ onRetry }: { onRetry: () => void }) {
 function NotFound() {
   const { t } = useTranslation();
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
       <main
         id={MAIN_ID}
         className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"

@@ -1,7 +1,21 @@
 <!doctype html>
-<html lang="de">
+<!-- sebaro's load order (spec/09 §1): theme-init.js first, as a classic
+     script before any stylesheet, so a stored choice holds at first paint;
+     sb-start.js right after it, which shows the start tile below until the
+     page has loaded. With data-sb-start="nostore" it reads and writes no
+     storage and shows on every load (plan §2.4 F15, F40). sb-fit.js gives
+     the parts their forms for large text (F38). The stylesheets come from
+     main.tsx. The retrobeam:sebaro plugin in vite.config.ts serves these
+     files from the export and inlines the export's tile at its sb:inline
+     comment. No theme attribute on <html> here: the page follows the system
+     until someone chooses (sebaro WEB-02; CI gate G20). -->
+<html lang="de" data-sb-start="nostore">
   <head>
     <meta charset="UTF-8" />
+    <script src="/sebaro/js/theme-init.js"></script>
+    <script src="/sebaro/js/sb-start.js"></script>
+    <script src="/sebaro/js/sb-fit.js" defer></script>
+    <meta name="color-scheme" content="light dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- The board URL IS the capability: /board/<128-bit id> grants access to
          anyone holding it. GIF thumbnails load from the provider's CDN, and the
@@ -61,7 +75,12 @@
       }
     </style>
   </head>
-  <body>
+  <body class="sb-page">
+    <div class="sb-start" aria-hidden="true">
+      <span class="sb-start__tile"
+        ><!-- sb:inline src="brand/inline/tile-retrobeam.svg" --></span
+      >
+    </div>
     <div id="root">
       <main
         data-static-fallback

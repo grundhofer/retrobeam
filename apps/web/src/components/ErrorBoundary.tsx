@@ -30,7 +30,7 @@ export function ErrorBoundary() {
       : String(error ?? "unknown");
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="error" className="flex min-h-dvh flex-col bg-zinc-50">
       <main
         id={MAIN_ID}
         className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center"

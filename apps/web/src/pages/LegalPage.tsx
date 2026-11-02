@@ -97,7 +97,7 @@ function LegalLayout({
   }, [appName, title]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="legal" className="flex min-h-dvh flex-col bg-zinc-50">
       <SiteHeader languageTo={languageTo} />
       <main
         id={MAIN_ID}
