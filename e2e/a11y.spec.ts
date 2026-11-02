@@ -29,6 +29,35 @@ test.skip(
   "axe runs in one engine",
 );
 
+// On the sebaro-umbau branch, from stage 2c on, sebaro.css styles every view
+// before the view itself has moved to sebaro: a button or link no longer
+// keeps Tailwind's colour and size, and in dark mode the not yet converted
+// zinc surfaces stay light under light text (docs/sebaro-umbau.md §5.3,
+// §5.4). Each view still waiting for its stage is listed here with that stage
+// and runs as test.fixme; the stage takes it out, and from then on axe must
+// pass there (owner decision of 2026-11-02). The waiver list is not used for
+// this, and the list must be empty before the final merge to main.
+const FRAME = "stages 3a and 3b (site header and footer)";
+const KNOWN: Record<string, string> = {
+  landing: `${FRAME}, 4c (landing)`,
+  "new-board": `${FRAME}, 4a (/new)`,
+  impressum: `${FRAME}, 3d (legal pages)`,
+  datenschutz: `${FRAME}, 3d (legal pages)`,
+  imprint: `${FRAME}, 3d (legal pages)`,
+  privacy: `${FRAME}, 3d (legal pages)`,
+  barrierefreiheit: `${FRAME}, 3c (accessibility statement)`,
+  accessibility: `${FRAME}, 3c (accessibility statement)`,
+  "not-found": `${FRAME}, 3e (not-found and error views)`,
+  "board-lobby": "stages 5a (board frame) and 5b (lobby)",
+  "board-write": "stages 5a (board frame), 5c and 5g (board core)",
+  "board-canvas-arrange": "stage 5h (free canvas)",
+};
+const known = (...names: string[]) =>
+  names
+    .filter((name) => name in KNOWN)
+    .map((name) => `${name}: ${KNOWN[name]}`)
+    .join("; ");
+
 test("every waiver has a page, a rule, a target and a reason", () => {
   for (const waiver of waivers) {
     expect(
@@ -100,6 +129,7 @@ for (const [name, path] of [
   ["not-found", "/does-not-exist"],
 ] as const) {
   test(`axe: ${name}`, async ({ browser }) => {
+    test.fixme(known(name) !== "", known(name));
     const context = await newContext(browser);
     const page = await context.newPage();
     await page.goto(path);
@@ -118,6 +148,7 @@ for (const [name, path] of [
   ["not-found", "/does-not-exist"],
 ] as const) {
   test(`axe: ${name} in a German browser`, async ({ browser }) => {
+    test.fixme(known(name) !== "", known(name));
     const context = await newContext(browser, { locale: "de-DE" });
     const page = await context.newPage();
     await page.goto(path);
@@ -132,6 +163,10 @@ for (const [name, path] of [
 // One board, pictured in the lobby and the write phase: the two screens every
 // participant sees. The later phases follow as their views move to sebaro.
 test("axe: board", async ({ browser }) => {
+  test.fixme(
+    known("board-lobby", "board-write") !== "",
+    known("board-lobby", "board-write"),
+  );
   const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/new");
@@ -162,6 +197,10 @@ test("axe: board", async ({ browser }) => {
 // hence its waivers: the controls drawn in the zoomed world, which shrink
 // below 24px with it.
 test("axe: canvas arrange panel", async ({ browser }) => {
+  test.fixme(
+    known("board-canvas-arrange") !== "",
+    known("board-canvas-arrange"),
+  );
   const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/new");
