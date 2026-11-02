@@ -42,6 +42,12 @@ jobs:
       # The first production build used to happen inside the deploy job, so a
       # broken Rollup pass or an unresolvable dynamic import merged green.
       - run: pnpm build && test -f apps/web/dist/client/index.html
+      # Gate G17 (docs/sebaro-umbau.md §4.2): the size report of the build and
+      # the owner's CSS budget (F13: 75 KB gzip for the first load).
+      - run: node scripts/check-css-budget.mjs
+      # Gate G20: no theme attribute in the page's markup; the page follows the
+      # system until someone chooses (sebaro WEB-02).
+      - run: "! grep -q 'data-theme' apps/web/index.html"
       - run: pnpm --filter @retrobeam/shared test
       - run: pnpm --filter @retrobeam/worker test
       # One install feeds BOTH the component tests and the e2e run. The root

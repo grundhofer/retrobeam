@@ -6,9 +6,10 @@
 //
 // TWO facts this guards, both verified rather than assumed:
 //
-//  1. THE FLOOR IS 4.2.2, and it has nothing to do with the stylesheet. The CSS
-//     itself (`@import "tailwindcss"` plus a two-token `@theme`) compiles
-//     byte-identically from 4.0 upwards — no @utility, no @custom-variant, no
+//  1. THE FLOOR IS 4.2.2, and the stylesheet does not raise it. The CSS itself
+//     (`@import "tailwindcss"`, the sebaro export's plain CSS imports, a
+//     two-token `@theme`, and `@source not` for the export) needs 4.1, the
+//     first release with `@source not` — no @utility, no @custom-variant, no
 //     color-mix, no oklch. 4.2.2 is the first `@tailwindcss/vite` whose Vite
 //     peer range includes ^8, and apps/web is on Vite 8. On 4.2.1 the peer is
 //     `^5.2.0 || ^6 || ^7`, so the install warns and the plugin is unsupported.
