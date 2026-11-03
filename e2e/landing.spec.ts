@@ -431,6 +431,39 @@ for (const [locale, privacy, imprint, accessibility] of [
 // Both versions of a legal page name each other for search engines, with
 // absolute URLs on the instance host; the landing page has no second version
 // and names none, and leaving a legal page takes its links away again.
+// Paper is light whatever the screen shows (sebaro W8a): tokens.css repeats
+// the light values under @media print, so a legal page printed from a dark
+// system comes out dark text on a light ground.
+test("a legal page prints light from a dark system", async ({ browser }) => {
+  const context = await newContext(browser);
+  const page = await context.newPage();
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/datenschutz");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Datenschutzerklärung" }),
+  ).toBeVisible();
+  const colours = () =>
+    page.evaluate(() => {
+      const style = getComputedStyle(document.body);
+      const heading = getComputedStyle(document.querySelector("h1")!);
+      return { ground: style.backgroundColor, text: heading.color };
+    });
+  const screen = await colours();
+  await page.emulateMedia({ colorScheme: "dark", media: "print" });
+  const paper = await colours();
+  expect(paper).not.toEqual(screen);
+  const lightness = (colour: string) => {
+    const [r, g, b] = colour
+      .match(/\d+(\.\d+)?/g)!
+      .slice(0, 3)
+      .map(Number);
+    return (r! + g! + b!) / 3;
+  };
+  expect(lightness(paper.ground)).toBeGreaterThan(200);
+  expect(lightness(paper.text)).toBeLessThan(80);
+  await context.close();
+});
+
 test("legal pages carry hreflang alternates, the landing page does not", async ({
   browser,
 }) => {

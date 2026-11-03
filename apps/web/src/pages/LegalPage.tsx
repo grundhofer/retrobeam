@@ -75,10 +75,12 @@ export function LegalPage({ lang, paths, ...layout }: LegalPageProps) {
 }
 
 // The reading layout the privacy notice, the imprint and the accessibility
-// statement share: the site header, a title, then a 65ch prose column
-// (`.legal-prose` in index.css styles the plain HTML the content files
-// emit). Same ground, same footer as every other screen, so the click from a
-// board into the notice has no jolt.
+// statement share, as sebaro reads an article: the site header, the page in
+// a container section, the title as the page's h1, the date line, then the
+// content in sb-prose, which styles the plain HTML the content files emit
+// (h2, h3, p, lists, tables in an sb-table-wrap, code, mark) without a
+// class on each element (sebaro spec/02 §3.9, §5). Same footer as every
+// other screen, so the click from a board into the notice has no jolt.
 function LegalLayout({
   languageTo,
   title,
@@ -97,17 +99,12 @@ function LegalLayout({
   }, [appName, title]);
 
   return (
-    <div data-sb-view="legal" className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="legal" className="flex min-h-dvh flex-col">
       <SiteHeader languageTo={languageTo} />
-      <main
-        id={MAIN_ID}
-        className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 sm:px-10"
-      >
-        <h1 className="text-3xl font-semibold tracking-tight break-words text-zinc-900 sm:text-4xl">
-          {title}
-        </h1>
+      <main id={MAIN_ID} className="sb-container sb-section flex-1">
+        <h1>{title}</h1>
         {updated ? (
-          <p className="mt-3 text-sm text-zinc-600 tabular-nums">
+          <p className="mt-(--sb-space-2) text-(--sb-color-text-muted) tabular-nums [font:var(--sb-type-caption)]">
             {t("legal.updated")}{" "}
             <time dateTime={updated}>
               {new Date(`${updated}T00:00:00Z`).toLocaleDateString(locale, {
@@ -119,7 +116,7 @@ function LegalLayout({
             </time>
           </p>
         ) : null}
-        <div className="legal-prose mt-6 max-w-prose">{children}</div>
+        <div className="sb-prose mt-(--sb-space-8)">{children}</div>
       </main>
       <LegalFooter />
     </div>
