@@ -18,7 +18,6 @@ import { SiteHeader } from "../components/SiteHeader.js";
 import { MAIN_ID } from "../components/SkipLink.js";
 import { createBoard } from "../lib/api.js";
 import { saveAdminToken } from "../lib/session.js";
-import { useFitChoice } from "../lib/useFitChoice.js";
 import { useMissingField } from "../lib/useMissingField.js";
 
 export function HomePage() {
@@ -52,7 +51,6 @@ export function HomePage() {
     linkTemplateKey.success ? linkTemplateKey.data : "went-well",
   );
   const [layout, setLayout] = useState<LayoutMode>("columns");
-  const layoutRef = useFitChoice<LayoutMode>(setLayout);
   const [anonymous, setAnonymous] = useState(false);
   const templateId = useId();
   const layoutName = useId();
@@ -226,10 +224,7 @@ export function HomePage() {
                 ) : null}
               </div>
             )}
-            <fieldset
-              ref={layoutRef}
-              className="sb-segmented sb-form-grid__wide"
-            >
+            <fieldset className="sb-segmented sb-form-grid__wide">
               <legend>{t("home.layout")}</legend>
               <div className="sb-segmented__options">
                 {layoutModes.map((mode) => (

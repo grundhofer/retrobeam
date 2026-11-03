@@ -133,7 +133,7 @@
       descending: "absteigend",
       // D104 (1)–(7): the full-text search, the find bar and the reader (spec/02 §4.25)
       searching: "Suche läuft …",
-      findCount: "Treffer {n} von {m}",
+      findCount: "Treffer {n} von {m}", findMatches: "{m} Treffer",
       findNone: "Kein Treffer",
       lineRange: "Gib eine Zeile von 1 bis {m} ein.",
       lineOf: "von {m}",
@@ -155,7 +155,7 @@
       ascending: "ascending",
       descending: "descending",
       searching: "Searching …",
-      findCount: "Match {n} of {m}",
+      findCount: "Match {n} of {m}", findMatches: "{m} matches",
       findNone: "No match",
       lineRange: "Enter a line from 1 to {m}.",
       lineOf: "of {m}",
@@ -383,15 +383,23 @@
 
   // ------------------------------------------------------------------ Hell oder Dunkel in the menu „Darstellung“ (D75)
   function themeChoice() { return root.dataset.theme === "light" || root.dataset.theme === "dark" ? root.dataset.theme : "system"; }
+  var syncingTheme = false;
   function syncTheme() {
-    var c = themeChoice();
-    document.querySelectorAll("[data-sb-theme-choice]").forEach(function (el) {
-      var on = el.getAttribute("data-sb-theme-choice") === c;
-      if (el.tagName === "INPUT") el.checked = on;   // the radios of the settings view (F10a) carry no aria-checked
-      else el.setAttribute("aria-checked", String(on));
-    });
+    if (syncingTheme) return;
+    syncingTheme = true;
+    try {
+      var c = themeChoice();
+      document.querySelectorAll("[data-sb-theme-choice]").forEach(function (el) {
+        var on = el.getAttribute("data-sb-theme-choice") === c;
+        if (el.tagName === "INPUT") {
+          // Activate only the desired radio; native grouping clears the previous choice.
+          if (on && !el.checked) el.click();
+        } else el.setAttribute("aria-checked", String(on));
+      });
+    } finally { syncingTheme = false; }
   }
   function applyTheme(choice) {
+    if (syncingTheme) return;
     try {
       if (choice === "light" || choice === "dark") { root.dataset.theme = choice; localStorage.setItem("sb-theme", choice); }
       else { delete root.dataset.theme; localStorage.removeItem("sb-theme"); }
@@ -625,7 +633,7 @@
   function findCount(bar) {
     var out = bar.querySelector(".sb-doc-bar__count"), input = findInput(bar), hits = bar._sbHits || [];
     if (!out) return;
-    out.textContent = !input || !input.value ? "" : hits.length ? t(out, "findCount", { n: bar._sbAt + 1, m: hits.length }) : t(out, "findNone");
+    out.textContent = !input || !input.value ? "" : hits.length ? t(out, bar._sbAt == null || bar._sbAt < 0 ? "findMatches" : "findCount", { n: bar._sbAt + 1, m: hits.length }) : t(out, "findNone");
   }
   function findShow(bar, at) {
     var hits = bar._sbHits || [];
