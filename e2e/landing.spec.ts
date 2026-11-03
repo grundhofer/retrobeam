@@ -18,8 +18,10 @@ test("the landing page invites to try and leads to the create form", async ({
   ).toBeVisible();
   await expect(page.getByTestId("landing-hero")).toBeVisible();
   await expect(page.getByTestId("landing-cta")).toHaveCount(1);
+  // The first screen is the h1, one sentence and the action (sebaro BIL-02);
+  // the board preview follows right under it.
   await expect(
-    page.getByTestId("landing-hero").getByTestId("board-preview"),
+    page.getByTestId("landing-intro").getByTestId("board-preview"),
   ).toBeVisible();
   await expect(page.getByTestId("landing-bottom-cta")).toHaveAttribute(
     "href",
@@ -46,7 +48,7 @@ for (const width of [375, 390]) {
 
     await expect(page.getByTestId("landing-cta")).toBeVisible();
     const preview = page
-      .getByTestId("landing-hero")
+      .getByTestId("landing-intro")
       .getByTestId("board-preview");
     await expect(preview).toBeVisible();
     const hasHorizontalOverflow = await page.evaluate(

@@ -608,8 +608,9 @@ const resources = {
         home: "Go to the home page",
       },
       landing: {
-        kicker: "Free retro tool · no sign-up · no board limits",
-        lede: "One person facilitates, RetroBeam walks your team through it step by step: everyone writes privately first, a wheel picks who presents, then you vote blind and capture action items. Free, no trial, no ads.",
+        lede: "One person facilitates, RetroBeam walks your team through the retro step by step, free and without sign-up.",
+        description:
+          "Everyone writes privately first, a wheel picks who presents, then you vote blind and capture action items. No trial and no board limits.",
         cta: "Create a retro board",
         ctaHint: "Just enter a board name · no account required",
         trustChips: {
@@ -1364,8 +1365,9 @@ const resources = {
         home: "Zur Startseite",
       },
       landing: {
-        kicker: "Kostenloses Retro-Tool · ohne Anmeldung · ohne Board-Limit",
-        lede: "Eine Person moderiert, RetroBeam führt euch Schritt für Schritt: Alle schreiben erst verdeckt, das Glücksrad entscheidet, wer vorstellt, dann wird verdeckt abgestimmt und ihr haltet Action Items fest. Kostenlos, ohne Testphase, ohne Werbung.",
+        lede: "Eine Person moderiert, RetroBeam führt euer Team Schritt für Schritt durch die Retro, kostenlos und ohne Anmeldung.",
+        description:
+          "Alle schreiben erst verdeckt, das Glücksrad entscheidet, wer vorstellt, dann wird verdeckt abgestimmt, und ihr haltet Action Items fest. Ohne Testphase und ohne Board-Limit.",
         cta: "Retro-Board erstellen",
         ctaHint: "Nur einen Boardnamen eingeben · kein Account nötig",
         trustChips: {
