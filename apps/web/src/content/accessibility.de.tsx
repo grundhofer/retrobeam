@@ -33,8 +33,8 @@ export function AccessibilityDe() {
         moderiert und führt die Gruppe durch feste Phasen: Alle schreiben zuerst
         für sich, ein Glücksrad wählt, wer als Nächstes vorstellt, alle stimmen
         verdeckt ab, und die Retro endet mit Anerkennung füreinander. RetroBeam
-        ist kostenlos, ohne Anmeldung und ohne Werbung, auf Deutsch und auf
-        Englisch. Es ist ein privates, nicht gewerbliches Projekt einer Person.
+        ist kostenlos und ohne Anmeldung, auf Deutsch und auf Englisch. Es ist
+        ein privates, nicht gewerbliches Projekt einer Person.
       </p>
 
       <h2>So benutzt du RetroBeam</h2>
