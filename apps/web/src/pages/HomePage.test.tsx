@@ -229,10 +229,14 @@ test("an empty-name press clears an earlier create failure", async () => {
     .element(screen.getByRole("alert"))
     .toHaveTextContent(i18n.t("home.createFailed"));
 
+  // After a failure the button offers the retry (sebaro spec/02 §1.1).
+  const retry = screen.getByRole("button", { name: i18n.t("home.retry") });
+  await expect.element(retry).toBeVisible();
+
   await screen
     .getByRole("textbox", { name: i18n.t("home.boardName") })
     .fill("");
-  await create.click();
+  await retry.click();
   await expect
     .element(screen.getByText(i18n.t("home.boardNameMissing")))
     .toBeVisible();
