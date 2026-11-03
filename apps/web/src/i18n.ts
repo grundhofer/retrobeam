@@ -592,6 +592,7 @@ const resources = {
         title: "The page could not be shown",
         body: "The board itself is safe – it lives on the server. Reloading rejoins it.",
         reload: "Reload the board",
+        details: "Details",
       },
       site: {
         skipToContent: "Skip to content",
@@ -1344,6 +1345,7 @@ const resources = {
         title: "Die Seite ließ sich nicht anzeigen",
         body: "Das Board selbst ist sicher – es liegt auf dem Server. Neu laden verbindet dich wieder.",
         reload: "Board neu laden",
+        details: "Details",
       },
       site: {
         skipToContent: "Zum Inhalt",

@@ -1,5 +1,5 @@
 {
-  "apps/web/index.html": 5,
+  "apps/web/index.html": 1,
   "apps/web/src/components/ActionsPanel.tsx": 41,
   "apps/web/src/components/AdminLink.tsx": 36,
   "apps/web/src/components/AvatarRow.tsx": 18,
@@ -12,7 +12,6 @@
   "apps/web/src/components/CheckinPanel.tsx": 26,
   "apps/web/src/components/DiscussBar.tsx": 12,
   "apps/web/src/components/EmojiPicker.tsx": 9,
-  "apps/web/src/components/ErrorBoundary.tsx": 12,
   "apps/web/src/components/FocusToggle.tsx": 12,
   "apps/web/src/components/GifPicker.tsx": 37,
   "apps/web/src/components/HeaderPopover.tsx": 13,
@@ -38,8 +37,7 @@
   "apps/web/src/components/WheelOverlay.tsx": 81,
   "apps/web/src/index.css": 3,
   "apps/web/src/lib/exportImage.ts": 7,
-  "apps/web/src/pages/BoardPage.tsx": 68,
+  "apps/web/src/pages/BoardPage.tsx": 38,
   "apps/web/src/pages/HomePage.tsx": 60,
-  "apps/web/src/pages/LandingPage.tsx": 73,
-  "apps/web/src/pages/NotFoundPage.tsx": 9
+  "apps/web/src/pages/LandingPage.tsx": 73
 }

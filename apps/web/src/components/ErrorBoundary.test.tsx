@@ -4,6 +4,7 @@
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
+import { userEvent } from "vitest/browser";
 import i18n from "../i18n.js";
 import { NotFoundPage } from "../pages/NotFoundPage.js";
 import { ErrorBoundary } from "./ErrorBoundary.js";
@@ -52,9 +53,11 @@ test("any other route error shows its status, not [object Object]", async () => 
   const screen = await render(<RouterProvider router={router} />);
 
   await expect.element(screen.getByTestId("error-boundary")).toBeVisible();
-  await expect
-    .element(screen.getByText("503 Service Unavailable"))
-    .toBeVisible();
+  // The reason stands under „Details“, closed at first (sebaro spec/02 §3.28).
+  const reason = screen.getByText("503 Service Unavailable");
+  await expect.element(reason).not.toBeVisible();
+  await userEvent.click(screen.getByText("Details"));
+  await expect.element(reason).toBeVisible();
   expect(document.body.textContent).not.toContain("[object Object]");
 });
 

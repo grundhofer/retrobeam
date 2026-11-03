@@ -11,6 +11,20 @@
 /* The sebaro export is sebaroDesign's CSS, not class names for Tailwind to
    scan: without this its files would add utilities to the build. */
 @source not "./sebaro";
+/* Tailwind's preflight takes the markers off every list (list-style: none);
+   sebaro gives a prose list its indent back for that case but not its
+   marker, so the lists in sb-prose (legal pages, the static fallback) would
+   lose their bullets and numbers. Reported to sebaroDesign (gap list §2
+   Nr. 45); these lines go once its export restores them. */
+.sb-prose ul {
+  list-style-type: disc;
+}
+.sb-prose ul ul {
+  list-style-type: circle;
+}
+.sb-prose ol {
+  list-style-type: decimal;
+}
 
 @theme {
   /* Calm neutral surface, one teal accent; sticky notes will be the only

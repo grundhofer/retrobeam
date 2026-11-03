@@ -22,10 +22,18 @@ export function symbolOf(name: string, size: IconSize): string {
 }
 
 // Decorative by default: the control or text beside it carries the name.
-export function Icon({ name, size = 24 }: { name: string; size?: IconSize }) {
+export function Icon({
+  name,
+  size = 24,
+  className,
+}: {
+  name: string;
+  size?: IconSize;
+  className?: string;
+}) {
   return (
     <svg
-      className={`sb-icon sb-icon--${size}`}
+      className={`sb-icon sb-icon--${size}${className ? ` ${className}` : ""}`}
       aria-hidden="true"
       focusable="false"
     >
