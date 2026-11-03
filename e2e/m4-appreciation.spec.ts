@@ -124,7 +124,11 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   // this spec is in no workspace package and deliberately has no node types.
   expect(file.suggestedFilename()).toMatch(/-summary\.jpg$/);
 
-  // Finish and archive: the wall persists read-only on the done screen.
+  // Finish and archive: the wall persists read-only on the done screen. The
+  // menu may still be open (see above), and since stage 5a its panel hangs
+  // over the phase controls, so it is closed the way a person would.
+  await anna.keyboard.press("Escape");
+  await expect(anna.getByTestId("export-md")).toBeHidden();
   await anna.getByTestId("phase-next").click();
   await anna.getByTestId("phase-done-confirm").click();
   await expect(

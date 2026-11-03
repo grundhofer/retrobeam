@@ -44,8 +44,9 @@ test("the landing page's first Tab skips to its content", async ({
 });
 
 // The board is entered through the name form, whose field takes the focus on
-// load; the room after it is where the link earns its keep, past a header of
-// stepper, avatars, invite, menu and language switch. Joining removes the
+// load; the room after it is where the link earns its keep, past the site
+// header (sebaro spec/03 §6.6) and the board's head of avatars, invite, menu
+// and phase steps. Joining removes the
 // focused button with the form, and where the next Tab starts then is up to
 // each browser. So the test puts the focus on the room's first control itself
 // and shows the link as the stop before it, one Shift+Tab back; the landing
@@ -62,7 +63,8 @@ test("a board's first tab stop skips to the board", async ({ browser }) => {
   await page.getByRole("textbox").fill("Anna");
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(page.getByTestId("roster-item").first()).toBeVisible();
-  await page.getByTestId("phase-next").focus();
+  // The room's first control: the name in the site header.
+  await page.getByRole("link", { name: "RetroBeam", exact: true }).focus();
 
   await skipToMain(page, ["Shift+Tab"]);
 

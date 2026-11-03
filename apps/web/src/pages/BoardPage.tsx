@@ -19,7 +19,6 @@ import { AvatarRow } from "../components/AvatarRow.js";
 import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
 import { BoardMenu } from "../components/BoardMenu.js";
-import { BrandLogo } from "../components/BrandLogo.js";
 import { PhaseAnnouncer, PhaseGuide } from "../components/PhaseGuide.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
@@ -29,7 +28,6 @@ import { DiscussBar } from "../components/DiscussBar.js";
 import { KudosWall } from "../components/KudosWall.js";
 import { RetroResults } from "../components/RetroResults.js";
 import { RotiPoll } from "../components/RotiPoll.js";
-import { LanguageToggle } from "../components/LanguageToggle.js";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { NoticeRail } from "../components/NoticeRail.js";
 import { PhaseStepper } from "../components/PhaseStepper.js";
@@ -554,66 +552,73 @@ function Room({
           it creates no scroll container, so nothing sticky breaks. */}
       <div
         data-board-root
-        className="flex min-h-dvh flex-col overflow-x-clip bg-zinc-50"
+        data-sb-view="board"
+        className="sb-view sb-view--wide min-h-dvh overflow-x-clip"
       >
-        <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-200 bg-white px-6 py-3">
-          <div className="flex min-w-0 items-baseline gap-3">
-            <BrandLogo compact />
-            <h1 className="truncate text-zinc-600">
-              {state.board?.name ?? board.name}
-            </h1>
-            {/* On every screen, in every phase: anonymity only earns trust if
-                the room can see it is on — a latecomer never passes the lobby
-                that explains it. */}
-            {anonymous ? (
-              <span
-                data-testid="anonymous-badge"
-                title={t("board.anonymousHint")}
-                className="shrink-0 rounded-full border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-500"
-              >
-                {t("board.anonymous")}
-              </span>
-            ) : null}
+        {/* sebaro's web app without a window (spec/03 §6.6): the site header
+            with the tile, DE / EN as a choice and (from 6b) „Hell oder
+            Dunkel“; the board's own head follows under it. */}
+        <SiteHeader />
+        <div className="flex flex-col gap-(--sb-space-4) border-b border-(--sb-color-border) px-(--sb-spacing-gutter) py-(--sb-space-4)">
+          <div className="flex flex-wrap items-center justify-between gap-x-(--sb-space-6) gap-y-(--sb-space-2)">
+            <div className="min-w-0">
+              <h1 className="sb-top-bar__title [overflow-wrap:anywhere]">
+                {state.board?.name ?? board.name}
+              </h1>
+              {/* On every screen, in every phase: anonymity only earns trust
+                  if the room can see it is on — a latecomer never passes the
+                  lobby that explains it. The tag names it, the sentence
+                  beside it says what it means. */}
+              {anonymous ? (
+                <p className="mt-(--sb-space-1) flex flex-wrap items-baseline gap-x-(--sb-space-2) gap-y-(--sb-space-1)">
+                  <span data-testid="anonymous-badge" className="sb-tag">
+                    {t("board.anonymous")}
+                  </span>
+                  <span className="sb-top-bar__subtitle">
+                    {t("board.anonymousHint")}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-(--sb-space-3)">
+              <AvatarRow
+                participants={state.roster}
+                youId={you.id}
+                isAdmin={isAdmin}
+              />
+              {/* Only where there is no rail to carry it — otherwise the same
+                  count would render twice on one screen. */}
+              {showActions ? (
+                <span className="sb-top-bar__subtitle tabular-nums">
+                  {t("rail.online", { count: onlineCount })}
+                </span>
+              ) : null}
+              {/* Not once the retro is over: "done" is terminal and nobody
+                  joins it to take part. */}
+              {state.phase !== "done" ? (
+                <InviteButton boardId={boardId} />
+              ) : null}
+              <BoardMenu
+                boardId={boardId}
+                boardName={state.board?.name ?? board.name}
+                isAdmin={isAdmin}
+                gifsEnabled={gifsEnabled}
+                cursorsEnabled={config?.cursorsEnabled ?? false}
+                voterNamesEnabled={config?.voterNamesEnabled ?? false}
+                anonymous={config?.anonymous ?? false}
+                phase={state.phase}
+                layout={layout}
+                retentionAt={state.retentionAt}
+                columns={state.columns}
+              />
+            </div>
           </div>
-          <div className="mx-auto">
-            <PhaseStepper
-              phase={state.phase}
-              phasePlan={phasePlan}
-              isAdmin={isAdmin}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <AvatarRow
-              participants={state.roster}
-              youId={you.id}
-              isAdmin={isAdmin}
-            />
-            {/* Only where there is no rail to carry it — otherwise the same
-                count would render twice on one screen. */}
-            {showActions ? (
-              <span className="text-xs text-zinc-500 tabular-nums">
-                {t("rail.online", { count: onlineCount })}
-              </span>
-            ) : null}
-            {/* Not once the retro is over: "done" is terminal and nobody joins
-                it to take part. */}
-            {state.phase !== "done" ? <InviteButton boardId={boardId} /> : null}
-            <BoardMenu
-              boardId={boardId}
-              boardName={state.board?.name ?? board.name}
-              isAdmin={isAdmin}
-              gifsEnabled={gifsEnabled}
-              cursorsEnabled={config?.cursorsEnabled ?? false}
-              voterNamesEnabled={config?.voterNamesEnabled ?? false}
-              anonymous={config?.anonymous ?? false}
-              phase={state.phase}
-              layout={layout}
-              retentionAt={state.retentionAt}
-              columns={state.columns}
-            />
-            <LanguageToggle />
-          </div>
-        </header>
+          <PhaseStepper
+            phase={state.phase}
+            phasePlan={phasePlan}
+            isAdmin={isAdmin}
+          />
+        </div>
 
         {status !== "online" ? (
           <div

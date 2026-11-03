@@ -112,33 +112,37 @@ test("members get no phase controls at all", async () => {
   expect(screen.getByTestId("phase-back").elements()).toHaveLength(0);
 });
 
-// Below `sm` the full row of phase names was ~560px wide and made every board
-// page on a phone scroll sideways. The phone gets "Step 3 of 7 · Present"; the
-// list itself stays in the accessibility tree, current step and all, so a
-// screen reader hears the same agenda at every width.
-test("a phone gets the position, the phase list stays for screen readers", async () => {
+// Below `sm` the old row of phase names was ~560px wide and made every board
+// page on a phone scroll sideways. sebaro's steps share the width instead: the
+// head says "Step 3 of 7 · Present", every phase keeps its bar, and the
+// current one is marked for screen readers as well.
+test("a phone gets the position and every step within its width", async () => {
   const { view } = harness();
   await page.viewport(390, 844);
   const screen = await render(view("present"));
 
-  const compact = screen.getByTestId("phase-compact");
-  await expect.element(compact).toBeVisible();
-  await expect
-    .element(compact)
-    .toHaveTextContent(/(Step|Schritt) 3 (of|von) 7/);
+  const head = screen.getByTestId("phase-compact");
+  await expect.element(head).toBeVisible();
+  await expect.element(head).toHaveTextContent(/(Step|Schritt) 3 (of|von) 7/);
   const list = screen.getByRole("list");
-  await expect.element(list).toBeInTheDocument();
-  expect(list.element().getBoundingClientRect().width).toBeLessThanOrEqual(1);
+  await expect.element(list).toBeVisible();
+  expect(list.element().getBoundingClientRect().right).toBeLessThanOrEqual(390);
+  const steps = list.element().querySelectorAll("li");
+  expect(steps).toHaveLength(7);
   expect(
     list.element().querySelector('[aria-current="step"]')?.textContent,
   ).toMatch(/present|vorstellen/i);
+  expect(
+    list.element().querySelectorAll('[data-sb-state="done"]'),
+  ).toHaveLength(2);
+  // sebaro's short form: the words are for screen readers only, so no word
+  // breaks inside a bar's narrow column.
+  const word = list
+    .element()
+    .querySelector('[aria-current="step"] .sb-progress__word');
+  expect(word?.getBoundingClientRect().width).toBeLessThanOrEqual(1);
   // The controls are not squeezed out by it.
   await expect.element(screen.getByTestId("phase-next")).toBeVisible();
-
-  // From `sm` up, the row as it always was.
-  await page.viewport(1024, 768);
-  await expect.element(compact).not.toBeVisible();
-  expect(list.element().getBoundingClientRect().width).toBeGreaterThan(300);
 });
 
 // Finishing cannot be undone and freezes the board for everyone, and it used to
