@@ -13,8 +13,8 @@
 //      (its widest word at the title weight wider than the column less the 4 px sides, the 16 px check and its gap,
 //      counted for every option, or the words on more than two lines), the fieldset gets data-sb-fit="select" and
 //      shows a select with the same options, the legend as its label, the disabled options disabled. The radios stay
-//      the form's value (hidden, still sent): a choice in the select checks its radio and fires input and change on
-//      it; a radio changed with a change event, a form reset or sb-tone-change are read back, and the select reads
+//      the form's value (hidden, still sent): a choice in the select activates its radio with click(), firing native click, input and change
+//      (also updating controlled framework state); a radio changed with a change event, a form reset or sb-tone-change are read back, and the select reads
 //      the radios again on every pass and when it gets focus, a press or a key. A script that sets checked without an event
 //      calls sbFit.refresh(fieldset) to show it at once. Focus moves with the swap. While the select shows, the
 //      fieldset is role="none", so the legend names only the select and is not read twice (provisional, agent).
@@ -149,9 +149,8 @@
       sel.addEventListener("change", function () {
         var radio = segParts(fs).radios[+sel.value];
         if (!radio || radio.checked) return;
-        radio.checked = true;
-        radio.dispatchEvent(new Event("input", { bubbles: true }));
-        radio.dispatchEvent(new Event("change", { bubbles: true }));
+        // Native activation also reaches React's controlled-radio click tracking.
+        radio.click();
       });
       var icon = document.createElementNS(SVGNS, "svg");
       icon.setAttribute("class", "sb-icon");
