@@ -40,6 +40,7 @@ import { Roster } from "../components/Roster.js";
 import { ShareLink } from "../components/ShareLink.js";
 import { Icon } from "../components/Icon.js";
 import { MAIN_ID } from "../components/SkipLink.js";
+import { SiteHeader } from "../components/SiteHeader.js";
 import { StateView } from "../components/StateView.js";
 import { TimerPanel } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
@@ -189,52 +190,60 @@ function JoinGate({
     onJoin(trimmed);
   }
 
+  // The same form as /new (stage 4a): sebaro's grid, the name in an
+  // sb-field with its missing-name error at the field (STA-03), the primary
+  // action never disabled, and under it where the name goes (BEL-10, F20).
+  // Joining is still outside the board, so it has the site's header.
   return (
-    <div data-sb-view="board" className="flex min-h-dvh flex-col bg-zinc-50">
-      <header className="flex items-center justify-between px-6 py-4">
-        <BrandLogo compact />
-        <LanguageToggle />
-      </header>
-      <main
-        id={MAIN_ID}
-        className="flex flex-1 items-center justify-center px-6 pb-24"
-      >
-        <form onSubmit={submit} className="flex w-full max-w-md flex-col gap-4">
-          <h1 className="text-2xl font-semibold text-zinc-900">
-            {t("join.title", { board: board.name })}
-          </h1>
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor={nameField.fieldProps.id}
-              className="text-sm font-medium text-zinc-700"
-            >
-              {t("join.yourName")}
-            </label>
-            <input
-              {...nameField.fieldProps}
-              autoFocus
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                nameField.typed(event.target.value);
-              }}
-              maxLength={40}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
-            />
-            {nameField.missing ? (
-              <p id={nameField.messageId}>{t("join.nameMissing")}</p>
-            ) : null}
-            <p role="status" className="sr-only">
-              {nameField.spoken ? t("join.nameMissing") : ""}
-            </p>
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            {t("join.submit")}
-          </button>
-        </form>
+    <div data-sb-view="board" className="flex min-h-dvh flex-col">
+      <SiteHeader />
+      <main id={MAIN_ID} className="sb-container sb-section flex-1">
+        <div className="mx-auto max-w-md">
+          <form className="sb-form-grid" onSubmit={submit}>
+            <h1 className="sb-form-grid__wide">
+              {t("join.title", { board: board.name })}
+            </h1>
+            <div className="sb-field sb-form-grid__wide">
+              <label
+                className="sb-field__label"
+                htmlFor={nameField.fieldProps.id}
+              >
+                {t("join.yourName")}
+              </label>
+              <div className="sb-field__control">
+                <input
+                  {...nameField.fieldProps}
+                  type="text"
+                  autoFocus
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                    nameField.typed(event.target.value);
+                  }}
+                  maxLength={40}
+                  autoComplete="off"
+                />
+              </div>
+              {nameField.missing ? (
+                <p className="sb-field__error" id={nameField.messageId}>
+                  <Icon name="error--filled-16" size={16} />
+                  {t("join.nameMissing")}
+                </p>
+              ) : null}
+              <p role="status" className="sb-visually-hidden">
+                {nameField.spoken ? t("join.nameMissing") : ""}
+              </p>
+            </div>
+            <div className="sb-form-grid__actions">
+              <button type="submit" className="sb-primary-action">
+                <span className="sb-primary-action__label">
+                  {t("join.submit")}
+                </span>
+              </button>
+              <p className="sb-action-hint">{t("home.dataPath")}</p>
+            </div>
+          </form>
+        </div>
       </main>
       <LegalFooter />
     </div>

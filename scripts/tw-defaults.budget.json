@@ -37,6 +37,6 @@
   "apps/web/src/components/WheelOverlay.tsx": 81,
   "apps/web/src/index.css": 3,
   "apps/web/src/lib/exportImage.ts": 7,
-  "apps/web/src/pages/BoardPage.tsx": 38,
+  "apps/web/src/pages/BoardPage.tsx": 23,
   "apps/web/src/pages/LandingPage.tsx": 73
 }
