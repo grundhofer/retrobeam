@@ -42,6 +42,9 @@ const resources = {
         create: "Create board",
         creating: "Creating …",
         createFailed: "Creating the board failed. Please try again.",
+        retry: "Try again",
+        dataPath:
+          "Only when you say so. Destination: Cloudflare, stored in the EU.",
         linkColumns: "Custom columns from the link: {{columns}}",
         linkColumnsDrop: "Use a template instead",
         linkColumnsInvalid:
@@ -777,6 +780,9 @@ const resources = {
         creating: "Wird angelegt …",
         createFailed:
           "Board anlegen hat nicht geklappt. Versuch es noch einmal.",
+        retry: "Noch mal versuchen",
+        dataPath:
+          "Nur auf deinen Befehl. Ziel: Cloudflare, gespeichert in der EU.",
         linkColumns: "Eigene Spalten aus dem Link: {{columns}}",
         linkColumnsDrop: "Stattdessen eine Vorlage nehmen",
         linkColumnsInvalid:

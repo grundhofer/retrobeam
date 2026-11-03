@@ -39,7 +39,6 @@ test.skip(
 // this, and the list must be empty before the final merge to main.
 const KNOWN: Record<string, string> = {
   landing: "stage 4c (landing)",
-  "new-board": "stage 4a (/new)",
   "board-lobby": "stages 5a (board frame) and 5b (lobby)",
   "board-write": "stages 5a (board frame), 5c and 5g (board core)",
   "board-canvas-arrange": "stage 5h (free canvas)",
