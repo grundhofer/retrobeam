@@ -27,9 +27,9 @@ export function AccessibilityEn() {
         RetroBeam is a tool for team retrospectives. One person facilitates and
         leads the group through fixed phases: everyone writes on their own
         first, a wheel of fortune picks who presents next, everyone votes blind,
-        and the retro ends on appreciation for each other. RetroBeam is free,
-        without sign-up and without advertising, in German and in English. It is
-        the private, non-commercial project of one person.
+        and the retro ends on appreciation for each other. RetroBeam is free and
+        without sign-up, in German and in English. It is the private,
+        non-commercial project of one person.
       </p>
 
       <h2>How to use RetroBeam</h2>
