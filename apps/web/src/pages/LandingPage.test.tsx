@@ -31,16 +31,14 @@ test("keeps the create action clear at the start and end", async () => {
   await expect
     .element(cta)
     .toHaveTextContent(/Retro-Board erstellen|Create a retro board/);
-  // One action in the hero; the trust chips are in-page anchors, not exits.
+  // The first screen is only the h1, one sentence and the one action
+  // (sebaro BIL-02); the chips and the board preview follow under it.
+  const hero = screen.getByTestId("landing-hero").element();
+  expect(hero.querySelectorAll("a")).toHaveLength(1);
+  expect(hero.querySelectorAll("h1, p")).toHaveLength(3);
   expect(
     screen
-      .getByTestId("landing-hero")
-      .element()
-      .querySelectorAll('a:not([href^="#faq-"])'),
-  ).toHaveLength(1);
-  expect(
-    screen
-      .getByTestId("landing-hero")
+      .getByTestId("landing-intro")
       .element()
       .querySelector('[data-testid="board-preview"]'),
   ).not.toBeNull();
