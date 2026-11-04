@@ -20,7 +20,6 @@
   "apps/web/src/components/NoticeRail.tsx": 9,
   "apps/web/src/components/PhaseGuide.tsx": 2,
   "apps/web/src/components/PhasePlanPanel.tsx": 57,
-  "apps/web/src/components/PhaseStepper.tsx": 24,
   "apps/web/src/components/PresenceRail.tsx": 118,
   "apps/web/src/components/PresenterFocus.tsx": 25,
   "apps/web/src/components/QrCode.tsx": 21,
