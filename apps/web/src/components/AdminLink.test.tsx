@@ -48,7 +48,7 @@ async function openMenu(boardId: string, isAdmin: boolean) {
   const trigger = screen.getByTestId("board-menu");
   await expect.element(trigger).toBeVisible();
   await trigger.click();
-  await expect.element(screen.getByTestId("export-md")).toBeVisible();
+  await expect.element(screen.getByTestId("export-open")).toBeVisible();
   return screen;
 }
 
@@ -56,6 +56,7 @@ test("the token holder gets the link mid-retro, masked until asked", async () =>
   const boardId = "1".repeat(32);
   saveAdminToken(boardId, TOKEN);
   const screen = await openMenu(boardId, true);
+  await screen.getByTestId("admin-link-open").click();
 
   const input = screen.getByTestId("admin-link-input");
   await expect.element(screen.getByTestId("admin-link")).toBeVisible();
@@ -73,8 +74,8 @@ test("the token holder gets the link mid-retro, masked until asked", async () =>
 test("a co-facilitator promoted by role holds no token and is offered none", async () => {
   const screen = await openMenu("2".repeat(32), true);
   // The template link renders, so the menu really is the facilitator's.
-  await expect.element(screen.getByTestId("template-link-copy")).toBeVisible();
-  expect(screen.getByTestId("admin-link").elements()).toHaveLength(0);
+  await expect.element(screen.getByTestId("template-link-open")).toBeVisible();
+  expect(screen.getByTestId("admin-link-open").elements()).toHaveLength(0);
   // Duplicate and follow-up need the token too; the server would refuse a
   // co-facilitator, so the buttons are not offered (they used to do nothing).
   expect(screen.getByTestId("duplicate-board").elements()).toHaveLength(0);
@@ -85,7 +86,7 @@ test("a demoted token holder is not offered it either", async () => {
   const boardId = "3".repeat(32);
   saveAdminToken(boardId, TOKEN);
   const screen = await openMenu(boardId, false);
-  expect(screen.getByTestId("admin-link").elements()).toHaveLength(0);
+  expect(screen.getByTestId("admin-link-open").elements()).toHaveLength(0);
 });
 
 test("the reveal toggle keeps its label; the state is in aria-pressed", async () => {

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { MemoryRouter } from "react-router";
 import {
@@ -54,8 +55,9 @@ test("the export scope reaches the download links, and everything is the default
   const trigger = screen.getByTestId("board-menu");
   await expect.element(trigger).toBeVisible();
   await trigger.click();
+  await screen.getByTestId("export-open").click();
   // `href()` below reads `.element()` synchronously — no retry of its own — so
-  // the menu's React re-render has to be committed before we get there.
+  // the dialog's React re-render has to be committed before we get there.
   await expect.element(screen.getByTestId("export-md")).toBeVisible();
 
   const href = () =>
@@ -63,15 +65,13 @@ test("the export scope reaches the download links, and everything is the default
 
   // Default: the URL is byte-identical to the one that shipped before scopes.
   expect(href()).toBe(`/api/boards/${"a".repeat(32)}/export?format=md`);
-  await expect
-    .element(screen.getByTestId("export-scope-all"))
-    .toHaveAttribute("aria-pressed", "true");
+  await expect.element(screen.getByTestId("export-scope-all")).toBeChecked();
 
   await screen.getByTestId("export-scope-summary").click();
   expect(href()).toContain("scope=summary");
   await expect
     .element(screen.getByTestId("export-scope-summary"))
-    .toHaveAttribute("aria-pressed", "true");
+    .toBeChecked();
 
   // The two export switches are independent.
   await screen.getByRole("checkbox").first().click();
@@ -112,6 +112,7 @@ test("the template link carries the visible column names only, in board order", 
       }),
     );
     await screen.getByTestId("board-menu").click();
+    await screen.getByTestId("template-link-open").click();
     const button = screen.getByTestId("template-link-copy");
     await expect.element(button).toHaveTextContent(i18n.t("menu.templateLink"));
     await button.click();
@@ -133,15 +134,16 @@ test("the template link carries the visible column names only, in board order", 
 test("the template link is the facilitator's, and refuses a set /new would reject", async () => {
   const member = await render(view({ columns: [column("Went well", 0)] }));
   await member.getByTestId("board-menu").click();
-  await expect.element(member.getByTestId("export-md")).toBeVisible();
+  await expect.element(member.getByTestId("export-open")).toBeVisible();
   await expect
-    .element(member.getByTestId("template-link-copy"))
+    .element(member.getByTestId("template-link-open"))
     .not.toBeInTheDocument();
   await member.unmount();
 
   const nine = Array.from({ length: 9 }, (_, i) => column(`Column ${i}`, i));
   const screen = await render(view({ isAdmin: true, columns: nine }));
   await screen.getByTestId("board-menu").click();
+  await screen.getByTestId("template-link-open").click();
   await expect.element(screen.getByTestId("template-link-copy")).toBeDisabled();
   await expect
     .element(screen.getByText(i18n.t("menu.templateLinkTooMany", { max: 8 })))
@@ -156,6 +158,7 @@ test("with every column staged, the template link says why it is locked", async 
     }),
   );
   await screen.getByTestId("board-menu").click();
+  await screen.getByTestId("template-link-open").click();
   await expect.element(screen.getByTestId("template-link-copy")).toBeDisabled();
   await expect
     .element(screen.getByText(i18n.t("menu.templateLinkNoVisible")))
@@ -163,4 +166,63 @@ test("with every column staged, the template link says why it is locked", async 
   await expect
     .element(screen.getByText(i18n.t("menu.templateLinkHint")))
     .not.toBeInTheDocument();
+});
+
+// sebaro's menu (spec/02 §4.10), ported to React: the button opens it on the
+// first row, the arrows move and wrap, Escape closes it and hands the focus
+// back; the deletion row is last, after a hairline, and asks first.
+test("the menu works by keyboard alone, and deleting asks first", async () => {
+  const sent: ClientCommand[] = [];
+  const connection = {
+    boardId: "a".repeat(32),
+    send: (command: ClientCommand) => sent.push(command),
+    mutate: (
+      command: ClientCommand,
+      _optimistic: ServerEvent | ServerEvent[],
+    ) => sent.push(command),
+  };
+  const screen = await render(
+    <MemoryRouter>
+      <ConnectionProvider value={connection}>
+        <BoardMenu
+          boardId={"a".repeat(32)}
+          boardName="Sprint 42"
+          isAdmin
+          anonymous={false}
+          columns={[]}
+        />
+      </ConnectionProvider>
+    </MemoryRouter>,
+  );
+  const trigger = screen.getByTestId("board-menu");
+  await expect.element(trigger).toHaveAttribute("aria-haspopup", "menu");
+  await trigger.click();
+  await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
+  const rows = screen.getByRole("menuitem");
+  await expect.element(rows.first()).toHaveFocus();
+  await userEvent.keyboard("{ArrowUp}");
+  await expect.element(screen.getByTestId("delete-board")).toHaveFocus();
+  await expect
+    .element(screen.getByTestId("delete-board"))
+    .toHaveClass("sb-menu__item", "sb-menu__item--danger");
+  await userEvent.keyboard("{ArrowDown}");
+  await expect.element(rows.first()).toHaveFocus();
+  await userEvent.keyboard("{Escape}");
+  await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect.element(trigger).toHaveFocus();
+
+  await trigger.click();
+  await screen.getByTestId("delete-board").click();
+  const dialog = screen.getByTestId("delete-dialog");
+  await expect.element(dialog).toHaveTextContent("Sprint 42");
+  await expect
+    .element(screen.getByRole("button", { name: i18n.t("note.cancel") }))
+    .toHaveFocus();
+  await userEvent.keyboard("{Escape}");
+  expect(sent).toEqual([]);
+
+  await trigger.click();
+  await screen.getByTestId("delete-board").click();
+  await screen.getByTestId("delete-board-confirm").click();
+  expect(sent).toEqual([{ type: "admin.board.delete" }]);
 });

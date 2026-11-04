@@ -387,9 +387,22 @@ const resources = {
         poweredBy: "Powered by KLIPY",
       },
       menu: {
-        title: "Board menu",
+        more: "More",
         close: "Close",
-        export: "Export",
+        exportOpen: "Export …",
+        exportTitle: "Export the board",
+        exportFormat: "Format",
+        exportHint:
+          "Only when you say so. Destination: a file in a place you choose.",
+        adminLinkOpen: "Facilitator link …",
+        adminLinkTitle: "Facilitator link",
+        templateLinkOpen: "Template link …",
+        templateLinkTitle: "Template link",
+        deleteOpen: "Delete board …",
+        deleteTitle: "Delete the board?",
+        deleteText:
+          "“{{name}}” and all its cards, votes and action items will be removed. This can't be undone.",
+        deleteConfirm: "Delete",
         exportScope: "Scope",
         scope: {
           all: "Everything",
@@ -400,7 +413,6 @@ const resources = {
           "Who wrote a card and who voted for it stay out on this board.",
         rendering: "Rendering …",
         imageFailed: "The image could not be created. Try a smaller scope.",
-        settings: "Board settings",
         gifsEnabled: "Allow GIFs",
         cursorsEnabled: "Live cursors (1\u00a0update/s)",
         voterNamesEnabled: "Show who voted (after the reveal)",
@@ -433,8 +445,6 @@ const resources = {
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
         keep: "Keep",
-        deleteNow: "Delete now",
-        reallyDelete: "Really delete?",
       },
       guide: {
         checkin: {
@@ -1143,9 +1153,22 @@ const resources = {
         poweredBy: "Powered by KLIPY",
       },
       menu: {
-        title: "Board-Menü",
+        more: "Mehr",
         close: "Schließen",
-        export: "Export",
+        exportOpen: "Exportieren …",
+        exportTitle: "Board exportieren",
+        exportFormat: "Format",
+        exportHint:
+          "Nur auf deinen Befehl. Ziel: Datei an einem Ort deiner Wahl.",
+        adminLinkOpen: "Moderationslink …",
+        adminLinkTitle: "Moderationslink",
+        templateLinkOpen: "Vorlage-Link …",
+        templateLinkTitle: "Vorlage-Link",
+        deleteOpen: "Board löschen …",
+        deleteTitle: "Board löschen?",
+        deleteText:
+          "„{{name}}“ und alle Karten, Stimmen und Action Items werden entfernt. Das lässt sich nicht rückgängig machen.",
+        deleteConfirm: "Löschen",
         exportScope: "Umfang",
         scope: {
           all: "Alles",
@@ -1157,7 +1180,6 @@ const resources = {
         rendering: "Wird erstellt …",
         imageFailed:
           "Das Bild konnte nicht erstellt werden. Versuche einen kleineren Umfang.",
-        settings: "Board-Einstellungen",
         gifsEnabled: "GIFs erlauben",
         cursorsEnabled: "Live-Cursor (1\u00a0Aktualisierung/s)",
         voterNamesEnabled: "Zeigen, wer gestimmt hat (nach der Auflösung)",
@@ -1190,8 +1212,6 @@ const resources = {
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
         keep: "Behalten",
-        deleteNow: "Jetzt löschen",
-        reallyDelete: "Wirklich löschen?",
       },
       guide: {
         checkin: {
