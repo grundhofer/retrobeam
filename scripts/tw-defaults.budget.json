@@ -2,7 +2,7 @@
   "apps/web/index.html": 1,
   "apps/web/src/components/ActionsPanel.tsx": 41,
   "apps/web/src/components/AdminLink.tsx": 36,
-  "apps/web/src/components/AvatarRow.tsx": 13,
+  "apps/web/src/components/AvatarRow.tsx": 12,
   "apps/web/src/components/BoardCanvas.tsx": 76,
   "apps/web/src/components/BoardColumns.tsx": 152,
   "apps/web/src/components/BoardMenu.tsx": 95,
