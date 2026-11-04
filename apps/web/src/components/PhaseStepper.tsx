@@ -12,6 +12,7 @@ import {
   type PhasePlan,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { Icon } from "./Icon.js";
 
 export interface PhaseStepperProps {
   phase: Phase;
@@ -25,6 +26,7 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
   const sequence = enabledPhases(phasePlan);
+  const currentIndex = sequence.indexOf(phase);
   // Offer only steps the server's own transition table would accept, so the UI
   // cannot present a control that is guaranteed to be rejected. "done" is
   // terminal, and it used to render a "← Close" button that failed on every
@@ -92,50 +94,41 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
     // the stepper, and the centred stepper slid the trigger 6px sideways as
     // the question opened.
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Below `sm` the full row does not fit: seven or eight names are
-            some 560px, and that one row made every board page on a phone
-            scroll sideways — which also pushed the fixed wheel overlay off
-            centre. The phone gets the position and the current phase; the
-            list stays in the accessibility tree (sr-only), so a screen reader
-            hears the same agenda on every screen, and this line is hidden
-            from it to avoid reading the phase twice. */}
-        <p
-          aria-hidden="true"
-          data-testid="phase-compact"
-          className="flex items-center gap-2 text-sm text-zinc-500 sm:hidden"
-        >
-          {t("phase.stepOf", {
-            current: sequence.indexOf(phase) + 1,
-            total: sequence.length,
-          })}
-          {/* contrast-ok: decorative separator */}
-          <span className="text-zinc-300">·</span>
-          <span className="rounded-full bg-accent px-2.5 py-0.5 font-medium text-white">
-            {t(`phase.${phase}`)}
-          </span>
-        </p>
-        <ol
-          className="sr-only flex items-center gap-1 sm:not-sr-only"
-          aria-label={t("phase.stepper")}
-        >
-          {sequence.map((step, index) => (
-            <li key={step} className="flex items-center gap-1">
-              {/* contrast-ok: decorative separator */}
-              {index > 0 ? <span className="text-zinc-300">·</span> : null}
-              <span
+      <div className="flex flex-wrap items-end gap-3">
+        {/* sebaro's steps (spec/02 §3.12, sb-progress): the head says where
+            the room is in words, the bars show the agenda. sebaro's short
+            form (every bar and check stays, the words only for screen
+            readers) is sb-fit.js's job, but only for 2 to 4 steps; a retro
+            has 6 to 8 (reported to sebaroDesign). Until then the words go
+            below `lg` by breakpoint — the head already names the current
+            phase. */}
+        <div className="sb-progress min-w-0 flex-[1_1_24rem]">
+          <p data-testid="phase-compact" className="sb-progress__head">
+            <span>
+              {t("phase.stepOf", {
+                current: currentIndex + 1,
+                total: sequence.length,
+              })}
+              {" · "}
+              {t(`phase.${phase}`)}
+            </span>
+          </p>
+          <ol className="sb-progress__steps" aria-label={t("phase.stepper")}>
+            {sequence.map((step, index) => (
+              <li
+                key={step}
+                className="sb-progress__step"
+                data-sb-state={index < currentIndex ? "done" : undefined}
                 aria-current={step === phase ? "step" : undefined}
-                className={
-                  step === phase
-                    ? "rounded-full bg-accent px-2.5 py-0.5 text-sm font-medium text-white"
-                    : "px-1 text-sm text-zinc-500"
-                }
               >
-                {t(`phase.${step}`)}
-              </span>
-            </li>
-          ))}
-        </ol>
+                {index < currentIndex ? <Icon name="check" size={16} /> : null}
+                <span className="sb-progress__word max-lg:sr-only">
+                  {t(`phase.${step}`)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
         {isAdmin ? (
           <div className="flex items-center gap-1.5">
             {previous !== null ? (

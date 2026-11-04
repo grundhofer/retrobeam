@@ -12,7 +12,13 @@ export interface AvatarRowProps {
   isAdmin: boolean;
 }
 
-// Compact presence for the board header: colored initials, dimmed offline.
+// Compact presence for the board header, as sebaro's avatars (spec/02 §3.13):
+// initials in a ring without a fill — no colour per person, the name tells
+// people apart (plan §2.4 F6). sebaro has no presence or role state for an
+// avatar yet (reported to sebaroDesign): a facilitator gets the ring in text
+// colour and two pixels wide, someone offline a dashed ring and muted
+// initials — shape, not colour. Offline is in the accessible name, the role
+// in the title and the roster.
 // Facilitators can click an avatar to hand off / share the facilitator role.
 export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
   const { t } = useTranslation();
@@ -24,9 +30,9 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
 
   return (
     // Wraps: a full team of avatars in one row is wider than a phone.
-    <div className="flex flex-wrap -space-x-1.5 gap-y-1">
+    <ul className="sb-avatars flex-wrap">
       {participants.map((participant) => (
-        <span
+        <li
           key={participant.id}
           className="relative"
           onBlur={(event) => {
@@ -55,14 +61,13 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
               setAlignLeft(rect.right < 200);
               setOpenId(openId === participant.id ? null : participant.id);
             }}
-            className={`flex size-7 items-center justify-center rounded-full border-2 text-xs font-semibold text-white focus-visible:outline-2 focus-visible:outline-accent ${
+            className={`sb-avatar sb-avatar--32 ${
               participant.role === "facilitator"
-                ? "border-zinc-700"
-                : "border-white"
-            } ${participant.online ? "" : "opacity-35"} ${isAdmin ? "cursor-pointer" : ""}`}
-            style={{ backgroundColor: participant.color }}
+                ? "border-2 border-(--sb-color-text)"
+                : ""
+            } ${participant.online ? "" : "border-dashed text-(--sb-color-text-muted)"} ${isAdmin ? "cursor-pointer" : ""}`}
           >
-            {nameInitials(participant.name)}
+            <span aria-hidden="true">{nameInitials(participant.name)}</span>
             {/* Two people can share initials, a disabled button is not
                 reachable by keyboard, and its title is not reliably announced —
                 so the name and the presence state live here as real content.
@@ -96,8 +101,8 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
               ) : null}
             </span>
           ) : null}
-        </span>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
