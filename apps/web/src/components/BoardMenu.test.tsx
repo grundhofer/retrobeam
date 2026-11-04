@@ -37,13 +37,7 @@ function view({
           boardId={"a".repeat(32)}
           boardName="Sprint 42"
           isAdmin={isAdmin}
-          gifsEnabled
-          cursorsEnabled={false}
-          voterNamesEnabled={false}
           anonymous={false}
-          phase="write"
-          layout="columns"
-          retentionAt={null}
           columns={columns}
         />
       </ConnectionProvider>

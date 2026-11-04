@@ -603,6 +603,13 @@ const resources = {
         skipToContent: "Skip to content",
         language: "Language",
         theme: "Light or dark",
+        nav: "Main menu",
+        board: "Board",
+        settings: "Settings",
+      },
+      settings: {
+        title: "Settings",
+        languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {
         title: "This page doesn't exist.",
@@ -1362,6 +1369,13 @@ const resources = {
         skipToContent: "Zum Inhalt",
         language: "Sprache",
         theme: "Hell oder Dunkel",
+        nav: "Hauptmenü",
+        board: "Board",
+        settings: "Einstellungen",
+      },
+      settings: {
+        title: "Einstellungen",
+        languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {
         title: "Diese Seite gibt es nicht.",

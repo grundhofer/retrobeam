@@ -75,10 +75,11 @@ test("board fits a phone", async ({ browser }) => {
   }
   await expectFits(anna, ben, "write (columns)");
 
-  // Write, on the canvas — switched from the phone's own menu.
-  await openPanel(anna, "board-menu", "board-menu-panel");
+  // Write, on the canvas — switched in the phone's own settings view.
+  await anna.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await expectOnScreen(anna.getByTestId("layout-canvas"));
   await anna.getByTestId("layout-canvas").click();
-  await anna.keyboard.press("Escape");
+  await anna.getByRole("link", { name: /^board$/i }).click();
   await expect(anna.getByTestId("canvas-viewport")).toBeVisible();
   await expect(ben.getByTestId("canvas-viewport")).toBeVisible();
   await expectFits(anna, ben, "write (canvas)");

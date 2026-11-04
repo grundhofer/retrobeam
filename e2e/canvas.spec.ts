@@ -83,11 +83,12 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
   await ben.keyboard.press("Escape");
   await expect(panel).toHaveCount(0);
 
-  // Flip live to columns via the board menu → the column composer returns and
-  // the note is still there (positions are ignored, not lost).
-  await page.getByTestId("board-menu").click();
+  // Flip live to columns in the settings view → back on the board the column
+  // composer returns and the note is still there (positions are ignored, not
+  // lost). The view is a child route: the socket stays, nobody goes offline.
+  await page.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
   await page.getByTestId("layout-columns").click();
-  await page.keyboard.press("Escape"); // close the menu
+  await page.getByRole("link", { name: /^board$/i }).click();
   await expect(page.getByTestId(/^composer-/).first()).toBeVisible();
   await expect(page.getByText("Freeform idea")).toBeVisible();
 

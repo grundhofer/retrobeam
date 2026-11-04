@@ -35,13 +35,7 @@ function view(boardId: string, isAdmin: boolean) {
           boardId={boardId}
           boardName="Sprint 42"
           isAdmin={isAdmin}
-          gifsEnabled
-          cursorsEnabled={false}
-          voterNamesEnabled={false}
           anonymous={false}
-          phase="discuss"
-          layout="columns"
-          retentionAt={null}
           columns={[]}
         />
       </ConnectionProvider>
@@ -78,8 +72,8 @@ test("the token holder gets the link mid-retro, masked until asked", async () =>
 
 test("a co-facilitator promoted by role holds no token and is offered none", async () => {
   const screen = await openMenu("2".repeat(32), true);
-  // The settings section renders, so the menu really is the facilitator's.
-  await expect.element(screen.getByTestId("gifs-toggle")).toBeVisible();
+  // The template link renders, so the menu really is the facilitator's.
+  await expect.element(screen.getByTestId("template-link-copy")).toBeVisible();
   expect(screen.getByTestId("admin-link").elements()).toHaveLength(0);
   // Duplicate and follow-up need the token too; the server would refuse a
   // co-facilitator, so the buttons are not offered (they used to do nothing).

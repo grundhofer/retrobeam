@@ -5,7 +5,7 @@
   "apps/web/src/components/AvatarRow.tsx": 12,
   "apps/web/src/components/BoardCanvas.tsx": 76,
   "apps/web/src/components/BoardColumns.tsx": 152,
-  "apps/web/src/components/BoardMenu.tsx": 95,
+  "apps/web/src/components/BoardMenu.tsx": 64,
   "apps/web/src/components/BoardPreview.tsx": 19,
   "apps/web/src/components/CarriedActions.tsx": 12,
   "apps/web/src/components/CheckinPanel.tsx": 26,

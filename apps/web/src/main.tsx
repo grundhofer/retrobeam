@@ -78,6 +78,10 @@ const router = createBrowserRouter([
       </>
     ),
     errorElement: <ErrorBoundary />,
+    // The settings view is a child of the board, so BoardPage — and with it
+    // the board's socket — stays mounted while it is shown (BoardPage reads
+    // the match itself; the children render nothing).
+    children: [{ index: true }, { path: "settings" }],
   },
   { path: "*", element: <NotFoundPage />, errorElement: <ErrorBoundary /> },
 ]);

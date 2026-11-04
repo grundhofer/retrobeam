@@ -4,15 +4,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CURSORS_ACTIVATABLE,
   EXPORT_DOWNLOADS,
   EXPORT_SCOPES,
-  layoutModes,
   TEMPLATE_LINK_MAX_COLUMNS,
   templateLinkQuery,
   type Column,
-  type LayoutMode,
-  type Phase,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { loadAdminToken } from "../lib/session.js";
@@ -21,33 +17,22 @@ import { useBoardExport } from "../lib/useBoardExport.js";
 import { AdminLink } from "./AdminLink.js";
 import { HeaderPopover } from "./HeaderPopover.js";
 
-// Export (anyone) + admin board settings: GIF toggle, layout, duplicate, keep,
-// delete-now. Lives in the board header. The picker SKIN deliberately is not
+// Export (anyone) + the facilitator's board actions: the facilitator link,
+// follow-up, duplicate, template link, delete-now. The board's switches are
+// in the settings view (BoardSettings). Lives in the board header. The picker SKIN deliberately is not
 // here — it sits next to the spin button in the presenting cockpit, where it is
 // used; one setting, one control.
 export function BoardMenu({
   boardId,
   boardName,
   isAdmin,
-  gifsEnabled,
-  cursorsEnabled,
-  voterNamesEnabled,
   anonymous,
-  phase,
-  layout,
-  retentionAt,
   columns,
 }: {
   boardId: string;
   boardName: string;
   isAdmin: boolean;
-  gifsEnabled: boolean;
-  cursorsEnabled: boolean;
-  voterNamesEnabled: boolean;
   anonymous: boolean;
-  phase: Phase;
-  layout: LayoutMode;
-  retentionAt: number | null;
   columns: readonly Column[];
 }) {
   const { t } = useTranslation();
@@ -169,106 +154,6 @@ export function BoardMenu({
 
       {isAdmin ? (
         <div className="border-t border-zinc-100 pt-3">
-          <p className="mb-1.5 font-semibold tracking-wide text-zinc-500 uppercase">
-            {t("menu.settings")}
-          </p>
-          <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
-            <input
-              type="checkbox"
-              checked={gifsEnabled}
-              data-testid="gifs-toggle"
-              onChange={(event) =>
-                send({
-                  type: "admin.gifs.set",
-                  enabled: event.target.checked,
-                })
-              }
-              className="accent-accent"
-            />
-            {t("menu.gifsEnabled")}
-          </label>
-          {/* Whether the reveal names the voters. Disabled rather than
-                  hidden once voting has closed: the lock is part of the
-                  promise — nobody may be de-blinded in a round they already
-                  voted in — and a control that silently vanishes teaches
-                  nothing. The server refuses it either way. */}
-          <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
-            <input
-              type="checkbox"
-              checked={voterNamesEnabled && !anonymous}
-              // The lock is one-way, exactly like the server's: after the
-              // reveal you may still take names down, never put them up.
-              disabled={
-                anonymous || (voterNamesLocked(phase) && !voterNamesEnabled)
-              }
-              data-testid="voter-names-toggle"
-              onChange={(event) =>
-                send({
-                  type: "admin.voterNames.set",
-                  enabled: event.target.checked,
-                })
-              }
-              className="accent-accent"
-            />
-            {t("menu.voterNamesEnabled")}
-          </label>
-          {anonymous || (voterNamesLocked(phase) && !voterNamesEnabled) ? (
-            <p className="-mt-1 mb-2 text-xs text-zinc-500">
-              {anonymous
-                ? t("menu.voterNamesAnonymous")
-                : t("menu.voterNamesLocked")}
-            </p>
-          ) : null}
-          {/* Kept behind one emergency feature gate even though the 1 Hz
-                  client throttle and daily server budget normally make it safe. */}
-          {CURSORS_ACTIVATABLE ? (
-            <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
-              <input
-                type="checkbox"
-                checked={cursorsEnabled && !anonymous}
-                // Refused by the server on an anonymous board, like voter
-                // names — disabled with the reason rather than hidden.
-                disabled={anonymous}
-                data-testid="cursors-toggle"
-                onChange={(event) =>
-                  send({
-                    type: "admin.cursors.set",
-                    enabled: event.target.checked,
-                  })
-                }
-                className="accent-accent"
-              />
-              {t("menu.cursorsEnabled")}
-            </label>
-          ) : null}
-          {CURSORS_ACTIVATABLE && anonymous ? (
-            <p className="-mt-1 mb-2 text-xs text-zinc-500">
-              {t("menu.cursorsAnonymous")}
-            </p>
-          ) : null}
-          <div className="mb-2">
-            <p className="mb-1 text-zinc-600">{t("menu.layout")}</p>
-            <div className="flex gap-1.5" role="group">
-              {layoutModes.map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  data-testid={`layout-${mode}`}
-                  aria-pressed={layout === mode}
-                  onClick={() =>
-                    send({ type: "admin.layout.set", layout: mode })
-                  }
-                  className={`flex-1 rounded-lg border px-2 py-1 font-medium ${
-                    layout === mode
-                      ? "border-accent bg-accent/10 text-accent-strong"
-                      : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                  }`}
-                >
-                  {t(`menu.layoutMode.${mode}`)}
-                </button>
-              ))}
-            </div>
-          </div>
           {/* Both need the admin token itself, not just the role: a
               co-facilitator promoted in the room holds no token, and the
               server would refuse them. */}
@@ -310,23 +195,7 @@ export function BoardMenu({
             </>
           ) : null}
           <TemplateLinkButton columns={columns} />
-          <p className="mb-2 text-xs text-zinc-500">
-            {retentionAt === null
-              ? t("menu.retentionKept")
-              : t("menu.retentionNotice", {
-                  date: formatDate(retentionAt),
-                })}
-          </p>
           <div className="flex gap-2">
-            {retentionAt !== null ? (
-              <button
-                type="button"
-                onClick={() => send({ type: "admin.board.keep" })}
-                className="rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50"
-              >
-                {t("menu.keep")}
-              </button>
-            ) : null}
             {/* Deleting wipes the board for everyone and cannot be undone.
                     The confirmation is therefore a SECOND button beside the
                     trigger, never one swapped in underneath the pointer — with
@@ -417,22 +286,4 @@ function TemplateLinkButton({ columns }: { columns: readonly Column[] }) {
       ) : null}
     </div>
   );
-}
-
-// Once voting has started, the setting is frozen: turning names on afterwards
-// would attribute dots that were cast under the blind promise, and nobody can
-// take a dot back. The server draws the line at the first dot; the menu draws
-// it one step earlier, at the vote phase itself, so the control never offers a
-// click the server would refuse.
-function voterNamesLocked(phase: Phase): boolean {
-  return (
-    phase === "vote" ||
-    phase === "discuss" ||
-    phase === "close" ||
-    phase === "done"
-  );
-}
-
-function formatDate(epochMs: number): string {
-  return new Date(epochMs).toISOString().slice(0, 10);
 }

@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router";
+import { Link, useMatch, useParams } from "react-router";
 import {
   boardSurface,
   CURSORS_ACTIVATABLE,
@@ -19,6 +19,7 @@ import { AvatarRow } from "../components/AvatarRow.js";
 import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
 import { BoardMenu } from "../components/BoardMenu.js";
+import { BoardSettings } from "../components/BoardSettings.js";
 import { PhaseAnnouncer, PhaseGuide } from "../components/PhaseGuide.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
@@ -274,6 +275,8 @@ function Room({
   const [staleBuild, setStaleBuild] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
   const [actionSlot, setActionSlot] = useState<HTMLDivElement | null>(null);
+  const boardPath = `/board/${boardId}`;
+  const inSettings = useMatch("/board/:boardId/settings") !== null;
 
   // Stable connection facade over whichever socket is currently alive. User
   // interactions can only happen after the effect below has run, so the ref
@@ -558,69 +561,78 @@ function Room({
       >
         {/* sebaro's web app without a window (spec/03 §6.6): the site header
             with the tile, DE / EN as a choice and (from 6b) „Hell oder
-            Dunkel“; the board's own head follows under it. */}
-        <SiteHeader />
-        <div className="flex flex-col gap-(--sb-space-4) border-b border-(--sb-color-border) px-(--sb-spacing-gutter) py-(--sb-space-4)">
-          <div className="flex flex-wrap items-center justify-between gap-x-(--sb-space-6) gap-y-(--sb-space-2)">
-            <div className="min-w-0">
-              <h1 className="sb-top-bar__title [overflow-wrap:anywhere]">
-                {state.board?.name ?? board.name}
-              </h1>
-              {/* On every screen, in every phase: anonymity only earns trust
+            Dunkel“; the board's own head follows under it. The settings
+            view is a child route, so this same Room — and its socket —
+            renders it. */}
+        <SiteHeader
+          nav={[
+            { to: boardPath, label: t("site.board"), current: !inSettings },
+            {
+              to: `${boardPath}/settings`,
+              label: t("site.settings"),
+              current: inSettings,
+            },
+          ]}
+        />
+        {inSettings ? null : (
+          <>
+            <div className="flex flex-col gap-(--sb-space-4) border-b border-(--sb-color-border) px-(--sb-spacing-gutter) py-(--sb-space-4)">
+              <div className="flex flex-wrap items-center justify-between gap-x-(--sb-space-6) gap-y-(--sb-space-2)">
+                <div className="min-w-0">
+                  <h1 className="sb-top-bar__title [overflow-wrap:anywhere]">
+                    {state.board?.name ?? board.name}
+                  </h1>
+                  {/* On every screen, in every phase: anonymity only earns trust
                   if the room can see it is on — a latecomer never passes the
                   lobby that explains it. The tag names it, the sentence
                   beside it says what it means. */}
-              {anonymous ? (
-                <p className="mt-(--sb-space-1) flex flex-wrap items-baseline gap-x-(--sb-space-2) gap-y-(--sb-space-1)">
-                  <span data-testid="anonymous-badge" className="sb-tag">
-                    {t("board.anonymous")}
-                  </span>
-                  <span className="sb-top-bar__subtitle">
-                    {t("board.anonymousHint")}
-                  </span>
-                </p>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap items-center gap-(--sb-space-3)">
-              <AvatarRow
-                participants={state.roster}
-                youId={you.id}
-                isAdmin={isAdmin}
-              />
-              {/* Only where there is no rail to carry it — otherwise the same
+                  {anonymous ? (
+                    <p className="mt-(--sb-space-1) flex flex-wrap items-baseline gap-x-(--sb-space-2) gap-y-(--sb-space-1)">
+                      <span data-testid="anonymous-badge" className="sb-tag">
+                        {t("board.anonymous")}
+                      </span>
+                      <span className="sb-top-bar__subtitle">
+                        {t("board.anonymousHint")}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-(--sb-space-3)">
+                  <AvatarRow
+                    participants={state.roster}
+                    youId={you.id}
+                    isAdmin={isAdmin}
+                  />
+                  {/* Only where there is no rail to carry it — otherwise the same
                   count would render twice on one screen. */}
-              {showActions ? (
-                <span className="sb-top-bar__subtitle tabular-nums">
-                  {t("rail.online", { count: onlineCount })}
-                </span>
-              ) : null}
-              {/* Not once the retro is over: "done" is terminal and nobody
+                  {showActions ? (
+                    <span className="sb-top-bar__subtitle tabular-nums">
+                      {t("rail.online", { count: onlineCount })}
+                    </span>
+                  ) : null}
+                  {/* Not once the retro is over: "done" is terminal and nobody
                   joins it to take part. */}
-              {state.phase !== "done" ? (
-                <InviteButton boardId={boardId} />
-              ) : null}
-              <BoardMenu
-                boardId={boardId}
-                boardName={state.board?.name ?? board.name}
-                isAdmin={isAdmin}
-                gifsEnabled={gifsEnabled}
-                cursorsEnabled={config?.cursorsEnabled ?? false}
-                voterNamesEnabled={config?.voterNamesEnabled ?? false}
-                anonymous={config?.anonymous ?? false}
+                  {state.phase !== "done" ? (
+                    <InviteButton boardId={boardId} />
+                  ) : null}
+                  <BoardMenu
+                    boardId={boardId}
+                    boardName={state.board?.name ?? board.name}
+                    isAdmin={isAdmin}
+                    anonymous={config?.anonymous ?? false}
+                    columns={state.columns}
+                  />
+                </div>
+              </div>
+              <PhaseStepper
                 phase={state.phase}
-                layout={layout}
-                retentionAt={state.retentionAt}
-                columns={state.columns}
+                phasePlan={phasePlan}
+                isAdmin={isAdmin}
+                actionSlot={actionSlot}
               />
             </div>
-          </div>
-          <PhaseStepper
-            phase={state.phase}
-            phasePlan={phasePlan}
-            isAdmin={isAdmin}
-            actionSlot={actionSlot}
-          />
-        </div>
+          </>
+        )}
 
         {status !== "online" ? (
           <div
@@ -634,249 +646,266 @@ function Room({
           </div>
         ) : null}
 
-        {!inLobby && state.phase !== "done" ? (
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-100 bg-white/60 px-6 py-2">
-            <PhaseGuide
-              phase={state.phase}
+        {inSettings ? (
+          <main id={MAIN_ID} className="flex-1">
+            <BoardSettings
               isAdmin={isAdmin}
+              gifsEnabled={gifsEnabled}
+              cursorsEnabled={config?.cursorsEnabled ?? false}
+              voterNamesEnabled={config?.voterNamesEnabled ?? false}
               anonymous={anonymous}
+              phase={state.phase}
+              layout={layout}
+              retentionAt={state.retentionAt}
             />
-            <TimerPanel timer={state.timer} isAdmin={isAdmin} />
-            {/* Top-centre, in the phase strip rather than the header: every
+          </main>
+        ) : (
+          <>
+            {!inLobby && state.phase !== "done" ? (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-100 bg-white/60 px-6 py-2">
+                <PhaseGuide
+                  phase={state.phase}
+                  isAdmin={isAdmin}
+                  anonymous={anonymous}
+                />
+                <TimerPanel timer={state.timer} isAdmin={isAdmin} />
+                {/* Top-centre, in the phase strip rather than the header: every
                 other phase-scoped control lives here, and the header already
                 has one primary element (the phase stepper). Only where it
                 bites — presenting a person's cards, and walking the crowned
                 ones in the discussion. */}
-            {/* Not while presenting on an anonymous board: nobody is on stage
+                {/* Not while presenting on an anonymous board: nobody is on stage
                 there, so the switch would have nothing to act on. */}
-            {(state.phase === "present" && !anonymous) ||
-            state.phase === "discuss" ? (
-              <div className="mx-auto">
-                <FocusToggle focusMode={focusMode} isAdmin={isAdmin} />
+                {(state.phase === "present" && !anonymous) ||
+                state.phase === "discuss" ? (
+                  <div className="mx-auto">
+                    <FocusToggle focusMode={focusMode} isAdmin={isAdmin} />
+                  </div>
+                ) : null}
+                {/* Ready lives in the presence rail for the board phases; check-in
+                has no rail, so keep the inline toggle there. */}
+                {state.phase === "checkin" ? (
+                  <ReadyBar
+                    readyIds={state.readyIds}
+                    roster={state.roster}
+                    youId={you.id}
+                  />
+                ) : null}
+                {state.phase === "vote" && config ? (
+                  <VoteBar config={config} isAdmin={isAdmin} />
+                ) : null}
+                {state.phase === "discuss" ? (
+                  <DiscussBar
+                    topTargetIds={state.votes.topTargetIds}
+                    tallies={state.votes.tallies}
+                    focusId={state.discussFocusId}
+                    notes={state.notes}
+                    isAdmin={isAdmin}
+                  />
+                ) : null}
               </div>
             ) : null}
-            {/* Ready lives in the presence rail for the board phases; check-in
-                has no rail, so keep the inline toggle there. */}
-            {state.phase === "checkin" ? (
-              <ReadyBar
-                readyIds={state.readyIds}
-                roster={state.roster}
-                youId={you.id}
-              />
-            ) : null}
-            {state.phase === "vote" && config ? (
-              <VoteBar config={config} isAdmin={isAdmin} />
-            ) : null}
-            {state.phase === "discuss" ? (
-              <DiscussBar
-                topTargetIds={state.votes.topTargetIds}
-                tallies={state.votes.tallies}
-                focusId={state.discussFocusId}
-                notes={state.notes}
-                isAdmin={isAdmin}
-              />
-            ) : null}
-          </div>
-        ) : null}
 
-        {/* Where "Zum Inhalt" lands: past the header and the phase strip, on
+            {/* Where "Zum Inhalt" lands: past the header and the phase strip, on
             what the phase is about — the columns or the canvas with the rail
             beside them, or the lobby, check-in, close and results that take
             their place. The phase strip's controls (timer, votes left, ready)
             sit right before it. */}
-        <main id={MAIN_ID} className="flex-1 px-6 py-6">
-          {inLobby ? (
-            <div className="mx-auto flex max-w-2xl flex-col gap-8">
-              {/* Who's in and how to get others in comes first — for the
+            <main id={MAIN_ID} className="flex-1 px-6 py-6">
+              {inLobby ? (
+                <div className="mx-auto flex max-w-2xl flex-col gap-8">
+                  {/* Who's in and how to get others in comes first — for the
                   facilitator, inviting is the first job; for everyone else the
                   first thing to know is that they are in and what happens next.
                   The agenda follows. */}
-              <div className="rounded-xl border border-zinc-200 bg-white p-5">
-                <p
-                  data-testid="lobby-hint"
-                  className={
-                    isAdmin
-                      ? "mb-4 text-sm text-zinc-500"
-                      : "mb-4 text-zinc-700"
-                  }
-                >
-                  {isAdmin
-                    ? t("lobby.hint", { count: onlineCount })
-                    : t("lobby.memberHint")}
-                </p>
-                {anonymous ? (
-                  <p
-                    data-testid="lobby-anonymous"
-                    className="mb-4 text-sm text-zinc-700"
-                  >
-                    {t("board.anonymousHint")}
-                  </p>
-                ) : null}
-                <ShareLink boardId={boardId} />
-                {/* Only in the browser that holds the token — a co-facilitator
+                  <div className="rounded-xl border border-zinc-200 bg-white p-5">
+                    <p
+                      data-testid="lobby-hint"
+                      className={
+                        isAdmin
+                          ? "mb-4 text-sm text-zinc-500"
+                          : "mb-4 text-zinc-700"
+                      }
+                    >
+                      {isAdmin
+                        ? t("lobby.hint", { count: onlineCount })
+                        : t("lobby.memberHint")}
+                    </p>
+                    {anonymous ? (
+                      <p
+                        data-testid="lobby-anonymous"
+                        className="mb-4 text-sm text-zinc-700"
+                      >
+                        {t("board.anonymousHint")}
+                      </p>
+                    ) : null}
+                    <ShareLink boardId={boardId} />
+                    {/* Only in the browser that holds the token — a co-facilitator
                     promoted by role has none and must not be handed one — and
                     only while it still counts here: a demoted holder is not
                     running this retro. */}
-                {isAdmin && adminToken !== null ? (
-                  <div className="mt-4">
-                    <AdminLink boardId={boardId} adminToken={adminToken} />
+                    {isAdmin && adminToken !== null ? (
+                      <div className="mt-4">
+                        <AdminLink boardId={boardId} adminToken={adminToken} />
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-              <CarriedActions actions={state.actions} />
-              <PhasePlanPanel
-                phasePlan={phasePlan}
-                isAdmin={isAdmin}
-                locked={config?.phasePlanLocked ?? false}
-                icebreakerId={state.icebreakerId}
-                workingAgreements={state.workingAgreements}
-              />
-              <Roster
-                participants={state.roster}
-                youId={you.id}
-                isAdmin={isAdmin}
-              />
-            </div>
-          ) : state.phase === "checkin" ? (
-            <CheckinPanel
-              icebreakerId={state.icebreakerId}
-              workingAgreements={state.workingAgreements}
-            />
-          ) : state.phase === "close" ? (
-            <div className="flex flex-col gap-8">
-              <KudosWall
-                kudos={state.kudos}
-                roster={state.roster}
-                you={you}
-                isAdmin={isAdmin}
-                gifsEnabled={gifsEnabled}
-                readOnly={false}
-              />
-              <RotiPoll />
-            </div>
-          ) : state.phase === "done" ? (
-            <RetroResults
-              boardId={boardId}
-              boardName={state.board?.name ?? board.name}
-              columns={state.columns}
-              notes={state.notes}
-              roster={state.roster}
-              you={you}
-              isAdmin={isAdmin}
-              votes={state.votes}
-              actions={state.actions}
-              kudos={state.kudos}
-              rotiReleased={state.roti.released}
-              retentionAt={state.retentionAt}
-              headcount={state.headcount}
-              anonymous={anonymous}
-              voterNamesEnabled={config?.voterNamesEnabled ?? false}
-              gifsEnabled={gifsEnabled}
-            />
-          ) : (
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="min-w-0 flex-1">
-                {surface === "canvas" ? (
-                  <BoardCanvas
-                    columns={state.columns}
-                    notes={state.notes}
-                    columnCounts={state.columnCounts}
-                    canvasOccupancy={state.canvasOccupancy}
+                  <CarriedActions actions={state.actions} />
+                  <PhasePlanPanel
+                    phasePlan={phasePlan}
+                    isAdmin={isAdmin}
+                    locked={config?.phasePlanLocked ?? false}
+                    icebreakerId={state.icebreakerId}
+                    workingAgreements={state.workingAgreements}
+                  />
+                  <Roster
+                    participants={state.roster}
+                    youId={you.id}
+                    isAdmin={isAdmin}
+                  />
+                </div>
+              ) : state.phase === "checkin" ? (
+                <CheckinPanel
+                  icebreakerId={state.icebreakerId}
+                  workingAgreements={state.workingAgreements}
+                />
+              ) : state.phase === "close" ? (
+                <div className="flex flex-col gap-8">
+                  <KudosWall
+                    kudos={state.kudos}
                     roster={state.roster}
                     you={you}
-                    phase={state.phase}
-                    editing={state.editing}
                     isAdmin={isAdmin}
-                    presenterId={presenterId}
-                    unpresentedAuthorIds={unpresentedAuthorIds}
                     gifsEnabled={gifsEnabled}
-                    cursors={state.cursors}
-                    cursorsEnabled={
-                      (config?.cursorsEnabled ?? false) &&
-                      CURSORS_ACTIVATABLE &&
-                      !anonymous
-                    }
+                    readOnly={false}
                   />
-                ) : surface === "focus" && presenter ? (
-                  <PresenterFocus
-                    notes={state.notes}
-                    columns={state.columns}
-                    roster={state.roster}
-                    you={you}
-                    phase={state.phase}
-                    isAdmin={isAdmin}
-                    presenter={presenter}
-                    spotlightId={state.spotlightId}
-                    focusMode={focusMode}
-                    picker={state.picker}
-                    pickerStyle={pickerStyle}
-                  />
-                ) : (
-                  <BoardColumns
-                    columns={state.columns}
-                    notes={state.notes}
-                    columnCounts={state.columnCounts}
-                    roster={state.roster}
-                    you={you}
-                    phase={state.phase}
-                    editing={state.editing}
-                    isAdmin={isAdmin}
-                    presenterId={presenterId}
-                    unpresentedAuthorIds={unpresentedAuthorIds}
-                    deciding={{
-                      voteActive: state.phase === "vote",
-                      mine: state.votes.mine,
-                      remaining: Math.max(
-                        0,
-                        (config?.votesPerPerson ?? 0) - usedVotes,
-                      ),
-                      maxPerTarget: config?.maxPerTarget ?? null,
-                      talliesShown,
-                      tallies: state.votes.tallies,
-                      topTargetIds: state.votes.topTargetIds,
-                      voters: state.votes.voters,
-                      focusId: state.discussFocusId,
-                    }}
-                    focusMode={focusMode}
-                    gifsEnabled={gifsEnabled}
-                  />
-                )}
-              </div>
-              {/* One right-hand column, never two. In the discussion phase the
+                  <RotiPoll />
+                </div>
+              ) : state.phase === "done" ? (
+                <RetroResults
+                  boardId={boardId}
+                  boardName={state.board?.name ?? board.name}
+                  columns={state.columns}
+                  notes={state.notes}
+                  roster={state.roster}
+                  you={you}
+                  isAdmin={isAdmin}
+                  votes={state.votes}
+                  actions={state.actions}
+                  kudos={state.kudos}
+                  rotiReleased={state.roti.released}
+                  retentionAt={state.retentionAt}
+                  headcount={state.headcount}
+                  anonymous={anonymous}
+                  voterNamesEnabled={config?.voterNamesEnabled ?? false}
+                  gifsEnabled={gifsEnabled}
+                />
+              ) : (
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+                  <div className="min-w-0 flex-1">
+                    {surface === "canvas" ? (
+                      <BoardCanvas
+                        columns={state.columns}
+                        notes={state.notes}
+                        columnCounts={state.columnCounts}
+                        canvasOccupancy={state.canvasOccupancy}
+                        roster={state.roster}
+                        you={you}
+                        phase={state.phase}
+                        editing={state.editing}
+                        isAdmin={isAdmin}
+                        presenterId={presenterId}
+                        unpresentedAuthorIds={unpresentedAuthorIds}
+                        gifsEnabled={gifsEnabled}
+                        cursors={state.cursors}
+                        cursorsEnabled={
+                          (config?.cursorsEnabled ?? false) &&
+                          CURSORS_ACTIVATABLE &&
+                          !anonymous
+                        }
+                      />
+                    ) : surface === "focus" && presenter ? (
+                      <PresenterFocus
+                        notes={state.notes}
+                        columns={state.columns}
+                        roster={state.roster}
+                        you={you}
+                        phase={state.phase}
+                        isAdmin={isAdmin}
+                        presenter={presenter}
+                        spotlightId={state.spotlightId}
+                        focusMode={focusMode}
+                        picker={state.picker}
+                        pickerStyle={pickerStyle}
+                      />
+                    ) : (
+                      <BoardColumns
+                        columns={state.columns}
+                        notes={state.notes}
+                        columnCounts={state.columnCounts}
+                        roster={state.roster}
+                        you={you}
+                        phase={state.phase}
+                        editing={state.editing}
+                        isAdmin={isAdmin}
+                        presenterId={presenterId}
+                        unpresentedAuthorIds={unpresentedAuthorIds}
+                        deciding={{
+                          voteActive: state.phase === "vote",
+                          mine: state.votes.mine,
+                          remaining: Math.max(
+                            0,
+                            (config?.votesPerPerson ?? 0) - usedVotes,
+                          ),
+                          maxPerTarget: config?.maxPerTarget ?? null,
+                          talliesShown,
+                          tallies: state.votes.tallies,
+                          topTargetIds: state.votes.topTargetIds,
+                          voters: state.votes.voters,
+                          focusId: state.discussFocusId,
+                        }}
+                        focusMode={focusMode}
+                        gifsEnabled={gifsEnabled}
+                      />
+                    )}
+                  </div>
+                  {/* One right-hand column, never two. In the discussion phase the
                   rail is a heading and a roster list and nothing else (its
                   ready toggle and picker cockpit are write/vote/present only),
                   and that roster is already in the header — so 288px of
                   duplicate was pushing board columns out of view in exactly
                   the phase that also pays 320px for the action list. */}
-              {showActions ? (
-                <ActionsPanel
-                  actions={state.actions}
-                  roster={state.roster}
-                  you={you}
-                  readOnly={false}
-                />
-              ) : (
-                <PresenceRail
-                  phase={state.phase}
-                  roster={state.roster}
-                  readyIds={state.readyIds}
-                  picker={state.picker}
-                  you={you}
-                  isAdmin={isAdmin}
-                  scopedRound={scopedRound}
-                  anonymous={anonymous}
-                  pickerStyle={pickerStyle}
-                  onOpenCards={() => setCardsOpen(true)}
-                />
+                  {showActions ? (
+                    <ActionsPanel
+                      actions={state.actions}
+                      roster={state.roster}
+                      you={you}
+                      readOnly={false}
+                    />
+                  ) : (
+                    <PresenceRail
+                      phase={state.phase}
+                      roster={state.roster}
+                      readyIds={state.readyIds}
+                      picker={state.picker}
+                      you={you}
+                      isAdmin={isAdmin}
+                      scopedRound={scopedRound}
+                      anonymous={anonymous}
+                      pickerStyle={pickerStyle}
+                      onOpenCards={() => setCardsOpen(true)}
+                    />
+                  )}
+                </div>
               )}
-            </div>
-          )}
-        </main>
-        {/* The bottom block (sebaro spec/03 §2) with the facilitator's
+            </main>
+            {/* The bottom block (sebaro spec/03 §2) with the facilitator's
             phase change goes here, through a portal from PhaseStepper.
             display: contents, so the block is a child of the view itself
             and its position: sticky holds to the viewport's bottom. */}
-        <div ref={setActionSlot} className="contents" />
+            <div ref={setActionSlot} className="contents" />
+          </>
+        )}
         <LegalFooter openLegalLinksInNewTab />
       </div>
     </ConnectionProvider>
