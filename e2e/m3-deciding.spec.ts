@@ -166,7 +166,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await anna.getByTestId("phase-next").click(); // discuss, re-revealed
   await expect(ben.getByTestId("crown").first()).toBeVisible();
   await anna.getByTestId("phase-next").click(); // close
-  await expect(anna.getByTestId("phase-next")).toContainText(/done|fertig/i);
+  await expect(anna.getByTestId("phase-next")).toContainText(/finish|beenden/i);
   await anna.getByTestId("phase-next").click();
   await expect(anna.getByTestId("phase-done-question")).toContainText(
     /read-only|schreibgeschützt/i,

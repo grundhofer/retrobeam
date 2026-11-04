@@ -154,7 +154,9 @@ const resources = {
         done: "Done",
         next: "Next",
         startRetro: "Start retro",
-        finishQuestion: "Finish the retro? The board becomes read-only.",
+        finishTitle: "Finish the retro?",
+        finishText:
+          "The board then becomes read-only: nobody can write cards or vote any more. Everything stays readable and can be exported.",
         finish: "Finish retro",
       },
       phasePlan: {
@@ -893,7 +895,9 @@ const resources = {
         done: "Fertig",
         next: "Weiter",
         startRetro: "Retro starten",
-        finishQuestion: "Retro beenden? Danach ist das Board schreibgeschützt.",
+        finishTitle: "Retro beenden?",
+        finishText:
+          "Danach ist das Board schreibgeschützt: Niemand kann mehr Karten schreiben oder abstimmen. Alles bleibt lesbar und lässt sich exportieren.",
         finish: "Retro beenden",
       },
       phasePlan: {

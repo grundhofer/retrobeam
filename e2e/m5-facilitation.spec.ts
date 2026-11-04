@@ -39,7 +39,7 @@ test("facilitator chooses optional phases before the retro starts", async ({
     /discuss|diskutieren/i,
   );
   await page.getByTestId("phase-next").click();
-  await expect(page.getByTestId("phase-next")).toContainText(/done|fertig/i);
+  await expect(page.getByTestId("phase-next")).toContainText(/finish|beenden/i);
   await page.getByTestId("phase-next").click();
   await page.getByTestId("phase-done-confirm").click();
   await expect(page.getByTestId("phase-next")).toHaveCount(0);

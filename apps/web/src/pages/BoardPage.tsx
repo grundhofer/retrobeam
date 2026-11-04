@@ -273,6 +273,7 @@ function Room({
   // costs nothing but the click.
   const [staleBuild, setStaleBuild] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
+  const [actionSlot, setActionSlot] = useState<HTMLDivElement | null>(null);
 
   // Stable connection facade over whichever socket is currently alive. User
   // interactions can only happen after the effect below has run, so the ref
@@ -617,6 +618,7 @@ function Room({
             phase={state.phase}
             phasePlan={phasePlan}
             isAdmin={isAdmin}
+            actionSlot={actionSlot}
           />
         </div>
 
@@ -870,6 +872,11 @@ function Room({
             </div>
           )}
         </main>
+        {/* The bottom block (sebaro spec/03 §2) with the facilitator's
+            phase change goes here, through a portal from PhaseStepper.
+            display: contents, so the block is a child of the view itself
+            and its position: sticky holds to the viewport's bottom. */}
+        <div ref={setActionSlot} className="contents" />
         <LegalFooter openLegalLinksInNewTab />
       </div>
     </ConnectionProvider>
