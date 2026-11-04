@@ -6,21 +6,30 @@ import { Link, useLocation } from "react-router";
 import tile from "../sebaro/brand/inline/tile-retrobeam-small.svg?raw";
 import { LanguageSwitch } from "./LanguageSwitch.js";
 
-// The header of every page outside a board, as sebaro builds it for a web app
-// without a window (spec/03 §6.6, D102 (45)): the 32 px tile and the name
-// back to the landing page, DE / EN, and the button „Hell oder Dunkel“. No
-// navigation words; „Einstellungen“ joins with the settings view (5a), and
-// the link to the source is in the footer (D102 (48)). The name carries a
+// The header of every page, the board's too, as sebaro builds it for a web
+// app without a window (spec/03 §6.6, D102 (45)): the 32 px tile and the name
+// back to the landing page, DE / EN, and the button „Hell oder Dunkel“. Only
+// the board has navigation words (`nav` below); the link to the source is in
+// the footer (D102 (48)). The name carries a
 // soft hyphen, so at large text it breaks as „Retro-“ / „Beam“ (D104 (30));
 // translate="no" keeps translators and sb-fit.js off it.
 //
 // The theme button is in the markup but hidden until stage 6b switches dark
 // mode on (plan §5.3).
 //
+// `nav` is the app's own places, for the board: „Board“ and „Einstellungen“
+// last (spec/03 §6.6), words only, aria-current on the one shown.
+//
 // `languageTo` is the same page in the other language, for the pages that
 // have one (the legal pages): DE / EN then links there instead of storing a
 // choice.
-export function SiteHeader({ languageTo }: { languageTo?: string }) {
+export function SiteHeader({
+  languageTo,
+  nav,
+}: {
+  languageTo?: string;
+  nav?: readonly { to: string; label: string; current: boolean }[];
+}) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   return (
@@ -40,6 +49,19 @@ export function SiteHeader({ languageTo }: { languageTo?: string }) {
         </span>
       </Link>
       <div className="sb-site-header__links">
+        {nav ? (
+          <nav className="sb-site-nav" aria-label={t("site.nav")}>
+            {nav.map((place) => (
+              <Link
+                key={place.to}
+                to={place.to}
+                aria-current={place.current ? "page" : undefined}
+              >
+                {place.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
         <LanguageSwitch to={languageTo} />
       </div>
       <button className="sb-theme-button" type="button" hidden>
