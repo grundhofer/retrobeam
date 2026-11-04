@@ -27,6 +27,8 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
   const { send } = useConnection();
   const sequence = enabledPhases(phasePlan);
   const currentIndex = sequence.indexOf(phase);
+  // sebaro's long form of the steps starts at five (D131).
+  const long = sequence.length >= 5;
   // Offer only steps the server's own transition table would accept, so the UI
   // cannot present a control that is guaranteed to be rejected. "done" is
   // terminal, and it used to render a "← Close" button that failed on every
@@ -95,25 +97,22 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
     // the question opened.
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
-        {/* sebaro's steps (spec/02 §3.12, sb-progress): the head says where
-            the room is in words, the bars show the agenda. sebaro's short
-            form (every bar and check stays, the words only for screen
-            readers) is sb-fit.js's job, but only for 2 to 4 steps; a retro
-            has 6 to 8 (reported to sebaroDesign). Until then the words go
-            below `lg` by breakpoint — the head already names the current
-            phase. */}
+        {/* sebaro's steps (spec/02 §3.12, sb-progress). A retro has 5 to 8
+            phases, so it takes the long form (D131): numbered marks, a check
+            on the done ones, the words only for screen readers, and one line
+            under the bars, „Schritt 3 von 7 · Vorstellen“, at every width.
+            React renders that line itself (data-sb-own-now), so sb-fit.js
+            writes nothing into this tree; the long form is set on the first
+            render, so no word flashes up first. Fewer than 5 steps are left
+            to sb-fit.js, which shortens them only where a word does not fit. */}
         <div className="sb-progress min-w-0 flex-[1_1_24rem]">
-          <p data-testid="phase-compact" className="sb-progress__head">
-            <span>
-              {t("phase.stepOf", {
-                current: currentIndex + 1,
-                total: sequence.length,
-              })}
-              {" · "}
-              {t(`phase.${phase}`)}
-            </span>
-          </p>
-          <ol className="sb-progress__steps" aria-label={t("phase.stepper")}>
+          <ol
+            className="sb-progress__steps"
+            aria-label={t("phase.stepper")}
+            data-sb-own-now=""
+            data-sb-long={long ? "" : undefined}
+            data-sb-fit={long ? "short" : undefined}
+          >
             {sequence.map((step, index) => (
               <li
                 key={step}
@@ -122,12 +121,22 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
                 aria-current={step === phase ? "step" : undefined}
               >
                 {index < currentIndex ? <Icon name="check" size={16} /> : null}
-                <span className="sb-progress__word max-lg:sr-only">
-                  {t(`phase.${step}`)}
-                </span>
+                <span className="sb-progress__word">{t(`phase.${step}`)}</span>
               </li>
             ))}
           </ol>
+          <p
+            data-testid="phase-compact"
+            className="sb-progress__now"
+            aria-hidden="true"
+          >
+            {long
+              ? `${t("phase.stepOf", {
+                  current: currentIndex + 1,
+                  total: sequence.length,
+                })} · ${t(`phase.${phase}`)}`
+              : t(`phase.${phase}`)}
+          </p>
         </div>
         {isAdmin ? (
           <div className="flex items-center gap-1.5">

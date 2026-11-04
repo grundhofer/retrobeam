@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { nameInitials, type Participant } from "@retrobeam/shared";
+import { Icon } from "./Icon.js";
 import { RoleToggleButton } from "./RoleToggleButton.js";
 
 export interface AvatarRowProps {
@@ -14,11 +15,10 @@ export interface AvatarRowProps {
 
 // Compact presence for the board header, as sebaro's avatars (spec/02 §3.13):
 // initials in a ring without a fill — no colour per person, the name tells
-// people apart (plan §2.4 F6). sebaro has no presence or role state for an
-// avatar yet (reported to sebaroDesign): a facilitator gets the ring in text
-// colour and two pixels wide, someone offline a dashed ring and muted
-// initials — shape, not colour. Offline is in the accessible name, the role
-// in the title and the roster.
+// people apart (plan §2.4 F6). Presence and role as sebaro D132 has them:
+// offline is a dashed ring with muted initials (data-sb-presence), never
+// dimmed; a facilitator carries the small shield on the ring
+// (svg.sb-avatar__role). The name says both: „Anna, Moderation, offline“.
 // Facilitators can click an avatar to hand off / share the facilitator role.
 export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
   const { t } = useTranslation();
@@ -61,23 +61,26 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
               setAlignLeft(rect.right < 200);
               setOpenId(openId === participant.id ? null : participant.id);
             }}
-            className={`sb-avatar sb-avatar--32 ${
-              participant.role === "facilitator"
-                ? "border-2 border-(--sb-color-text)"
-                : ""
-            } ${participant.online ? "" : "border-dashed text-(--sb-color-text-muted)"} ${isAdmin ? "cursor-pointer" : ""}`}
+            data-sb-presence={participant.online ? undefined : "offline"}
+            className={`sb-avatar sb-avatar--32 ${isAdmin ? "cursor-pointer" : ""}`}
           >
             <span aria-hidden="true">{nameInitials(participant.name)}</span>
+            {participant.role === "facilitator" ? (
+              <Icon name="shield" size={16} className="sb-avatar__role" />
+            ) : null}
             {/* Two people can share initials, a disabled button is not
                 reachable by keyboard, and its title is not reliably announced —
                 so the name and the presence state live here as real content.
                 In the discussion phase this row IS the roster: the participant
-                rail steps aside there for the action list. The ROLE stays out
-                of it — the ring and the title carry it, and the facilitator
-                badge is counted elsewhere. */}
+                rail steps aside there for the action list. Since sebaro D132
+                the role is in it too, as the shield is only a picture:
+                „Anna, Moderation, offline“. */}
             <span className="sr-only">
               {participant.name}
-              {participant.online ? "" : ` · ${t("board.offline")}`}
+              {participant.role === "facilitator"
+                ? `, ${t("board.facilitator")}`
+                : ""}
+              {participant.online ? "" : `, ${t("board.offline")}`}
             </span>
           </button>
           {openId === participant.id && isAdmin ? (
