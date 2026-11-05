@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { waivers } from "./a11y-waivers.js";
 import { newContext } from "./helpers.js";
 
@@ -38,7 +38,6 @@ test.skip(
 // pass there (owner decision of 2026-11-02). The waiver list is not used for
 // this, and the list must be empty before the final merge to main.
 const KNOWN: Record<string, string> = {
-  "board-lobby": "stages 5a (board frame) and 5b (lobby)",
   "board-write": "stages 5a (board frame), 5c and 5g (board core)",
   "board-canvas-arrange": "stage 5h (free canvas)",
 };
@@ -152,12 +151,10 @@ for (const [name, path] of [
 }
 
 // One board, pictured in the lobby and the write phase: the two screens every
-// participant sees. The later phases follow as their views move to sebaro.
-test("axe: board", async ({ browser }) => {
-  test.fixme(
-    known("board-lobby", "board-write") !== "",
-    known("board-lobby", "board-write"),
-  );
+// participant sees, each its own test, so the lobby (done in stage 5b) is held
+// to axe while the write phase still waits for its stages. The later phases
+// follow as their views move to sebaro.
+async function joinedBoard(browser: Browser) {
   const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/new");
@@ -169,15 +166,24 @@ test("axe: board", async ({ browser }) => {
   await page.getByRole("textbox").fill("Anna");
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(page.getByTestId("roster-item").first()).toBeVisible();
-  const lobby = await audit(page, "board-lobby");
+  return { context, page };
+}
 
+test("axe: board lobby", async ({ browser }) => {
+  test.fixme(known("board-lobby") !== "", known("board-lobby"));
+  const { context, page } = await joinedBoard(browser);
+  expect(await audit(page, "board-lobby")).toEqual([]);
+  await context.close();
+});
+
+test("axe: board write", async ({ browser }) => {
+  test.fixme(known("board-write") !== "", known("board-write"));
+  const { context, page } = await joinedBoard(browser);
   await page.getByTestId("phase-next").click();
   await expect(page.getByTestId("phase-compact")).toContainText(
     /write|schreiben/i,
   );
-  const write = await audit(page, "board-write");
-
-  expect([...lobby, ...write]).toEqual([]);
+  expect(await audit(page, "board-write")).toEqual([]);
   await context.close();
 });
 

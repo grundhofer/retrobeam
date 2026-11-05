@@ -717,20 +717,17 @@ function Room({
             sit right before it. */}
             <main id={MAIN_ID} className="flex-1 px-6 py-6">
               {inLobby ? (
-                <div className="mx-auto flex max-w-2xl flex-col gap-8">
+                <div
+                  data-testid="lobby"
+                  className="sb-stack sb-stack--group mx-auto max-w-(--sb-size-measure-prose)"
+                >
                   {/* Who's in and how to get others in comes first — for the
                   facilitator, inviting is the first job; for everyone else the
                   first thing to know is that they are in and what happens next.
-                  The agenda follows. */}
-                  <div className="rounded-xl border border-zinc-200 bg-white p-5">
-                    <p
-                      data-testid="lobby-hint"
-                      className={
-                        isAdmin
-                          ? "mb-4 text-sm text-zinc-500"
-                          : "mb-4 text-zinc-700"
-                      }
-                    >
+                  The agenda follows. Sections on the page's own ground, no
+                  cards (sebaro). */}
+                  <section className="sb-stack">
+                    <p data-testid="lobby-hint">
                       {isAdmin
                         ? t("lobby.hint", { count: onlineCount })
                         : t("lobby.memberHint")}
@@ -738,22 +735,20 @@ function Room({
                     {anonymous ? (
                       <p
                         data-testid="lobby-anonymous"
-                        className="mb-4 text-sm text-zinc-700"
+                        className="sb-field__help"
                       >
                         {t("board.anonymousHint")}
                       </p>
                     ) : null}
                     <ShareLink boardId={boardId} />
-                    {/* Only in the browser that holds the token — a co-facilitator
-                    promoted by role has none and must not be handed one — and
-                    only while it still counts here: a demoted holder is not
-                    running this retro. */}
+                    {/* Only in the browser that holds the token — a
+                    co-facilitator promoted by role has none and must not be
+                    handed one — and only while it still counts here: a
+                    demoted holder is not running this retro. */}
                     {isAdmin && adminToken !== null ? (
-                      <div className="mt-4">
-                        <AdminLink boardId={boardId} adminToken={adminToken} />
-                      </div>
+                      <AdminLink boardId={boardId} adminToken={adminToken} />
                     ) : null}
-                  </div>
+                  </section>
                   <CarriedActions actions={state.actions} />
                   <PhasePlanPanel
                     phasePlan={phasePlan}

@@ -106,6 +106,7 @@ const resources = {
         carried: {
           title: "Open action items from the last retro",
           hint: "Carried over from “{{name}}” – start by checking where they stand.",
+          done: "done",
         },
       },
       board: {
@@ -166,7 +167,6 @@ const resources = {
         adminHint: "Choose the optional phases before you start.",
         memberHint: "This is the planned agenda for the retro.",
         locked: "The agenda is locked because this retro has already started.",
-        alwaysIncluded: "Always included",
         checkin: {
           question: "Icebreaker question",
           randomOnStart: "Choose a random question when the check-in starts",
@@ -865,6 +865,7 @@ const resources = {
         carried: {
           title: "Offene Action Items aus der letzten Retro",
           hint: "Übernommen aus „{{name}}“ – schaut zu Beginn, wie es damit steht.",
+          done: "erledigt",
         },
       },
       board: {
@@ -926,7 +927,6 @@ const resources = {
         memberHint: "Das ist der geplante Ablauf dieser Retro.",
         locked:
           "Der Ablauf ist gesperrt, da diese Retro bereits gestartet wurde.",
-        alwaysIncluded: "Gehört immer dazu",
         checkin: {
           question: "Icebreaker-Frage",
           randomOnStart: "Beim Check-in eine zufällige Frage auswählen",
