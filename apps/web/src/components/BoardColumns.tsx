@@ -534,7 +534,7 @@ function BoardColumn({
       <div className="sb-board__head">
         {renaming ? (
           <form onSubmit={submitRename} className="min-w-0 flex-1">
-            <div className="sb-field sb-field--compact">
+            <div className="sb-field">
               <label
                 htmlFor={`${titleId}-rename`}
                 className="sb-visually-hidden"
@@ -731,11 +731,9 @@ export function NoteStack({
   return (
     <div
       data-testid="note-stack"
-      className="flex flex-col gap-1.5 rounded-2xl border border-accent/30 bg-accent/5 p-1.5"
+      className="sb-stack rounded-(--sb-radius-container) border border-(--sb-color-border) p-(--sb-space-1)"
     >
-      <span className="px-1.5 text-xs font-semibold text-accent-strong tabular-nums">
-        ×{count}
-      </span>
+      <span className="sb-tag self-start tabular-nums">×{count}</span>
       {children}
     </div>
   );
@@ -927,6 +925,7 @@ function NoteComposer({
   const { send, mutate } = useConnection();
   const [text, setText] = useState("");
   const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const fieldId = useId();
   function submit() {
     const trimmed = text.trim();
     if (trimmed === "") return;
@@ -978,46 +977,53 @@ function NoteComposer({
         submit();
       }}
     >
-      <textarea
-        value={text}
-        data-testid={`composer-${columnId}`}
-        onChange={(event) => setText(event.target.value)}
-        onFocus={() => send({ type: "presence.editing", columnId })}
-        onBlur={() => send({ type: "presence.editing", columnId: null })}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            submit();
-          }
-        }}
-        maxLength={500}
-        rows={2}
-        placeholder={t("note.placeholder")}
-        className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
-      />
+      <div className="sb-field">
+        <label htmlFor={fieldId} className="sb-visually-hidden">
+          {t("note.placeholder")}
+        </label>
+        <div className="sb-field__control">
+          <textarea
+            id={fieldId}
+            value={text}
+            data-testid={`composer-${columnId}`}
+            onChange={(event) => setText(event.target.value)}
+            onFocus={() => send({ type: "presence.editing", columnId })}
+            onBlur={() => send({ type: "presence.editing", columnId: null })}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submit();
+              }
+            }}
+            maxLength={500}
+            rows={2}
+            placeholder={t("note.placeholder")}
+          />
+        </div>
+      </div>
       {gifUrl !== null ? (
-        <div className="relative mt-1 w-fit">
+        <div className="mt-(--sb-space-1) flex items-start gap-(--sb-space-1)">
           <img
             src={gifUrl}
             alt=""
             referrerPolicy="no-referrer"
-            className="max-h-24 rounded-lg"
+            className="max-h-24"
           />
           <button
             type="button"
             onClick={() => setGifUrl(null)}
             aria-label={t("gif.remove")}
-            className="absolute -top-1.5 -right-1.5 rounded-full bg-zinc-800 px-1.5 text-xs text-white"
+            className="sb-icon-button"
           >
-            ✕
+            <Icon name="close" />
           </button>
         </div>
       ) : null}
-      <div className="mt-1 flex items-center gap-2">
+      <div className="sb-cluster mt-(--sb-space-1)">
         {text.trim() !== "" ? (
           <button
             type="submit"
-            className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="sb-secondary-action sb-secondary-action--compact"
           >
             {t("note.add")}
           </button>

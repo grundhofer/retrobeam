@@ -405,9 +405,19 @@ const resources = {
           "totally-awesome": "Totally awesome",
         },
       },
+      sheet: {
+        close: "Close",
+      },
+      emoji: {
+        title: "Choose an emoji",
+      },
       gif: {
         add: "GIF",
+        title: "Choose a GIF",
         search: "Search GIFs …",
+        clear: "Clear search",
+        dataPath:
+          "As you type, after a short pause. Destination: KLIPY (USA), through the RetroBeam server; your browser loads the pictures straight from KLIPY.",
         loading: "Searching …",
         none: "No GIFs found.",
         hint: "Type to search for a GIF.",
@@ -1209,9 +1219,19 @@ const resources = {
           "totally-awesome": "Absolut großartig",
         },
       },
+      sheet: {
+        close: "Schließen",
+      },
+      emoji: {
+        title: "Emoji wählen",
+      },
       gif: {
         add: "GIF",
+        title: "GIF wählen",
         search: "GIFs suchen …",
+        clear: "Suche leeren",
+        dataPath:
+          "Beim Tippen, nach einer kurzen Pause. Ziel: KLIPY (USA), über den RetroBeam-Server; die Bilder lädt dein Browser direkt von KLIPY.",
         loading: "Suche …",
         none: "Keine GIFs gefunden.",
         hint: "Tippe, um nach einem GIF zu suchen.",

@@ -373,7 +373,7 @@ export function NoteCard({
     >
       {editing ? (
         <form onSubmit={saveEdit}>
-          <div className="sb-field sb-field--compact">
+          <div className="sb-field">
             <label htmlFor={`${arrangeId}-edit`} className="sb-visually-hidden">
               {t("note.edit")}
             </label>

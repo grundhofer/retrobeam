@@ -23,6 +23,7 @@ const SEBARO_FILES: Record<string, string> = {
   "sebaro/js/sb-start.js": "js/sb-start.js",
   "sebaro/js/sb-fit.js": "js/sb-fit.js",
   "sebaro/js/sb-board.js": "js/sb-board.js",
+  "sebaro/js/sb-sheet.js": "js/sb-sheet.js",
   "fonts/sebaro-sans-OFL.txt": "fonts/web/sebaro-sans-OFL.txt",
   "fonts/sebaro-mono-OFL.txt": "fonts/web/sebaro-mono-OFL.txt",
 };

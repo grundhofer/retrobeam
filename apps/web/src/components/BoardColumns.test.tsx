@@ -272,6 +272,20 @@ test("the composer offers a GIF only once the note has text", async () => {
     .not.toBeInTheDocument();
 });
 
+// The field takes its column's width: sebaro's compact field puts a label
+// column before it, which with a hidden label left the composer a narrow strip
+// at the column's end.
+test("the composer fills its column", async () => {
+  const screen = await render(view({ phase: "write" }));
+  const field = screen
+    .getByTestId(`composer-${columns[0]!.id}`)
+    .element() as HTMLElement;
+  const column = field.closest(".sb-board__column") as HTMLElement;
+  const fieldBox = field.getBoundingClientRect();
+  const columnBox = column.getBoundingClientRect();
+  expect(fieldBox.width).toBeGreaterThan(columnBox.width * 0.8);
+});
+
 // WCAG 2.1.1: moving and stacking were drag-only. The card's ⋯ is their
 // keyboard and touch twin, and it must be a twin — the very command and
 // optimistic echo a drop produces, opId aside — not a second code path.
