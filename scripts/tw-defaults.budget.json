@@ -5,7 +5,6 @@
   "apps/web/src/components/BoardCanvas.tsx": 76,
   "apps/web/src/components/BoardColumns.tsx": 152,
   "apps/web/src/components/BoardPreview.tsx": 19,
-  "apps/web/src/components/CarriedActions.tsx": 12,
   "apps/web/src/components/CheckinPanel.tsx": 26,
   "apps/web/src/components/DiscussBar.tsx": 12,
   "apps/web/src/components/EmojiPicker.tsx": 9,
@@ -14,19 +13,17 @@
   "apps/web/src/components/KudosWall.tsx": 78,
   "apps/web/src/components/NoteCard.tsx": 90,
   "apps/web/src/components/PhaseGuide.tsx": 2,
-  "apps/web/src/components/PhasePlanPanel.tsx": 57,
   "apps/web/src/components/PresenceRail.tsx": 118,
   "apps/web/src/components/PresenterFocus.tsx": 25,
   "apps/web/src/components/QrCode.tsx": 9,
   "apps/web/src/components/ReadyBar.tsx": 10,
   "apps/web/src/components/RetroResults.tsx": 80,
   "apps/web/src/components/RoleToggleButton.tsx": 3,
-  "apps/web/src/components/Roster.tsx": 19,
   "apps/web/src/components/RotiPoll.tsx": 23,
   "apps/web/src/components/TimerPanel.tsx": 24,
   "apps/web/src/components/VoteBar.tsx": 39,
   "apps/web/src/components/WheelOverlay.tsx": 81,
   "apps/web/src/index.css": 3,
   "apps/web/src/lib/exportImage.ts": 7,
-  "apps/web/src/pages/BoardPage.tsx": 13
+  "apps/web/src/pages/BoardPage.tsx": 5
 }

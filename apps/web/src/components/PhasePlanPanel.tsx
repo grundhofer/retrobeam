@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ICEBREAKER_IDS,
@@ -9,6 +9,7 @@ import {
   type PhasePlan,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { Icon } from "./Icon.js";
 
 export interface PhasePlanPanelProps {
   phasePlan: PhasePlan;
@@ -32,6 +33,7 @@ export function PhasePlanPanel({
 }: PhasePlanPanelProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
+  const id = useId();
   const [pendingPlan, setPendingPlan] = useState<PhasePlan | null>(null);
   const [editingAgreements, setEditingAgreements] = useState(false);
   const [agreementsDraft, setAgreementsDraft] = useState(workingAgreements);
@@ -64,187 +66,194 @@ export function PhasePlanPanel({
     setEditingAgreements(false);
   }
 
+  // sebaro's form parts (plan stage 5b): the phases as a group of checkboxes,
+  // each with its sentence as help; the core phases checked and locked, which
+  // says that they always run, without „· Pflichtphase“ (D100 (4)). The
+  // check-in's question is an sb-select. Every change applies at once.
+  const order = [
+    OPTIONAL_PHASES[0],
+    CORE_PHASES[0],
+    CORE_PHASES[1],
+    OPTIONAL_PHASES[1],
+    OPTIONAL_PHASES[2],
+    OPTIONAL_PHASES[3],
+  ];
   return (
     <section
       data-testid="phase-plan"
-      className="rounded-xl border border-zinc-200 bg-white p-5"
+      aria-labelledby={`${id}-title`}
+      className="sb-stack"
     >
-      <div className="mb-4">
-        {/* "Plan this retro" is an instruction only the facilitator can
-            follow; everyone else is reading the agenda. */}
-        <h2 className="font-semibold text-zinc-900">
+      {/* "Plan this retro" is an instruction only the facilitator can
+          follow; everyone else is reading the agenda. */}
+      <h2 id={`${id}-title`} className="sb-section__title">
+        {isAdmin ? t("phasePlan.title") : t("phasePlan.memberTitle")}
+      </h2>
+      <p data-testid="phase-plan-hint" className="sb-field__help">
+        {locked
+          ? t("phasePlan.locked")
+          : isAdmin
+            ? t("phasePlan.adminHint")
+            : t("phasePlan.memberHint")}
+      </p>
+      <fieldset className="sb-choice-row">
+        <legend className="sb-visually-hidden">
           {isAdmin ? t("phasePlan.title") : t("phasePlan.memberTitle")}
-        </h2>
-        <p data-testid="phase-plan-hint" className="mt-1 text-sm text-zinc-500">
-          {locked
-            ? t("phasePlan.locked")
-            : isAdmin
-              ? t("phasePlan.adminHint")
-              : t("phasePlan.memberHint")}
-        </p>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-2">
-        {[
-          OPTIONAL_PHASES[0],
-          CORE_PHASES[0],
-          CORE_PHASES[1],
-          OPTIONAL_PHASES[1],
-          OPTIONAL_PHASES[2],
-          OPTIONAL_PHASES[3],
-        ].map((phase) => {
-          const optional = OPTIONAL_PHASES.includes(
-            phase as (typeof OPTIONAL_PHASES)[number],
-          );
-          const enabled = optional
-            ? phasePlan[phase as (typeof OPTIONAL_PHASES)[number]]
-            : true;
-          const disabled = !optional || !isAdmin || locked || pending;
-          return (
-            <div
-              key={phase}
-              className={`rounded-lg border ${
-                enabled
-                  ? "border-accent/30 bg-accent/[0.04]"
-                  : "border-zinc-200 bg-zinc-50"
-              } ${
-                phase === "checkin" && enabled && isAdmin && !locked
-                  ? "sm:col-span-2"
-                  : ""
-              }`}
-            >
-              <label
-                className={`flex items-start gap-3 px-3 py-2.5 ${
-                  disabled ? "cursor-default" : "cursor-pointer"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  data-testid={`phase-plan-${phase}`}
-                  checked={enabled}
-                  disabled={disabled}
-                  onChange={(event) =>
-                    optional &&
-                    toggle(
-                      phase as (typeof OPTIONAL_PHASES)[number],
-                      event.target.checked,
-                    )
-                  }
-                  className="mt-0.5 accent-accent"
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-zinc-800">
-                    {t(`phasePlan.phase.${phase}.title`)}
-                  </span>
-                  <span className="block text-xs text-zinc-500">
-                    {t(`phasePlan.phase.${phase}.description`)}
-                    {!optional ? ` · ${t("phasePlan.alwaysIncluded")}` : ""}
-                  </span>
-                </span>
-              </label>
-
-              {phase === "checkin" && enabled && isAdmin && !locked ? (
-                <div
-                  data-testid="checkin-setup"
-                  className="border-t border-accent/20 px-3 py-3"
-                >
-                  <label className="block text-xs font-medium text-zinc-600">
-                    {t("phasePlan.checkin.question")}
-                    <select
-                      data-testid="checkin-question-select"
-                      value={icebreakerId ?? ""}
+        </legend>
+        <div className="sb-stack">
+          {order.map((phase) => {
+            const optional = OPTIONAL_PHASES.includes(
+              phase as (typeof OPTIONAL_PHASES)[number],
+            );
+            const enabled = optional
+              ? phasePlan[phase as (typeof OPTIONAL_PHASES)[number]]
+              : true;
+            const disabled = !optional || !isAdmin || locked || pending;
+            return (
+              <div key={phase} className="sb-stack">
+                <div>
+                  <label className="sb-checkbox">
+                    <input
+                      type="checkbox"
+                      data-testid={`phase-plan-${phase}`}
+                      checked={enabled}
+                      disabled={disabled}
+                      aria-describedby={`${id}-${phase}`}
                       onChange={(event) =>
-                        send({
-                          type: "admin.checkin.question.set",
-                          icebreakerId:
-                            event.target.value === ""
-                              ? null
-                              : (event.target.value as IcebreakerId),
-                        })
+                        optional &&
+                        toggle(
+                          phase as (typeof OPTIONAL_PHASES)[number],
+                          event.target.checked,
+                        )
                       }
-                      className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-sm font-normal text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
-                    >
-                      <option value="">
-                        {t("phasePlan.checkin.randomOnStart")}
-                      </option>
-                      {ICEBREAKER_IDS.map((id) => (
-                        <option key={id} value={id}>
-                          {t(`icebreaker.${id}`)}
-                        </option>
-                      ))}
-                    </select>
+                    />
+                    <span>{t(`phasePlan.phase.${phase}.title`)}</span>
                   </label>
-                  <button
-                    type="button"
-                    data-testid="icebreaker-shuffle"
-                    onClick={() => send({ type: "admin.checkin.shuffle" })}
-                    className="mt-2 rounded-lg border border-zinc-200 px-3 py-1 text-xs text-zinc-600 hover:bg-white focus-visible:outline-2 focus-visible:outline-accent"
-                  >
-                    🔀 {t("phasePlan.checkin.randomize")}
-                  </button>
+                  <p id={`${id}-${phase}`} className="sb-field__help">
+                    {t(`phasePlan.phase.${phase}.description`)}
+                  </p>
+                </div>
 
-                  <div className="mt-4">
-                    <div className="mb-1 flex items-center justify-between gap-3">
-                      <span className="text-xs font-medium text-zinc-600">
-                        {t("checkin.agreements")}
-                      </span>
-                      {!editingAgreements ? (
-                        <button
-                          type="button"
-                          data-testid="agreements-edit"
-                          onClick={() => {
-                            setAgreementsDraft(workingAgreements);
-                            setEditingAgreements(true);
-                          }}
-                          className="rounded px-2 py-0.5 text-xs text-zinc-500 hover:bg-white"
-                        >
-                          ✎ {t("checkin.edit")}
-                        </button>
-                      ) : null}
-                    </div>
-                    {editingAgreements ? (
-                      <form onSubmit={saveAgreements}>
-                        <textarea
-                          autoFocus
-                          value={agreementsDraft}
-                          data-testid="agreements-input"
+                {phase === "checkin" && enabled && isAdmin && !locked ? (
+                  <div data-testid="checkin-setup" className="sb-stack">
+                    <div className="sb-field">
+                      <label
+                        htmlFor={`${id}-question`}
+                        className="sb-field__label"
+                      >
+                        {t("phasePlan.checkin.question")}
+                      </label>
+                      <div className="sb-field__control sb-select">
+                        <select
+                          id={`${id}-question`}
+                          data-testid="checkin-question-select"
+                          value={icebreakerId ?? ""}
                           onChange={(event) =>
-                            setAgreementsDraft(event.target.value)
+                            send({
+                              type: "admin.checkin.question.set",
+                              icebreakerId:
+                                event.target.value === ""
+                                  ? null
+                                  : (event.target.value as IcebreakerId),
+                            })
                           }
-                          maxLength={1000}
-                          rows={4}
-                          className="w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-accent"
-                        />
-                        <div className="mt-2 flex gap-2">
+                        >
+                          <option value="">
+                            {t("phasePlan.checkin.randomOnStart")}
+                          </option>
+                          {ICEBREAKER_IDS.map((icebreaker) => (
+                            <option key={icebreaker} value={icebreaker}>
+                              {t(`icebreaker.${icebreaker}`)}
+                            </option>
+                          ))}
+                        </select>
+                        <Icon name="chevron-down" />
+                      </div>
+                    </div>
+                    <p>
+                      <button
+                        type="button"
+                        data-testid="icebreaker-shuffle"
+                        onClick={() => send({ type: "admin.checkin.shuffle" })}
+                        className="sb-secondary-action sb-secondary-action--compact"
+                      >
+                        <Icon name="shuffle" size={20} />
+                        {t("phasePlan.checkin.randomize")}
+                      </button>
+                    </p>
+
+                    {editingAgreements ? (
+                      <form onSubmit={saveAgreements} className="sb-stack">
+                        <div className="sb-field">
+                          <label
+                            htmlFor={`${id}-agreements`}
+                            className="sb-field__label"
+                          >
+                            {t("checkin.agreements")}
+                          </label>
+                          <div className="sb-field__control">
+                            <textarea
+                              id={`${id}-agreements`}
+                              autoFocus
+                              value={agreementsDraft}
+                              data-testid="agreements-input"
+                              onChange={(event) =>
+                                setAgreementsDraft(event.target.value)
+                              }
+                              maxLength={1000}
+                              rows={4}
+                            />
+                          </div>
+                        </div>
+                        <div className="sb-cluster">
                           <button
                             type="submit"
-                            className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-strong"
+                            className="sb-secondary-action sb-secondary-action--compact"
                           >
                             {t("note.save")}
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditingAgreements(false)}
-                            className="rounded-lg px-2 py-1 text-xs text-zinc-500 hover:bg-white"
+                            className="sb-secondary-action sb-secondary-action--compact"
                           >
                             {t("note.cancel")}
                           </button>
                         </div>
                       </form>
                     ) : (
-                      <p className="text-xs whitespace-pre-wrap text-zinc-500">
-                        {workingAgreements.trim() === ""
-                          ? t("checkin.agreementsDefault")
-                          : workingAgreements}
-                      </p>
+                      <div className="sb-stack">
+                        <p className="sb-field__label">
+                          {t("checkin.agreements")}
+                        </p>
+                        <p className="sb-field__help whitespace-pre-wrap">
+                          {workingAgreements.trim() === ""
+                            ? t("checkin.agreementsDefault")
+                            : workingAgreements}
+                        </p>
+                        <p>
+                          <button
+                            type="button"
+                            data-testid="agreements-edit"
+                            onClick={() => {
+                              setAgreementsDraft(workingAgreements);
+                              setEditingAgreements(true);
+                            }}
+                            className="sb-secondary-action sb-secondary-action--compact"
+                          >
+                            <Icon name="edit" size={20} />
+                            {t("checkin.edit")}
+                          </button>
+                        </p>
+                      </div>
                     )}
                   </div>
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </fieldset>
     </section>
   );
 }
