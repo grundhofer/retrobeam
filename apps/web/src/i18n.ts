@@ -202,7 +202,7 @@ const resources = {
       ready: {
         imDone: "I'm done",
         done: "Done",
-        count: "{{ready}} / {{total}} done",
+        count: "{{ready}} of {{total}} done",
       },
       timer: {
         label: "Time box",
@@ -325,11 +325,11 @@ const resources = {
         ungroup: "Unstack note",
       },
       vote: {
-        yourVotes: "Your votes",
-        remaining_one: "{{count}}\u00a0vote left",
-        remaining_other: "{{count}}\u00a0votes left",
-        meter: "{{done}} / {{total}} finished voting",
+        left: "{{count}} of {{total}}\u00a0votes left.",
+        allGiven: "All {{total}}\u00a0votes given.",
+        meter: "{{done}} of {{total}} finished voting",
         settings: "Voting",
+        settingsTitle: "Set up the vote",
         votesPerPerson: "Votes per person",
         maxPerTarget: "Maximum per card",
         topN: "Top cards",
@@ -346,6 +346,8 @@ const resources = {
       },
       discuss: {
         queue: "Discussion",
+        votes_one: "{{count}}\u00a0vote",
+        votes_other: "{{count}}\u00a0votes",
         focusCard: "Discuss this card",
         clearFocus: "Show all cards",
       },
@@ -972,7 +974,7 @@ const resources = {
       ready: {
         imDone: "Ich bin fertig",
         done: "Fertig",
-        count: "{{ready}} / {{total}} fertig",
+        count: "{{ready}} von {{total}} fertig",
       },
       timer: {
         label: "Zeitbox",
@@ -1096,11 +1098,11 @@ const resources = {
         ungroup: "Aus Stapel lösen",
       },
       vote: {
-        yourVotes: "Deine Stimmen",
-        remaining_one: "{{count}}\u00a0Stimme übrig",
-        remaining_other: "{{count}}\u00a0Stimmen übrig",
-        meter: "{{done}} / {{total}} fertig abgestimmt",
+        left: "Noch {{count}} von {{total}}\u00a0Stimmen.",
+        allGiven: "Alle {{total}}\u00a0Stimmen vergeben.",
+        meter: "{{done}} von {{total}} fertig abgestimmt",
         settings: "Abstimmung",
+        settingsTitle: "Abstimmung einstellen",
         votesPerPerson: "Stimmen pro Person",
         maxPerTarget: "Höchstens pro Karte",
         topN: "Top-Karten",
@@ -1117,6 +1119,8 @@ const resources = {
       },
       discuss: {
         queue: "Diskussion",
+        votes_one: "{{count}}\u00a0Stimme",
+        votes_other: "{{count}}\u00a0Stimmen",
         focusCard: "Diese Karte diskutieren",
         clearFocus: "Alle Karten zeigen",
       },

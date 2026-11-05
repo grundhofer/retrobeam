@@ -3,6 +3,7 @@
 
 import { useTranslation } from "react-i18next";
 import { useConnection } from "../lib/connection.js";
+import { SwitchField } from "./SwitchField.js";
 
 // The facilitator's presentation switch, top-centre: with it on, cards that are
 // not on stage are HIDDEN rather than dimmed, so a shared screen shows the room
@@ -20,34 +21,22 @@ export function FocusToggle({
   const { t } = useTranslation();
   const { send } = useConnection();
 
+  // Everyone else sees the state as a tag; the facilitator has sebaro's
+  // switch (plan stage 5c), its state in aria-checked.
   if (!isAdmin) {
     return focusMode ? (
-      <span
-        data-testid="focus-mode-state"
-        className="rounded-lg bg-accent/10 px-3 py-1 text-sm font-medium text-accent-strong"
-      >
-        🎯 {t("focus.on")}
+      <span data-testid="focus-mode-state" className="sb-tag">
+        {t("focus.on")}
       </span>
     ) : null;
   }
 
   return (
-    <button
-      type="button"
-      data-testid="focus-mode-toggle"
-      aria-pressed={focusMode}
-      onClick={() => send({ type: "admin.focus.set", enabled: !focusMode })}
-      className={`rounded-lg px-3 py-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-        focusMode
-          ? "bg-accent/10 text-accent-strong"
-          : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-      }`}
-    >
-      {/* The LABEL names the control, not the action. It carries aria-pressed,
-          so a label that swapped to "show every card" while pressed=false
-          would tell a screen-reader user the opposite of what the click does.
-          State lives in aria-pressed and in the filled/outlined styling. */}
-      🎯 {t("focus.label")}
-    </button>
+    <SwitchField
+      label={t("focus.label")}
+      checked={focusMode}
+      testId="focus-mode-toggle"
+      onChange={(enabled) => send({ type: "admin.focus.set", enabled })}
+    />
   );
 }
