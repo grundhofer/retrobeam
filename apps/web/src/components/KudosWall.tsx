@@ -13,8 +13,8 @@ import {
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { Dialog } from "./Dialog.js";
-import { EmojiPicker } from "./EmojiPicker.js";
-import { GifPicker } from "./GifPicker.js";
+import { EmojiPickerButton } from "./EmojiPicker.js";
+import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 
 // sebaro (plan stage 5d): a kind of kudo is an icon and its word, never a
@@ -191,7 +191,6 @@ function KudoComposer({
   const [text, setText] = useState("");
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [anonymous, setAnonymous] = useState(false);
-  const [popover, setPopover] = useState<"none" | "gif" | "emoji">("none");
   const id = useId();
 
   function submit(event: React.FormEvent) {
@@ -225,7 +224,6 @@ function KudoComposer({
     setText("");
     setGifUrl(null);
     setAnonymous(false);
-    setPopover("none");
   }
 
   // sebaro's form (plan stage 5d, F5b): the kind as chips, the recipient and
@@ -323,50 +321,12 @@ function KudoComposer({
 
       <div className="sb-cluster sb-form-grid__wide">
         {gifsEnabled ? (
-          <div className="relative">
-            <button
-              type="button"
-              aria-expanded={popover === "gif"}
-              onClick={() => setPopover(popover === "gif" ? "none" : "gif")}
-              className="sb-secondary-action sb-secondary-action--compact"
-            >
-              <Icon name="gif" size={20} />
-              {t("gif.add")}
-            </button>
-            {popover === "gif" ? (
-              <div className="absolute bottom-full left-0 z-40 mb-(--sb-space-1)">
-                <GifPicker
-                  onPick={(url) => {
-                    setGifUrl(url);
-                    setPopover("none");
-                  }}
-                  onClose={() => setPopover("none")}
-                />
-              </div>
-            ) : null}
-          </div>
+          <GifPickerButton testId="kudos-gif" onPick={setGifUrl} />
         ) : null}
-        <div className="relative">
-          <button
-            type="button"
-            aria-label={t("kudos.emoji")}
-            aria-expanded={popover === "emoji"}
-            onClick={() => setPopover(popover === "emoji" ? "none" : "emoji")}
-            className="sb-secondary-action sb-secondary-action--compact"
-          >
-            <Icon name="emoji" size={20} />
-          </button>
-          {popover === "emoji" ? (
-            <div className="absolute bottom-full left-0 z-40 mb-(--sb-space-1)">
-              <EmojiPicker
-                onPick={(emoji) => {
-                  setText((current) => current + emoji);
-                  setPopover("none");
-                }}
-              />
-            </div>
-          ) : null}
-        </div>
+        <EmojiPickerButton
+          label={t("kudos.emoji")}
+          onPick={(emoji) => setText((current) => current + emoji)}
+        />
         <label className="sb-checkbox">
           <input
             type="checkbox"
