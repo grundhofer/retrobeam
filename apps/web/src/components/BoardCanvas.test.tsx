@@ -789,12 +789,19 @@ test("the canvas's ⋯ panel is on top, unclipped and full size", async () => {
     await card.getByTestId("note-arrange-toggle").click();
     const button = card.getByTestId(testId).element() as HTMLElement;
     button.focus();
+    // The canvas lifts the card and its zone once the panel has rendered (an
+    // effect, onArrangeChange), and WebKit commits that a frame later: wait
+    // for the lift rather than test the frame before it.
+    const onTop = () => {
+      const now = button.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        now.left + now.width / 2,
+        now.top + now.height / 2,
+      );
+      return hit === button || button.contains(hit);
+    };
+    await expect.poll(onTop).toBe(true);
     const box = button.getBoundingClientRect();
-    const hit = document.elementFromPoint(
-      box.left + box.width / 2,
-      box.top + box.height / 2,
-    );
-    expect(hit === button || button.contains(hit)).toBe(true);
     // Unscaled: as tall on screen as its own layout box, at any zoom.
     expect(box.height).toBeCloseTo(button.offsetHeight, 0);
     return box;
