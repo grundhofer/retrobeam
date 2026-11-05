@@ -539,6 +539,8 @@ const resources = {
         noQuestion: "Warming up …",
         shuffle: "New question",
         primeDirectiveTitle: "The Prime Directive",
+        primeDirectiveSource: "Norman L. Kerth, Project Retrospectives (2001)",
+        hideDirective: "Hide the Prime Directive",
         primeDirective:
           "Regardless of what we discover, we understand and truly believe that everyone did the best job they could, given what they knew at the time, their skills and abilities, the resources available, and the situation at hand.",
         agreements: "Working agreements",
@@ -549,7 +551,10 @@ const resources = {
       roti: {
         title: "Return on time invested",
         question: "Was this retro a good use of your time?",
-        result: "Average {{average}} · {{count}}\u00a0responses",
+        rating: "Rating:",
+        value: "{{average}} of 5",
+        responses_one: "{{count}}\u00a0response",
+        responses_other: "{{count}}\u00a0responses",
         pending_one:
           "{{count}}\u00a0response so far · the average is shared when the retro closes",
         pending_other:
@@ -1325,6 +1330,8 @@ const resources = {
         noQuestion: "Aufwärmen …",
         shuffle: "Neue Frage",
         primeDirectiveTitle: "Die oberste Direktive",
+        primeDirectiveSource: "Norman L. Kerth, Project Retrospectives (2001)",
+        hideDirective: "Oberste Direktive ausblenden",
         primeDirective:
           "Ungeachtet dessen, was wir herausfinden, verstehen und glauben wir aufrichtig, dass jede:r die bestmögliche Arbeit geleistet hat — angesichts des damaligen Wissensstands, der Fähigkeiten, der verfügbaren Ressourcen und der jeweiligen Situation.",
         agreements: "Arbeitsvereinbarungen",
@@ -1335,7 +1342,10 @@ const resources = {
       roti: {
         title: "Return on Time Invested",
         question: "War diese Retro deine Zeit wert?",
-        result: "Durchschnitt {{average}} · {{count}}\u00a0Antworten",
+        rating: "Bewertung:",
+        value: "{{average}} von 5",
+        responses_one: "{{count}}\u00a0Antwort",
+        responses_other: "{{count}}\u00a0Antworten",
         pending_one:
           "{{count}}\u00a0Antwort bisher · der Durchschnitt wird zum Abschluss geteilt",
         pending_other:
