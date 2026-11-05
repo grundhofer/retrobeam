@@ -113,34 +113,23 @@ test("the reveal toggle keeps its label; the state is in aria-pressed", async ()
 // The lobby renders it at full width. On a phone the buttons used to share the
 // field's row and squeeze it down to "https://", so neither the masked link
 // nor a revealed one could be read.
-test("on a phone the lobby's field gets a row of its own", async () => {
-  await page.viewport(390, 844);
-  const screen = await render(
-    <div style={{ width: 274 }}>
-      <AdminLink boardId={"5".repeat(32)} adminToken={TOKEN} />
-    </div>,
-  );
-  const input = screen.getByTestId("admin-link-input").element();
-  const reveal = screen.getByTestId("admin-link-reveal").element();
-  const row = input.parentElement!.getBoundingClientRect();
-  const field = input.getBoundingClientRect();
-
-  expect(field.width).toBeGreaterThan(row.width - 1);
-  expect(reveal.getBoundingClientRect().top).toBeGreaterThanOrEqual(
-    field.bottom,
-  );
-});
-
-test("from sm up the lobby keeps field and buttons on one row", async () => {
+// The field has a row of its own at every width, the keys under it: two keys
+// beside it left a phone's field with little more than "https://" — not enough
+// to see which link it is.
+test("the field has a row of its own, its keys under it", async () => {
   await page.viewport(1024, 768);
   const screen = await render(
     <div style={{ width: 560 }}>
-      <AdminLink boardId={"6".repeat(32)} adminToken={TOKEN} />
+      <AdminLink boardId={"5".repeat(32)} adminToken={TOKEN} />
     </div>,
   );
   const field = screen.getByTestId("admin-link-input").element();
+  const reveal = screen.getByTestId("admin-link-reveal").element();
   const copy = screen.getByTestId("admin-link-copy").element();
-  expect(copy.getBoundingClientRect().top).toBeLessThan(
+  expect(reveal.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+    field.getBoundingClientRect().bottom,
+  );
+  expect(copy.getBoundingClientRect().top).toBeGreaterThanOrEqual(
     field.getBoundingClientRect().bottom,
   );
 });

@@ -4,20 +4,22 @@
 import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { teamLinkUrl } from "../lib/adminLink.js";
-import { QrCode, QrFullscreen } from "./QrCode.js";
+import { Icon } from "./Icon.js";
+import { InviteDialog } from "./InviteDialog.js";
 
-// The TEAM link, as text and as a QR code. Built from the board id alone, never
-// from the address bar: the facilitator link carries its token in the
-// fragment, and this is the card that sits on a projector while the room
-// gathers — so nothing here may ever read `location.hash`.
+// The TEAM link in the lobby: sebaro's read-only field with „Kopieren“, and
+// „QR-Code groß anzeigen“ for the room, which opens the invite dialog with the
+// code (spec/02 §4.6). Built from the board id alone, never from the address
+// bar: the facilitator link carries its token in the fragment, and this is the
+// card that sits on a projector while the room gathers — so nothing here may
+// ever read `location.hash`.
 export function ShareLink({ boardId }: { boardId: string }) {
   const { t } = useTranslation();
-  // The lobby card and the header's invite panel can both be on screen.
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const inputId = useId();
   const [copied, setCopied] = useState(false);
   const [large, setLarge] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const qrButtonRef = useRef<HTMLButtonElement>(null);
   const url = teamLinkUrl(location.origin, boardId);
 
   async function copy() {
@@ -33,69 +35,54 @@ export function ShareLink({ boardId }: { boardId: string }) {
   }
 
   return (
-    <div data-testid="share-link">
-      <label
-        htmlFor={inputId}
-        className="mb-2 block text-sm font-semibold tracking-wide text-zinc-500 uppercase"
-      >
-        {t("board.share")}
-      </label>
-      <div className="flex gap-2">
-        <input
-          ref={inputRef}
-          id={inputId}
-          data-testid="share-link-input"
-          readOnly
-          value={url}
-          onFocus={(event) => event.currentTarget.select()}
-          className="w-full min-w-0 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-600"
-        />
-        <button
-          type="button"
-          onClick={() => void copy()}
-          className="shrink-0 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          {copied ? t("board.copied") : t("board.copy")}
-        </button>
-      </div>
-      <div className="mt-3 flex items-center gap-3">
-        {/* The code itself is the button: in a meeting room the obvious
-            gesture is "make that bigger", not hunting for a link beside it. */}
-        <button
-          ref={qrButtonRef}
-          type="button"
-          data-testid="qr-enlarge"
-          aria-label={t("invite.enlarge")}
-          onClick={() => setLarge(true)}
-          className="shrink-0 rounded-lg border border-zinc-200 bg-white p-1 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {/* 3px a module — 123px for a board link. See QrCode on why not
-              a size class. */}
-          <QrCode value={url} label={t("invite.qrLabel")} modulePx={3} />
-        </button>
-        <div className="flex min-w-0 flex-col items-start gap-1 text-sm">
-          <p className="text-zinc-500">{t("invite.qrHint")}</p>
-          <button
-            type="button"
-            onClick={() => setLarge(true)}
-            // Mouse users already have the code to click; one tab stop for the
-            // same action is enough.
-            tabIndex={-1}
-            className="font-medium text-accent underline-offset-4 hover:underline"
-          >
-            {t("invite.enlarge")}
-          </button>
+    <div data-testid="share-link" className="sb-stack">
+      <div className="sb-field">
+        <label htmlFor={inputId} className="sb-field__label">
+          {t("board.share")}
+        </label>
+        <div className="sb-field__control">
+          <input
+            ref={inputRef}
+            id={inputId}
+            data-testid="share-link-input"
+            readOnly
+            value={url}
+            onFocus={(event) => event.currentTarget.select()}
+          />
         </div>
       </div>
-      {large ? (
-        <QrFullscreen
-          url={url}
-          onClose={() => {
-            setLarge(false);
-            qrButtonRef.current?.focus();
-          }}
-        />
-      ) : null}
+      <div className="sb-cluster">
+        <button
+          type="button"
+          data-testid="share-link-copy"
+          onClick={() => void copy()}
+          className="sb-secondary-action"
+        >
+          <Icon name="copy" size={20} />
+          {copied ? t("board.copied") : t("board.copy")}
+        </button>
+        <button
+          type="button"
+          ref={triggerRef}
+          data-testid="qr-enlarge"
+          aria-haspopup="dialog"
+          onClick={() => setLarge(true)}
+          className="sb-secondary-action"
+        >
+          <Icon name="qr-code" size={20} />
+          {t("invite.enlarge")}
+        </button>
+      </div>
+      <p className="sb-field__help">{t("invite.qrHint")}</p>
+      <p role="status" className="sb-visually-hidden">
+        {copied ? t("board.copied") : ""}
+      </p>
+      <InviteDialog
+        boardId={boardId}
+        open={large}
+        onClose={() => setLarge(false)}
+        returnTo={triggerRef}
+      />
     </div>
   );
 }
