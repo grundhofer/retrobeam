@@ -44,6 +44,9 @@ export function WheelOverlay({
   const phase = useBoardStore((store) => store.state.phase);
   const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
   const now = useNow();
+  // „Schließen“ or Escape ends the moment for this person only (sebaro
+  // §4.6): the spin goes on for the room, and the next spin shows again.
+  const [dismissedSpin, setDismissedSpin] = useState<number | null>(null);
 
   const localEnd =
     spin === null ? 0 : spin.startAt - clockOffsetMs + spin.durationMs;
@@ -53,12 +56,14 @@ export function WheelOverlay({
   }, [activeSpin, cardSelectionOpen, onCloseCardSelection]);
 
   if (activeSpin && spin !== null) {
+    if (dismissedSpin === spin.startAt) return null;
     return (
       <SpinScene
         key={spin.startAt}
         spin={spin}
         roster={roster}
         clockOffsetMs={clockOffsetMs}
+        onClose={() => setDismissedSpin(spin.startAt)}
       />
     );
   }
@@ -84,22 +89,21 @@ export function WheelOverlay({
   );
 }
 
-// Both scenes are a modal <dialog> (sebaro's dialog surface over its scrim):
-// the page behind is inert while the room watches, and the focus goes back to
-// where it was when the moment is over. Escape closes the card choice; the
-// spin closes itself when its hold is over, the same on every screen, so
-// Escape does nothing there.
+// Both scenes are sebaro's dialog that shows instead of asking (spec/02 §4.6,
+// RB-7): modal over the scrim, only secondary actions with „Schließen“ last,
+// Escape closes, and the focus goes back to where it was.
 function MomentDialog({
   labelledBy,
   testId,
-  onCancel,
+  onClose,
   children,
 }: {
   labelledBy: string;
   testId: string;
-  onCancel: (() => void) | null;
+  onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current;
@@ -127,25 +131,24 @@ function MomentDialog({
       data-testid={testId}
       aria-labelledby={labelledBy}
       className="sb-dialog m-auto"
-      // Escape is taken on keydown: the browser may skip a cancelable
-      // `cancel` (Chromium's close watcher, without a fresh user activation)
-      // and close the dialog regardless.
-      onKeyDown={(event) => {
-        if (event.key !== "Escape") return;
-        event.preventDefault();
-        onCancel?.();
-      }}
+      // Closed by the parent's state, so the dialog stays in step with it:
+      // the browser's own close is turned into onClose.
       onCancel={(event) => {
         event.preventDefault();
-        onCancel?.();
-      }}
-      // Closed anyway (some other path): a spin stays on screen until its
-      // hold is over, so it opens again.
-      onClose={() => {
-        if (onCancel === null) ref.current?.showModal();
+        onClose();
       }}
     >
       {children}
+      <div className="sb-dialog__actions">
+        <button
+          type="button"
+          data-testid={`${testId}-close`}
+          onClick={onClose}
+          className="sb-secondary-action"
+        >
+          {t("sheet.close")}
+        </button>
+      </div>
     </dialog>
   );
 }
@@ -173,11 +176,11 @@ function CardSelectionScene({
     <MomentDialog
       labelledBy={titleId}
       testId="card-picker-overlay"
-      onCancel={onClose}
+      onClose={onClose}
     >
-      <p id={titleId} className="sb-dialog__title">
+      <h2 id={titleId} className="sb-dialog__title">
         {t("picker.title")}
-      </p>
+      </h2>
       <p className="sb-dialog__text">{t("picker.cardDeckHint", { count })}</p>
       <div className="mt-(--sb-space-4) flex flex-wrap justify-center gap-(--sb-space-3)">
         {Array.from({ length: count }, (_, index) => (
@@ -195,11 +198,6 @@ function CardSelectionScene({
           </button>
         ))}
       </div>
-      <div className="sb-dialog__actions">
-        <button type="button" onClick={onClose} className="sb-secondary-action">
-          {t("picker.closeCards")}
-        </button>
-      </div>
     </MomentDialog>
   );
 }
@@ -213,10 +211,12 @@ function SpinScene({
   spin,
   roster,
   clockOffsetMs,
+  onClose,
 }: {
   spin: WheelSpin;
   roster: Participant[];
   clockOffsetMs: number;
+  onClose: () => void;
 }) {
   const { t } = useTranslation();
   const now = useNow();
@@ -236,32 +236,28 @@ function SpinScene({
   const winner = roster.find((p) => p.id === spin.winnerId);
 
   return (
-    <MomentDialog labelledBy={titleId} testId="wheel-overlay" onCancel={null}>
-      <p id={titleId} className="sb-dialog__title">
+    <MomentDialog labelledBy={titleId} testId="wheel-overlay" onClose={onClose}>
+      <h2 id={titleId} className="sb-dialog__title">
         {t("picker.title")}
-      </p>
-      <div className="flex flex-col items-center gap-(--sb-space-4)">
-        {!reducedMotion ? (
-          <PickerSkin
-            style={pickerStyle}
-            spin={spin}
-            roster={roster}
-            clockOffsetMs={clockOffsetMs}
-          />
+      </h2>
+      {!reducedMotion ? (
+        <PickerSkin
+          style={pickerStyle}
+          spin={spin}
+          roster={roster}
+          clockOffsetMs={clockOffsetMs}
+          landedOn={landed ? (winner?.name ?? null) : null}
+        />
+      ) : null}
+      {/* The status sentence of sebaro's wheel: in the page from the start, so
+          the name is heard when it appears. */}
+      <p role="status" className="sb-dialog__text text-center">
+        {landed && winner ? (
+          <span data-testid="wheel-winner" className="reveal-in">
+            {t("picker.winner", { name: winner.name })}
+          </span>
         ) : null}
-        {/* The dialog breaks a forty-character name rather than let it run
-            past the window. */}
-        <div aria-live="polite" className="min-h-12 max-w-full text-center">
-          {landed && winner ? (
-            <p
-              data-testid="wheel-winner"
-              className="reveal-in sb-dialog__title m-0"
-            >
-              {t("picker.winner", { name: winner.name })}
-            </p>
-          ) : null}
-        </div>
-      </div>
+      </p>
     </MomentDialog>
   );
 }
@@ -274,11 +270,13 @@ function PickerSkin({
   spin,
   roster,
   clockOffsetMs,
+  landedOn,
 }: {
   style: PickerStyle;
   spin: WheelSpin;
   roster: Participant[];
   clockOffsetMs: number;
+  landedOn: string | null;
 }) {
   switch (style) {
     case "cards":
@@ -295,7 +293,12 @@ function PickerSkin({
       );
     case "wheel":
       return (
-        <Wheel spin={spin} roster={roster} clockOffsetMs={clockOffsetMs} />
+        <Wheel
+          spin={spin}
+          roster={roster}
+          clockOffsetMs={clockOffsetMs}
+          landedOn={landedOn}
+        />
       );
   }
 }
@@ -395,10 +398,9 @@ function CardReveal({
 // agree: a name is written ALONG its radius (hub → rim), so what bounds its
 // length is a distance, not the segment's arc — which is the whole reason
 // names no longer have to be cut off.
-const RIM_OUTER = 138; // outer bezel
-const FACE = 126; // coloured segments
-const LABEL_OUTER = 116; // where a name ends, just inside the rim
-const LABEL_INNER = 38; // where it may start, clear of the hub
+const FACE = 126; // sebaro's ink circle
+const LABEL_OUTER = 116; // where a name ends, just inside the circle
+const LABEL_INNER = 30; // where it may start, clear of the centre
 const LABEL_SPAN = LABEL_OUTER - LABEL_INNER;
 const LABEL_MAX_PX = 17;
 const LABEL_MIN_PX = 8.5;
@@ -427,15 +429,22 @@ function labelSize(widthEm: number, count: number): number {
   return Math.max(LABEL_MIN_PX, Math.min(LABEL_MAX_PX, byLength, byWedge));
 }
 
+// sebaro's wheel (spec/02 §3.29, §4.6, RB-7): svg.sb-wheel, a 2 px ink
+// circle, 1.5 px spokes and the names inside g.sb-wheel__disc, the pointer at
+// the top; its colours and strokes come from sebaro's CSS. It turns over the
+// spin's 4.5 s (owner, D114: an approved deviation from sebaro's 200 ms).
 function Wheel({
   spin,
   roster,
   clockOffsetMs,
+  landedOn,
 }: {
   spin: WheelSpin;
   roster: Participant[];
   clockOffsetMs: number;
+  landedOn: string | null;
 }) {
+  const { t } = useTranslation();
   const [rotation, setRotation] = useState(0);
   const target = wheelTargetRotation(spin.pool, spin.winnerId, spin.seed);
 
@@ -456,70 +465,73 @@ function Wheel({
 
   const count = spin.pool.length;
   const segment = 360 / count;
+  const label =
+    landedOn === null
+      ? t("picker.wheelLabel", { count })
+      : t("picker.wheelLabelLanded", { count, name: landedOn });
 
   return (
     <svg
       data-testid="wheel"
-      viewBox="-150 -150 300 300"
-      // Bounded by the SHORTER viewport axis, not just by breakpoint: the
-      // dialog holds the wheel and the winner, and a fixed size clipped the
-      // winner off a phone in landscape.
-      className="w-[min(27rem,72vw,52dvh)]"
-      aria-hidden="true"
+      // From 0 0, as sebaro's disc turns about the middle of the view box
+      // counted from its origin; the drawing is moved into the middle.
+      viewBox="0 0 300 300"
+      role="img"
+      aria-label={label}
+      className="sb-wheel"
     >
-      {/* Flat in ink (F7): the rim, the wedge lines, the names and the
-          pointer in the text colour, the wedges in two neutral grounds.
-          The colours are sebaro's roles, so the wheel follows the theme. */}
-      <circle r={RIM_OUTER} style={{ fill: INK }} />
-      <circle r={RIM_OUTER - 4} style={{ fill: GROUND }} />
-
       <g
+        className="sb-wheel__disc"
         style={{
-          transform: `rotate(${rotation}deg)`,
+          ["--sb-wheel-turn" as string]: `${rotation}deg`,
           transition:
             rotation !== 0
               ? `transform ${spin.durationMs}ms cubic-bezier(0.12, 0.85, 0.16, 1)`
               : undefined,
         }}
       >
-        {spin.pool.map((participantId, index) => {
-          const participant = roster.find((p) => p.id === participantId);
-          const name = participant?.name ?? "?";
-          const wedge = index % 2 === 0 ? GROUND : TINT;
-          const midAngle = index * segment + segment / 2 - 90;
-          // Left-hand segments would render their radial label upside down;
-          // mirroring about the label's outer end fixes the reading direction
-          // without moving the text off its own wedge.
-          //
-          // Computed in the RESTING frame (midAngle + target), not the
-          // unrotated one. The wheel comes to a stop at `target`, which is
-          // never a multiple of 360 — so deciding the flip pre-rotation left
-          // roughly half the names upside down once it stopped, the winner's
-          // own included, which is the one everybody reads for the 2.6s hold.
-          const restAngle = midAngle + target;
-          const flipped = Math.cos((restAngle * Math.PI) / 180) < 0;
-          // Measured in GRAPHEMES, not UTF-16 units: "Christian 🤖".length is
-          // 12 for 11 characters, and code units are the unit that produced
-          // the "C?" bug in the first place.
-          const widthEm = labelWidthEm(nameGraphemes(name));
-          const fontSize = labelSize(widthEm, count);
-          // The chosen size normally fits; when a very long name would still
-          // overrun, textLength condenses it into the span rather than
-          // clipping it. Either way the WHOLE name is on the wheel.
-          const estimated = widthEm * fontSize;
-          return (
-            <g key={participantId}>
-              {count === 1 ? (
-                <circle r={FACE} style={{ fill: wedge }} />
-              ) : (
-                <path
-                  d={segmentPath(index, count, FACE)}
-                  style={{ fill: wedge, stroke: INK }}
-                  strokeWidth="2"
-                  strokeLinejoin="round"
-                />
-              )}
-              <g transform={`rotate(${midAngle})`}>
+        <g transform="translate(150 150)">
+          <circle r={FACE} />
+          {count > 1
+            ? spin.pool.map((participantId, index) => {
+                const angle = ((index * segment - 90) * Math.PI) / 180;
+                return (
+                  <line
+                    key={participantId}
+                    x1={0}
+                    y1={0}
+                    x2={FACE * Math.cos(angle)}
+                    y2={FACE * Math.sin(angle)}
+                  />
+                );
+              })
+            : null}
+          {spin.pool.map((participantId, index) => {
+            const participant = roster.find((p) => p.id === participantId);
+            const name = participant?.name ?? "?";
+            const midAngle = index * segment + segment / 2 - 90;
+            // Left-hand segments would render their radial label upside down;
+            // mirroring about the label's outer end fixes the reading direction
+            // without moving the text off its own wedge.
+            //
+            // Computed in the RESTING frame (midAngle + target), not the
+            // unrotated one. The wheel comes to a stop at `target`, which is
+            // never a multiple of 360 — so deciding the flip pre-rotation left
+            // roughly half the names upside down once it stopped, the winner's
+            // own included, which is the one everybody reads for the 2.6s hold.
+            const restAngle = midAngle + target;
+            const flipped = Math.cos((restAngle * Math.PI) / 180) < 0;
+            // Measured in GRAPHEMES, not UTF-16 units: "Christian 🤖".length is
+            // 12 for 11 characters, and code units are the unit that produced
+            // the "C?" bug in the first place.
+            const widthEm = labelWidthEm(nameGraphemes(name));
+            const fontSize = labelSize(widthEm, count);
+            // The chosen size normally fits; when a very long name would still
+            // overrun, textLength condenses it into the span rather than
+            // clipping it. Either way the WHOLE name is on the wheel.
+            const estimated = widthEm * fontSize;
+            return (
+              <g key={participantId} transform={`rotate(${midAngle})`}>
                 <text
                   transform={
                     flipped ? `rotate(180 ${LABEL_OUTER} 0)` : undefined
@@ -528,9 +540,9 @@ function Wheel({
                   y={0}
                   textAnchor={flipped ? "start" : "end"}
                   dominantBaseline="central"
-                  style={{ fill: INK }}
-                  fontSize={fontSize}
-                  fontWeight="600"
+                  // The size is fitted to the name and the wedge; sebaro's
+                  // 11 px is a floor for a few names, not a fit for fifteen.
+                  style={{ fontSize }}
                   {...(estimated > LABEL_SPAN
                     ? {
                         textLength: LABEL_SPAN,
@@ -541,30 +553,14 @@ function Wheel({
                   {name}
                 </text>
               </g>
-            </g>
-          );
-        })}
+            );
+          })}
+        </g>
       </g>
-
-      {/* Hub, drawn after the face so it caps the wedge tips. */}
-      <circle r="18" style={{ fill: GROUND, stroke: INK }} strokeWidth="2" />
-
-      {/* Pointer at the top, over the rim. */}
-      <path
-        d={`M -13 ${-RIM_OUTER - 9} L 13 ${-RIM_OUTER - 9} L 0 ${-RIM_OUTER + 17} Z`}
-        style={{ fill: INK, stroke: GROUND }}
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-      />
+      <path className="sb-wheel__pointer" d="M 141 4 H 159 L 150 28 Z" />
     </svg>
   );
 }
-
-// sebaro's colour roles for the drawing: ink, the page ground, and the
-// neutral fill of a hovered row for every other wedge.
-const INK = "var(--sb-color-text)";
-const GROUND = "var(--sb-color-bg)";
-const TINT = "var(--sb-color-hover-fill)";
 
 const SLOT_CELL_PX = 72;
 // Reels stop left→right; the last reel lands exactly at durationMs so the
@@ -676,15 +672,4 @@ function Reel({
       />
     </div>
   );
-}
-
-function segmentPath(index: number, count: number, radius: number): string {
-  const start = ((index * 360) / count - 90) * (Math.PI / 180);
-  const end = (((index + 1) * 360) / count - 90) * (Math.PI / 180);
-  const largeArc = 360 / count > 180 ? 1 : 0;
-  const x0 = radius * Math.cos(start);
-  const y0 = radius * Math.sin(start);
-  const x1 = radius * Math.cos(end);
-  const y1 = radius * Math.sin(end);
-  return `M 0 0 L ${x0} ${y0} A ${radius} ${radius} 0 ${largeArc} 1 ${x1} ${y1} Z`;
 }

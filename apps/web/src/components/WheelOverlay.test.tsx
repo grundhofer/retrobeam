@@ -95,16 +95,24 @@ const spinning = (): WheelSpin => ({
   durationMs: 4500,
 });
 
-test("the wheel is a modal dialog drawn in ink, not in the room's colours", async () => {
+test("the wheel is sebaro's wheel in a modal dialog, without the room's colours", async () => {
   seed(spinning());
   const screen = await render(overlay());
   const dialog = screen.getByTestId("wheel-overlay");
   await expect.element(dialog).toBeVisible();
   expect((dialog.element() as HTMLDialogElement).matches(":modal")).toBe(true);
-  await expect.element(screen.getByTestId("wheel")).toBeInTheDocument();
+  const wheel = await expect
+    .poll(() => document.querySelector("[data-testid=wheel]"))
+    .not.toBeNull()
+    .then(() => document.querySelector("[data-testid=wheel]")!);
+  expect(wheel.classList.contains("sb-wheel")).toBe(true);
+  expect(wheel.getAttribute("role")).toBe("img");
+  expect(wheel.getAttribute("aria-label")).toMatch(
+    /(Wheel with|Glücksrad mit) 2 /,
+  );
 
-  // No participant colour and no hard-coded colour anywhere in the drawing:
-  // every fill and stroke is one of sebaro's colour roles.
+  // Its ink comes from sebaro's CSS: no colour of its own anywhere in the
+  // drawing, a participant's least of all.
   const painted = [...document.querySelectorAll("[data-testid=wheel] *")]
     .flatMap((node) => {
       const style = (node as SVGElement).style;
@@ -116,8 +124,7 @@ test("the wheel is a modal dialog drawn in ink, not in the room's colours", asyn
       ];
     })
     .filter((value): value is string => value !== null && value !== "");
-  expect(painted.length).toBeGreaterThan(0);
-  for (const value of painted) expect(value).toMatch(/^var\(--sb-color-/);
+  expect(painted).toEqual([]);
   expect(document.querySelector("canvas")).toBeNull(); // no confetti layer
 });
 
@@ -149,12 +156,28 @@ test("Escape closes the card choice", async () => {
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 
-// A spin closes itself on every screen at once; Escape does not end it for one
-// person.
-test("Escape leaves a running spin alone", async () => {
+// sebaro's dialog that shows (§4.6): Escape and „Schließen“ close it — for
+// this person; the spin goes on for the room.
+test("Escape closes a running spin for oneself", async () => {
   seed(spinning());
   const spin = await render(overlay());
   await expect.element(spin.getByTestId("wheel-overlay")).toBeVisible();
   await userEvent.keyboard("{Escape}");
-  await expect.element(spin.getByTestId("wheel-overlay")).toBeVisible();
+  await expect
+    .poll(() => spin.getByTestId("wheel-overlay").elements().length)
+    .toBe(0);
+  expect(useBoardStore.getState().state.lastSpin).not.toBeNull();
+});
+
+test("„Schließen“ is the dialog's last key and closes it", async () => {
+  seed(spinning());
+  const spin = await render(overlay());
+  const close = spin.getByTestId("wheel-overlay-close");
+  await expect.element(close).toBeVisible();
+  const actions = close.element().parentElement!;
+  expect(actions.lastElementChild).toBe(close.element());
+  await close.click();
+  await expect
+    .poll(() => spin.getByTestId("wheel-overlay").elements().length)
+    .toBe(0);
 });
