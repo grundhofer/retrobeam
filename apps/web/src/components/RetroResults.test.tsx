@@ -17,7 +17,7 @@ import {
   type ServerEvent,
   type VotesState,
 } from "@retrobeam/shared";
-import "../i18n.js";
+import i18n from "../i18n.js";
 import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
 import { saveAdminToken } from "../lib/session.js";
@@ -332,11 +332,16 @@ test("says what it holds and when it goes away", async () => {
   // server's at "done" — a roster also grows with everyone who opens the
   // finished board just to read it.
   const screen = await render(view());
-  await expect
-    .element(screen.getByTestId("results-recap"))
-    .toHaveTextContent(
-      /5 (cards|Karten) · 3 (people|Personen) · 1 (action item|Action Item)$/,
+  // sebaro's stats: each a label and its number.
+  const stats = () =>
+    Array.from(
+      screen
+        .getByTestId("results-recap")
+        .element()
+        .querySelectorAll(".sb-stat"),
+      (stat) => stat.querySelector(".sb-stat__value")?.textContent,
     );
+  expect(stats()).toEqual(["5", "3", "1"]);
   // The real date, in the UI language — not an ISO stamp.
   await expect
     .element(screen.getByTestId("results-retention"))
@@ -353,9 +358,12 @@ test("says what it holds and when it goes away", async () => {
   // A board finished before the count was recorded: no number rather than
   // the roster's, which would count its readers.
   const unrecorded = await render(view({ headcount: null }));
-  await expect
-    .element(unrecorded.getByTestId("results-recap"))
-    .toHaveTextContent(/5 (cards|Karten) · 1 (action item|Action Item)$/);
+  expect(
+    unrecorded
+      .getByTestId("results-recap")
+      .element()
+      .querySelectorAll(".sb-stat"),
+  ).toHaveLength(2);
   expect(
     unrecorded.getByTestId("results-recap").element().textContent,
   ).not.toMatch(/people|Personen/);
@@ -369,7 +377,12 @@ test("offers the export right there, summary first", async () => {
   await expect.element(screen.getByTestId("results-export-jpeg")).toBeVisible();
   await expect
     .element(screen.getByTestId("results-scope-summary"))
-    .toHaveAttribute("aria-pressed", "true");
+    .toBeChecked();
+  // „Ergebnis sichern“ is the view's one primary action, its data path
+  // under it.
+  await expect
+    .element(screen.getByTestId("results-export-pdf"))
+    .toHaveClass("sb-primary-action");
 
   const href = () => md.element().getAttribute("href") ?? "";
   // The same URL the board menu builds for the summary.
@@ -506,8 +519,35 @@ test("reads outcome first, with one level of section headings", async () => {
     expect.stringMatching(/^H2 (Retro finished|Retro abgeschlossen)$/),
     expect.stringMatching(/^H2 (Top topics|Top-Themen)$/),
     expect.stringMatching(/^H2 Action Items$/i),
-    expect.stringMatching(/^H2 (Save the results|Ergebnis sichern)$/),
+    expect.stringMatching(/^H2 (Export|Exportieren)$/),
     expect.stringMatching(/^H2 (All cards|Alle Karten)$/),
     expect.stringMatching(/^H3 (To improve)$/),
   ]);
+});
+
+// §6.1 e: on an anonymous board there is no option to put names in at all,
+// only the sentence that says the board leaves them out.
+test("an anonymous board offers no names in the export", async () => {
+  const screen = await render(view({ anonymous: true }));
+  await expect.element(screen.getByTestId("results-export")).toBeVisible();
+  expect(screen.getByTestId("results-include-authors").elements()).toHaveLength(
+    0,
+  );
+  await expect
+    .element(screen.getByTestId("results-export"))
+    .toHaveTextContent(
+      i18n.t("menu.includeAuthorsAnonymous").replace(/\u00a0/g, " "),
+    );
+});
+
+test("the crowned topics read as places and as grey chart rows with numbers", async () => {
+  const screen = await render(view());
+  await expect
+    .element(screen.getByTestId("top-topic").first())
+    .toHaveTextContent(/(Rank|Platz) 1 (of|von) \d/);
+  const chart = screen.getByTestId("votes-chart");
+  await expect.element(chart).toBeVisible();
+  expect(
+    chart.element().querySelectorAll(".sb-chart__row b").length,
+  ).toBeGreaterThan(0);
 });

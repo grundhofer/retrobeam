@@ -205,9 +205,13 @@ test("blind voting, crowns, discussion queue and action items", async ({
     ).toBeVisible();
     await expect(ben.getByTestId("results-export-pdf")).toBeVisible();
     // Two people finished it — however many opened it since.
-    await expect(ben.getByTestId("results-recap")).toContainText(
-      /2\u00a0(people|Personen)/,
-    );
+    await expect(
+      ben
+        .getByTestId("results-recap")
+        .locator(".sb-stat")
+        .filter({ hasText: /people|Personen/i })
+        .locator(".sb-stat__value"),
+    ).toHaveText("2");
   }
   // The whole board is one click away, read-only.
   await ben.getByTestId("all-cards-toggle").click();

@@ -504,17 +504,19 @@ const resources = {
       },
       done: {
         title: "Retro finished",
-        cards_one: "{{count}}\u00a0card",
-        cards_other: "{{count}}\u00a0cards",
-        people_one: "{{count}}\u00a0person",
-        people_other: "{{count}}\u00a0people",
-        actions_one: "{{count}}\u00a0action item",
-        actions_other: "{{count}}\u00a0action items",
         retention:
           "This board is read-only and deletes itself automatically on {{date}} – export what you want to keep before then.",
         retentionKept:
           "This board is read-only and is being kept – it won't delete itself automatically.",
         export: "Save the results",
+        exportTitle: "Export",
+        rank: "Rank {{rank}} of {{total}}",
+        votesChart: "Votes per top topic",
+        stat: {
+          cards: "Cards",
+          people: "People",
+          actions: "Action items",
+        },
         moreFormats: "More formats",
         scopeHint: {
           summary: "Top topics and action items.",
@@ -1299,17 +1301,19 @@ const resources = {
       },
       done: {
         title: "Retro abgeschlossen",
-        cards_one: "{{count}}\u00a0Karte",
-        cards_other: "{{count}}\u00a0Karten",
-        people_one: "{{count}}\u00a0Person",
-        people_other: "{{count}}\u00a0Personen",
-        actions_one: "{{count}}\u00a0Action Item",
-        actions_other: "{{count}}\u00a0Action Items",
         retention:
           "Dieses Board ist schreibgeschützt und löscht sich am {{date}} automatisch – exportiere vorher, was ihr behalten wollt.",
         retentionKept:
           "Dieses Board ist schreibgeschützt und wird behalten – es löscht sich nicht automatisch.",
         export: "Ergebnis sichern",
+        exportTitle: "Exportieren",
+        rank: "Platz {{rank}} von {{total}}",
+        votesChart: "Stimmen je Top-Thema",
+        stat: {
+          cards: "Karten",
+          people: "Personen",
+          actions: "Action Items",
+        },
         moreFormats: "Weitere Formate",
         scopeHint: {
           summary: "Top-Themen und Action Items.",
