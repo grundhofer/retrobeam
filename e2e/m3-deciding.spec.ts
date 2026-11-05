@@ -157,12 +157,12 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await expect(bensAction).toBeVisible();
   await expect(bensAction).toContainText("Ben");
   await bensAction.getByRole("checkbox").check();
-  await expect(
-    anna
-      .getByTestId("action-item")
-      .filter({ hasText: "Automate the deploy" })
-      .locator("span.line-through"),
-  ).toBeVisible();
+  // Done on Anna's screen too: checked, in sebaro's done form.
+  const annasAction = anna
+    .getByTestId("action-item")
+    .filter({ hasText: "Automate the deploy" });
+  await expect(annasAction.getByRole("checkbox")).toBeChecked();
+  await expect(annasAction).toHaveClass(/sb-list-row--done/);
 
   // Rewind to vote: blind again on every screen.
   await anna.getByTestId("phase-back").click();

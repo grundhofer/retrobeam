@@ -1,6 +1,5 @@
 {
   "apps/web/index.html": 1,
-  "apps/web/src/components/ActionsPanel.tsx": 41,
   "apps/web/src/components/AvatarRow.tsx": 12,
   "apps/web/src/components/BoardCanvas.tsx": 76,
   "apps/web/src/components/BoardColumns.tsx": 152,
@@ -8,7 +7,6 @@
   "apps/web/src/components/EmojiPicker.tsx": 9,
   "apps/web/src/components/GifPicker.tsx": 37,
   "apps/web/src/components/NoteCard.tsx": 90,
-  "apps/web/src/components/PresenceRail.tsx": 118,
   "apps/web/src/components/PresenterFocus.tsx": 25,
   "apps/web/src/components/QrCode.tsx": 9,
   "apps/web/src/components/RoleToggleButton.tsx": 3,
