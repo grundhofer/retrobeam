@@ -33,18 +33,17 @@ test("staged columns hide from members and reveal again", async ({
   await expect(ben.getByRole("heading", { name: col })).toBeVisible();
 
   // Anna hides the column → Ben loses it entirely; Anna keeps it, flagged.
-  await anna
-    .getByRole("region", { name: col })
-    .getByTestId("column-hide-toggle")
-    .click();
+  // In the column's „Mehr“ (sebaro's menu, plan stage 5g).
+  const column = anna.getByRole("region", { name: col });
+  await column.getByTestId("column-menu").click();
+  await column.getByTestId("column-hide-toggle").click();
   await expect(ben.getByRole("heading", { name: col })).toHaveCount(0);
   await expect(anna.getByTestId("column-hidden-badge")).toBeVisible();
 
   // Reveal → Ben sees it again.
-  await anna
-    .getByRole("region", { name: col })
-    .getByTestId("column-hide-toggle")
-    .click();
+  // In the column's „Mehr“ (sebaro's menu, plan stage 5g).
+  await column.getByTestId("column-menu").click();
+  await column.getByTestId("column-hide-toggle").click();
   await expect(ben.getByRole("heading", { name: col })).toBeVisible();
 
   await annaCtx.close();

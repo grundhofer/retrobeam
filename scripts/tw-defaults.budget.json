@@ -2,7 +2,7 @@
   "apps/web/index.html": 1,
   "apps/web/src/components/AvatarRow.tsx": 12,
   "apps/web/src/components/BoardCanvas.tsx": 76,
-  "apps/web/src/components/BoardColumns.tsx": 152,
+  "apps/web/src/components/BoardColumns.tsx": 66,
   "apps/web/src/components/BoardPreview.tsx": 19,
   "apps/web/src/components/EmojiPicker.tsx": 9,
   "apps/web/src/components/GifPicker.tsx": 37,
