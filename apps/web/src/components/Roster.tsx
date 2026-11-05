@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useTranslation } from "react-i18next";
-import { nameInitials, type Participant } from "@retrobeam/shared";
-import { Icon } from "./Icon.js";
+import type { Participant } from "@retrobeam/shared";
+import { PersonAvatar } from "./PersonAvatar.js";
 import { isLastFacilitator, RoleToggleButton } from "./RoleToggleButton.js";
 
 export interface RosterProps {
@@ -39,16 +39,7 @@ export function Roster({ participants, youId, isAdmin = false }: RosterProps) {
               className="sb-list-row"
             >
               <span className="sb-list-row__lead">
-                <span
-                  aria-hidden="true"
-                  className="sb-avatar sb-avatar--32"
-                  data-sb-presence={participant.online ? undefined : "offline"}
-                >
-                  {nameInitials(participant.name)}
-                  {participant.role === "facilitator" ? (
-                    <Icon name="shield" size={16} className="sb-avatar__role" />
-                  ) : null}
-                </span>
+                <PersonAvatar participant={participant} />
               </span>
               <div className="sb-list-row__main">
                 <p className="sb-list-row__title">

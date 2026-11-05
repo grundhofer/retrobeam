@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useRef } from "react";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import {
   pickerFinished,
@@ -12,10 +12,11 @@ import {
   type PickerStyle,
   type PickerState,
 } from "@retrobeam/shared";
-import { burstConfetti } from "../lib/confetti.js";
 import { useConnection } from "../lib/connection.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
+import { Icon } from "./Icon.js";
+import { PersonAvatar } from "./PersonAvatar.js";
 
 export interface PresenceRailProps {
   phase: Phase;
@@ -90,15 +91,6 @@ export function PresenceRail({
   const cardCount =
     onlineRemaining > 0 ? onlineRemaining : (picker?.remaining.length ?? 0);
 
-  const celebrated = useRef(false);
-  useEffect(() => {
-    if (mode === "present" && finished && !celebrated.current) {
-      celebrated.current = true;
-      void burstConfetti();
-    }
-    if (!finished) celebrated.current = false;
-  }, [finished, mode]);
-
   // Spin control label — spin, then next … until the pool empties.
   const spinLabel =
     picker === null
@@ -115,56 +107,59 @@ export function PresenceRail({
 
   const youArePresenting = mode === "present" && picker?.current === you.id;
 
+  // sebaro (plan stage 5f): a column of the page beside the board, its
+  // parts as sections, the people as a list. The draw keys are secondary —
+  // in the presenting phase the facilitator's primary action is the phase
+  // change (F5) — and nothing celebrates with confetti (F7).
   return (
-    // Bounded on purpose: a sticky card with no max height and no scroller
-    // parks its lower bays — the ready toggle and "done presenting" — below the
-    // fold of a viewport that never scrolls them back. The roster scrolls, the
-    // button bays stay pinned. lg:min-h-0 is what makes that work: a flex
-    // child's automatic min-height refuses to shrink below its content, which
-    // is exactly how an unbounded list defeats a max-height parent.
+    // Bounded on purpose: a sticky column with no max height and no scroller
+    // parks its lower bays — the ready toggle and "done presenting" — below
+    // the fold of a viewport that never scrolls them back. The list scrolls,
+    // the bays stay pinned. lg:min-h-0 is what makes that work: a flex
+    // child's automatic min-height refuses to shrink below its content.
     <aside
-      aria-label={t("board.participants")}
-      className="w-full self-start rounded-2xl border border-zinc-200 bg-white shadow-sm lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100dvh-2rem)] lg:w-72 lg:shrink-0 lg:flex-col"
+      aria-labelledby="rail-title"
+      className="sb-stack w-full self-start lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100dvh-2rem)] lg:w-80 lg:shrink-0 lg:border-s lg:border-(--sb-color-border) lg:ps-(--sb-space-4)"
     >
-      <div className="flex items-baseline justify-between px-3 py-2.5 lg:shrink-0">
-        <h2 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">
-          {t("board.participants")}
-        </h2>
+      <h2 id="rail-title" className="sb-list-header lg:shrink-0">
+        {t("board.participants")}{" "}
         <span
-          className="text-xs text-zinc-500 tabular-nums"
+          className="sb-list-header__count tabular-nums"
           {...(mode === "ready" ? { "data-testid": "ready-count" } : {})}
         >
           {mode === "ready"
             ? t("ready.count", { ready: readyIds.length, total: onlineCount })
             : t("rail.online", { count: onlineCount })}
         </span>
-      </div>
+      </h2>
 
       {mode === "present" && isAdmin && !finished && spinLabel !== null ? (
-        <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 px-3 py-2 lg:shrink-0">
+        <div className="sb-cluster lg:shrink-0">
           {pickerStyle === "cards" && cardCount > 0 ? (
             <button
               type="button"
               data-testid="open-card-picker"
+              aria-busy={spinning || undefined}
               disabled={spinning}
               onClick={onOpenCards}
-              className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
+              className="sb-secondary-action sb-secondary-action--compact"
             >
-              🂠 {t("picker.chooseCard")}
+              <Icon name="pages" size={20} />
+              {t("picker.chooseCard")}
             </button>
           ) : (
             <button
               type="button"
               data-testid="spin-button"
+              aria-busy={spinning || undefined}
               disabled={spinning}
               onClick={() => send({ type: "admin.picker.spin" })}
-              className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
+              className="sb-secondary-action sb-secondary-action--compact"
             >
-              {pickerStyle === "slots"
-                ? "🎰"
-                : pickerStyle === "cards"
-                  ? "✓"
-                  : "🎡"}{" "}
+              <Icon
+                name={pickerStyle === "slots" ? "slots" : "wheel"}
+                size={20}
+              />
               {spinLabel}
             </button>
           )}
@@ -172,7 +167,7 @@ export function PresenceRail({
             <button
               type="button"
               onClick={() => send({ type: "admin.picker.skip" })}
-              className="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+              className="sb-secondary-action sb-secondary-action--compact"
             >
               {t("picker.skip")}
             </button>
@@ -180,35 +175,31 @@ export function PresenceRail({
         </div>
       ) : null}
 
-      {/* The draw's SKIN, right beside the button that runs it — the one place
-          a facilitator is actually looking when choosing between a wheel and a
-          slot machine. A <select> rather than a button pair, so a third and
-          fourth style cost a line in `pickerStyles` and not a row of chips in
-          a 288px rail.
-          Its own bay rather than inside the cockpit above: that block hides
-          itself once the rotation is exhausted, and the skin is a board
-          setting — a facilitator setting up the next round must still be able
-          to change it. */}
+      {/* The draw's SKIN, right beside the button that runs it — the one
+          place a facilitator is actually looking when choosing between a
+          wheel and a slot machine. Its own bay rather than inside the cockpit
+          above: that block hides itself once the rotation is exhausted, and
+          the skin is a board setting — a facilitator setting up the next
+          round must still be able to change it. */}
       {mode === "present" && isAdmin ? (
-        <div className="flex items-center gap-2 border-t border-zinc-100 px-3 py-2 lg:shrink-0">
+        <div className="lg:shrink-0">
           <PickerStyleSelect style={pickerStyle} disabled={spinning} />
         </div>
       ) : null}
 
       {mode === "present" && finished ? (
-        <div className="border-t border-zinc-100 px-3 py-2.5 lg:shrink-0">
-          <span
-            data-testid="picker-finished"
-            className="text-sm font-medium text-accent-strong"
-          >
-            {t("picker.everyone")}
-          </span>
-        </div>
+        <p
+          data-testid="picker-finished"
+          className="flex items-center gap-(--sb-space-1) lg:shrink-0"
+        >
+          <Icon name="success" size={20} />
+          {t("picker.everyone")}
+        </p>
       ) : null}
 
       <ul
         data-testid="rail-list"
-        className="flex flex-col gap-0.5 px-1.5 py-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain"
+        className="sb-list lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain"
         aria-live="polite"
       >
         {roster.map((p) => (
@@ -226,49 +217,37 @@ export function PresenceRail({
       </ul>
 
       {mode === "ready" ? (
-        <div className="border-t border-zinc-100 px-3 pt-2.5 pb-3 lg:shrink-0">
-          <p className="mb-1.5 flex items-center gap-1.5 text-xs text-zinc-500">
-            <span
-              aria-hidden="true"
-              className="size-2 rounded-full"
-              style={{ backgroundColor: you.color }}
-            />
-            {you.name} {t("roster.you")}
-          </p>
+        // One key with a fixed label, its state in aria-pressed and the check
+        // (as the check-in's ReadyBar).
+        <p className="lg:shrink-0">
           <button
             type="button"
             data-testid="ready-toggle"
             aria-pressed={youReady}
             onClick={() => send({ type: "ready.set", ready: !youReady })}
-            className={`w-full rounded-lg px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-              youReady
-                ? "bg-accent/10 text-accent-strong"
-                : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-            }`}
+            className="sb-secondary-action w-full"
           >
-            {youReady ? `✓ ${t("ready.done")}` : t("ready.imDone")}
+            {youReady ? <Icon name="check" size={20} /> : null}
+            {t("ready.imDone")}
           </button>
-        </div>
+        </p>
       ) : null}
 
       {youArePresenting ? (
-        <div className="border-t border-zinc-100 px-3 pt-2.5 pb-3 lg:shrink-0">
-          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-accent-strong">
-            🎤 {t("rail.youPresenting")}
-          </p>
+        <div className="sb-stack lg:shrink-0">
+          <p className="sb-field__help">{t("rail.youPresenting")}</p>
           <button
             type="button"
             data-testid="present-done"
             onClick={() => send({ type: "picker.done" })}
-            className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="sb-secondary-action w-full"
           >
-            {t("rail.donePresenting")} ›
+            {t("rail.donePresenting")}
+            <Icon name="arrow-right" size={20} />
           </button>
         </div>
       ) : mode === "present" && !isAdmin && !finished ? (
-        <div className="border-t border-zinc-100 px-3 py-2.5 lg:shrink-0">
-          <p className="text-xs text-zinc-500">{t("rail.waiting")}</p>
-        </div>
+        <p className="sb-field__help lg:shrink-0">{t("rail.waiting")}</p>
       ) : null}
 
       {/* The rotation is missing on purpose here, and a missing wheel with no
@@ -276,7 +255,7 @@ export function PresenceRail({
       {phase === "present" && anonymous ? (
         <p
           data-testid="present-anonymous-hint"
-          className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-500 lg:shrink-0"
+          className="sb-field__help lg:shrink-0"
         >
           {t("present.anonymous")}
         </p>
@@ -287,7 +266,7 @@ export function PresenceRail({
       {mode === "present" && scopedRound ? (
         <p
           data-testid="present-scope-hint"
-          className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-500 lg:shrink-0"
+          className="sb-field__help lg:shrink-0"
         >
           {isAdmin ? t("present.scoped.facilitator") : t("present.scoped.hint")}
         </p>
@@ -308,28 +287,34 @@ function PickerStyleSelect({
 }) {
   const { t } = useTranslation();
   const { send } = useConnection();
+  const id = useId();
   return (
-    <label className="flex items-center gap-2 text-xs text-zinc-500">
-      {t("menu.pickerStyle")}
-      <select
-        data-testid="picker-style"
-        value={style}
-        disabled={disabled}
-        onChange={(event) =>
-          send({
-            type: "admin.picker.style",
-            style: event.target.value as PickerStyle,
-          })
-        }
-        className="rounded-lg border border-zinc-200 bg-white px-1.5 py-1 text-xs text-zinc-600 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40"
-      >
-        {pickerStyles.map((value) => (
-          <option key={value} value={value}>
-            {t(`menu.picker.${value}`)}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="sb-field sb-field--compact">
+      <label htmlFor={id} className="sb-field__label">
+        {t("menu.pickerStyle")}
+      </label>
+      <div className="sb-field__control sb-select">
+        <select
+          id={id}
+          data-testid="picker-style"
+          value={style}
+          disabled={disabled}
+          onChange={(event) =>
+            send({
+              type: "admin.picker.style",
+              style: event.target.value as PickerStyle,
+            })
+          }
+        >
+          {pickerStyles.map((value) => (
+            <option key={value} value={value}>
+              {t(`menu.picker.${value}`)}
+            </option>
+          ))}
+        </select>
+        <Icon name="chevron-down" />
+      </div>
+    </div>
   );
 }
 
@@ -371,103 +356,93 @@ function PresenceRow({
   const status =
     mode === "present" ? rotationStatus(picker, participant.id) : "other";
   const isCurrent = status === "current";
-  const dimmed = !participant.online || status === "excluded";
 
+  // A list row (sebaro): the avatar, the name and the state in words — never
+  // dimmed, never a colour or a glyph alone; the facilitator's keys at the
+  // end.
+  const meta =
+    status === "current"
+      ? t("picker.current")
+      : status === "presented"
+        ? t("rail.presented")
+        : status === "excluded"
+          ? t("rail.excluded")
+          : mode === "ready" && ready
+            ? t("rail.ready")
+            : !participant.online
+              ? t("board.offline")
+              : null;
   return (
     <li
       data-testid={isCurrent ? "presenter-banner" : "rail-row"}
-      className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${
-        dimmed ? "opacity-45" : ""
-      } ${isCurrent ? "bg-accent/10" : ""}`}
+      aria-current={isCurrent ? "true" : undefined}
+      className={
+        status === "presented" ? "sb-list-row sb-list-row--done" : "sb-list-row"
+      }
     >
-      <span
-        aria-hidden="true"
-        className={`size-3 shrink-0 rounded-full ${
-          participant.role === "facilitator"
-            ? "ring-2 ring-accent/40 ring-offset-1"
-            : ""
-        }`}
-        style={{ backgroundColor: participant.color }}
-      />
-      <span
-        className={`truncate ${
-          status === "presented"
-            ? "text-zinc-500 line-through"
-            : "text-zinc-700"
-        }`}
-      >
-        {participant.name}
-        {isYou ? (
-          <span className="text-zinc-500"> {t("roster.you")}</span>
-        ) : null}
+      <span className="sb-list-row__lead">
+        <PersonAvatar participant={participant} />
       </span>
+      <div className="sb-list-row__main">
+        <p className="sb-list-row__title">
+          {participant.name}
+          {isYou ? ` ${t("roster.you")}` : null}
+        </p>
+        {meta !== null ? <p className="sb-list-row__meta">{meta}</p> : null}
+      </div>
 
-      {mode === "ready" ? (
-        <span className="ml-auto">
-          {ready ? (
-            <span className="text-sm text-accent-strong">✓</span>
-          ) : (
-            <span
-              aria-hidden="true"
-              className="block size-3.5 rounded-full border border-zinc-300"
-            />
-          )}
+      {mode === "ready" && ready ? (
+        <span className="sb-list-row__trail">
+          <Icon name="check" size={20} />
         </span>
       ) : null}
 
-      {mode === "present" ? (
-        <span className="ml-auto flex items-center gap-1">
-          {status === "current" ? (
-            <span className="flex items-center gap-1 text-xs font-medium text-accent-strong">
-              🎤 {t("picker.current")}
-            </span>
-          ) : status === "presented" ? (
-            <span className="text-xs text-zinc-500">✓</span>
-          ) : isAdmin && status === "remaining" ? (
-            <>
-              <button
-                type="button"
-                data-testid={`pick-${participant.name}`}
-                disabled={spinning}
-                aria-label={t("picker.pickAria", { name: participant.name })}
-                onClick={() =>
-                  send({
-                    type: "admin.picker.pick",
-                    participantId: participant.id,
-                  })
-                }
-                className="rounded-md px-1.5 py-0.5 text-xs font-medium text-accent-strong hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40"
-              >
-                {t("picker.pick")} ›
-              </button>
-              <button
-                type="button"
-                aria-label={t("picker.exclude", { name: participant.name })}
-                onClick={() =>
-                  send({
-                    type: "admin.picker.exclude",
-                    participantId: participant.id,
-                  })
-                }
-                className="rounded px-1 text-xs text-zinc-500 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
-              >
-                ✕
-              </button>
-            </>
-          ) : isAdmin && status === "excluded" ? (
-            <button
-              type="button"
-              onClick={() =>
-                send({
-                  type: "admin.picker.include",
-                  participantId: participant.id,
-                })
-              }
-              className="rounded-full border border-dashed border-zinc-300 px-2 py-0.5 text-xs text-zinc-500 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
-            >
-              + {t("picker.pick")}
-            </button>
-          ) : null}
+      {mode === "present" && isAdmin && status === "remaining" ? (
+        <span className="sb-list-row__trail">
+          <button
+            type="button"
+            data-testid={`pick-${participant.name}`}
+            disabled={spinning}
+            aria-label={t("picker.pickAria", { name: participant.name })}
+            onClick={() =>
+              send({
+                type: "admin.picker.pick",
+                participantId: participant.id,
+              })
+            }
+            className="sb-secondary-action sb-secondary-action--compact"
+          >
+            {t("picker.pick")}
+          </button>
+          <button
+            type="button"
+            aria-label={t("picker.exclude", { name: participant.name })}
+            onClick={() =>
+              send({
+                type: "admin.picker.exclude",
+                participantId: participant.id,
+              })
+            }
+            className="sb-icon-button"
+          >
+            <Icon name="close" />
+          </button>
+        </span>
+      ) : mode === "present" && isAdmin && status === "excluded" ? (
+        <span className="sb-list-row__trail">
+          <button
+            type="button"
+            onClick={() =>
+              send({
+                type: "admin.picker.include",
+                participantId: participant.id,
+              })
+            }
+            className="sb-secondary-action sb-secondary-action--compact"
+          >
+            <Icon name="plus" size={20} />
+            {t("picker.pick")}
+          </button>
         </span>
       ) : null}
     </li>

@@ -201,7 +201,6 @@ const resources = {
       },
       ready: {
         imDone: "I'm done",
-        done: "Done",
         count: "{{ready}} of {{total}} done",
       },
       timer: {
@@ -279,6 +278,9 @@ const resources = {
         youPresenting: "You're up",
         donePresenting: "Done presenting",
         waiting: "The facilitator is leading the round",
+        presented: "presented",
+        excluded: "not in the draw",
+        ready: "done",
       },
       canvas: {
         hint: "Double-click or + Note to add one",
@@ -353,7 +355,9 @@ const resources = {
       },
       action: {
         title: "Action items",
-        placeholder: "What are we going to do?",
+        label: "What are we going to do?",
+        deleteTitle: "Delete the action item?",
+        deleteText: "“{{text}}” disappears for everyone. This can't be undone.",
         textMissing: "Action item is missing.",
         add: "Add",
         owner: "Owner",
@@ -984,7 +988,6 @@ const resources = {
       },
       ready: {
         imDone: "Ich bin fertig",
-        done: "Fertig",
         count: "{{ready}} von {{total}} fertig",
       },
       timer: {
@@ -1062,6 +1065,9 @@ const resources = {
         youPresenting: "Du bist dran",
         donePresenting: "Fertig mit Vorstellen",
         waiting: "Die Moderation führt durch die Runde",
+        presented: "hat vorgestellt",
+        excluded: "nicht im Rad",
+        ready: "fertig",
       },
       canvas: {
         hint: "Doppelklick oder + Notiz zum Hinzufügen",
@@ -1137,7 +1143,10 @@ const resources = {
       },
       action: {
         title: "Action Items",
-        placeholder: "Was nehmen wir uns vor?",
+        label: "Was nehmen wir uns vor?",
+        deleteTitle: "Action Item löschen?",
+        deleteText:
+          "„{{text}}“ verschwindet für alle. Das lässt sich nicht rückgängig machen.",
         textMissing: "Action Item fehlt.",
         add: "Hinzufügen",
         owner: "Verantwortlich",
