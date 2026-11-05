@@ -521,7 +521,9 @@ test("reads outcome first, with one level of section headings", async () => {
     expect.stringMatching(/^H2 Action Items$/i),
     expect.stringMatching(/^H2 (Export|Exportieren)$/),
     expect.stringMatching(/^H2 (All cards|Alle Karten)$/),
-    expect.stringMatching(/^H3 (To improve)$/),
+    // sebaro's column title: the name and its count, the word for screen
+    // readers only.
+    expect.stringMatching(/^H3 (To improve|Zu verbessern) +(cards?|Karten?)$/),
   ]);
 });
 

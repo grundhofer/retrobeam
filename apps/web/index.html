@@ -4,7 +4,9 @@
      sb-start.js right after it, which shows the start tile below until the
      page has loaded. With data-sb-start="nostore" it reads and writes no
      storage and shows on every load (plan §2.4 F15, F40). sb-fit.js gives
-     the parts their forms for large text (F38). The stylesheets come from
+     the parts their forms for large text (F38); sb-board.js the board's swipe
+     layout on narrow screens, wired by BoardColumns through sbBoard.setup and
+     teardown (plan stage 5g). The stylesheets come from
      main.tsx. The retrobeam:sebaro plugin in vite.config.ts serves these
      files from the export and inlines the export's tile at its sb:inline
      comment. No theme attribute on <html> here: the page follows the system
@@ -15,6 +17,7 @@
     <script src="/sebaro/js/theme-init.js"></script>
     <script src="/sebaro/js/sb-start.js"></script>
     <script src="/sebaro/js/sb-fit.js" defer></script>
+    <script src="/sebaro/js/sb-board.js" defer></script>
     <meta name="color-scheme" content="light dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- The board URL IS the capability: /board/<128-bit id> grants access to

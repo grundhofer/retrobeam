@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   generateHexId,
@@ -14,7 +14,10 @@ import {
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
+import { Dialog } from "./Dialog.js";
 import { GifPickerButton } from "./GifPicker.js";
+import { Icon } from "./Icon.js";
+import { Menu, type MenuItem } from "./Menu.js";
 import { NOTE_DRAG_MIME, NoteCard } from "./NoteCard.js";
 
 export interface DecidingState {
@@ -162,82 +165,117 @@ export function BoardColumns(props: BoardColumnsProps) {
   // and a resync. It is rendered read-only on the results page.
   const manageColumns = isAdmin && phase !== "done";
 
+  // sebaro's board (spec/02 §3.16): the columns side by side, separated by
+  // hairlines; below 640 px of its own width they are swiped, and sb-board.js
+  // keeps a position bar „Spalte 2 von 3: …“ with a step key each way. The
+  // bar is in the markup, so the script inserts nothing into React's tree; it
+  // only writes the position's words and the keys' aria-disabled, which React
+  // never sets. setup after mount, teardown before unmount (L12).
+  const boardRef = useRef<HTMLDivElement>(null);
+  const boardId = `board-${useId().replace(/:/g, "")}`;
+  useEffect(() => {
+    const board = boardRef.current;
+    const script = (
+      window as {
+        sbBoard?: {
+          setup: (el: HTMLElement) => void;
+          teardown?: (el: HTMLElement) => void;
+        };
+      }
+    ).sbBoard;
+    if (!board || !script) return;
+    script.setup(board);
+    return () => script.teardown?.(board);
+  }, []);
+
   return (
-    <div className="flex flex-col gap-4 pb-4">
-      {/* Was `flex … overflow-x-auto`: four 288px columns need 1200px, the
-          discussion phase left 576px on a 1280 laptop, and the surplus was
-          clipped by a scroll container with no scrollbar, no fade and no
-          arrows — the cut edge sat flush against the participant card, which
-          is what "the panel covers the columns" actually was. Intrinsic sizing
-          instead: as many tracks as fit at 15rem, each sharing the leftover,
-          wrapping to a second row when they cannot. There is no horizontal
-          overflow left for a column to hide in.
-          `1fr` as the max is load-bearing — auto-fit takes its track count
-          from a definite max, so minmax(13rem,24rem) would resolve to ONE
-          track at 576px. `min(13rem,100%)` keeps a container narrower than
-          208px from re-creating the overflow.
-          13rem rather than 15: a wrapped column starts below the TALLEST one
-          in the row above, so a busy first column can push the fourth a screen
-          down. At 13rem a four-column template fits one row at 1280 in every
-          phase, which is the case this whole change is about. */}
+    <div className="sb-stack pb-(--sb-space-4)">
       <div
+        ref={boardRef}
+        id={boardId}
         data-testid="column-strip"
-        className="grid grid-cols-[repeat(auto-fit,minmax(min(13rem,100%),1fr))] items-start gap-4"
+        className="sb-board"
       >
-        {columns.map((column) => (
-          <BoardColumn
-            key={column.id}
-            column={column}
-            {...props}
-            onDropNote={groupNotes}
-            onUngroup={ungroupNote}
-            onMoveToColumn={allowColumnDrop ? moveNote : null}
-            onVote={castVote}
-          />
-        ))}
+        <div className="sb-board__nav" hidden>
+          <button
+            type="button"
+            className="sb-icon-button"
+            data-sb-board-step="-1"
+            aria-label={t("column.previous")}
+          >
+            <Icon name="chevron-left" />
+          </button>
+          <p className="sb-board__position" />
+          <button
+            type="button"
+            className="sb-icon-button"
+            data-sb-board-step="1"
+            aria-label={t("column.next")}
+          >
+            <Icon name="chevron-right" />
+          </button>
+        </div>
+        <div className="sb-board__columns">
+          {columns.map((column) => (
+            <BoardColumn
+              key={column.id}
+              column={column}
+              {...props}
+              onDropNote={groupNotes}
+              onUngroup={ungroupNote}
+              onMoveToColumn={allowColumnDrop ? moveNote : null}
+              onVote={castVote}
+            />
+          ))}
+        </div>
       </div>
       {manageColumns ? (
-        // Deliberately outside the grid: as a grid item this ghost claims a
-        // whole track, so a facilitator would get four narrow columns where a
-        // member gets three wide ones. A facilitator-only affordance must not
-        // narrow the facilitator's board.
-        <div className="w-64">
-          {addingColumn ? (
-            <form onSubmit={addColumn} className="flex flex-col gap-2">
-              <input
-                autoFocus
-                value={newColumnName}
-                onChange={(event) => setNewColumnName(event.target.value)}
-                maxLength={60}
-                placeholder={t("column.namePlaceholder")}
-                className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-accent"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong"
-                >
-                  {t("column.add")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAddingColumn(false)}
-                  className="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100"
-                >
-                  {t("note.cancel")}
-                </button>
+        // Outside the board: a facilitator-only affordance must not take a
+        // column's place and narrow the facilitator's board.
+        addingColumn ? (
+          <form onSubmit={addColumn} className="sb-stack max-w-80">
+            <div className="sb-field sb-field--compact">
+              <label htmlFor={`${boardId}-new`} className="sb-field__label">
+                {t("column.namePlaceholder")}
+              </label>
+              <div className="sb-field__control">
+                <input
+                  id={`${boardId}-new`}
+                  autoFocus
+                  value={newColumnName}
+                  onChange={(event) => setNewColumnName(event.target.value)}
+                  maxLength={60}
+                />
               </div>
-            </form>
-          ) : (
+            </div>
+            <div className="sb-cluster">
+              <button
+                type="submit"
+                className="sb-secondary-action sb-secondary-action--compact"
+              >
+                {t("column.add")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddingColumn(false)}
+                className="sb-secondary-action sb-secondary-action--compact"
+              >
+                {t("note.cancel")}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <p>
             <button
               type="button"
               onClick={() => setAddingColumn(true)}
-              className="w-full rounded-xl border-2 border-dashed border-zinc-200 px-3 py-2 text-sm text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
+              className="sb-secondary-action sb-secondary-action--compact"
             >
-              + {t("column.addColumn")}
+              <Icon name="plus" size={20} />
+              {t("column.addColumn")}
             </button>
-          )}
-        </div>
+          </p>
+        )
       ) : null}
     </div>
   );
@@ -274,6 +312,7 @@ function BoardColumn({
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(column.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const titleId = `column-${column.id}`;
 
   function focusDiscussion(targetId: string) {
     send({
@@ -352,8 +391,10 @@ function BoardColumn({
 
   // Ghost cards: colleagues writing in this column right now — activity
   // without content (write phase only; from present on the notes are visible).
+  // Never on an anonymous board (plan stage 5g): who is writing where
+  // would say whose card lands in which column.
   const ghosts =
-    phase === "write"
+    phase === "write" && !anonymous
       ? Object.entries(editing)
           .filter(
             ([participantId, columnId]) =>
@@ -438,13 +479,42 @@ function BoardColumn({
     stackCandidates: columnNotes,
   };
 
+  // The column's „Mehr“ (sebaro: „Mehr zu <Spalte>“): rename, hide or
+  // show, and delete last, which asks first — its cards go with it.
+  const columnMenu: MenuItem[] = [
+    {
+      key: "rename",
+      label: t("column.rename"),
+      icon: "edit",
+      testId: "column-rename",
+      onSelect: () => {
+        setRenameValue(column.name);
+        setRenaming(true);
+      },
+    },
+    {
+      key: "hide",
+      label: column.hidden ? t("column.reveal") : t("column.hide"),
+      icon: column.hidden ? "eye" : "eye-off",
+      testId: "column-hide-toggle",
+      onSelect: toggleHidden,
+    },
+    {
+      key: "delete",
+      label: t("column.deleteOpen"),
+      icon: "trash",
+      danger: true,
+      separatorBefore: true,
+      testId: "column-delete",
+      onSelect: () => setConfirmingDelete(true),
+    },
+  ];
+
   return (
     <section
       data-testid="board-column"
-      // min-w-0: a grid item's automatic minimum is min-content, so one long
-      // unbroken note or column name would blow its track past its share.
-      className={`min-w-0 ${column.hidden ? "opacity-60" : ""}`}
-      aria-label={column.name}
+      aria-labelledby={titleId}
+      className="sb-board__column"
       onDragOver={(event) => {
         if (
           onMoveToColumn !== null &&
@@ -461,83 +531,96 @@ function BoardColumn({
         onMoveToColumn(sourceId, column.id);
       }}
     >
-      <header className="mb-2 flex items-center gap-1.5">
+      <div className="sb-board__head">
         {renaming ? (
-          <form onSubmit={submitRename} className="flex-1">
-            <input
-              autoFocus
-              value={renameValue}
-              onChange={(event) => setRenameValue(event.target.value)}
-              onBlur={submitRename}
-              maxLength={60}
-              className="w-full rounded border border-zinc-300 px-2 py-0.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent"
-            />
+          <form onSubmit={submitRename} className="min-w-0 flex-1">
+            <div className="sb-field sb-field--compact">
+              <label
+                htmlFor={`${titleId}-rename`}
+                className="sb-visually-hidden"
+              >
+                {t("column.rename")}
+              </label>
+              <div className="sb-field__control">
+                <input
+                  id={`${titleId}-rename`}
+                  autoFocus
+                  value={renameValue}
+                  onChange={(event) => setRenameValue(event.target.value)}
+                  onBlur={submitRename}
+                  maxLength={60}
+                />
+              </div>
+            </div>
           </form>
         ) : (
           // h3 in "done": there the board sits under the results page's "All
           // cards" h2, and an h2 per column read as top-level sections.
-          <ColumnTitle className="flex-1 truncate text-sm font-semibold tracking-wide text-zinc-600 uppercase">
-            {column.name}
+          <ColumnTitle id={titleId} className="sb-board__title">
+            <span className="sb-board__name">{column.name}</span>
             {column.hidden ? (
-              <span
-                data-testid="column-hidden-badge"
-                className="ml-1.5 rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lowercase"
-              >
-                {t("column.hidden")}
-              </span>
-            ) : null}
-            <span className="ml-1.5 font-normal text-zinc-500 tabular-nums">
+              <>
+                {" "}
+                <span data-testid="column-hidden-badge" className="sb-tag">
+                  {t("column.hidden")}
+                </span>
+              </>
+            ) : null}{" "}
+            <span className="sb-board__count">
               {columnNotes.length}
+              <span className="sb-visually-hidden">
+                {" "}
+                {t("column.cards", { count: columnNotes.length })}
+              </span>
             </span>
           </ColumnTitle>
         )}
         {isAdmin && !renaming && phase !== "done" ? (
-          <>
-            <button
-              type="button"
-              data-testid="column-hide-toggle"
-              aria-label={column.hidden ? t("column.reveal") : t("column.hide")}
-              aria-pressed={column.hidden}
-              onClick={toggleHidden}
-              className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
-            >
-              {column.hidden ? "🙈" : "👁"}
-            </button>
-            <button
-              type="button"
-              aria-label={t("column.rename")}
-              onClick={() => {
-                setRenameValue(column.name);
-                setRenaming(true);
-              }}
-              className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
-            >
-              ✎
-            </button>
-            {confirmingDelete ? (
-              <button
-                type="button"
-                onClick={deleteColumn}
-                onBlur={() => setConfirmingDelete(false)}
-                className="rounded bg-red-700 px-2 py-0.5 text-xs font-medium text-white focus-visible:outline-2 focus-visible:outline-red-700"
-              >
-                {t("column.reallyDelete")}
-              </button>
-            ) : (
-              <button
-                type="button"
-                aria-label={t("column.delete")}
-                onClick={() => setConfirmingDelete(true)}
-                className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
-              >
-                🗑
-              </button>
-            )}
-          </>
+          <Menu
+            label={t("column.more", { name: column.name })}
+            items={columnMenu}
+            triggerTestId="column-menu"
+          />
         ) : null}
-      </header>
+      </div>
+      {isAdmin ? (
+        <Dialog
+          open={confirmingDelete}
+          onClose={() => setConfirmingDelete(false)}
+          title={t("column.deleteTitle")}
+          testId="column-delete-dialog"
+          actions={
+            <>
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setConfirmingDelete(false)}
+                className="sb-secondary-action"
+              >
+                {t("note.cancel")}
+              </button>
+              <button
+                type="button"
+                data-testid="column-delete-confirm"
+                onClick={() => {
+                  setConfirmingDelete(false);
+                  deleteColumn();
+                }}
+                className="sb-danger-action sb-danger-action--outlined"
+              >
+                <Icon name="trash" size={20} />
+                {t("menu.deleteConfirm")}
+              </button>
+            </>
+          }
+        >
+          <p className="sb-dialog__text">
+            {t("column.deleteText", { name: column.name })}
+          </p>
+        </Dialog>
+      ) : null}
 
-      <div className="flex flex-col gap-2">
+      <div className="sb-board__cards">
         {/* The composer is PINNED ABOVE the cards: the card you are writing has
             to stay in view while the column fills up around you, and a
             teammate finishing one in the same column must not shove your input
@@ -559,21 +642,12 @@ function BoardColumn({
           <div
             key={ghost.id}
             data-testid="ghost-card"
-            className="rounded-xl border border-dashed border-zinc-200 bg-white/60 p-3"
+            className="sb-card sb-card--item"
           >
-            <div className="flex items-center gap-2">
-              <span
-                className="size-2.5 animate-pulse rounded-full"
-                style={{ backgroundColor: ghost.color }}
-              />
-              <span className="text-xs text-zinc-500">
-                {t("note.ghostWriting", { name: ghost.name })}
-              </span>
-            </div>
-            <div className="mt-2 space-y-1.5">
-              <div className="h-2 w-4/5 animate-pulse rounded bg-zinc-100" />
-              <div className="h-2 w-3/5 animate-pulse rounded bg-zinc-100" />
-            </div>
+            <p className="sb-card__meta flex items-center gap-(--sb-space-1)">
+              <Icon name="edit" size={16} />
+              {t("note.ghostWriting", { name: ghost.name })}
+            </p>
           </div>
         ))}
         {items.map((item, index) => {
@@ -614,19 +688,20 @@ function BoardColumn({
         {/* Only while somebody is on stage: between presenters the composer is
             back, and an empty column with a placeholder above a live input
             reads as broken. */}
-        {phase === "present" && presenterId !== null && items.length === 0 ? (
-          <p className="px-1 py-6 text-center text-sm text-zinc-500">—</p>
+        {/* sebaro §4.2: an empty column says so. Not while the cards of
+            others are still hidden — the column is not empty then. */}
+        {items.length === 0 && ghosts.length === 0 && othersCardCount === 0 ? (
+          <p className="sb-board__empty">{t("column.empty")}</p>
         ) : null}
+        {/* sebaro RB-3: the others' cards as hidden cards with a count, no
+            words of theirs. */}
         {othersCardCount > 0 ? (
           <div
             data-testid="team-cards"
-            className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 px-3 py-2"
+            className="sb-card sb-card--item sb-card--hidden"
           >
-            <div className="space-y-1.5">
-              <div className="h-2 w-4/5 rounded bg-zinc-200/70" />
-              <div className="h-2 w-3/5 rounded bg-zinc-200/70" />
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="sb-card__title">
+              <Icon name="eye-off" size={20} />
               {t("rail.teamCards", { count: othersCardCount })}
             </p>
           </div>
