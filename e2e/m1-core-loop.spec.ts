@@ -265,16 +265,22 @@ test("a refused command is explained instead of vanishing", async ({
     );
   });
 
+  // An error stands in the view, in the action zone (sebaro: never a toast),
+  // with the error glyph.
   const notice = page.getByTestId("notice");
   await expect(notice).toBeVisible();
   await expect(notice).toContainText(/phase|Phase/);
-  // It is announced, not just drawn.
-  await expect(page.getByTestId("notices")).toHaveAttribute(
-    "aria-live",
-    "polite",
-  );
+  await expect(
+    page.getByTestId("action-zone").getByTestId("notice"),
+  ).toBeVisible();
+  // It is announced, not just drawn, by a status region always in the page.
+  await expect(page.getByTestId("notices")).toHaveAttribute("role", "status");
+  await expect(page.getByTestId("notices")).toContainText(/phase|Phase/);
 
-  await notice.getByRole("button").click();
+  // No timer takes it away; the room moving on does.
+  await page.waitForTimeout(6500);
+  await expect(notice).toBeVisible();
+  await page.getByTestId("phase-next").click();
   await expect(page.getByTestId("notice")).toHaveCount(0);
 
   await context.close();

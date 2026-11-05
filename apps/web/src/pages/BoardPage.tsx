@@ -14,6 +14,7 @@ import {
 } from "@retrobeam/shared";
 import { ActionsPanel } from "../components/ActionsPanel.js";
 import { CarriedActions } from "../components/CarriedActions.js";
+import { ActionZone } from "../components/ActionZone.js";
 import { AdminLink } from "../components/AdminLink.js";
 import { AvatarRow } from "../components/AvatarRow.js";
 import { BoardCanvas } from "../components/BoardCanvas.js";
@@ -30,7 +31,6 @@ import { KudosWall } from "../components/KudosWall.js";
 import { RetroResults } from "../components/RetroResults.js";
 import { RotiPoll } from "../components/RotiPoll.js";
 import { LegalFooter } from "../components/LegalFooter.js";
-import { NoticeRail } from "../components/NoticeRail.js";
 import { PhaseStepper } from "../components/PhaseStepper.js";
 import { PhasePlanPanel } from "../components/PhasePlanPanel.js";
 import { PresenceRail } from "../components/PresenceRail.js";
@@ -307,7 +307,7 @@ function Room({
   );
 
   useEffect(() => {
-    const { dispatch, setStatus, setClockOffset, notify } =
+    const { dispatch, setStatus, setClockOffset, notify, clearNotices } =
       useBoardStore.getState();
     const socket = new BoardSocket({
       boardId,
@@ -374,7 +374,12 @@ function Room({
             rejectHandlers.current.delete(event.opId);
           }
         }
-        if (event.type === "ack") rejectHandlers.current.delete(event.opId);
+        if (event.type === "ack") {
+          rejectHandlers.current.delete(event.opId);
+          // The next command went through: a refusal shown before is past.
+          clearNotices();
+        }
+        if (event.type === "phase.changed") clearNotices();
         if (event.type === "error" && event.code === "RATE_LIMIT") {
           notify("reject.RATE_LIMIT", "warning");
         }
@@ -520,7 +525,6 @@ function Room({
         isAdmin={isAdmin}
         onCloseCardSelection={() => setCardsOpen(false)}
       />
-      <NoticeRail />
       <PhaseAnnouncer
         phase={state.phase}
         isAdmin={isAdmin}
@@ -899,11 +903,11 @@ function Room({
                 </div>
               )}
             </main>
-            {/* The bottom block (sebaro spec/03 §2) with the facilitator's
-            phase change goes here, through a portal from PhaseStepper.
-            display: contents, so the block is a child of the view itself
-            and its position: sticky holds to the viewport's bottom. */}
-            <div ref={setActionSlot} className="contents" />
+            {/* The bottom block (sebaro spec/03 §2): a child of the view
+                itself, so its position: sticky holds to the viewport's
+                bottom. The facilitator's phase change comes in through a
+                portal from PhaseStepper. */}
+            <ActionZone slotRef={setActionSlot} />
           </>
         )}
         <LegalFooter openLegalLinksInNewTab />
