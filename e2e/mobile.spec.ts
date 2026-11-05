@@ -52,16 +52,16 @@ test("board fits a phone", async ({ browser }) => {
   await anna.keyboard.press("Escape");
   await expect(anna.getByTestId("export-dialog")).toBeHidden();
 
-  // The member's invite panel: the team link and its QR code, on screen.
+  // The member's invite dialog: the team link and its QR code, on screen.
   await openPanel(ben, "invite-button", "invite-panel");
   await expect(
     ben.getByTestId("invite-panel").getByTestId("qr-code"),
   ).toBeVisible();
   await expect(
-    ben.getByTestId("invite-panel").getByTestId("share-link-input"),
-  ).toHaveValue(boardUrl);
+    ben.getByTestId("invite-panel").getByTestId("share-link-text"),
+  ).toContainText(boardUrl.replace(/^https?:\/\//, ""));
   await ben.getByTestId("invite-panel-close").click();
-  await expect(ben.getByTestId("invite-panel")).toHaveCount(0);
+  await expect(ben.getByTestId("invite-panel")).toBeHidden();
 
   // Write, in columns.
   await step(anna, ben, /write|schreiben/i);

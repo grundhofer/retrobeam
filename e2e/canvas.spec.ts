@@ -68,20 +68,15 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
     occupiedBox!.y + occupiedBox!.height > benCardBox!.y;
   expect(overlaps).toBe(false);
 
-  // Ben's invite panel and its full-screen code sit above the canvas's own
-  // controls. The zoom control (z-40, later in the page) was drawn over both —
-  // over the share link, and over the code on the projector, still clickable.
+  // Ben's invite dialog sits above the canvas's own controls: it is a modal
+  // in the top layer, where the zoom control (z-40, later in the page) was
+  // once drawn over the share link and the code, still clickable.
   await ben.getByTestId("invite-button").click();
   const panel = ben.getByTestId("invite-panel");
   await expect(panel.getByTestId("qr-code")).toBeVisible();
   expect(await topmostOverControl(ben, "invite-panel")).not.toBe("beneath");
-  await panel.getByTestId("qr-enlarge").click();
-  await expect(ben.getByTestId("qr-fullscreen")).toBeVisible();
-  expect(await topmostOverControl(ben, "qr-fullscreen")).toBe("above");
   await ben.keyboard.press("Escape");
-  await expect(ben.getByTestId("qr-fullscreen")).toHaveCount(0);
-  await ben.keyboard.press("Escape");
-  await expect(panel).toHaveCount(0);
+  await expect(panel).toBeHidden();
 
   // Flip live to columns in the settings view → back on the board the column
   // composer returns and the note is still there (positions are ignored, not

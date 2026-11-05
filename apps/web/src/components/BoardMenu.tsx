@@ -162,7 +162,7 @@ export function BoardMenu({
           actions={closeKey}
         >
           {open === "adminLink" ? (
-            <AdminLink boardId={boardId} adminToken={adminToken} compact />
+            <AdminLink boardId={boardId} adminToken={adminToken} />
           ) : null}
         </Dialog>
       ) : null}
