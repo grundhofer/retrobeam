@@ -41,14 +41,16 @@ test("board fits a phone", async ({ browser }) => {
   await expect(anna.getByTestId("phase-compact")).toBeVisible();
   await expectFits(anna, ben, "lobby");
 
-  // The menu: every export option reachable, the whole panel on screen.
+  // The menu on screen, and every export option reachable in its dialog.
   await openPanel(anna, "board-menu", "board-menu-panel");
+  await expectOnScreen(anna.getByTestId("delete-board"));
+  await anna.getByTestId("export-open").click();
+  await expect(anna.getByTestId("board-menu-panel")).toBeHidden();
   await expectOnScreen(anna.getByTestId("export-pdf"));
   await expectOnScreen(anna.getByTestId("export-md"));
   await expectOnScreen(anna.getByTestId("export-scope-all"));
-  await expectOnScreen(anna.getByTestId("delete-board"));
   await anna.keyboard.press("Escape");
-  await expect(anna.getByTestId("board-menu-panel")).toHaveCount(0);
+  await expect(anna.getByTestId("export-dialog")).toBeHidden();
 
   // The member's invite panel: the team link and its QR code, on screen.
   await openPanel(ben, "invite-button", "invite-panel");
