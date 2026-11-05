@@ -45,15 +45,59 @@ const HEADING_SIZE = 19;
 const BODY_SIZE = 15;
 const META_SIZE = 12;
 
-// The app's palette (index.css / Tailwind zinc), spelled out because a canvas
-// resolves no CSS variables.
-const PAGE_BG = "#fafafa"; // zinc-50
-const CARD_BG = "#ffffff";
-const CARD_BORDER = "#e4e4e7"; // zinc-200
-const INK = "#18181b"; // zinc-900, headings
-const BODY_INK = "#3f3f46"; // zinc-700, body copy
-const MUTED_INK = "#a1a1aa"; // zinc-400, meta
-const ACCENT = "#0e7c7b";
+// The layout speaks in colour roles; the painter resolves them (plan §5.5).
+// The image is a keepsake that goes to a printer or a wiki, so it is always
+// light, whatever the page is: renderBoardImage reads sebaro's LIGHT tokens at
+// export time from a hidden element marked data-theme="light". A canvas
+// resolves no CSS variables itself.
+export type ColorRole = "ink" | "body" | "muted" | "accent";
+export type ImagePalette = Record<
+  ColorRole | "page" | "card" | "border",
+  string
+>;
+
+// sebaro's light values (tokens.css, light mode), for when no token resolves —
+// a test without the stylesheet, or a token renamed in a later export.
+export const LIGHT_FALLBACK: ImagePalette = {
+  page: "#F4F5F8",
+  card: "#FBFCFE",
+  border: "#D7D9DD",
+  ink: "#1C1E22",
+  body: "#1C1E22",
+  muted: "#66696E",
+  accent: "#3057B1",
+};
+
+const TOKEN: ImagePalette = {
+  page: "--sb-color-bg",
+  card: "--sb-color-surface",
+  border: "--sb-color-border",
+  ink: "--sb-color-text",
+  body: "--sb-color-text",
+  muted: "--sb-color-text-muted",
+  accent: "--sb-color-link",
+};
+
+/** sebaro's light colours as the page's stylesheet has them, read at a
+ *  hidden probe with data-theme="light" (no tone of its own; until stage 6b
+ *  switches the tone on, the cool one). */
+export function lightPalette(): ImagePalette {
+  const probe = document.createElement("div");
+  probe.setAttribute("data-theme", "light");
+  probe.hidden = true;
+  document.body.append(probe);
+  try {
+    const style = getComputedStyle(probe);
+    const palette = { ...LIGHT_FALLBACK };
+    for (const role of Object.keys(TOKEN) as (keyof ImagePalette)[]) {
+      const value = style.getPropertyValue(TOKEN[role]).trim();
+      if (value !== "") palette[role] = value;
+    }
+    return palette;
+  } finally {
+    probe.remove();
+  }
+}
 
 // Emoji faces are named explicitly: the crown below is the whole point of
 // drawing this in a browser, and a stack that fell through to a text-only
@@ -82,7 +126,7 @@ export interface ImageTextLine {
   y: number;
   size: number;
   bold: boolean;
-  color: string;
+  color: ColorRole;
 }
 
 export interface ImageRect {
@@ -96,7 +140,6 @@ export interface ImageLayout {
   /** CSS pixels; the canvas itself is this times IMAGE_SCALE. */
   width: number;
   height: number;
-  background: string;
   /** note cards, painted under the text */
   cards: ImageRect[];
   lines: ImageTextLine[];
@@ -109,7 +152,7 @@ interface Run {
   text: string;
   size: number;
   bold: boolean;
-  color: string;
+  color: ColorRole;
 }
 
 // Deterministic, timezone-free date string — the same one-liner export.ts
@@ -218,7 +261,7 @@ function noteRuns(
       text: `👑${note.crownedRank}`,
       size: META_SIZE,
       bold: true,
-      color: ACCENT,
+      color: "accent",
     });
   }
 
@@ -226,7 +269,7 @@ function noteRuns(
     ...wrapRun(
       oneLine(note.text),
       maxWidth,
-      { size: BODY_SIZE, bold: false, color: BODY_INK },
+      { size: BODY_SIZE, bold: false, color: "body" },
       measure,
     ),
   );
@@ -245,7 +288,7 @@ function noteRuns(
       text: "[GIF]",
       size: META_SIZE,
       bold: false,
-      color: MUTED_INK,
+      color: "muted",
     });
   }
 
@@ -263,7 +306,7 @@ function noteRuns(
       ...wrapRun(
         meta.join(", "),
         maxWidth,
-        { size: META_SIZE, bold: false, color: MUTED_INK },
+        { size: META_SIZE, bold: false, color: "muted" },
         measure,
       ),
     );
@@ -273,7 +316,7 @@ function noteRuns(
   // one blank line keeps it a visible empty card instead of a collapsed
   // border.
   if (runs.length === 0) {
-    runs.push({ text: "", size: BODY_SIZE, bold: false, color: BODY_INK });
+    runs.push({ text: "", size: BODY_SIZE, bold: false, color: "body" });
   }
   return runs;
 }
@@ -334,7 +377,7 @@ export function layoutBoardImage(
   const title = wrapRun(
     oneLine(scoped.boardName),
     contentWidth,
-    { size: TITLE_SIZE, bold: true, color: INK },
+    { size: TITLE_SIZE, bold: true, color: "ink" },
     measure,
   );
   block(title, MARGIN);
@@ -346,7 +389,7 @@ export function layoutBoardImage(
         ? `Retrospective · ${isoDate(scoped.createdAt)} · Summary (top cards & action items)`
         : `Retrospective · ${isoDate(scoped.createdAt)}`,
       contentWidth,
-      { size: META_SIZE, bold: false, color: MUTED_INK },
+      { size: META_SIZE, bold: false, color: "muted" },
       measure,
     ),
     MARGIN,
@@ -360,7 +403,7 @@ export function layoutBoardImage(
       wrapRun(
         "No top cards yet.",
         contentWidth,
-        { size: BODY_SIZE, bold: false, color: MUTED_INK },
+        { size: BODY_SIZE, bold: false, color: "muted" },
         measure,
       ),
       MARGIN,
@@ -374,7 +417,7 @@ export function layoutBoardImage(
       wrapRun(
         oneLine(column.name),
         contentWidth,
-        { size: HEADING_SIZE, bold: true, color: INK },
+        { size: HEADING_SIZE, bold: true, color: "ink" },
         measure,
       ),
       MARGIN,
@@ -385,7 +428,7 @@ export function layoutBoardImage(
         wrapRun(
           "(no notes)",
           contentWidth,
-          { size: BODY_SIZE, bold: false, color: MUTED_INK },
+          { size: BODY_SIZE, bold: false, color: "muted" },
           measure,
         ),
         MARGIN,
@@ -416,7 +459,7 @@ export function layoutBoardImage(
       wrapRun(
         "Action items",
         contentWidth,
-        { size: HEADING_SIZE, bold: true, color: INK },
+        { size: HEADING_SIZE, bold: true, color: "ink" },
         measure,
       ),
       MARGIN,
@@ -427,7 +470,7 @@ export function layoutBoardImage(
         wrapRun(
           "(no action items)",
           contentWidth,
-          { size: BODY_SIZE, bold: false, color: MUTED_INK },
+          { size: BODY_SIZE, bold: false, color: "muted" },
           measure,
         ),
         MARGIN,
@@ -441,7 +484,7 @@ export function layoutBoardImage(
         wrapRun(
           `${action.done ? "☑" : "☐"} ${oneLine(action.text)}${owner}${oneLine(carriedSuffix(action))}`,
           contentWidth,
-          { size: BODY_SIZE, bold: false, color: BODY_INK },
+          { size: BODY_SIZE, bold: false, color: "body" },
           measure,
         ),
         MARGIN,
@@ -458,7 +501,7 @@ export function layoutBoardImage(
       wrapRun(
         "Appreciation",
         contentWidth,
-        { size: HEADING_SIZE, bold: true, color: INK },
+        { size: HEADING_SIZE, bold: true, color: "ink" },
         measure,
       ),
       MARGIN,
@@ -470,7 +513,7 @@ export function layoutBoardImage(
         wrapRun(
           `${KUDO_CARD_LABELS[kudo.cardType]} → ${oneLine(kudo.toName)}`,
           contentWidth,
-          { size: BODY_SIZE, bold: true, color: BODY_INK },
+          { size: BODY_SIZE, bold: true, color: "body" },
           measure,
         ),
         MARGIN,
@@ -481,7 +524,7 @@ export function layoutBoardImage(
           wrapRun(
             text,
             contentWidth,
-            { size: BODY_SIZE, bold: false, color: BODY_INK },
+            { size: BODY_SIZE, bold: false, color: "body" },
             measure,
           ),
           MARGIN,
@@ -492,7 +535,7 @@ export function layoutBoardImage(
           wrapRun(
             `— ${oneLine(kudo.fromName)}`,
             contentWidth,
-            { size: META_SIZE, bold: false, color: MUTED_INK },
+            { size: META_SIZE, bold: false, color: "muted" },
             measure,
           ),
           MARGIN,
@@ -510,7 +553,7 @@ export function layoutBoardImage(
       y,
       size: META_SIZE,
       bold: false,
-      color: MUTED_INK,
+      color: "muted",
     });
     y += lineHeight(META_SIZE);
   }
@@ -518,19 +561,22 @@ export function layoutBoardImage(
   return {
     width: IMAGE_WIDTH,
     height: Math.min(Math.round(y + MARGIN), MAX_CSS_HEIGHT),
-    background: PAGE_BG,
     cards,
     lines,
     truncated,
   };
 }
 
-function paint(ctx: CanvasRenderingContext2D, layout: ImageLayout): void {
+function paint(
+  ctx: CanvasRenderingContext2D,
+  layout: ImageLayout,
+  palette: ImagePalette,
+): void {
   // JPEG HAS NO ALPHA CHANNEL. A fresh canvas is transparent black, and the
   // encoder drops the alpha rather than compositing on white — so without this
   // opaque fill the whole export encodes as a solid black rectangle. It has to
   // come first, and it has to cover everything.
-  ctx.fillStyle = layout.background;
+  ctx.fillStyle = palette.page;
   ctx.fillRect(0, 0, layout.width, layout.height);
 
   // Cards first, as a background pass: they are opaque and would otherwise
@@ -539,9 +585,9 @@ function paint(ctx: CanvasRenderingContext2D, layout: ImageLayout): void {
   for (const card of layout.cards) {
     ctx.beginPath();
     ctx.roundRect(card.x, card.y, card.width, card.height, CARD_RADIUS);
-    ctx.fillStyle = CARD_BG;
+    ctx.fillStyle = palette.card;
     ctx.fill();
-    ctx.strokeStyle = CARD_BORDER;
+    ctx.strokeStyle = palette.border;
     ctx.stroke();
   }
 
@@ -550,7 +596,7 @@ function paint(ctx: CanvasRenderingContext2D, layout: ImageLayout): void {
   ctx.textBaseline = "top";
   for (const line of layout.lines) {
     ctx.font = fontOf(line.bold, line.size);
-    ctx.fillStyle = line.color;
+    ctx.fillStyle = palette[line.color];
     ctx.fillText(line.text, line.x, line.y);
   }
 }
@@ -561,6 +607,7 @@ function paint(ctx: CanvasRenderingContext2D, layout: ImageLayout): void {
 export async function renderBoardImage(
   data: BoardExport,
   scope: ExportScope,
+  palette: ImagePalette = lightPalette(),
 ): Promise<Blob> {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -582,7 +629,7 @@ export async function renderBoardImage(
   canvas.width = Math.round(layout.width * IMAGE_SCALE);
   canvas.height = Math.round(layout.height * IMAGE_SCALE);
   ctx.scale(IMAGE_SCALE, IMAGE_SCALE);
-  paint(ctx, layout);
+  paint(ctx, layout, palette);
 
   const blob = await new Promise<Blob | null>((resolve) => {
     canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY);
