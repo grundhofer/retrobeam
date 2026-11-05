@@ -98,8 +98,14 @@ export function PhaseStepper({
     if (confirming && !dialog.open) dialog.showModal();
     if (!confirming && dialog.open) dialog.close();
   }, [confirming]);
-  const withSlot = (bar: ReactNode) =>
-    actionSlot ? createPortal(bar, actionSlot) : bar;
+  const withSlot = (action: ReactNode) =>
+    actionSlot ? (
+      createPortal(action, actionSlot)
+    ) : (
+      <div className="sb-bottom-block">
+        <div className="sb-primary-action-bar">{action}</div>
+      </div>
+    );
 
   return (
     // Two rows: the phase row, and the finish question under it. Not one
@@ -184,25 +190,22 @@ export function PhaseStepper({
           </div>
         ) : null}
       </div>
-      {/* The facilitator's primary action is the phase change (F5): in the
-          bottom block of the view, or here when there is no slot (a test). */}
+      {/* The facilitator's primary action is the phase change (F5), in the
+          board's action zone (ActionZone), or in a bottom block of its own
+          when there is no slot (a test). */}
       {isAdmin && next !== null && next !== "done"
         ? withSlot(
-            <div className="sb-bottom-block" data-testid="phase-bar">
-              <div className="sb-primary-action-bar">
-                <button
-                  type="button"
-                  data-testid="phase-next"
-                  disabled={pending !== null}
-                  onClick={() => step(next)}
-                  className="sb-primary-action"
-                >
-                  {phase === "lobby"
-                    ? t("phase.startRetro")
-                    : `${t("phase.next")}: ${t(`phase.${next}`)}`}
-                </button>
-              </div>
-            </div>,
+            <button
+              type="button"
+              data-testid="phase-next"
+              disabled={pending !== null}
+              onClick={() => step(next)}
+              className="sb-primary-action"
+            >
+              {phase === "lobby"
+                ? t("phase.startRetro")
+                : `${t("phase.next")}: ${t(`phase.${next}`)}`}
+            </button>,
           )
         : null}
       {/* Only while finishing is the next step: once the retro is done the
