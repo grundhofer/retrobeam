@@ -428,10 +428,11 @@ function Room({
   const focusMode = config?.focusMode ?? false;
   const anonymous = config?.anonymous ?? false;
   // The action zone's state sentence: the phase's guide and the time box.
+  const timerActive =
+    state.timer.endsAt !== null || state.timer.pausedRemainingMs !== null;
   const hasStatus =
     phaseGuideKey({ phase: state.phase, isAdmin, anonymous }) !== null ||
-    state.timer.endsAt !== null ||
-    state.timer.pausedRemainingMs !== null;
+    timerActive;
   const surface = boardSurface(
     layout,
     state.phase,
@@ -624,7 +625,11 @@ function Room({
                 phasePlan={phasePlan}
                 isAdmin={isAdmin}
                 actionSlot={actionSlot}
-                timeLeft={<TimeLeft timer={state.timer} form="line" />}
+                timeLeft={
+                  timerActive ? (
+                    <TimeLeft timer={state.timer} form="line" />
+                  ) : null
+                }
               />
             </div>
           </>

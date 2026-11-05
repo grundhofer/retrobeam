@@ -42,7 +42,10 @@ test("blind voting, crowns, discussion queue and action items", async ({
 
   // Into the vote phase: vote controls appear, budget dots show.
   await anna.getByTestId("phase-next").click();
-  await expect(anna.getByTestId("votes-remaining")).toBeVisible();
+  // What is left is a sentence, never dots alone (sebaro RB-2).
+  await expect(anna.getByTestId("votes-remaining")).toContainText(
+    /(\d+ of \d+\svotes left|Noch \d+ von \d+\sStimmen)/,
+  );
   await expect(anna.getByTestId("vote-control").first()).toBeVisible();
 
   // Anna spends her 3 votes on "Slow deploys".
@@ -57,7 +60,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
 
   // Blindness: Ben sees no counts from Anna — his own counts are all 0 and
   // no tallies/crowns exist anywhere.
-  await expect(ben.getByTestId("vote-meter")).toContainText("1 / 2");
+  await expect(ben.getByTestId("vote-meter")).toContainText(/1 (of|von) 2/);
   await expect(ben.getByTestId("crown")).toHaveCount(0);
   await expect(ben.getByTestId("tally")).toHaveCount(0);
   // The names go with them: last round's attribution must not sit on the cards
@@ -78,7 +81,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
     .filter({ hasText: "Slow deploys" })
     .getByTestId("vote-plus");
   await benDeploysPlus.click();
-  await expect(anna.getByTestId("vote-meter")).toContainText("2 / 2");
+  await expect(anna.getByTestId("vote-meter")).toContainText(/2 (of|von) 2/);
 
   // Voting is blind, and the bar says so BEFORE anyone spends a dot — that
   // disclosure is what makes naming the voters afterwards a consented setting
@@ -90,7 +93,9 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await expect(anna.getByTestId("crown").first()).toBeVisible();
   await expect(ben.getByTestId("crown").first()).toBeVisible();
   await expect(ben.getByTestId("discuss-chip-1")).toContainText("Slow deploys");
-  await expect(ben.getByTestId("discuss-chip-1")).toContainText("4●");
+  await expect(ben.getByTestId("discuss-chip-1")).toContainText(
+    /4\s(votes|Stimmen)/,
+  );
 
   // The discussion phase is where the board is narrowest — it pays 320px for
   // the action list. Every column must still be on screen: they used to be
@@ -124,7 +129,11 @@ test("blind voting, crowns, discussion queue and action items", async ({
 
   // Synced focus: Anna clicks the first queue chip, Ben's board dims the rest.
   await anna.getByTestId("discuss-chip-1").click();
-  await expect(ben.getByTestId("discuss-chip-1")).toHaveClass(/bg-accent/);
+  // The chip in discussion is marked by its state, not its colour.
+  await expect(ben.getByTestId("discuss-chip-1")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 
   // Focus mode: with a card focused, the room sees ONLY that card — the
   // moderator shares a screen, so the switch hides the rest rather than dimming
