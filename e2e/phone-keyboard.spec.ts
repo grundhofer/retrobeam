@@ -55,11 +55,17 @@ test("on a phone the focused field and the primary action stay in view", async (
   await composer.focus();
   await expect(composer).toBeFocused();
   await page.setViewportSize(WITH_KEYBOARD);
-  // A phone brings the focused field into view as its keyboard comes up; a
-  // resize alone does not, and focus() on a focused element is a no-op, so
-  // focus is taken anew, as the browser does it.
-  await composer.blur();
-  await composer.focus();
+  // A phone brings the focused field into view as its keyboard comes up, and
+  // engines differ in how far: macOS WebKit centres it, Linux WebKit stops at
+  // the window's edge. Take the least, from the top of the page, as the
+  // edge-stopping one does; it honours the page's scroll padding, which is
+  // what keeps the field out from under the sticky zone.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await composer.evaluate((el) => {
+    el.scrollIntoView({ block: "nearest" });
+    (el as HTMLElement).focus({ preventScroll: true });
+  });
+  await expect(composer).toBeFocused();
   await expect(composer).toBeInViewport();
   await expectClearOfZone(page, composer);
   await expect(page.getByTestId("phase-next")).toBeInViewport();

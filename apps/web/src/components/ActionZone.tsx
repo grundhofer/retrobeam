@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useBoardStore } from "../store/boardStore.js";
 import { Icon } from "./Icon.js";
@@ -21,6 +22,13 @@ import { Icon } from "./Icon.js";
 // so the first one is heard too; the drawn sentence is not a live region
 // itself, or it would be read twice. Without a sentence and without a
 // primary action the block is not drawn at all.
+//
+// A sticky block covers the foot of the page, and a browser that scrolls a
+// focused field into view stops at the window's edge, under the block — on a
+// phone with its keyboard up the field one types in was hidden (WebKit, CI).
+// So while the block stands, the page's scroll padding at its end is the
+// block's height, measured, so it holds with a failure sentence and at large
+// text too (reported to sebaroDesign).
 export function ActionZone({
   slotRef,
 }: {
@@ -28,12 +36,29 @@ export function ActionZone({
 }) {
   const { t } = useTranslation();
   const notice = useBoardStore((store) => store.notices.at(-1) ?? null);
+  const zoneRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const zone = zoneRef.current;
+    if (!zone) return;
+    const root = document.documentElement;
+    const pad = () => {
+      root.style.scrollPaddingBlockEnd = `${zone.offsetHeight}px`;
+    };
+    pad();
+    const observer = new ResizeObserver(pad);
+    observer.observe(zone);
+    return () => {
+      observer.disconnect();
+      root.style.scrollPaddingBlockEnd = "";
+    };
+  }, []);
   return (
     <>
       <p role="status" data-testid="notices" className="sb-visually-hidden">
         {notice ? t(notice.key) : ""}
       </p>
       <div
+        ref={zoneRef}
         data-testid="action-zone"
         className="sb-bottom-block hidden has-[.sb-primary-action,[data-notice]]:block"
       >
