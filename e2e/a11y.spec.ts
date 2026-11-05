@@ -61,9 +61,10 @@ async function audit(
   page: Page,
   name: string,
   settle?: () => Promise<void>,
+  runs: readonly (typeof RUNS)[number][] = RUNS,
 ): Promise<string[]> {
   const found: string[] = [];
-  for (const run of RUNS) {
+  for (const run of runs) {
     await page.setViewportSize({ width: run.width, height: run.height });
     await page.emulateMedia({ colorScheme: run.scheme });
     await settle?.();
@@ -208,7 +209,8 @@ test("axe: canvas arrange panel", async ({ browser }) => {
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(page.getByTestId("roster-item").first()).toBeVisible();
   await page.getByTestId("phase-next").click();
-  await page.getByTestId("canvas-add-note").first().click();
+  await page.getByTestId("canvas-add-note").click();
+  await page.getByRole("menuitem").first().click();
   await page.getByTestId("canvas-composer").fill("Deploys are slow");
   await page.keyboard.press("Enter");
   // The new card fades in; mid-fade its text would fail contrast.
@@ -219,23 +221,31 @@ test("axe: canvas arrange panel", async ({ browser }) => {
     name: /fit to screen|an fenster anpassen/i,
   });
 
+  // The canvas is drawn from 640 px on; under it a canvas board shows its
+  // zones as columns (owner, 2026-11-05), audited at the end.
+  const wide = RUNS.filter((run) => run.width >= 640);
   expect(
-    await audit(page, "board-canvas-arrange", async () => {
-      // Fitted to this width, then the panel opened the way a visitor would.
-      if (await panel.isVisible()) {
+    await audit(
+      page,
+      "board-canvas-arrange",
+      async () => {
+        // Fitted to this width, then the panel opened the way a visitor would.
+        if (await panel.isVisible()) {
+          await toggle.focus();
+          await page.keyboard.press("Enter");
+        }
+        await fit.click();
+        // Off the key again: a hovered key fades its fill when the scheme
+        // changes, and axe would read the frame in between (sebaro's keys
+        // fade their background).
+        await page.mouse.move(0, 0);
         await toggle.focus();
         await page.keyboard.press("Enter");
-      }
-      await fit.click();
-      // Off the key again: a hovered key fades its fill when the scheme
-      // changes, and axe would read the frame in between (sebaro's keys
-      // fade their background).
-      await page.mouse.move(0, 0);
-      await toggle.focus();
-      await page.keyboard.press("Enter");
-      // axe skips what is off screen; the panel has to be there to count.
-      await expect(panel).toBeInViewport({ ratio: 1 });
-    }),
+        // axe skips what is off screen; the panel has to be there to count.
+        await expect(panel).toBeInViewport({ ratio: 1 });
+      },
+      wide,
+    ),
   ).toEqual([]);
 
   // The facilitator's zone panel, the zone drag's twin: the same canvas, the
@@ -246,12 +256,44 @@ test("axe: canvas arrange panel", async ({ browser }) => {
   const zones = page.getByTestId("zones-toggle");
   const zonePanel = page.getByTestId("zones-panel");
   expect(
-    await audit(page, "board-canvas-arrange", async () => {
-      if (!(await zonePanel.isVisible())) await zones.click();
-      await fit.click();
-      await page.mouse.move(0, 0);
-      await expect(zonePanel).toBeInViewport({ ratio: 1 });
-    }),
+    await audit(
+      page,
+      "board-canvas-arrange",
+      async () => {
+        if (!(await zonePanel.isVisible())) await zones.click();
+        await fit.click();
+        await page.mouse.move(0, 0);
+        await expect(zonePanel).toBeInViewport({ ratio: 1 });
+      },
+      wide,
+    ),
+  ).toEqual([]);
+
+  // On a phone the same board is the swiping columns, with the card.
+  const narrow = RUNS.filter((run) => run.width < 640);
+  expect(
+    await audit(
+      page,
+      "board-canvas-phone",
+      async () => {
+        // The columns mount at this width and their card fades in, and the
+        // scheme just changed: wait until nothing fades any more, or axe
+        // reads a colour in between.
+        await expect(page.getByTestId("note-card")).toBeVisible();
+        await page.evaluate(() =>
+          Promise.all(
+            document
+              .getAnimations()
+              .filter(
+                (animation) =>
+                  animation.effect?.getComputedTiming().iterations !== Infinity,
+              )
+              .map((animation) => animation.finished),
+          ),
+        );
+      },
+      narrow,
+    ),
   ).toEqual([]);
   await context.close();
 });

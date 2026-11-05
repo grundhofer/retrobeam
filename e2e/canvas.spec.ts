@@ -109,7 +109,11 @@ test("canvas layout: a card moves by keyboard alone", async ({ browser }) => {
 
   const zones = page.getByTestId(/^zone-/);
   await expect(zones.nth(1)).toBeVisible();
-  await page.getByTestId("canvas-add-note").first().focus();
+  // „Note“ opens its menu of zones; Enter takes the first, the focus is in
+  // the menu from the start.
+  await page.getByTestId("canvas-add-note").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem").first()).toBeFocused();
   await page.keyboard.press("Enter");
   await page.getByTestId("canvas-composer").fill("Keyboard card");
   await page.keyboard.press("Enter");
@@ -227,6 +231,43 @@ test("canvas layout: the facilitator moves and sizes a zone by keyboard alone", 
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect.poll(box).toEqual(arranged);
 
+  await context.close();
+});
+
+// On a phone a canvas board is the board's swiping columns (owner,
+// 2026-11-05): at the zoom that fits a phone the cards' keys could not keep
+// their size. A card written there takes its place on the canvas once the
+// window is wide again.
+test("canvas layout: a phone shows the zones as columns", async ({
+  browser,
+}) => {
+  const context = await newContext(browser, { reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/new");
+  await page.getByRole("textbox").fill("Canvas phone retro");
+  await page.getByTestId("home-layout-canvas").click();
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(page, "Anna");
+  await page.getByTestId("phase-next").click();
+
+  await expect(page.locator(".sb-board")).toBeVisible();
+  await expect(page.getByTestId("canvas-viewport")).toHaveCount(0);
+  const composer = page.locator('[data-testid^="composer-"]').first();
+  await composer.fill("Written on a phone");
+  await composer.press("Enter");
+  await expect(page.getByTestId("note-card")).toContainText(
+    "Written on a phone",
+  );
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.getByTestId("canvas-viewport")).toBeVisible();
+  await expect(
+    page.getByTestId("canvas-card").filter({ hasText: "Written on a phone" }),
+  ).toBeVisible();
   await context.close();
 });
 

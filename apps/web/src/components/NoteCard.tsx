@@ -452,35 +452,51 @@ export function NoteCard({
             ) : (
               <span className="flex-1" />
             )}
-            {canArrange ? (
-              <button
-                ref={arrangeTrigger}
-                type="button"
-                data-testid="note-arrange-toggle"
-                aria-label={t("note.arrange")}
-                title={t("note.arrange")}
-                aria-expanded={arranging}
-                aria-controls={arranging ? arrangeId : undefined}
-                onClick={() => setArranging(!arranging)}
-                className={
-                  arrangeScale === null
-                    ? "sb-icon-button"
-                    : "sb-icon-button sb-icon-button--compact"
-                }
-              >
-                <Icon name="grip" />
-              </button>
-            ) : null}
-            {cardMenu.length > 0 ? (
-              <Menu
-                label={t("note.more")}
-                items={cardMenu}
-                triggerTestId="note-menu"
-                // The canvas's cards are scaled and dense (stage 5h
-                // rebuilds them): there the 32 px form.
-                compact={arrangeScale !== null}
-              />
-            ) : null}
+            {/* The card's keys. On the canvas they are drawn against the
+                world's zoom, as the arrange panel is: 32 px on screen at
+                any zoom (WCAG 2.5.8; owner, 2026-11-05). They grow from the
+                card's corner over its text, which at such a zoom nobody
+                reads; the panel and the menu open at full size anyway. */}
+            <span
+              className="flex shrink-0 items-center gap-(--sb-space-1)"
+              style={
+                arrangeScale === null
+                  ? undefined
+                  : {
+                      transform: `scale(${arrangeScale})`,
+                      transformOrigin: "right bottom",
+                    }
+              }
+            >
+              {canArrange ? (
+                <button
+                  ref={arrangeTrigger}
+                  type="button"
+                  data-testid="note-arrange-toggle"
+                  aria-label={t("note.arrange")}
+                  title={t("note.arrange")}
+                  aria-expanded={arranging}
+                  aria-controls={arranging ? arrangeId : undefined}
+                  onClick={() => setArranging(!arranging)}
+                  className={
+                    arrangeScale === null
+                      ? "sb-icon-button"
+                      : "sb-icon-button sb-icon-button--compact"
+                  }
+                >
+                  <Icon name="grip" />
+                </button>
+              ) : null}
+              {cardMenu.length > 0 ? (
+                <Menu
+                  label={t("note.more")}
+                  items={cardMenu}
+                  triggerTestId="note-menu"
+                  // The canvas's cards are dense: there the 32 px form.
+                  compact={arrangeScale !== null}
+                />
+              ) : null}
+            </span>
           </div>
           {canDelete ? (
             <Dialog

@@ -398,10 +398,10 @@ test("a pinch belongs to the page while the page itself is zoomed", async () => 
   await expect.poll(world).not.toBe(before);
 });
 
-// WCAG 2.1.1: a canvas note used to be double-click only. The zone's "+ Note"
-// opens the same composer — for the facilitator too, whose zone header is also
-// the zone's drag handle — at a free spot, not on top of the existing card.
-test("the zone's + Note button opens the composer at a free spot", async () => {
+// WCAG 2.1.1: a canvas note used to be double-click only. „Note“ in the
+// canvas's key row asks for the zone and opens the same composer there, at a
+// free spot, not on top of the existing card.
+test("„Note“ opens the composer in the chosen zone at a free spot", async () => {
   const mutate = vi.fn();
   const screen = await render(
     <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send: vi.fn() }}>
@@ -428,6 +428,7 @@ test("the zone's + Note button opens the composer at a free spot", async () => {
     .element(screen.getByTestId("canvas-composer"))
     .not.toBeInTheDocument();
   await screen.getByTestId("canvas-add-note").click();
+  await screen.getByTestId(`canvas-add-note-${column.id}`).click();
   const composer = screen.getByTestId("canvas-composer");
   await expect.element(composer).toHaveFocus();
   // Where it OPENS, not only where it commits: createNote nudges the commit

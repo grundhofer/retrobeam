@@ -38,6 +38,7 @@ export function Menu({
   triggerTestId,
   menuTestId,
   compact = false,
+  trigger,
 }: {
   label: string;
   items: readonly MenuItem[];
@@ -45,6 +46,9 @@ export function Menu({
   menuTestId?: string;
   /** sebaro's 32 px icon button, for a dense surface (the canvas). */
   compact?: boolean;
+  /** A key with words instead of „⋯“ (a compact secondary action), for a
+   *  menu that names what it offers. `label` still names the menu. */
+  trigger?: { text: string; icon: string };
 }) {
   const id = useId();
   const menuId = `${id}-menu`;
@@ -168,9 +172,13 @@ export function Menu({
         ref={buttonRef}
         type="button"
         className={
-          compact ? "sb-icon-button sb-icon-button--compact" : "sb-icon-button"
+          trigger
+            ? "sb-secondary-action sb-secondary-action--compact"
+            : compact
+              ? "sb-icon-button sb-icon-button--compact"
+              : "sb-icon-button"
         }
-        aria-label={label}
+        aria-label={trigger ? undefined : label}
         aria-haspopup="menu"
         aria-expanded={open}
         popoverTarget={menuId}
@@ -183,7 +191,14 @@ export function Menu({
           }
         }}
       >
-        <Icon name="more-horizontal" />
+        {trigger ? (
+          <>
+            <Icon name={trigger.icon} size={20} />
+            {trigger.text}
+          </>
+        ) : (
+          <Icon name="more-horizontal" />
+        )}
       </button>
       <ul
         ref={menuRef}
