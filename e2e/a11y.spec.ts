@@ -37,9 +37,7 @@ test.skip(
 // and runs as test.fixme; the stage takes it out, and from then on axe must
 // pass there (owner decision of 2026-11-02). The waiver list is not used for
 // this, and the list must be empty before the final merge to main.
-const KNOWN: Record<string, string> = {
-  "board-canvas-arrange": "stage 5h (free canvas)",
-};
+const KNOWN: Record<string, string> = {};
 const known = (...names: string[]) =>
   names
     .filter((name) => name in KNOWN)
@@ -186,7 +184,7 @@ test("axe: board write", async ({ browser }) => {
   await context.close();
 });
 
-// The canvas, with a card's ⋯ open on its move and step options, then the
+// The canvas, with a card's arrange panel open on its move and step options, then the
 // facilitator's zone panel: the drags' keyboard twins have to pass the same
 // audit as the rest of the write phase, at the zoom a visitor gets — the
 // fitted one, refitted at each width. The first audit of the canvas at all,
@@ -229,6 +227,10 @@ test("axe: canvas arrange panel", async ({ browser }) => {
         await page.keyboard.press("Enter");
       }
       await fit.click();
+      // Off the key again: a hovered key fades its fill when the scheme
+      // changes, and axe would read the frame in between (sebaro's keys
+      // fade their background).
+      await page.mouse.move(0, 0);
       await toggle.focus();
       await page.keyboard.press("Enter");
       // axe skips what is off screen; the panel has to be there to count.
@@ -247,6 +249,7 @@ test("axe: canvas arrange panel", async ({ browser }) => {
     await audit(page, "board-canvas-arrange", async () => {
       if (!(await zonePanel.isVisible())) await zones.click();
       await fit.click();
+      await page.mouse.move(0, 0);
       await expect(zonePanel).toBeInViewport({ ratio: 1 });
     }),
   ).toEqual([]);
