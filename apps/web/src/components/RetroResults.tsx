@@ -27,6 +27,7 @@ import {
 } from "./BoardColumns.js";
 import { KudosWall } from "./KudosWall.js";
 import { NoteCard } from "./NoteCard.js";
+import { Icon } from "./Icon.js";
 import { RotiPoll } from "./RotiPoll.js";
 
 export interface RetroResultsProps {
@@ -142,13 +143,13 @@ export function RetroResults({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 py-4 sm:py-8">
-      <section data-testid="results-header" className="flex flex-col gap-2">
+    <div className="sb-stack sb-stack--group mx-auto w-full max-w-5xl">
+      <section data-testid="results-header" className="sb-stack">
         <h2
           ref={headingRef}
           tabIndex={-1}
           data-testid="results-title"
-          className="text-2xl font-semibold text-zinc-900 focus:outline-none"
+          className="sb-section__title focus:outline-none"
         >
           {t("done.title")}
         </h2>
@@ -156,19 +157,23 @@ export function RetroResults({
             tallies, which on an anonymous board would be attribution. The
             people are the server's count at "done", not the roster: everyone
             who opens the finished board to read it joins the roster too. */}
-        <p
-          data-testid="results-recap"
-          className="text-sm text-zinc-500 tabular-nums"
-        >
-          {[
-            t("done.cards", { count: notes.length }),
-            ...(headcount === null
-              ? []
-              : [t("done.people", { count: headcount })]),
-            t("done.actions", { count: actions.length }),
-          ].join(" · ")}
-        </p>
-        <p data-testid="results-retention" className="text-zinc-600">
+        <ul data-testid="results-recap" className="sb-stats">
+          <li className="sb-stat">
+            <p className="sb-stat__label">{t("done.stat.cards")}</p>
+            <p className="sb-stat__value">{notes.length}</p>
+          </li>
+          {headcount === null ? null : (
+            <li className="sb-stat">
+              <p className="sb-stat__label">{t("done.stat.people")}</p>
+              <p className="sb-stat__value">{headcount}</p>
+            </li>
+          )}
+          <li className="sb-stat">
+            <p className="sb-stat__label">{t("done.stat.actions")}</p>
+            <p className="sb-stat__value">{actions.length}</p>
+          </li>
+        </ul>
+        <p data-testid="results-retention">
           {retentionAt === null
             ? t("done.retentionKept")
             : t("done.retention", {
@@ -184,7 +189,7 @@ export function RetroResults({
           // than in the menu only: what the room agreed to do comes along,
           // without a card or a name — the owner of an item is this board's
           // participant, and no name may outlive this board's 90 days.
-          <div className="mt-2 flex flex-col items-start gap-1">
+          <div className="sb-stack">
             <button
               type="button"
               data-testid="results-follow-up"
@@ -195,14 +200,13 @@ export function RetroResults({
                 )
               }
               disabled={copying !== null}
-              className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
+              aria-busy={copying !== null || undefined}
+              className="sb-secondary-action self-start"
             >
+              <Icon name="repeat" size={20} />
               {t("done.followUp")}
             </button>
-            <p
-              data-testid="results-follow-up-hint"
-              className="text-sm text-zinc-500"
-            >
+            <p data-testid="results-follow-up-hint" className="sb-field__help">
               {openActions === 0
                 ? t("done.followUpHintNone")
                 : openActions > carried
@@ -213,8 +217,9 @@ export function RetroResults({
                   : t("done.followUpHint", { count: openActions })}
             </p>
             {copyFailed ? (
-              <p role="alert" className="text-sm text-red-700">
-                {t("done.followUpFailed")}
+              <p role="alert" className="sb-field__error">
+                <Icon name="error" size={16} />
+                <span>{t("done.followUpFailed")}</span>
               </p>
             ) : null}
           </div>
@@ -230,22 +235,28 @@ export function RetroResults({
             <section
               data-testid="top-topics"
               aria-labelledby={topId}
-              className="min-w-0 flex-1"
+              className="sb-stack min-w-0 flex-1"
             >
               {/* h2, the level ActionsPanel and KudosWall already use beside
                   it, so heading navigation lists the sections as peers. */}
-              <h2
-                id={topId}
-                className="text-sm font-semibold tracking-wide text-zinc-600 uppercase"
-              >
-                👑 {t("done.topTopics")}
+              <h2 id={topId} className="sb-section__title">
+                {t("done.topTopics")}
               </h2>
-              <p className="mt-1 mb-3 text-sm text-zinc-500">
-                {t("done.topTopicsHint")}
-              </p>
+              <p className="sb-field__help">{t("done.topTopicsHint")}</p>
               <ol className="grid grid-cols-[repeat(auto-fill,minmax(min(15rem,100%),1fr))] items-start gap-4">
                 {topics.map((topic, index) => (
-                  <li key={topic.targetId} data-testid="top-topic">
+                  <li
+                    key={topic.targetId}
+                    data-testid="top-topic"
+                    className="sb-stack"
+                  >
+                    {/* sebaro: the rank in words, never a crown. */}
+                    <p className="sb-card__meta">
+                      {t("done.rank", {
+                        rank: index + 1,
+                        total: topics.length,
+                      })}
+                    </p>
                     <TargetFrame
                       targetId={topic.targetId}
                       deciding={deciding}
@@ -275,6 +286,7 @@ export function RetroResults({
                   </li>
                 ))}
               </ol>
+              <VotesChart topics={topics} tallies={votes.tallies} />
             </section>
           ) : null}
           {actions.length > 0 ? (
@@ -309,7 +321,7 @@ export function RetroResults({
       <section
         data-testid="all-cards"
         aria-labelledby={cardsHeadingId}
-        className="flex flex-col gap-4"
+        className="sb-stack"
       >
         {/* The disclosure inside a heading, so the section is reachable by
             heading navigation while closed and the column titles (h3 in
@@ -321,21 +333,14 @@ export function RetroResults({
             aria-expanded={cardsOpen}
             aria-controls={cardsId}
             onClick={() => setCardsToggled(!cardsOpen)}
-            className="-ml-2 flex w-fit items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold tracking-wide text-zinc-600 uppercase hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+            className="sb-secondary-action sb-secondary-action--compact"
           >
-            <span
-              aria-hidden="true"
-              // contrast-ok: aria-hidden chevron beside the labelled text
-              className={`inline-block text-zinc-400 transition-transform motion-reduce:transition-none ${
-                cardsOpen ? "rotate-90" : ""
-              }`}
-            >
-              ▸
-            </span>
+            <Icon
+              name={cardsOpen ? "chevron-down" : "chevron-right"}
+              size={20}
+            />
             {t("done.allCards")}
-            <span className="font-normal text-zinc-500 tabular-nums">
-              {notes.length}
-            </span>
+            <span className="tabular-nums">{notes.length}</span>
           </button>
         </h2>
         {cardsOpen ? (
@@ -398,6 +403,52 @@ function crownedTopics(
 // The export, where the finished retro needs it. Same hook as the board menu
 // — same URLs, same image renderer, same author opt-in — laid out for the
 // page: the summary first and PDF/Markdown up front, the rest one line down.
+// The votes of the crowned topics as sebaro's grey chart rows (plan stage
+// 5e): each row the card's words and its count as text, the bar only beside
+// it, never colour alone.
+function VotesChart({
+  topics,
+  tallies,
+}: {
+  topics: Topic[];
+  tallies: Record<string, number> | null;
+}) {
+  const { t } = useTranslation();
+  if (tallies === null) return null;
+  const counts = topics.map((topic) => tallies[topic.targetId] ?? 0);
+  const max = Math.max(1, ...counts);
+  return (
+    <figure data-testid="votes-chart" className="sb-chart">
+      <ul className="sb-chart__rows">
+        {topics.map((topic, index) => {
+          const words = topic.stack[0]?.text ?? "";
+          const short = words.length > 40 ? `${words.slice(0, 39)}…` : words;
+          return (
+            <li key={topic.targetId} className="sb-chart__row">
+              <span className="sb-chart__name">
+                {short} <b>{counts[index]}</b>
+              </span>
+              <svg
+                viewBox="0 0 100 12"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <rect
+                  className="sb-chart__fill"
+                  width={((counts[index] ?? 0) / max) * 100}
+                  height="12"
+                />
+              </svg>
+            </li>
+          );
+        })}
+      </ul>
+      <figcaption>{t("done.votesChart")}</figcaption>
+    </figure>
+  );
+}
+
 function ResultsExport({
   boardId,
   anonymous,
@@ -416,108 +467,112 @@ function ResultsExport({
     downloadImage,
     exportHref,
   } = useBoardExport(boardId, "summary");
+  const id = useId();
   // Summary first: it is the keepsake the page is about.
   const scopes = [...EXPORT_SCOPES].reverse();
   const more: ExportFormat[] = ["csv", "json"];
 
+  // sebaro (plan stage 5e): the scope as a segmented choice, summary first;
+  // names off when the page loads, and on an anonymous board no option to
+  // put them in at all (§6.1 e); „Ergebnis sichern“ (the PDF) as the view's
+  // primary action with its data path under it; the other formats beside.
   return (
     <section
       data-testid="results-export"
-      className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-4 sm:p-5"
+      aria-labelledby={`${id}-title`}
+      className="sb-stack"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-sm font-semibold tracking-wide text-zinc-600 uppercase">
-          {t("done.export")}
-        </h2>
-        <div className="flex gap-1.5" role="group">
+      <h2 id={`${id}-title`} className="sb-section__title">
+        {t("done.exportTitle")}
+      </h2>
+      <fieldset className="sb-segmented">
+        <legend>{t("menu.exportScope")}</legend>
+        <div className="sb-segmented__options">
           {scopes.map((value) => (
-            <button
-              key={value}
-              type="button"
-              data-testid={`results-scope-${value}`}
-              aria-pressed={scope === value}
-              onClick={() => setScope(value)}
-              className={`rounded-lg border px-3 py-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-accent ${
-                scope === value
-                  ? "border-accent bg-accent/10 text-accent-strong"
-                  : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-              }`}
-            >
-              {t(`menu.scope.${value}`)}
-            </button>
+            <label key={value} className="sb-segmented__option">
+              <input
+                type="radio"
+                name={`${id}-scope`}
+                value={value}
+                checked={scope === value}
+                data-testid={`results-scope-${value}`}
+                onChange={() => setScope(value)}
+              />
+              <span className="sb-segmented__face">
+                <Icon name="check" size={16} />
+                {t(`menu.scope.${value}`)}
+              </span>
+            </label>
           ))}
         </div>
-      </div>
-      <p className="-mt-2 text-sm text-zinc-500">
-        {t(`done.scopeHint.${scope}`)}
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <a
-          href={exportHref("pdf")}
-          download
-          data-testid="results-export-pdf"
-          className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          PDF
-        </a>
-        <a
-          href={exportHref("md")}
-          download
-          data-testid="results-export-md"
-          className="rounded-lg border border-zinc-200 px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          Markdown
-        </a>
-        <span className="ml-1 flex flex-wrap items-center gap-1 text-sm text-zinc-500">
-          {t("done.moreFormats")}:
-          {more.map((format) => (
-            <a
-              key={format}
-              href={exportHref(format)}
-              download
-              data-testid={`results-export-${format}`}
-              className="rounded px-1.5 py-0.5 font-medium text-zinc-600 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
-            >
-              {format.toUpperCase()}
-            </a>
-          ))}
-          {/* Not a link: the browser draws it from the export JSON — see
-              useBoardExport. */}
-          <button
-            type="button"
-            data-testid="results-export-jpeg"
-            disabled={imaging}
-            onClick={() => void downloadImage()}
-            className="rounded px-1.5 py-0.5 font-medium text-zinc-600 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50"
-          >
-            {imaging ? t("menu.rendering") : "JPEG"}
-          </button>
-        </span>
-      </div>
-      {imageFailed ? (
-        <p className="-mt-2 text-xs text-red-700">{t("menu.imageFailed")}</p>
-      ) : null}
-      <div className="flex flex-col gap-1">
-        <label className="flex items-center gap-1.5 text-sm text-zinc-600">
+        <p className="sb-field__help">
+          <span>{t(`done.scopeHint.${scope}`)}</span>
+        </p>
+      </fieldset>
+      {anonymous ? (
+        // The server leaves names out on this board whatever is asked; there
+        // is no box to ask with, only the sentence that says so.
+        <p className="sb-field__help">{t("menu.includeAuthorsAnonymous")}</p>
+      ) : (
+        <label className="sb-checkbox">
           <input
             type="checkbox"
             data-testid="results-include-authors"
             checked={includeAuthors}
             onChange={(event) => setIncludeAuthors(event.target.checked)}
-            className="accent-accent"
           />
-          {t("menu.includeAuthors")}
+          <span>{t("menu.includeAuthors")}</span>
         </label>
-        {/* The server leaves them out whatever this box says; say so, so the
-            box cannot be read as a way to get them back. zinc-500, not the
-            menu's zinc-400: this line is the only thing saying the box does
-            nothing here, and zinc-400 on white is ~2.6:1. */}
-        {anonymous ? (
-          <p className="text-xs text-zinc-500">
-            {t("menu.includeAuthorsAnonymous")}
-          </p>
-        ) : null}
+      )}
+      <div>
+        <a
+          href={exportHref("pdf")}
+          download
+          data-testid="results-export-pdf"
+          aria-describedby={`${id}-hint`}
+          className="sb-primary-action"
+        >
+          {t("done.export")}
+        </a>
+        <p id={`${id}-hint`} className="sb-action-hint">
+          {t("menu.exportHint")}
+        </p>
       </div>
+      <div
+        role="group"
+        aria-label={t("done.moreFormats")}
+        className="sb-cluster"
+      >
+        <span className="sb-field__help">{t("done.moreFormats")}:</span>
+        {(["md", ...more] as ExportFormat[]).map((format) => (
+          <a
+            key={format}
+            href={exportHref(format)}
+            download
+            data-testid={`results-export-${format}`}
+            className="sb-secondary-action sb-secondary-action--compact"
+          >
+            {format === "md" ? "Markdown" : format.toUpperCase()}
+          </a>
+        ))}
+        {/* Not a link: the browser draws it from the export JSON — see
+            useBoardExport. */}
+        <button
+          type="button"
+          data-testid="results-export-jpeg"
+          aria-busy={imaging || undefined}
+          onClick={() => void downloadImage()}
+          className="sb-secondary-action sb-secondary-action--compact"
+        >
+          {imaging ? t("menu.rendering") : "JPEG"}
+        </button>
+      </div>
+      {imageFailed ? (
+        <p role="alert" className="sb-field__error">
+          <Icon name="error" size={16} />
+          <span>{t("menu.imageFailed")}</span>
+        </p>
+      ) : null}
     </section>
   );
 }

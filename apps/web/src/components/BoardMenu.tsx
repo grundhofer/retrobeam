@@ -270,19 +270,21 @@ function ExportBody({
           ))}
         </div>
       </fieldset>
-      <label className="sb-checkbox">
-        <input
-          type="checkbox"
-          checked={includeAuthors}
-          onChange={(event) => setIncludeAuthors(event.target.checked)}
-        />
-        <span>{t("menu.includeAuthors")}</span>
-      </label>
-      {/* The server leaves them out whatever this box says; say so, so the
-          box cannot be read as a way to get them back. */}
+      {/* §6.1 e: names off when the dialog opens, and on an anonymous board
+          no option to put them in at all — the server leaves them out there
+          whatever is asked, and the sentence says so. */}
       {anonymous ? (
         <p className="sb-field__help">{t("menu.includeAuthorsAnonymous")}</p>
-      ) : null}
+      ) : (
+        <label className="sb-checkbox">
+          <input
+            type="checkbox"
+            checked={includeAuthors}
+            onChange={(event) => setIncludeAuthors(event.target.checked)}
+          />
+          <span>{t("menu.includeAuthors")}</span>
+        </label>
+      )}
       <div role="group" aria-label={t("menu.exportFormat")}>
         <div className="sb-cluster">
           {EXPORT_DOWNLOADS.map((format) =>
