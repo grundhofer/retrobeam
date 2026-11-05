@@ -127,12 +127,9 @@ test("wheel rotation, presenter focus, grouping and handoff", async ({
   await expect(anna.getByTestId("note-stack")).toBeVisible();
   await expect(anna.getByTestId("note-stack")).toContainText("×2");
 
-  // Unstack dissolves the two-note group everywhere.
-  await ben
-    .getByTestId("note-stack")
-    .getByRole("button", { name: /unstack|aus stapel/i })
-    .first()
-    .click();
+  // Unstack (in a card's „More“) dissolves the two-note group everywhere.
+  await ben.getByTestId("note-stack").getByTestId("note-menu").first().click();
+  await ben.getByRole("menuitem", { name: /unstack|aus stapel/i }).click();
   await expect(anna.getByTestId("note-stack")).toHaveCount(0);
 
   // Handoff: Anna promotes Ben via the avatar menu; Ben gains admin controls.

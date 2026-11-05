@@ -19,11 +19,14 @@
   --color-accent-strong: #0a5958;
 }
 
-/* Notes fade-slide in; the reveal stagger comes from per-card delays. */
+/* Notes fade-slide in, as the answer to the reveal (or a new card); the
+   stagger comes from per-card delays. sebaro (docs/sebaro-umbau.md §5.5, motion): 8 px,
+   200 ms, emphasized; only where motion is wanted, by the system and by
+   data-sb-motion (sebaro's own switch, on any container). */
 @keyframes reveal-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -31,14 +34,14 @@
   }
 }
 
-.reveal-in {
-  animation: reveal-in 0.3s ease-out backwards;
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-in:not([data-sb-motion="reduce"], [data-sb-motion="reduce"] *) {
+    animation: reveal-in var(--sb-motion-duration-long)
+      var(--sb-motion-easing-emphasized) backwards;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal-in {
-    animation: none;
-  }
   .animate-pulse {
     animation: none;
   }

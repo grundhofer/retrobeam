@@ -270,13 +270,13 @@ test("leads with the crowned topics in rank order, each with its vote count", as
   const [first, second] = topics.elements();
   // Rank 1 is the loose card with 5 votes, not the stack that sits first in
   // the column — the ranking is the vote's, not the board's layout.
-  expect(first?.textContent).toContain("👑 1");
+  expect(first?.textContent).toMatch(/(Rank|Platz) 1 (of|von) /);
   expect(first?.textContent).toContain("Deploys on Fridays");
   expect(first?.querySelector('[data-testid="tally"]')?.textContent).toMatch(
     /^5/,
   );
   // The crowned stack brings both of its cards, anchor first.
-  expect(second?.textContent).toContain("👑 2");
+  expect(second?.textContent).toMatch(/(Rank|Platz) 2 (of|von) /);
   expect(second?.querySelector('[data-testid="tally"]')?.textContent).toMatch(
     /^3/,
   );

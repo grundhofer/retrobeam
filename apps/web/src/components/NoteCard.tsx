@@ -13,7 +13,10 @@ import {
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
+import { Dialog } from "./Dialog.js";
 import { GifPickerButton } from "./GifPicker.js";
+import { Icon } from "./Icon.js";
+import { Menu, type MenuItem } from "./Menu.js";
 
 const NOTE_DRAG_MIME = "application/x-retrobeam-note";
 
@@ -34,19 +37,20 @@ export const NUDGES = [
   },
 ] as const;
 
-// The card's own surface and edge, shared with the canvas's ⋯ panel, which
-// hangs outside the card and has to read as part of it, and with the zone
-// panel, which reads as one of these.
-export const CARD_SURFACE = "rounded-xl bg-white p-3 shadow-sm";
-export const CARD_EDGE = "border border-zinc-200";
-// One look for every single-press option in the ⋯ panel: the column chips
-// and the canvas's step buttons, the zone panel's too. A step that cannot go
-// is muted, not faded (sebaro STA-03).
-export const ARRANGE_OPTION = `rounded-full ${CARD_EDGE} px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent`;
-export const ARRANGE_LABEL = "mb-1 text-zinc-500";
-// A step button, which stays pressable where it cannot go.
-export const ARRANGE_STEP = `${ARRANGE_OPTION} aria-disabled:cursor-not-allowed aria-disabled:text-zinc-500 aria-disabled:hover:bg-transparent`;
-export const ARRANGE_PANEL = "flex flex-col gap-2 text-xs";
+// The card's own surface, shared with the canvas's arrange panel, which hangs
+// outside the card and has to read as part of it, and with the zone panel.
+// sebaro's card (plan stage 5g); the canvas is rebuilt in 5h.
+export const CARD_SURFACE = "sb-card";
+export const CARD_EDGE = "";
+// One look for every single-press option in the arrange panel: the column
+// keys and the canvas's step keys, the zone panel's too — sebaro's compact
+// secondary action; a step that cannot go stays pressable, aria-disabled
+// (sebaro STA-03).
+export const ARRANGE_OPTION =
+  "sb-secondary-action sb-secondary-action--compact";
+export const ARRANGE_LABEL = "sb-field__label";
+export const ARRANGE_STEP = ARRANGE_OPTION;
+export const ARRANGE_PANEL = "flex flex-col gap-(--sb-space-2)";
 
 export interface NoteCardProps {
   note: Note;
@@ -279,6 +283,44 @@ export function NoteCard({
     if (canNudge(note.id, direction)) onNudge?.(note.id, direction);
   }
 
+  // The card's „Mehr“ (sebaro's menu): edit, take out of its stack, and
+  // delete last, which asks first.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const cardMenu: MenuItem[] = [];
+  if (canEdit) {
+    cardMenu.push({
+      key: "edit",
+      label: t("note.edit"),
+      icon: "edit",
+      testId: "note-edit",
+      onSelect: () => {
+        setDraft(note.text);
+        setDraftGif(note.gifUrl);
+        setEditing(true);
+      },
+    });
+  }
+  if (note.groupId !== null && canCurate) {
+    cardMenu.push({
+      key: "ungroup",
+      label: t("group.ungroup"),
+      icon: "undo",
+      testId: "note-ungroup",
+      onSelect: () => onUngroup(note),
+    });
+  }
+  if (canDelete) {
+    cardMenu.push({
+      key: "delete",
+      label: t("note.deleteOpen"),
+      icon: "trash",
+      danger: true,
+      separatorBefore: cardMenu.length > 0,
+      testId: "note-delete",
+      onSelect: () => setConfirmingDelete(true),
+    });
+  }
+
   return (
     <article
       data-testid="note-card"
@@ -316,57 +358,66 @@ export function NoteCard({
             ? t("note.notPresented")
             : undefined
       }
-      className={`reveal-in ${CARD_SURFACE} transition-opacity ${
+      // sebaro's item card (plan stage 5g): the speaker's cards carry the
+      // place mark (aria-current, the 3 px edge), a card not yet shown to the
+      // room a dashed edge, a drop target the cobalt outline.
+      aria-current={spotlighted ? "true" : undefined}
+      className={`reveal-in sb-card sb-card--item transition-opacity ${
         dropHover
-          ? "border border-accent ring-2 ring-accent/40"
-          : pending
-            ? "border border-dashed border-zinc-300"
-            : CARD_EDGE
-      } ${spotlighted ? "shadow-md ring-2 ring-accent" : ""} ${dimmed && !arranging ? "opacity-70" : ""} ${
+          ? "outline-2 outline-offset-2 outline-(--sb-color-accent) outline-solid"
+          : ""
+      } ${pending ? "border-dashed" : ""} ${dimmed && !arranging ? "opacity-70" : ""} ${
         canDrag && !editing ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       style={{ animationDelay: `${Math.min(revealIndex, 12) * 45}ms` }}
     >
       {editing ? (
         <form onSubmit={saveEdit}>
-          <textarea
-            autoFocus
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            maxLength={500}
-            rows={3}
-            className="w-full resize-none rounded-lg border border-zinc-200 px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-accent"
-          />
+          <div className="sb-field sb-field--compact">
+            <label htmlFor={`${arrangeId}-edit`} className="sb-visually-hidden">
+              {t("note.edit")}
+            </label>
+            <div className="sb-field__control">
+              <textarea
+                id={`${arrangeId}-edit`}
+                autoFocus
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                maxLength={500}
+                rows={3}
+              />
+            </div>
+          </div>
           {draftGif !== null ? (
-            <div className="relative mt-1 w-fit">
+            <div className="flex items-start gap-(--sb-space-1)">
               <img
                 src={draftGif}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="max-h-24 rounded-lg"
+                className="max-h-24"
               />
               <button
                 type="button"
                 data-testid="note-edit-gif-remove"
                 onClick={() => setDraftGif(null)}
                 aria-label={t("gif.remove")}
-                className="absolute -top-1.5 -right-1.5 rounded-full bg-zinc-800 px-1.5 text-xs text-white"
+                className="sb-icon-button"
               >
-                ✕
+                <Icon name="close" />
               </button>
             </div>
           ) : null}
-          <div className="mt-1 flex items-center gap-2">
+          <div className="sb-cluster">
             <button
               type="submit"
-              className="rounded-lg bg-accent px-2.5 py-0.5 text-sm font-medium text-white hover:bg-accent-strong"
+              className="sb-secondary-action sb-secondary-action--compact"
             >
               {t("note.save")}
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg px-2 py-0.5 text-sm text-zinc-500 hover:bg-zinc-100"
+              className="sb-secondary-action sb-secondary-action--compact"
             >
               {t("note.cancel")}
             </button>
@@ -382,82 +433,89 @@ export function NoteCard({
               cannot push its track wider — an unbroken 200-character word
               would simply paint outside it and drag the whole page sideways.
               The old horizontal scroller clipped that; nothing does now. */}
-          <p className="text-sm break-words whitespace-pre-wrap text-zinc-800">
-            {note.text}
-          </p>
+          <p className="sb-card__title whitespace-pre-wrap">{note.text}</p>
           {note.gifUrl !== null ? (
             <img
               src={note.gifUrl}
               alt=""
               loading="lazy"
               referrerPolicy="no-referrer"
-              className="mt-2 max-h-40 w-full rounded-lg object-contain"
+              className="max-h-40 w-full object-contain"
             />
           ) : null}
-          <div className="mt-2 flex items-center gap-1.5">
+          <div className="flex items-center gap-(--sb-space-1)">
+            {/* §6.1 d: on an anonymous board nobody, not even you. */}
             {author ? (
-              <span className="flex items-center gap-1 text-xs text-zinc-500">
-                <span
-                  aria-hidden="true"
-                  className="size-2 rounded-full"
-                  style={{ backgroundColor: author.color }}
-                />
+              <p className="sb-card__meta min-w-0 flex-1 truncate">
                 {author.name}
-              </span>
+              </p>
+            ) : (
+              <span className="flex-1" />
+            )}
+            {canArrange ? (
+              <button
+                ref={arrangeTrigger}
+                type="button"
+                data-testid="note-arrange-toggle"
+                aria-label={t("note.arrange")}
+                title={t("note.arrange")}
+                aria-expanded={arranging}
+                aria-controls={arranging ? arrangeId : undefined}
+                onClick={() => setArranging(!arranging)}
+                className={
+                  arrangeScale === null
+                    ? "sb-icon-button"
+                    : "sb-icon-button sb-icon-button--compact"
+                }
+              >
+                <Icon name="grip" />
+              </button>
             ) : null}
-            <span className="ml-auto flex gap-0.5">
-              {canArrange ? (
-                <button
-                  ref={arrangeTrigger}
-                  type="button"
-                  data-testid="note-arrange-toggle"
-                  aria-label={t("note.arrange")}
-                  title={t("note.arrange")}
-                  aria-expanded={arranging}
-                  aria-controls={arranging ? arrangeId : undefined}
-                  onClick={() => setArranging(!arranging)}
-                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  ⋯
-                </button>
-              ) : null}
-              {note.groupId !== null && canCurate ? (
-                <button
-                  type="button"
-                  aria-label={t("group.ungroup")}
-                  title={t("group.ungroup")}
-                  onClick={() => onUngroup(note)}
-                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  ⇱
-                </button>
-              ) : null}
-              {canEdit ? (
-                <button
-                  type="button"
-                  aria-label={t("note.edit")}
-                  onClick={() => {
-                    setDraft(note.text);
-                    setDraftGif(note.gifUrl);
-                    setEditing(true);
-                  }}
-                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  ✎
-                </button>
-              ) : null}
-              {canDelete ? (
-                <button
-                  type="button"
-                  aria-label={t("note.delete")}
-                  onClick={remove}
-                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  🗑
-                </button>
-              ) : null}
-            </span>
+            {cardMenu.length > 0 ? (
+              <Menu
+                label={t("note.more")}
+                items={cardMenu}
+                triggerTestId="note-menu"
+                // The canvas's cards are scaled and dense (stage 5h
+                // rebuilds them): there the 32 px form.
+                compact={arrangeScale !== null}
+              />
+            ) : null}
           </div>
+          {canDelete ? (
+            <Dialog
+              open={confirmingDelete}
+              onClose={() => setConfirmingDelete(false)}
+              title={t("note.deleteTitle")}
+              testId="note-delete-dialog"
+              actions={
+                <>
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={() => setConfirmingDelete(false)}
+                    className="sb-secondary-action"
+                  >
+                    {t("note.cancel")}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="note-delete-confirm"
+                    onClick={() => {
+                      setConfirmingDelete(false);
+                      remove();
+                    }}
+                    className="sb-danger-action sb-danger-action--outlined"
+                  >
+                    <Icon name="trash" size={20} />
+                    {t("menu.deleteConfirm")}
+                  </button>
+                </>
+              }
+            >
+              <p className="sb-dialog__text">{t("note.deleteText")}</p>
+            </Dialog>
+          ) : null}
           {/* Inline, not a floating menu: a dimmed card (opacity) or a hidden
               column is its own stacking context, so a popover hung off the
               card would be drawn under the next one and faded with it. Being
@@ -481,8 +539,8 @@ export function NoteCard({
               }}
               className={`${ARRANGE_PANEL} ${
                 arrangeScale === null
-                  ? "mt-2 border-t border-zinc-100 pt-2"
-                  : `mt-1 ${CARD_SURFACE} ${CARD_EDGE}`
+                  ? "border-t border-(--sb-color-border) pt-(--sb-space-2)"
+                  : `mt-1 ${CARD_SURFACE}`
               }`}
               style={
                 arrangeScale === null
@@ -554,10 +612,7 @@ export function NoteCard({
                         onClick={() => step(nudge.direction)}
                         className={ARRANGE_STEP}
                       >
-                        {/* A stand-in for the arrow-left/-up/-down/-right
-                            icons (docs/sebaro-umbau.md §6.4), which the
-                            label already names. */}
-                        <span aria-hidden="true">{nudge.glyph}</span>
+                        <Icon name={`arrow-${nudge.direction}`} size={20} />
                       </button>
                     ))}
                   </div>
@@ -578,7 +633,7 @@ export function NoteCard({
                           onDropNote(note.id, other);
                           refocusAfterArrange();
                         }}
-                        className="truncate rounded border border-zinc-200 px-2 py-0.5 text-left text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
+                        className={`max-w-full truncate ${ARRANGE_OPTION}`}
                       >
                         {other.text}
                       </button>
@@ -588,38 +643,30 @@ export function NoteCard({
               ) : null}
             </div>
           ) : null}
+          {/* The reactions are the room's own content (plan §2.4 F24): they
+              keep their emoji, in sebaro's colour roles. */}
           {revealed ? (
-            <div className="mt-2 flex gap-1">
+            <div className="flex flex-wrap gap-(--sb-space-1)">
               {REACTION_EMOJI.map((emoji) => {
                 const reactors = note.reactions[emoji] ?? [];
                 const reacted = reactors.includes(you.id);
-                if (reactors.length === 0 && !reacted) {
-                  return (
-                    <button
-                      key={emoji}
-                      type="button"
-                      data-testid={`react-${emoji}`}
-                      onClick={() => toggleReaction(emoji)}
-                      className="rounded-full px-1.5 py-0.5 text-xs opacity-40 grayscale hover:opacity-100 hover:grayscale-0 focus-visible:outline-2 focus-visible:outline-accent"
-                    >
-                      {emoji}
-                    </button>
-                  );
-                }
+                const unused = reactors.length === 0 && !reacted;
                 return (
                   <button
                     key={emoji}
                     type="button"
                     data-testid={`react-${emoji}`}
-                    aria-pressed={reacted}
+                    aria-pressed={unused ? undefined : reacted}
                     onClick={() => toggleReaction(emoji)}
-                    className={`rounded-full px-1.5 py-0.5 text-xs tabular-nums focus-visible:outline-2 focus-visible:outline-accent ${
+                    className={`rounded-(--sb-radius-control) border px-1.5 py-0.5 text-xs tabular-nums ${
                       reacted
-                        ? "bg-accent/10 text-accent-strong"
-                        : "bg-zinc-100 text-zinc-600"
+                        ? "border-(--sb-color-accent) text-(--sb-color-link)"
+                        : unused
+                          ? "border-transparent opacity-40 grayscale hover:opacity-100 hover:grayscale-0"
+                          : "border-(--sb-color-border) text-(--sb-color-text-muted)"
                     }`}
                   >
-                    {emoji} {reactors.length}
+                    {unused ? emoji : `${emoji} ${reactors.length}`}
                   </button>
                 );
               })}

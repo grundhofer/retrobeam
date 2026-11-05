@@ -663,7 +663,7 @@ function Room({
         ) : (
           <>
             {!inLobby && state.phase !== "done" ? (
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-100 bg-white/60 px-6 py-2 empty:hidden">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-(--sb-color-border) px-6 py-2 empty:hidden">
                 <TimerPanel timer={state.timer} isAdmin={isAdmin} />
                 {/* Top-centre, in the phase strip rather than the header: every
                 other phase-scoped control lives here, and the header already

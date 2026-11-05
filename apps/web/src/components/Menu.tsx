@@ -37,11 +37,14 @@ export function Menu({
   items,
   triggerTestId,
   menuTestId,
+  compact = false,
 }: {
   label: string;
   items: readonly MenuItem[];
   triggerTestId?: string;
   menuTestId?: string;
+  /** sebaro's 32 px icon button, for a dense surface (the canvas). */
+  compact?: boolean;
 }) {
   const id = useId();
   const menuId = `${id}-menu`;
@@ -164,7 +167,9 @@ export function Menu({
       <button
         ref={buttonRef}
         type="button"
-        className="sb-icon-button"
+        className={
+          compact ? "sb-icon-button sb-icon-button--compact" : "sb-icon-button"
+        }
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}

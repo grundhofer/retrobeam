@@ -785,64 +785,67 @@ export function TargetFrame({
     deciding.remaining <= 0 ||
     (deciding.maxPerTarget !== null && myCount >= deciding.maxPerTarget);
 
+  // sebaro (plan stage 5g, RB-2): the place in words, never a crown; the
+  // tally as thumbs-up and its number; your votes as „− 2 +“ in an sb-vote
+  // group, minus and plus aria-disabled at their ends so the focus stays;
+  // the voters by name only (F6), each labelled.
   return (
     <div
       data-testid="vote-target"
-      className={`rounded-2xl transition-opacity ${
-        focused ? "ring-2 ring-accent ring-offset-2" : ""
+      className={`sb-stack ${
+        focused
+          ? "rounded-(--sb-radius-container) outline-[3px] outline-offset-2 outline-(--sb-color-accent) outline-solid"
+          : ""
       } ${dim ? "opacity-40" : ""}`}
     >
       {onFocus !== null ? (
-        <div className="mb-1 flex justify-end px-1">
+        <div className="flex justify-end">
           <button
             type="button"
             data-testid="discuss-focus-card"
             aria-pressed={focused}
             onClick={onFocus}
-            className={`rounded-full px-2 py-0.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-accent ${
-              focused
-                ? "bg-accent text-white"
-                : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-            }`}
+            className="sb-chip"
           >
+            <Icon name="check" size={16} />
             {focused ? t("discuss.clearFocus") : t("discuss.focusCard")}
           </button>
         </div>
       ) : null}
       {deciding.talliesShown &&
       (rank >= 0 || tally !== undefined || myCount > 0) ? (
-        <div className="mb-1 flex flex-wrap items-center gap-1.5 px-1">
+        <div className="flex flex-wrap items-center gap-(--sb-space-2)">
           {rank >= 0 ? (
-            <span
-              data-testid="crown"
-              className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
-            >
-              👑 {rank + 1}
+            <span data-testid="crown" className="sb-tag">
+              {t("done.rank", {
+                rank: rank + 1,
+                total: deciding.topTargetIds.length,
+              })}
             </span>
           ) : null}
           {tally !== undefined ? (
             <span
               data-testid="tally"
-              className="text-xs text-zinc-500 tabular-nums"
+              className="sb-card__meta flex items-center gap-(--sb-space-1) tabular-nums"
             >
-              {tally} ●
+              <Icon name="thumbs-up" size={16} />
+              {tally}
+              <span className="sb-visually-hidden">
+                {" "}
+                {t("discuss.votes", { count: tally })}
+              </span>
             </span>
           ) : null}
-          {/* Your own dots, after the reveal. This half of "show what was
-              voted for" needs no server work at all — `mine` already survives
-              into discuss; it was simply never drawn once the +/- control
-              disappeared, so you could no longer tell which cards were yours. */}
+          {/* Your own dots, after the reveal: `mine` survives into discuss,
+              so you can still tell which cards were yours. */}
           {myCount > 0 ? (
-            <span
-              data-testid="your-vote"
-              className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent-strong tabular-nums"
-            >
+            <span data-testid="your-vote" className="sb-tag tabular-nums">
               {t("vote.yours", { count: myCount })}
             </span>
           ) : null}
           {/* And who else did — only when the board reveals names. An id with
-              no roster row is skipped rather than rendered raw.
-              Each chip is LABELLED: read aloud, a bare name beside a card is
+              no roster row is skipped rather than rendered raw. Each one is
+              LABELLED: read aloud, a bare name beside a card is
               indistinguishable from the card's own text. */}
           {voterChips.map((voter) => (
             <span
@@ -852,13 +855,8 @@ export function TargetFrame({
                 name: voter.participant.name,
                 count: voter.count,
               })}
-              className="flex items-center gap-1 rounded-full border border-zinc-200 px-1.5 py-0.5 text-xs text-zinc-600"
+              className="sb-tag"
             >
-              <span
-                aria-hidden="true"
-                className="size-2 rounded-full"
-                style={{ backgroundColor: voter.participant.color }}
-              />
               {voter.count > 1
                 ? t("vote.voterMulti", {
                     name: voter.participant.name,
@@ -873,35 +871,36 @@ export function TargetFrame({
       {deciding.voteActive ? (
         <div
           data-testid="vote-control"
-          className="mt-1 flex items-center justify-end gap-1.5"
+          role="group"
+          aria-label={t("vote.group")}
+          className="sb-vote self-end"
         >
           <button
             type="button"
             data-testid="vote-minus"
             aria-label={t("vote.minus")}
-            disabled={myCount === 0}
-            onClick={() => onVote(targetId, -1)}
-            className="size-6 rounded-full border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-30"
+            aria-disabled={myCount === 0}
+            onClick={() => {
+              if (myCount > 0) onVote(targetId, -1);
+            }}
+            className="sb-icon-button"
           >
-            −
+            <Icon name="minus" />
           </button>
-          <span
-            data-testid="vote-count"
-            className={`min-w-5 text-center text-sm font-semibold tabular-nums ${
-              myCount > 0 ? "text-accent-strong" : "text-zinc-500"
-            }`}
-          >
+          <span data-testid="vote-count" className="sb-vote__count">
             {myCount}
           </span>
           <button
             type="button"
             data-testid="vote-plus"
             aria-label={t("vote.plus")}
-            disabled={plusDisabled}
-            onClick={() => onVote(targetId, 1)}
-            className="size-6 rounded-full bg-accent text-sm text-white hover:bg-accent-strong disabled:opacity-30"
+            aria-disabled={plusDisabled}
+            onClick={() => {
+              if (!plusDisabled) onVote(targetId, 1);
+            }}
+            className="sb-icon-button"
           >
-            +
+            <Icon name="plus" />
           </button>
         </div>
       ) : null}
