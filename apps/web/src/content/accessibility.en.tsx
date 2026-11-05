@@ -118,8 +118,7 @@ export function AccessibilityEn() {
       <p>
         If your system is set to reduce motion, the wheel of fortune does not
         spin but shows at once whose turn it is. Fade-in and pulse animations
-        and the confetti are left out, and while presenting the view jumps
-        instead of scrolling.
+        are left out, and while presenting the view jumps instead of scrolling.
       </p>
 
       <h3>Light or dark</h3>

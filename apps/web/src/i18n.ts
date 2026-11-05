@@ -267,7 +267,7 @@ const resources = {
         chooseCard: "Choose a face-down card",
         chooseCardAria: "Choose card {{index}}",
         chooseCardHint: "Open the card selection on the right",
-        cardDeckTitle: "Who presents next?",
+        title: "Who presents next?",
         cardDeckHint:
           "Choose one of {{count}} face-down cards. The person is drawn fairly only after your choice.",
         closeCards: "Close card selection",
@@ -732,7 +732,7 @@ const resources = {
           },
           guided: {
             title: "Guided, and still fun.",
-            text: "A phase bar walks the room through the retro; the wheel and the confetti bring the moments.",
+            text: "A phase bar walks the room through the retro; the wheel and the slots decide who goes next.",
           },
           languages: {
             title: "German and English.",
@@ -1077,7 +1077,7 @@ const resources = {
         chooseCard: "Verdeckte Karte wählen",
         chooseCardAria: "Karte {{index}} wählen",
         chooseCardHint: "Öffne rechts die Kartenauswahl",
-        cardDeckTitle: "Wer präsentiert als Nächstes?",
+        title: "Wer präsentiert als Nächstes?",
         cardDeckHint:
           "Wähle eine von {{count}} verdeckten Karten. Die Person wird erst danach fair ausgelost.",
         closeCards: "Kartenauswahl schließen",
@@ -1563,7 +1563,7 @@ const resources = {
           },
           guided: {
             title: "Geführt, und trotzdem Spaß.",
-            text: "Eine Phasenleiste führt durch die Retro; Glücksrad und Konfetti sorgen für die Momente.",
+            text: "Eine Phasenleiste führt durch die Retro; Glücksrad und Slots entscheiden, wer dran ist.",
           },
           languages: {
             title: "Deutsch und Englisch.",
