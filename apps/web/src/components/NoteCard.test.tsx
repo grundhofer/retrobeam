@@ -222,7 +222,8 @@ test("editing a card can add a GIF it was written without", async () => {
   const sent: ClientCommand[] = [];
   const screen = await render(editView(null, sent));
 
-  await screen.getByRole("button", { name: /edit note|bearbeiten/i }).click();
+  await screen.getByTestId("note-menu").click();
+  await screen.getByTestId("note-edit").click();
   await screen.getByTestId("note-edit-gif").click();
   await screen.getByTestId("gif-search").fill("ship it");
   await screen.getByTestId("gif-result").click();
@@ -241,7 +242,8 @@ test("editing a card can drop its GIF, and never adds one to an emptied text", a
   const sent: ClientCommand[] = [];
   const screen = await render(editView(GIF_A, sent));
 
-  await screen.getByRole("button", { name: /edit note|bearbeiten/i }).click();
+  await screen.getByTestId("note-menu").click();
+  await screen.getByTestId("note-edit").click();
   // The existing GIF has to go before another can be picked.
   expect(screen.getByTestId("note-edit-gif").elements()).toHaveLength(0);
   await screen.getByTestId("note-edit-gif-remove").click();
@@ -263,7 +265,8 @@ test("a text-only edit leaves the stored GIF alone", async () => {
   const sent: ClientCommand[] = [];
   const screen = await render(editView(GIF_A, sent));
 
-  await screen.getByRole("button", { name: /edit note|bearbeiten/i }).click();
+  await screen.getByTestId("note-menu").click();
+  await screen.getByTestId("note-edit").click();
   await screen.getByRole("textbox").fill("Deploys are painfully slow");
   await screen.getByRole("button", { name: /^(save|sichern)$/i }).click();
 
@@ -272,4 +275,34 @@ test("a text-only edit leaves the stored GIF alone", async () => {
   // otherwise have the server drop it.
   expect(sent[0]).not.toHaveProperty("gifUrl");
   expect(sent[0]).toMatchObject({ text: "Deploys are painfully slow" });
+});
+
+// sebaro (stage 5g): a card is deleted from its „More“, and only after the
+// dialog asks; cancelling sends nothing.
+test("a card is deleted only after asking", async () => {
+  const sent: ClientCommand[] = [];
+  const screen = await render(editView(null, sent));
+
+  await screen.getByTestId("note-menu").click();
+  await screen.getByTestId("note-delete").click();
+  await expect.element(screen.getByTestId("note-delete-dialog")).toBeVisible();
+  await screen.getByRole("button", { name: /^(cancel|abbrechen)$/i }).click();
+  expect(sent).toEqual([]);
+  expect(screen.getByTestId("note-delete-dialog").elements()).toHaveLength(0);
+
+  await screen.getByTestId("note-menu").click();
+  await screen.getByTestId("note-delete").click();
+  await screen.getByTestId("note-delete-confirm").click();
+  expect(sent).toEqual([expect.objectContaining({ type: "note.delete" })]);
+});
+
+// The speaker's cards carry sebaro's place mark (aria-current), so a screen
+// reader hears it too, not only the sighted room.
+test("the speaker's card is the current one", async () => {
+  const screen = await render(
+    view({ authorId: anna.id, presenterId: anna.id }),
+  );
+  await expect
+    .element(screen.getByTestId("note-card"))
+    .toHaveAttribute("aria-current", "true");
 });

@@ -56,7 +56,9 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await annaPlus.click();
   await annaPlus.click();
   await annaPlus.click();
-  await expect(annaPlus).toBeDisabled(); // budget spent
+  // Budget spent: sebaro keeps the key pressable (aria-disabled) so the focus
+  // stays on it.
+  await expect(annaPlus).toHaveAttribute("aria-disabled", "true");
 
   // Blindness: Ben sees no counts from Anna — his own counts are all 0 and
   // no tallies/crowns exist anywhere.

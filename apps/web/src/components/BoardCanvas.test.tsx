@@ -813,6 +813,12 @@ test("the canvas's ⋯ panel is on top, unclipped and full size", async () => {
     neighbour.top + neighbour.height / 2,
   );
   expect(panel.contains(covered)).toBe(true);
+  // Closed the way a person closes it (the focus is in the panel): an open
+  // panel is on top by design, over the next card's keys too.
+  await userEvent.keyboard("{Escape}");
+  await expect
+    .poll(() => screen.getByTestId("note-arrange").elements().length)
+    .toBe(0);
 
   // A card at the zone's bottom edge: its panel reaches past the zone.
   const edge = await topmost("Bottom", "note-nudge-up");

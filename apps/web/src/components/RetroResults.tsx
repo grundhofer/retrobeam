@@ -250,13 +250,6 @@ export function RetroResults({
                     data-testid="top-topic"
                     className="sb-stack"
                   >
-                    {/* sebaro: the rank in words, never a crown. */}
-                    <p className="sb-card__meta">
-                      {t("done.rank", {
-                        rank: index + 1,
-                        total: topics.length,
-                      })}
-                    </p>
                     <TargetFrame
                       targetId={topic.targetId}
                       deciding={deciding}
