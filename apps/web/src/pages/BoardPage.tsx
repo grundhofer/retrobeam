@@ -60,6 +60,7 @@ import {
 } from "../lib/session.js";
 import { BoardSocket } from "../lib/socket.js";
 import { useMissingField } from "../lib/useMissingField.js";
+import { useNarrow } from "../lib/useNarrow.js";
 import { useBoardStore } from "../store/boardStore.js";
 
 type Gate =
@@ -444,6 +445,7 @@ function Room({
     // target id and does not care who wrote what.
     config?.anonymous ?? false,
   );
+  const narrow = useNarrow();
   const presenter =
     presenterId !== null
       ? (state.roster.find((p) => p.id === presenterId) ?? null)
@@ -794,7 +796,12 @@ function Room({
               ) : (
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
                   <div className="min-w-0 flex-1">
-                    {surface === "canvas" ? (
+                    {/* On a phone a canvas board shows its zones as the
+                        board's swiping columns (owner, 2026-11-05): at the
+                        zoom that fits a phone a card is some 35 px wide and
+                        its keys cannot keep their size. The places stay
+                        stored; a card written here is placed on the canvas. */}
+                    {surface === "canvas" && !narrow ? (
                       <BoardCanvas
                         columns={state.columns}
                         notes={state.notes}

@@ -56,19 +56,21 @@ export function AccessibilityEn() {
           line. On the canvas, Escape cancels writing.
         </li>
         <li>
-          In the “Columns” layout, the “Move or stack” button (⋯) on a card
-          opens a choice: “Move to” another column and, while presenting, “Stack
-          with” another card. It replaces dragging with the mouse and is offered
-          where dragging is allowed. Escape closes the choice and puts focus
-          back on the button; after a move or a stack, focus is on the card
-          again.
+          In the “Columns” layout, the “Move or stack” button on a card opens a
+          choice: “Move to” another column and, while presenting, “Stack with”
+          another card. It replaces dragging with the mouse and is offered where
+          dragging is allowed. Escape closes the choice and puts focus back on
+          the button; after a move or a stack, focus is on the card again.
         </li>
         <li>
-          On the canvas, the same button (⋯) on a card opens a choice: “Move to”
+          On the canvas, the same button on a card opens a choice: “Move to”
           another zone, at a free spot, and steps up, down, left and right, as
-          buttons or with the arrow keys. Here too it replaces dragging. The “+
-          Note” button opens the field for writing a new card, without a
-          double-click. “Zoom out”, “Fit to screen” and “Zoom in” are buttons.
+          buttons or with the arrow keys. Here too it replaces dragging. The
+          “Note” button at the top right asks for the zone and opens the field
+          for writing a new card, without a double-click. “Zoom out”, “Fit to
+          screen” and “Zoom in” are buttons. The buttons on the cards keep their
+          size at any zoom. Under 640&nbsp;pixels wide, a canvas board shows its
+          zones as columns to swipe.
         </li>
         <li>
           The facilitator moves and resizes zones on the canvas with the “Zones”
@@ -171,11 +173,10 @@ export function AccessibilityEn() {
           addresses, the imprint, the privacy notice and this page; in English
           only, the start page, a board in the lobby and while writing, and the
           canvas, once with a card's move choice open and once with the zone
-          choice open. Result: passed on all of these pages except the canvas.
-          On the canvas, failed on four points: “⋯”, “✎”, “🗑” and “+ Note” are
-          smaller than 24&nbsp;pixels at the fitted zoom. This is listed as a
-          known limitation. Any other violation fails the check. A tool like
-          this finds only part of the possible barriers.
+          choice open. The canvas is checked at 1440&nbsp;pixels, and at
+          390&nbsp;pixels the same board as columns. Result: passed on all of
+          these pages, with no listed exception. Any violation fails the check.
+          A tool like this finds only part of the possible barriers.
         </li>
         <li>
           Sideways scrolling at 390&nbsp;pixels and 1440&nbsp;pixels wide, on
@@ -259,12 +260,6 @@ export function AccessibilityEn() {
       </p>
 
       <ul>
-        <li>
-          On the canvas, the “⋯”, “✎”, “🗑” and “+ Note” buttons are smaller than
-          24&nbsp;pixels at the fitted zoom, because they shrink with the
-          canvas. The move choice is full size. The canvas is to be rebuilt
-          during the move.
-        </li>
         <li>
           A choice between light and dark is missing. It is planned for the
           move.

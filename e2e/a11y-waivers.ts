@@ -15,26 +15,4 @@ export type Waiver = {
   reason: string;
 };
 
-export const waivers: Waiver[] = [
-  {
-    page: "board-canvas-arrange",
-    rule: "target-size",
-    target: 'aria-label="Move or stack"',
-    reason:
-      "A canvas card's arrange key (the ⋯ until stage 5g). Drawn inside the canvas's zoomed world, so at the fitted zoom (about half size on a desktop, a quarter on a phone) it is under 24px and closer than 24px to its neighbours (WCAG 2.5.8). Found by the canvas's first audit (2026-10-25), older than it; to be drawn at full size against the zoom in the PR after stage 5h's canvas one (owner, 2026-11-05), which removes this entry. The panel it opens is drawn at full size.",
-  },
-  {
-    page: "board-canvas-arrange",
-    rule: "target-size",
-    target: 'aria-label="More for this note"',
-    reason:
-      "A canvas card's „More“ (edit, ungroup, delete; stage 5g folded the ✎ and 🗑 into it). Drawn inside the canvas's zoomed world, so at the fitted zoom (about half size on a desktop, a quarter on a phone) it is under 24px and closer than 24px to its neighbours (WCAG 2.5.8). Found by the canvas's first audit (2026-10-25), older than it; to be drawn at full size against the zoom in the PR after stage 5h's canvas one (owner, 2026-11-05), which removes this entry. The menu it opens is drawn at full size.",
-  },
-  {
-    page: "board-canvas-arrange",
-    rule: "target-size",
-    target: 'data-testid="canvas-add-note"',
-    reason:
-      "A zone's \"+ Note\". Drawn inside the canvas's zoomed world, so at the fitted zoom (about half size on a desktop, a quarter on a phone) it is under 24px and closer than 24px to its neighbours (WCAG 2.5.8). Found by the canvas's first audit (2026-10-25), older than it; to be drawn at full size against the zoom in the PR after stage 5h's canvas one (owner, 2026-11-05), which removes this entry.",
-  },
-];
+export const waivers: Waiver[] = [];

@@ -77,14 +77,19 @@ test("board fits a phone", async ({ browser }) => {
   }
   await expectFits(anna, ben, "write (columns)");
 
-  // Write, on the canvas — switched in the phone's own settings view.
+  // Write, on a canvas board — switched in the phone's own settings view. A
+  // phone shows its zones as the swiping columns (owner, 2026-11-05), the
+  // cards still there.
   await anna.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
   await expectOnScreen(anna.getByTestId("layout-canvas"));
   await anna.getByTestId("layout-canvas").click();
   await anna.getByRole("link", { name: /^board$/i }).click();
-  await expect(anna.getByTestId("canvas-viewport")).toBeVisible();
-  await expect(ben.getByTestId("canvas-viewport")).toBeVisible();
-  await expectFits(anna, ben, "write (canvas)");
+  for (const page of [anna, ben]) {
+    await expect(page.locator(".sb-board")).toBeVisible();
+    await expect(page.getByTestId("canvas-viewport")).toHaveCount(0);
+    await expect(page.getByTestId("note-card").first()).toBeVisible();
+  }
+  await expectFits(anna, ben, "write (canvas board)");
 
   // Present, with the wheel mid-spin on the member's screen.
   await step(anna, ben, /present|vorstellen/i);

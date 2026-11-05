@@ -26,6 +26,7 @@ import {
 import { useConnection } from "../lib/connection.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
+import { Menu } from "./Menu.js";
 import {
   ARRANGE_LABEL,
   ARRANGE_OPTION,
@@ -957,6 +958,30 @@ export function BoardCanvas({
             })}
           </div>
         ) : null}
+        {/* The double-click's visible, keyboard-reachable twin (WCAG 2.1.1):
+            „Notiz“ asks which zone and opens the same composer there, at the
+            zone's centre nudged to the nearest free spot, the way a commit
+            is. Out here, not in each zone's head: the head is drawn in the
+            zoomed world, where a key cannot keep its size (owner,
+            2026-11-05). */}
+        <Menu
+          label={t("canvas.addNoteMenu")}
+          trigger={{ text: t("canvas.addNote"), icon: "plus" }}
+          triggerTestId="canvas-add-note"
+          menuTestId="canvas-add-note-menu"
+          items={ordered.map((column) => ({
+            key: column.id,
+            label: t("canvas.addNoteIn", { name: column.name }),
+            testId: `canvas-add-note-${column.id}`,
+            onSelect: () => {
+              const centre = { x: 0.5, y: 0.5 };
+              setComposing({
+                columnId: column.id,
+                ...(openPosition(column.id, centre) ?? centre),
+              });
+            },
+          }))}
+        />
         <div className="flex items-center gap-(--sb-space-1)">
           <button
             type="button"
@@ -1089,29 +1114,6 @@ export function BoardCanvas({
                       {t("rail.teamCards", { count: othersCount })}
                     </span>
                   ) : null}
-                  {/* The double-click's visible, keyboard-reachable twin
-                      (WCAG 2.1.1): same composer, same zone, same (absent)
-                      conditions. It opens at the zone's centre, nudged to the
-                      nearest free spot the way a commit is. */}
-                  <button
-                    type="button"
-                    data-testid="canvas-add-note"
-                    // Not a zone drag: the facilitator's header is the zone's
-                    // move handle, and a captured pointer would swallow the click.
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={() => {
-                      const centre = { x: 0.5, y: 0.5 };
-                      setComposing({
-                        columnId: column.id,
-                        ...(openPosition(column.id, centre) ?? centre),
-                      });
-                    }}
-                    className="sb-secondary-action sb-secondary-action--compact shrink-0"
-                  >
-                    <Icon name="plus" size={20} />
-                    {t("canvas.addNote")}
-                    <span className="sr-only"> ({column.name})</span>
-                  </button>
                 </header>
 
                 <div
