@@ -7,7 +7,6 @@
   "apps/web/src/components/BoardPreview.tsx": 19,
   "apps/web/src/components/EmojiPicker.tsx": 9,
   "apps/web/src/components/GifPicker.tsx": 37,
-  "apps/web/src/components/KudosWall.tsx": 78,
   "apps/web/src/components/NoteCard.tsx": 90,
   "apps/web/src/components/PresenceRail.tsx": 118,
   "apps/web/src/components/PresenterFocus.tsx": 25,
