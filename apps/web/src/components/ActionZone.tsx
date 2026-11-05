@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useBoardStore } from "../store/boardStore.js";
 import { Icon } from "./Icon.js";
@@ -31,8 +31,13 @@ import { Icon } from "./Icon.js";
 // text too (reported to sebaroDesign).
 export function ActionZone({
   slotRef,
+  status,
 }: {
   slotRef: (element: HTMLDivElement | null) => void;
+  /** The view's state sentence (sebaro's sb-primary-action-bar__status):
+   *  the phase's guide and the time box. A failure's sentence replaces it
+   *  while it stands (sebaro's CSS). */
+  status?: ReactNode;
 }) {
   const { t } = useTranslation();
   const notice = useBoardStore((store) => store.notices.at(-1) ?? null);
@@ -60,9 +65,19 @@ export function ActionZone({
       <div
         ref={zoneRef}
         data-testid="action-zone"
-        className="sb-bottom-block hidden has-[.sb-primary-action,[data-notice]]:block"
+        className="sb-bottom-block hidden has-[.sb-primary-action,[data-notice],[data-status]]:block"
       >
         <div className="sb-primary-action-bar">
+          {status ? (
+            <p
+              data-status
+              data-testid="zone-status"
+              role="status"
+              className="sb-primary-action-bar__status"
+            >
+              <span>{status}</span>
+            </p>
+          ) : null}
           {notice ? (
             <p
               data-notice

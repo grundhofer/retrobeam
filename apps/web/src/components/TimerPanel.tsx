@@ -1,14 +1,48 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Timer } from "@retrobeam/shared";
-import { setSoundEnabled, soundEnabled, unlockAudio } from "../lib/beep.js";
 import { useConnection } from "../lib/connection.js";
+import { timeBox } from "../lib/timeBox.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
+import { Icon } from "./Icon.js";
 
+// The remaining time of the phase's time box as words (sebaro RB-1, owner
+// D104 (8)): „noch 3 Min.“ in the line under the board's name, „Noch 3 Min.“
+// as a sentence in the action zone. Its own small component with its own
+// clock, so the board does not re-render every second; the words change at
+// most once a minute, so a status region holding them speaks at most once a
+// minute. Nothing for an idle timer.
+export function TimeLeft({
+  timer,
+  form,
+}: {
+  timer: Timer;
+  form: "line" | "sentence";
+}) {
+  const { t } = useTranslation();
+  const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
+  const now = useNow();
+  const box = timeBox(timer, now + clockOffsetMs);
+  const key = `timer.${form}`;
+  switch (box.kind) {
+    case "idle":
+      return null;
+    case "running":
+      return <>{t(`${key}.left`, { count: box.minutes })}</>;
+    case "paused":
+      return <>{t(`${key}.paused`, { count: box.minutes })}</>;
+    case "up":
+      return <>{t(`${key}.up`)}</>;
+  }
+}
+
+// The facilitator's time box keys (RB-1): a length to start with, then
+// „Pause“ / „Weiter“, „+1 Min.“ and „Stopp“, all secondary. Members have no
+// keys here; they read the time in the head and the action zone. The chime
+// at the end is gone (owner, 2026-11-05: sebaro's time box has no sound).
 export function TimerPanel({
   timer,
   isAdmin,
@@ -18,129 +52,71 @@ export function TimerPanel({
 }) {
   const { t } = useTranslation();
   const { send } = useConnection();
-  const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
-  const now = useNow();
-  // Lazy initializer, not a module-load constant: the panel remounts on every
-  // layout/phase switch, and a module-scoped snapshot showed the toggle in the
-  // state it had when the bundle loaded rather than the stored preference.
-  const [sound, setSound] = useState(soundEnabled);
+  if (!isAdmin) return null;
 
   const running = timer.endsAt !== null;
   const paused = timer.pausedRemainingMs !== null;
-
-  const remainingMs = running
-    ? Math.max(0, (timer.endsAt ?? 0) - (now + clockOffsetMs))
-    : (timer.pausedRemainingMs ?? 0);
-
   const idle = !running && !paused;
-  const nearEnd = running && remainingMs < 60_000;
+  const key = "sb-secondary-action sb-secondary-action--compact";
 
   return (
-    <div className="flex items-center gap-2">
-      {!idle ? (
-        <span
-          data-testid="timer-display"
-          role="timer"
-          className={`font-mono text-lg tabular-nums ${
-            nearEnd ? "font-semibold text-red-700" : "text-zinc-700"
-          } ${paused ? "opacity-50" : ""}`}
-        >
-          {formatMs(remainingMs)}
-          {paused ? (
-            <span className="ml-1 text-xs">{t("timer.paused")}</span>
-          ) : null}
-        </span>
-      ) : null}
-
-      {isAdmin ? (
-        <div className="flex items-center gap-1">
-          {idle ? (
-            <>
-              {[5, 10, 15].map((minutes) => (
-                <button
-                  key={minutes}
-                  type="button"
-                  onClick={() =>
-                    send({
-                      type: "admin.timer.start",
-                      durationSec: minutes * 60,
-                    })
-                  }
-                  className="rounded-lg border border-zinc-200 px-2 py-0.5 text-sm text-zinc-600 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  {t("timer.minutes", { count: minutes })}
-                </button>
-              ))}
-            </>
+    <div
+      role="group"
+      aria-label={t("timer.label")}
+      data-testid="timer-panel"
+      className="sb-cluster"
+    >
+      {idle ? (
+        [5, 10, 15].map((minutes) => (
+          <button
+            key={minutes}
+            type="button"
+            onClick={() =>
+              send({ type: "admin.timer.start", durationSec: minutes * 60 })
+            }
+            className={key}
+          >
+            {minutes === 5 ? <Icon name="timer" size={20} /> : null}
+            {t("timer.minutes", { count: minutes })}
+          </button>
+        ))
+      ) : (
+        <>
+          {running ? (
+            <button
+              type="button"
+              onClick={() => send({ type: "admin.timer.pause" })}
+              className={key}
+            >
+              <Icon name="pause" size={20} />
+              {t("timer.pause")}
+            </button>
           ) : (
-            <>
-              {running ? (
-                <AdminButton
-                  onClick={() => send({ type: "admin.timer.pause" })}
-                >
-                  {t("timer.pause")}
-                </AdminButton>
-              ) : (
-                <AdminButton
-                  onClick={() => send({ type: "admin.timer.resume" })}
-                >
-                  {t("timer.resume")}
-                </AdminButton>
-              )}
-              <AdminButton
-                onClick={() => send({ type: "admin.timer.extend", addSec: 60 })}
-              >
-                +1m
-              </AdminButton>
-              <AdminButton onClick={() => send({ type: "admin.timer.stop" })}>
-                {t("timer.stop")}
-              </AdminButton>
-            </>
+            <button
+              type="button"
+              onClick={() => send({ type: "admin.timer.resume" })}
+              className={key}
+            >
+              <Icon name="play" size={20} />
+              {t("timer.resume")}
+            </button>
           )}
-        </div>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={() => {
-          // Un-muting is a gesture: take it to open (or resume) the context,
-          // for the tab that was backgrounded while muted.
-          if (!sound) unlockAudio();
-          setSoundEnabled(!sound);
-          setSound(!sound);
-        }}
-        aria-pressed={sound}
-        data-testid="timer-sound"
-        aria-label={t("timer.sound")}
-        className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
-      >
-        {sound ? "🔔" : "🔕"}
-      </button>
+          <button
+            type="button"
+            onClick={() => send({ type: "admin.timer.extend", addSec: 60 })}
+            className={key}
+          >
+            {t("timer.extend")}
+          </button>
+          <button
+            type="button"
+            onClick={() => send({ type: "admin.timer.stop" })}
+            className={key}
+          >
+            {t("timer.stop")}
+          </button>
+        </>
+      )}
     </div>
   );
-}
-
-function AdminButton({
-  onClick,
-  children,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-lg border border-zinc-200 px-2 py-0.5 text-sm text-zinc-600 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent"
-    >
-      {children}
-    </button>
-  );
-}
-
-function formatMs(ms: number): string {
-  const totalSeconds = Math.round(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }

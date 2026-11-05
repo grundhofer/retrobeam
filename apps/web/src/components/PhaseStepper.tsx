@@ -21,6 +21,9 @@ export interface PhaseStepperProps {
   isAdmin: boolean;
   /** Where the bottom block goes: the end of the board's view. */
   actionSlot?: HTMLElement | null;
+  /** The time box's words for the line under the bars (sebaro RB-1:
+   *  „Vorstellen · noch 3 Min.“), or nothing. */
+  timeLeft?: ReactNode;
 }
 
 // The always-visible answer to "where are we in the retro?" — plus the one
@@ -30,6 +33,7 @@ export function PhaseStepper({
   phasePlan,
   isAdmin,
   actionSlot = null,
+  timeLeft = null,
 }: PhaseStepperProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -155,6 +159,7 @@ export function PhaseStepper({
                   total: sequence.length,
                 })} · ${t(`phase.${phase}`)}`
               : t(`phase.${phase}`)}
+            {timeLeft ? <> · {timeLeft}</> : null}
           </p>
         </div>
         {isAdmin && (previous !== null || next === "done") ? (

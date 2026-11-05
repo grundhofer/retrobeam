@@ -205,12 +205,22 @@ const resources = {
         count: "{{ready}} / {{total}} done",
       },
       timer: {
+        label: "Time box",
         pause: "Pause",
         resume: "Resume",
         stop: "Stop",
-        paused: "paused",
-        sound: "Timer sound",
+        extend: "+1\u00a0min",
         minutes: "{{count}}\u00a0min",
+        line: {
+          left: "{{count}}\u00a0min left",
+          paused: "paused, {{count}}\u00a0min left",
+          up: "time's up",
+        },
+        sentence: {
+          left: "{{count}}\u00a0min left.",
+          paused: "Time paused, {{count}}\u00a0min left.",
+          up: "Time's up.",
+        },
       },
       note: {
         placeholder: "Write a note … (Enter to add)",
@@ -965,12 +975,22 @@ const resources = {
         count: "{{ready}} / {{total}} fertig",
       },
       timer: {
+        label: "Zeitbox",
         pause: "Pause",
         resume: "Weiter",
         stop: "Stopp",
-        paused: "pausiert",
-        sound: "Timer-Ton",
+        extend: "+1\u00a0Min.",
         minutes: "{{count}}\u00a0Min.",
+        line: {
+          left: "noch {{count}}\u00a0Min.",
+          paused: "angehalten, noch {{count}}\u00a0Min.",
+          up: "Zeit um",
+        },
+        sentence: {
+          left: "Noch {{count}}\u00a0Min.",
+          paused: "Zeit angehalten, noch {{count}}\u00a0Min.",
+          up: "Zeit um.",
+        },
       },
       note: {
         placeholder: "Notiz schreiben … (Enter zum Hinzufügen)",

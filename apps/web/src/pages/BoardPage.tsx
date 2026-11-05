@@ -21,7 +21,11 @@ import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
 import { BoardMenu } from "../components/BoardMenu.js";
 import { BoardSettings } from "../components/BoardSettings.js";
-import { PhaseAnnouncer, PhaseGuide } from "../components/PhaseGuide.js";
+import {
+  PhaseAnnouncer,
+  PhaseGuide,
+  phaseGuideKey,
+} from "../components/PhaseGuide.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
 import { InviteButton } from "../components/InviteButton.js";
@@ -41,12 +45,11 @@ import { Icon } from "../components/Icon.js";
 import { MAIN_ID } from "../components/SkipLink.js";
 import { SiteHeader } from "../components/SiteHeader.js";
 import { StateView } from "../components/StateView.js";
-import { TimerPanel } from "../components/TimerPanel.js";
+import { TimeLeft, TimerPanel } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
 import { adoptAdminLink } from "../lib/adminLink.js";
 import { fetchBoardInfo } from "../lib/api.js";
-import { playTimerChime, soundEnabled, unlockAudio } from "../lib/beep.js";
 import { ConnectionProvider, type BoardConnection } from "../lib/connection.js";
 import {
   ensureSessionKey,
@@ -183,9 +186,6 @@ function JoinGate({
       return;
     }
     saveDisplayName(trimmed);
-    // Start the audio context while the join click is still on the stack — the
-    // autoplay policy will not let us open one later, when the timer ends.
-    unlockAudio();
     onJoin(trimmed);
   }
 
@@ -285,8 +285,6 @@ function Room({
   // rather than state: nothing renders from it, and a re-render must not lose
   // an entry that is waiting on a round trip.
   const rejectHandlers = useRef(new Map<string, () => void>());
-  // Last time the timer chime actually played — see the timer.ended handler.
-  const lastChimeAt = useRef(0);
   // Whether the first sync after a facilitator link has been checked yet.
   const adminLinkChecked = useRef(false);
 
@@ -345,18 +343,6 @@ function Room({
         }
         if (event.type === "timer.changed") {
           setClockOffset(event.serverNow - Date.now());
-        }
-        if (event.type === "timer.ended" && soundEnabled()) {
-          // The DO broadcasts timer.ended BEFORE clearing the deadline and
-          // leans on an at-least-once alarm retry re-broadcasting it. The
-          // reducer is idempotent, but a chime is not — and seq is explicitly
-          // not a dedupe key (see reducer.ts). While sound was off by default
-          // the duplicate was inaudible; now it would ring twice.
-          const at = Date.now();
-          if (at - lastChimeAt.current > 3000) {
-            lastChimeAt.current = at;
-            playTimerChime();
-          }
         }
         if (event.type === "board.deleted") {
           // The board is gone — stop reconnecting (the DO would 404 anyway).
@@ -441,6 +427,11 @@ function Room({
   // either way, so flipping it back restores the board instantly.
   const focusMode = config?.focusMode ?? false;
   const anonymous = config?.anonymous ?? false;
+  // The action zone's state sentence: the phase's guide and the time box.
+  const hasStatus =
+    phaseGuideKey({ phase: state.phase, isAdmin, anonymous }) !== null ||
+    state.timer.endsAt !== null ||
+    state.timer.pausedRemainingMs !== null;
   const surface = boardSurface(
     layout,
     state.phase,
@@ -633,6 +624,7 @@ function Room({
                 phasePlan={phasePlan}
                 isAdmin={isAdmin}
                 actionSlot={actionSlot}
+                timeLeft={<TimeLeft timer={state.timer} form="line" />}
               />
             </div>
           </>
@@ -666,12 +658,7 @@ function Room({
         ) : (
           <>
             {!inLobby && state.phase !== "done" ? (
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-100 bg-white/60 px-6 py-2">
-                <PhaseGuide
-                  phase={state.phase}
-                  isAdmin={isAdmin}
-                  anonymous={anonymous}
-                />
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-100 bg-white/60 px-6 py-2 empty:hidden">
                 <TimerPanel timer={state.timer} isAdmin={isAdmin} />
                 {/* Top-centre, in the phase strip rather than the header: every
                 other phase-scoped control lives here, and the header already
@@ -902,7 +889,21 @@ function Room({
                 itself, so its position: sticky holds to the viewport's
                 bottom. The facilitator's phase change comes in through a
                 portal from PhaseStepper. */}
-            <ActionZone slotRef={setActionSlot} />
+            <ActionZone
+              slotRef={setActionSlot}
+              status={
+                hasStatus ? (
+                  <>
+                    <PhaseGuide
+                      phase={state.phase}
+                      isAdmin={isAdmin}
+                      anonymous={anonymous}
+                    />{" "}
+                    <TimeLeft timer={state.timer} form="sentence" />
+                  </>
+                ) : null
+              }
+            />
           </>
         )}
         <LegalFooter openLegalLinksInNewTab />
