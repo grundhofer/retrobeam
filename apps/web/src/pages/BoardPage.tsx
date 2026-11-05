@@ -838,6 +838,7 @@ function Room({
                       />
                     ) : (
                       <BoardColumns
+                        actionSlot={isAdmin ? null : actionSlot}
                         columns={state.columns}
                         notes={state.notes}
                         columnCounts={state.columnCounts}

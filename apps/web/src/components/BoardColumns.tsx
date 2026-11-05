@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   generateHexId,
@@ -39,6 +40,10 @@ export interface DecidingState {
 }
 
 export interface BoardColumnsProps {
+  /** The action zone's slot for a primary action, given for a member only:
+   *  while the board swipes (a phone), „Neue Karte in „<Spalte>““ is the
+   *  member's one primary action during writing (owner, 2026-11-05). */
+  actionSlot?: HTMLElement | null;
   columns: Column[];
   notes: Note[];
   /** write-phase anonymized note totals per column (all authors); used to show
@@ -188,8 +193,65 @@ export function BoardColumns(props: BoardColumnsProps) {
     return () => script.teardown?.(board);
   }, []);
 
+  // The column in place while the board swipes, from sb-board.js: its event
+  // when the column changes, and whether the position bar shows (the swipe
+  // layout depends on the board's own width, not the window's).
+  const [inPlace, setInPlace] = useState({ index: 0, swiping: false });
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const swiping = () => {
+      const nav = board.querySelector(".sb-board__nav");
+      return nav !== null && getComputedStyle(nav).display !== "none";
+    };
+    const read = () => {
+      const state = (board as { __sbBoard?: { current: number } }).__sbBoard;
+      setInPlace({
+        index: Math.max(0, state?.current ?? 0),
+        swiping: swiping(),
+      });
+    };
+    read();
+    board.addEventListener("sb-board-column", read);
+    const resize = new ResizeObserver(read);
+    resize.observe(board);
+    return () => {
+      board.removeEventListener("sb-board-column", read);
+      resize.disconnect();
+    };
+  }, []);
+  // The board draws `columns` in this order, so the index is theirs.
+  const columnInPlace = columns[inPlace.index] ?? columns[0];
+  const newCardAction =
+    props.actionSlot &&
+    inPlace.swiping &&
+    !isAdmin &&
+    columnInPlace !== undefined &&
+    phaseAllowsComposer(phase) &&
+    props.presenterId === null
+      ? createPortal(
+          <button
+            type="button"
+            data-testid="new-card"
+            onClick={() =>
+              document
+                .querySelector<HTMLElement>(
+                  `[data-testid="composer-${columnInPlace.id}"]`,
+                )
+                ?.focus()
+            }
+            className="sb-primary-action"
+          >
+            <Icon name="plus" size={20} />
+            {t("column.newCard", { name: columnInPlace.name })}
+          </button>,
+          props.actionSlot,
+        )
+      : null;
+
   return (
     <div className="sb-stack pb-(--sb-space-4)">
+      {newCardAction}
       <div
         ref={boardRef}
         id={boardId}
