@@ -270,7 +270,12 @@ const resources = {
         title: "Who presents next?",
         cardDeckHint:
           "Choose one of {{count}} face-down cards. The person is drawn fairly only after your choice.",
-        closeCards: "Close card selection",
+        wheelLabel_one: "Wheel with {{count}} name",
+        wheelLabel_other: "Wheel with {{count}} names",
+        wheelLabelLanded_one:
+          "Wheel with {{count}} name, the pointer is on {{name}}",
+        wheelLabelLanded_other:
+          "Wheel with {{count}} names, the pointer is on {{name}}",
         next: "Next person",
         finishRound: "Finish the round",
         presenting: "{{name}} is presenting",
@@ -1080,7 +1085,12 @@ const resources = {
         title: "Wer präsentiert als Nächstes?",
         cardDeckHint:
           "Wähle eine von {{count}} verdeckten Karten. Die Person wird erst danach fair ausgelost.",
-        closeCards: "Kartenauswahl schließen",
+        wheelLabel_one: "Glücksrad mit {{count}} Namen",
+        wheelLabel_other: "Glücksrad mit {{count}} Namen",
+        wheelLabelLanded_one:
+          "Glücksrad mit {{count}} Namen, der Zeiger steht auf {{name}}",
+        wheelLabelLanded_other:
+          "Glücksrad mit {{count}} Namen, der Zeiger steht auf {{name}}",
         next: "Nächste Person",
         finishRound: "Runde abschließen",
         presenting: "{{name}} präsentiert",
