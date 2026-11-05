@@ -68,7 +68,7 @@ Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll —
 - **Facilitation kit** — an optional opening check-in with 24 localized icebreakers (pick one in the lobby or let the check-in draw one), the Prime Directive, live-editable working agreements, and a shared timer with a chime
 - **Grouping** — drag cards into stacks; votes and reactions come along
 - **Staged columns** — prepare a column and reveal it to the room when you're ready
-- **Emoji reactions and GIFs**, and confetti where it's earned
+- **Emoji reactions and GIFs**
 - **Exports** — Markdown, CSV, JSON and PDF from the board itself, plus a JPEG the browser renders from the same snapshot, in two scopes: everything, or a summary of the crowned cards and the action items. Author names are excluded by default.
 - **Board duplication** — clone the structure for next sprint, nothing else
 - **German and English** throughout, switchable mid-retro

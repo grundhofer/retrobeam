@@ -133,8 +133,8 @@ export function AccessibilityDe() {
       <p>
         Hast du in deinem System eingestellt, dass du weniger Bewegung möchtest,
         dreht sich das Glücksrad nicht, sondern zeigt sofort, wer dran ist.
-        Einblend- und Puls-Animationen und das Konfetti entfallen, und beim
-        Vorstellen springt die Ansicht, statt zu scrollen.
+        Einblend- und Puls-Animationen entfallen, und beim Vorstellen springt
+        die Ansicht, statt zu scrollen.
       </p>
 
       <h3>Hell oder Dunkel</h3>
