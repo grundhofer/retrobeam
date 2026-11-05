@@ -452,13 +452,6 @@ export function PrivacyEn() {
             </tr>
             <tr>
               <td>
-                <code>retrobeam.sound</code>
-              </td>
-              <td>Sound on/off</td>
-              <td>Remember the setting</td>
-            </tr>
-            <tr>
-              <td>
                 <code>{"retrobeam.board.<board id>.sessionKey"}</code>
               </td>
               <td>Random session key for this one board</td>
@@ -490,10 +483,9 @@ export function PrivacyEn() {
         board to the respective board; the admin key is also sent when
         duplicating a board; the chosen language is sent when creating a board
         so that the default columns are named in that language, and with every
-        GIF search to the RetroBeam server (section 5). The sound setting never
-        leaves the browser. If local storage is unavailable (e.g. private mode),
-        the application falls back to an in-memory substitute that ends with the
-        tab.
+        GIF search to the RetroBeam server (section 5). If local storage is
+        unavailable (e.g. private mode), the application falls back to an
+        in-memory substitute that ends with the tab.
       </p>
 
       <p>

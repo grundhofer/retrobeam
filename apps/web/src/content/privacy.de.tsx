@@ -476,13 +476,6 @@ export function PrivacyDe() {
             </tr>
             <tr>
               <td>
-                <code>retrobeam.sound</code>
-              </td>
-              <td>Ton an/aus</td>
-              <td>Einstellung merken</td>
-            </tr>
-            <tr>
-              <td>
                 <code>retrobeam.board.{"<Board-ID>"}.sessionKey</code>
               </td>
               <td>Zufälliger Sitzungsschlüssel für genau dieses Board</td>
@@ -516,10 +509,9 @@ export function PrivacyDe() {
         Admin-Schlüssel geht außerdem beim Duplizieren eines Boards mit; die
         gewählte Sprache wird beim Anlegen eines Boards übermittelt, damit die
         Standardspalten in dieser Sprache benannt werden, und bei jeder
-        GIF-Suche an den RetroBeam-Server (Abschnitt 5). Die Toneinstellung
-        verlässt den Browser nie. Ist der lokale Speicher nicht verfügbar (z. B.
-        privater Modus), arbeitet die Anwendung mit einem Ersatz im
-        Arbeitsspeicher, der mit dem Tab endet.
+        GIF-Suche an den RetroBeam-Server (Abschnitt 5). Ist der lokale Speicher
+        nicht verfügbar (z. B. privater Modus), arbeitet die Anwendung mit einem
+        Ersatz im Arbeitsspeicher, der mit dem Tab endet.
       </p>
 
       <p>

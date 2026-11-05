@@ -12,7 +12,6 @@
   "apps/web/src/components/GifPicker.tsx": 37,
   "apps/web/src/components/KudosWall.tsx": 78,
   "apps/web/src/components/NoteCard.tsx": 90,
-  "apps/web/src/components/PhaseGuide.tsx": 2,
   "apps/web/src/components/PresenceRail.tsx": 118,
   "apps/web/src/components/PresenterFocus.tsx": 25,
   "apps/web/src/components/QrCode.tsx": 9,
@@ -20,10 +19,10 @@
   "apps/web/src/components/RetroResults.tsx": 80,
   "apps/web/src/components/RoleToggleButton.tsx": 3,
   "apps/web/src/components/RotiPoll.tsx": 23,
-  "apps/web/src/components/TimerPanel.tsx": 24,
   "apps/web/src/components/VoteBar.tsx": 39,
   "apps/web/src/components/WheelOverlay.tsx": 81,
   "apps/web/src/index.css": 3,
   "apps/web/src/lib/exportImage.ts": 7,
+  "apps/web/src/lib/timeBox.ts": 1,
   "apps/web/src/pages/BoardPage.tsx": 5
 }

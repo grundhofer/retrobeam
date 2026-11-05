@@ -19,6 +19,15 @@ import { LandingPage } from "./pages/LandingPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { PrivacyPage } from "./pages/PrivacyPage.js";
 
+// The timer chime is gone (owner, 2026-11-05: sebaro's time box has no sound),
+// and with it the key that stored its mute. A browser that still holds it has
+// it removed once, so the privacy notice, which no longer lists it, stays true.
+try {
+  localStorage.removeItem("retrobeam.sound");
+} catch {
+  // storage unavailable: nothing was stored either
+}
+
 // errorElement on every route: a render exception during a live retro must
 // offer a way back (the board itself is safe on the server), not a blank page.
 //

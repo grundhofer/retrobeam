@@ -29,19 +29,16 @@ export function phaseGuideKey({
   return `guide.${phase}.${isAdmin ? "facilitator" : "member"}`;
 }
 
-// One line under the phase row saying what to do right now, and whose move it
-// is. On a phone the stepper is compressed to "Step 3 of 7" and a phase change
+// One sentence saying what to do right now, and whose move it is; since stage
+// 5c the first part of the action zone's state sentence (ActionZone), the
+// time box's words after it. On a phone the stepper is compressed to "Step 3 of 7" and a phase change
 // used to go unnoticed; the phase names alone never said that a member writes
 // privately, or that moving on is the facilitator's call.
 export function PhaseGuide(props: GuideProps) {
   const { t } = useTranslation();
   const key = phaseGuideKey(props);
   if (key === null) return null;
-  return (
-    <p data-testid="phase-guide" className="w-full text-sm text-zinc-600">
-      {t(key)}
-    </p>
-  );
+  return <span data-testid="phase-guide">{t(key)}</span>;
 }
 
 // The same line for screen readers, as a live region that is mounted from the

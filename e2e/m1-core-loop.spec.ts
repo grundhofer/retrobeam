@@ -91,12 +91,20 @@ test("write → reveal core loop with two participants", async ({ browser }) => 
   await expect(ben.getByText("Secret note from Anna")).toHaveCount(0);
   await expect(ben.getByText("Ben's point")).toBeVisible();
 
-  // Timer: admin starts 5 minutes, both see the countdown; Ben has no controls.
+  // Time box (sebaro RB-1): the facilitator starts 5 minutes; both read the
+  // remaining time as words in whole minutes, in the line under the board's
+  // name and in the action zone's state sentence — no seconds, no clock. Ben
+  // has no keys.
   await anna.getByRole("button", { name: /^5\s(min|Min\.)$/ }).click();
-  await expect(anna.getByTestId("timer-display")).toContainText(
-    /0?4:5\d|05:00/,
-  );
-  await expect(ben.getByTestId("timer-display")).toBeVisible();
+  for (const page of [anna, ben]) {
+    await expect(page.getByTestId("phase-compact")).toContainText(
+      /5\s(min left|Min\.)/,
+    );
+    await expect(page.getByTestId("zone-status")).toContainText(
+      /5\s(min left|Min\.)/,
+    );
+    await expect(page.getByTestId("zone-status")).not.toContainText(/\d:\d\d/);
+  }
   await expect(ben.getByRole("button", { name: /pause/i })).toHaveCount(0);
 
   await annaContext.close();
