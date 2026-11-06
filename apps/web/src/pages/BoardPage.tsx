@@ -649,14 +649,19 @@ function Room({
         )}
 
         {status !== "online" ? (
+          // sebaro's warning callout: the glyph and the sentence, never the
+          // colour alone.
           <div
             role="status"
             data-testid="connection-status"
-            className="bg-amber-100 px-6 py-2 text-sm text-amber-900"
+            className="sb-callout sb-callout--warning mx-(--sb-spacing-gutter)"
           >
-            {status === "connecting"
-              ? t("status.connecting")
-              : t("status.offline")}
+            <Icon name="warning" size={20} />
+            <p className="sb-callout__text">
+              {status === "connecting"
+                ? t("status.connecting")
+                : t("status.offline")}
+            </p>
           </div>
         ) : null}
 

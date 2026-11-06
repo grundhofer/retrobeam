@@ -64,7 +64,7 @@ export function RoleToggleButton({
       {last ? (
         <span
           data-testid={`${testId}-reason`}
-          className="block px-2 pb-0.5 text-xs text-zinc-500"
+          className="sb-card__meta block px-(--sb-space-2)"
         >
           {t("roster.lastFacilitator")}
         </span>

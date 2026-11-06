@@ -442,3 +442,23 @@ test("focus follows the card after a keyboard move or stack", async () => {
     .toBeVisible();
   await expect.poll(() => document.activeElement).toBe(toggleOf("1"));
 });
+
+// sebaro's board card is a grid: the title, „Mehr“ in an auto column beside
+// it, the meta line under both. A meta line left in that auto column (with
+// the „Noch nicht vorgestellt“ tag in it) squeezed the title to nothing.
+test("a card's title keeps the card's width, with a tag in its meta line", async () => {
+  const card = note("e".repeat(32), columns[0]!.id, 1);
+  const screen = await render(
+    view({
+      phase: "present",
+      notes: [card],
+      unpresentedAuthorIds: new Set([card.authorId!]),
+    }),
+  );
+  await expect.element(screen.getByTestId("note-pending")).toBeInTheDocument();
+  const article = screen.getByTestId("note-card").element() as HTMLElement;
+  const title = article.querySelector(".sb-card__title") as HTMLElement;
+  expect(title.getBoundingClientRect().width).toBeGreaterThan(
+    article.getBoundingClientRect().width * 0.6,
+  );
+});

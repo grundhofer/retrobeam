@@ -40,9 +40,3 @@
       var(--sb-motion-easing-emphasized) backwards;
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-pulse {
-    animation: none;
-  }
-}
