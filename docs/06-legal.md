@@ -197,12 +197,24 @@ Audit of 2026-08-06 — 21 third-party packages in the production closure, **zer
 | Licence    | Packages                                                                                                                                                                                                                                                                                               |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | MIT        | `@babel/runtime`, `@types/react`, `cookie`, `csstype`, `event-target-polyfill`, `hono`, `html-parse-stringify`, `i18next`, `partysocket`, `react`, `react-dom`, `react-i18next`, `react-router`, `scheduler`, `set-cookie-parser`, `uqr`, `use-sync-external-store`, `void-elements`, `zod`, `zustand` |
-| ISC        | `canvas-confetti`                                                                                                                                                                                                                                                                                      |
+| ISC        | ~~`canvas-confetti`~~ removed 2026-11-05 (stage 5h: no confetti, plan F7)                                                                                                                                                                                                                              |
 | Apache-2.0 | `typescript`                                                                                                                                                                                                                                                                                           |
 
 Added since: `uqr` (MIT, 2026-09-29) — the QR code for the team link in the lobby and the invite
 panel. Zero dependencies, encoded in the browser, never fetched from a QR service; it sits in its own
 lazily loaded chunk (`apps/web/src/lib/qr.ts`), so the entry bundle does not carry it.
+
+Not npm packages, but shipped too (since the sebaro move, 2026-11), each stated in `REUSE.toml`:
+
+| Category             | Files                                                          | Licence                                                                                                                        |
+| -------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Design-system export | `apps/web/src/sebaro/**` (CSS, tokens, icons, classic scripts) | MIT                                                                                                                            |
+| Fonts                | `apps/web/src/sebaro/fonts/web/sebaro-{sans,mono}-*`           | OFL-1.1; their licence texts are served beside them (`/fonts/*-OFL.txt`)                                                       |
+| Reserved marks       | `apps/web/src/sebaro/brand/**`, `apps/web/public/og.png`       | `LicenseRef-sebaro-reserved`: all rights reserved, not under the AGPL; a fork replaces them (`check-legal-placeholders` warns) |
+
+Development only, never shipped: `axe-core` (MPL-2.0) runs in the e2e accessibility audit. A
+file-level copyleft in a dev dependency touches neither the production closure nor the exception
+licence.
 
 Apache-2.0 is one-way compatible: it may be combined into AGPLv3 work, but not the reverse. That is
 fine here and does not affect the exception licence, since Apache-2.0 permits proprietary

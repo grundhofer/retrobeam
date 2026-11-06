@@ -30,18 +30,19 @@ These aren't bolt-ons; they're why the works-council conversation should be easy
 
 ## 3. Data inventory (what exists, where, how long)
 
-| Data                                         | Where                           | Lifetime                                                                                              |
-| -------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Display name, assigned color, role           | Board DO (EU)                   | Until board deletion (≤90 days default)                                                               |
-| Notes, reactions, votes, action items, kudos | Board DO (EU)                   | Same                                                                                                  |
-| Open action items carried into a follow-up   | The new board's DO (EU)         | Text + old board's name only (≤50, no owner, no link back); the new board's fresh ≤90-day window      |
-| Session token                                | Participant's localStorage      | Local only                                                                                            |
-| Admin token                                  | Facilitator's localStorage      | Local only; also in the facilitator link's `#admin=` fragment, which never reaches a server           |
-| GIF search terms                             | Worker (transit only, proxied)  | Not stored; never reaches KLIPY with user IP                                                          |
-| GIF media loads                              | KLIPY CDN (US)                  | Viewer IPs visible to CDN — see §4                                                                    |
-| Application request logs                     | Disabled by design              | —                                                                                                     |
-| Explicit error logs                          | Cloudflare Workers Logs         | Platform retention; errors/stacks and rejected GIF hostnames, never intentional board-content logging |
-| Cloudflare invocation logs                   | Disabled (`observability.logs`) | —                                                                                                     |
+| Data                                                                         | Where                           | Lifetime                                                                                              |
+| ---------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Display name, assigned color, role                                           | Board DO (EU)                   | Until board deletion (≤90 days default)                                                               |
+| Notes, reactions, votes, action items, kudos                                 | Board DO (EU)                   | Same                                                                                                  |
+| Open action items carried into a follow-up                                   | The new board's DO (EU)         | Text + old board's name only (≤50, no owner, no link back); the new board's fresh ≤90-day window      |
+| Session token                                                                | Participant's localStorage      | Local only                                                                                            |
+| Admin token                                                                  | Facilitator's localStorage      | Local only; also in the facilitator link's `#admin=` fragment, which never reaches a server           |
+| Language and display choices (`sb-lang`, `sb-theme`, `sb-tone`, `sb-motion`) | The device's localStorage       | Local only, never sent (the language goes with a new board and a GIF search); each only once chosen   |
+| GIF search terms                                                             | Worker (transit only, proxied)  | Not stored; never reaches KLIPY with user IP                                                          |
+| GIF media loads                                                              | KLIPY CDN (US)                  | Viewer IPs visible to CDN — see §4                                                                    |
+| Application request logs                                                     | Disabled by design              | —                                                                                                     |
+| Explicit error logs                                                          | Cloudflare Workers Logs         | Platform retention; errors/stacks and rejected GIF hostnames, never intentional board-content logging |
+| Cloudflare invocation logs                                                   | Disabled (`observability.logs`) | —                                                                                                     |
 
 Cloudflare's invocation logging is switched off in `apps/worker/wrangler.jsonc`
 because it retains the full request URL for several days, and a board URL **is**

@@ -22,6 +22,7 @@ Created 2026-07-17 from a multi-agent research pass (11 competitor deep-dives, C
 2. **Privacy:** EU-jurisdiction Durable Objects; boards auto-delete after 90 days; per-board anonymity toggle (default off).
 3. **Language:** German + English i18n from day one.
 4. **Stack:** judge-panel winner — pnpm monorepo · React 19 + Vite 7 + `@cloudflare/vite-plugin` · zustand · Tailwind 4 + shadcn/ui · motion · partysocket · Hono + one SQLite-backed `BoardRoom` DO per board (WebSocket Hibernation API, DO alarms) · zod protocol + pure domain core in `packages/shared` · Vitest 4 (+ pool-workers) + Playwright.
+   Later: the UI moved onto the sebaro design system (2026-11, [docs/sebaro-umbau.md](docs/sebaro-umbau.md)) — Tailwind 4 through sebaro's token bridge, sebaro's own parts and scripts; shadcn/ui and motion were never adopted.
 5. **GIFs:** KLIPY via Worker proxy (Tenor API is dead as of 2026-06-30; GIPHY's free production tier no longer exists).
 6. **Realtime model:** server-authoritative with optimistic ops (Figma model), no CRDT; write-phase privacy enforced server-side by payload omission.
 7. **Presence:** roster + ghost cards ("Anna is writing in _Went well_"); canvas cursors are optional, capped at 1 Hz, and protected by an account-wide daily Free-tier budget.
