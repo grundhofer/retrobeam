@@ -22,6 +22,11 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
+const RESERVED_MARKS = [
+  "apps/web/src/sebaro/brand/site-root/icon.svg",
+  "apps/web/src/sebaro/brand/inline/tile-retrobeam.svg",
+  "apps/web/public/og.png",
+];
 
 const OPERATOR_FILE = "apps/web/src/content/operator.ts";
 const WRANGLER_FILE = "apps/worker/wrangler.jsonc";
@@ -203,6 +208,28 @@ if (!instanceHost) {
           `${path} still names ${UPSTREAM_HOST} — describe your own instance.`,
         );
       }
+    }
+    // The RetroBeam marks are reserved, not under the AGPL (REUSE.toml:
+    // LicenseRef-sebaro-reserved; plan stage 6c): the tile, the favicon and
+    // app icons, and the share image. A fork that still serves them is
+    // warned, not blocked — replacing them is its own step.
+    const kept = [];
+    for (const path of RESERVED_MARKS) {
+      try {
+        await read(path);
+        kept.push(path);
+      } catch {
+        // not in this checkout
+      }
+    }
+    if (kept.length > 0) {
+      console.warn(
+        [
+          "Note: this deployment still serves RetroBeam's reserved marks, which the AGPL does not cover:",
+          ...kept.map((path) => `  - ${path}`),
+          "Replace them with your own (the brand folder of the sebaro export, and og.png).",
+        ].join("\n"),
+      );
     }
   }
 }

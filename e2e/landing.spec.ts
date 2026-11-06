@@ -584,7 +584,10 @@ test("the served HTML carries the link-preview tags and a static fallback", asyn
     /<meta property="og:locale" content="de_DE"/,
     /<meta property="og:locale:alternate" content="en_US"/,
     /<meta name="twitter:card" content="summary_large_image"/,
-    /<meta name="theme-color" content="#0e7c7b"/,
+    /<link rel="icon" href="\/favicon\.ico" sizes="32x32"/,
+    /<link rel="icon" href="\/icon\.svg" type="image\/svg\+xml"/,
+    /<link rel="apple-touch-icon" href="\/apple-touch-icon\.png"/,
+    /<link rel="manifest" href="\/manifest\.webmanifest"/,
     /data-static-fallback[\s\S]*href="\/new"/,
   ]) {
     expect(html).toMatch(tag);
@@ -592,6 +595,28 @@ test("the served HTML carries the link-preview tags and a static fallback", asyn
   // The same shell answers /board/<id>: a fixed og:url or canonical would turn
   // every invitation into a link to "/".
   expect(html).not.toMatch(/property="og:url"|rel="canonical"/);
+  // No theme-color: the manifest names the ground (plan §2.4 F29).
+  expect(html).not.toMatch(/name="theme-color"/);
+
+  // sebaro's site root, served from the export as real files (stage 6c).
+  for (const [path, type] of [
+    ["/favicon.ico", "image/x-icon"],
+    ["/icon.svg", "image/svg+xml"],
+    ["/apple-touch-icon.png", "image/png"],
+    ["/icon-192.png", "image/png"],
+    ["/icon-512.png", "image/png"],
+    ["/icon-mask.png", "image/png"],
+  ] as const) {
+    const file = await request.get(path);
+    expect(file.status(), path).toBe(200);
+    expect(file.headers()["content-type"], path).toContain(type);
+  }
+  const manifest = await request.get("/manifest.webmanifest");
+  expect(manifest.status()).toBe(200);
+  expect(await manifest.json()).toMatchObject({
+    name: "RetroBeam",
+    display: "standalone",
+  });
 
   const image = await request.get("/og.png");
   expect(image.status()).toBe(200);
