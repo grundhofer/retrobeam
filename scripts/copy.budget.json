@@ -1,17 +1,5 @@
 {
-  "de": {
-    "wir": 3,
-    "gender-sign": 1,
-    "em-dash": 2,
-    "privacy-claim": 6,
-    "banned-word": 2
-  },
-  "en": {
-    "banned-word": 2
-  },
-  "index.html": {
-    "em-dash": 6,
-    "unit-space": 1,
-    "privacy-claim": 1
-  }
+  "de": {},
+  "en": {},
+  "index.html": {}
 }

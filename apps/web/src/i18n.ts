@@ -695,7 +695,7 @@ const resources = {
         trustChips: {
           private: "Others' notes don't leave the server until it's their turn",
           anonymous: "Anonymous if you want",
-          eu: "Boards stored in the EU",
+          eu: "Storage: Cloudflare · EU jurisdiction",
           deletes: "Deletes itself after 90\u00a0days by default",
           openSource: "Open source",
         },
@@ -734,11 +734,11 @@ const resources = {
         why: {
           private: {
             title: "Private means private.",
-            text: "Other people's notes don't leave the server until it's their turn – not just hidden in the browser. Boards are stored in EU data centres.",
+            text: "Other people's notes don't leave the server until it's their turn – not just hidden in the browser. Storage: Cloudflare, EU jurisdiction.",
           },
           nothing: {
             title: "Nothing to manage.",
-            text: "No accounts, no tracking, no seat licences; by default, boards delete themselves after 90\u00a0days.",
+            text: "No accounts, no seat licences; by default, boards delete themselves after 90\u00a0days.",
           },
           guided: {
             title: "Guided, and still fun.",
@@ -766,7 +766,7 @@ const resources = {
           },
           where: {
             q: "Where does the data live?",
-            a: "Each board lives in its own Cloudflare Durable Object, pinned to the EU when it's created: persistent board storage and the BoardRoom logic stay in EU data centres. To be plain about it: Cloudflare is a US company, and your connection and some request handling run through the nearest Cloudflare edge, which can be outside the EU. The privacy notice lists the sub-processors.",
+            a: "Each board lives in its own Cloudflare Durable Object, pinned to the EU when it's created: persistent board storage and the BoardRoom logic stay in the EU jurisdiction. To be plain about it: Cloudflare is a US company, and your connection and some request handling run through the nearest Cloudflare edge, which can be outside the EU. The privacy notice lists the sub-processors.",
           },
           howLong: {
             q: "How long is it kept?",
@@ -807,9 +807,9 @@ const resources = {
         },
         closingTitle: "Your next retro, set up in a minute.",
         closingText:
-          "Create a board, drop the link in your team chat, go. Free, no accounts, boards stored in the EU.",
+          "Create a board, drop the link in your team chat, go. Free and without an account.",
         notice:
-          "Not a commercial service: RetroBeam is a private open-source project by Sebastian Grundhöfer — no company, no ads, no tracking, no sale of data.",
+          "Not a commercial service: RetroBeam is a private open-source project by Sebastian Grundhöfer, not a company.",
       },
       legal: {
         notice:
@@ -1198,7 +1198,7 @@ const resources = {
       },
       action: {
         title: "Action Items",
-        label: "Was nehmen wir uns vor?",
+        label: "Was nimmt sich das Team vor?",
         deleteTitle: "Action Item löschen?",
         deleteText:
           "„{{text}}“ verschwindet für alle. Das lässt sich nicht rückgängig machen.",
@@ -1420,7 +1420,7 @@ const resources = {
         primeDirectiveSource: "Norman L. Kerth, Project Retrospectives (2001)",
         hideDirective: "Oberste Direktive ausblenden",
         primeDirective:
-          "Ungeachtet dessen, was wir herausfinden, verstehen und glauben wir aufrichtig, dass jede:r die bestmögliche Arbeit geleistet hat — angesichts des damaligen Wissensstands, der Fähigkeiten, der verfügbaren Ressourcen und der jeweiligen Situation.",
+          "Ungeachtet dessen, was wir herausfinden, verstehen und glauben wir aufrichtig, dass jede und jeder die bestmögliche Arbeit geleistet hat – angesichts des damaligen Wissensstands, der Fähigkeiten, der verfügbaren Ressourcen und der jeweiligen Situation.",
         agreements: "Arbeitsvereinbarungen",
         agreementsDefault:
           "• Vegas-Regel – was hier gesagt wird, bleibt hier\n• Probleme angreifen, nicht Personen\n• Immer nur ein Gespräch\n• Jede Stimme zählt",
@@ -1535,7 +1535,7 @@ const resources = {
           private:
             "Fremde Notizen verlassen den Server erst, wenn sie dran sind",
           anonymous: "Anonym möglich",
-          eu: "Boards in der EU gespeichert",
+          eu: "Speicherort: Cloudflare · Rechtsraum EU",
           deletes: "Löscht sich standardmäßig nach 90\u00a0Tagen",
           openSource: "Open Source",
         },
@@ -1575,11 +1575,11 @@ const resources = {
         why: {
           private: {
             title: "Privat heißt privat.",
-            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind – nicht nur im Browser versteckt. Boards werden in EU-Rechenzentren gespeichert.",
+            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind – nicht nur im Browser versteckt. Speicherort: Cloudflare, Rechtsraum EU.",
           },
           nothing: {
             title: "Nichts zu verwalten.",
-            text: "Kein Account, kein Tracking, keine Sitzlizenzen; standardmäßig löschen sich Boards nach 90\u00a0Tagen von selbst.",
+            text: "Kein Account, keine Sitzlizenzen; standardmäßig löschen sich Boards nach 90\u00a0Tagen von selbst.",
           },
           guided: {
             title: "Geführt, und trotzdem Spaß.",
@@ -1607,7 +1607,7 @@ const resources = {
           },
           where: {
             q: "Wo liegen die Daten?",
-            a: "Jedes Board liegt in einem eigenen Cloudflare Durable Object, das beim Erstellen auf die EU festgelegt wird: Dauerhafter Board-Speicher und BoardRoom-Logik bleiben in EU-Rechenzentren. Offen gesagt: Cloudflare ist ein US-Unternehmen, und deine Verbindung sowie Teile der Anfrageverarbeitung laufen über den nächstgelegenen Cloudflare-Knoten, der außerhalb der EU liegen kann. Die Auftragsverarbeiter stehen in der Datenschutzerklärung.",
+            a: "Jedes Board liegt in einem eigenen Cloudflare Durable Object, das beim Erstellen auf die EU festgelegt wird: Dauerhafter Board-Speicher und BoardRoom-Logik bleiben im Rechtsraum EU. Offen gesagt: Cloudflare ist ein US-Unternehmen, und deine Verbindung sowie Teile der Anfrageverarbeitung laufen über den nächstgelegenen Cloudflare-Knoten, der außerhalb der EU liegen kann. Die Auftragsverarbeiter stehen in der Datenschutzerklärung.",
           },
           howLong: {
             q: "Wie lange bleiben die Daten?",
@@ -1648,9 +1648,9 @@ const resources = {
         },
         closingTitle: "Deine nächste Retro, in einer Minute vorbereitet.",
         closingText:
-          "Board anlegen, Link in den Team-Chat, loslegen. Kostenlos, ohne Account, Boards in der EU gespeichert.",
+          "Board anlegen, Link in den Team-Chat, loslegen. Kostenlos und ohne Account.",
         notice:
-          "Kein kommerzielles Angebot: RetroBeam ist ein privates Open-Source-Projekt von Sebastian Grundhöfer — keine Firma, keine Werbung, kein Tracking, kein Verkauf von Daten.",
+          "Kein kommerzielles Angebot: RetroBeam ist ein privates Open-Source-Projekt von Sebastian Grundhöfer, keine Firma.",
       },
       legal: {
         notice:
