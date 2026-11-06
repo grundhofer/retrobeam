@@ -4,7 +4,7 @@ Status: draft v1 · 2026-07-17 · based on competitive/platform research verifie
 
 ## 1. Vision
 
-RetroBeam is a **guided, playful, genuinely free** retrospective tool for teams. One facilitator steps the whole room through a clear phase flow; participants write in private, present in a random order picked by a wheel of fortune, vote blind, and end on appreciation. Clean and minimal to look at, with moments of deliberate delight (the spin, the reveal, the confetti).
+RetroBeam is a **guided, playful, genuinely free** retrospective tool for teams. One facilitator steps the whole room through a clear phase flow; participants write in private, present in a random order picked by a wheel of fortune, vote blind, and end on appreciation. Clean and minimal to look at, with moments of deliberate delight (the spin, the reveal).
 
 **Positioning — the empty quadrant.** Research across 11 competitors shows the market splits into _guided-but-utilitarian_ tools (Parabol, Retrium, Neatro — repeatedly criticized as joyless) and _playful-but-unguided_ ones (Metro Retro/Spreo — fun, but novices get lost without a phase flow). Nobody occupies **guided + playful**. On top of that, the market has retreated from free (Retrium/TeamRetro/Spreo are trial-only; EasyRetro is down to 1 board/month), and no mainstream tool offers German UI or EU data residency. RetroBeam takes all three: guided **and** playful **and** free, with board data stored in the EU and a German/English UI.
 
@@ -78,7 +78,7 @@ Optional final section, hidden until the Close phase (staged reveal — the surp
 
 One shared abstraction, three skins (see architecture doc §6 for the sync protocol):
 
-1. **Wheel of Fortune (MVP)** — equal segments per remaining participant, 4–6 s ease-out spin with per-segment tick, pointer-flapper overshoot, confetti + big winner card on stop, frozen ~2 s.
+1. **Wheel of Fortune (MVP)** — equal segments per remaining participant, 4.5 s ease-out spin (D114), drawn flat in ink (sebaro's wheel), the name as the dialog's status sentence on stop, frozen ~2 s; no confetti since 2026-11 (plan F7).
 2. **Slot machine (v1.x)** — hand-rolled reels; better than a wheel for long name lists.
 3. **Lotto ball machine (v2)** — matter-js cosmetic tumbling, scripted draw.
 
