@@ -104,12 +104,10 @@ export function LandingPage() {
           data-testid="landing-intro"
           className="sb-container sb-section"
         >
-          <div className="grid gap-(--sb-space-10) lg:grid-cols-2 lg:items-start">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
             <div className="sb-prose">
               <p>{t("landing.description")}</p>
-              <p className="text-(--sb-color-text-muted)">
-                {t("landing.ctaHint")}
-              </p>
+              <p className="text-text-muted">{t("landing.ctaHint")}</p>
               {/* Each one short, a link to the FAQ answer that carries its
                   caveats: "EU jurisdiction" is only honest next to the
                   answer that says the edge can be outside it, "90 days" next
@@ -134,7 +132,7 @@ export function LandingPage() {
         <section data-testid="landing-how" className="sb-container sb-section">
           <h2 className="sb-section__title">{t("landing.howTitle")}</h2>
           <p className="sb-page-lead__text">{t("landing.howRoles")}</p>
-          <ol className="mt-(--sb-space-8) grid gap-(--sb-space-8) sm:grid-cols-3">
+          <ol className="mt-8 grid gap-8 sm:grid-cols-3">
             {STEPS.map((step) => (
               <li key={step} className="sb-stack">
                 <h3>{t(`landing.steps.${step}.title`)}</h3>
@@ -146,7 +144,7 @@ export function LandingPage() {
 
         <section data-testid="landing-why" className="sb-container sb-section">
           <h2 className="sb-section__title">{t("landing.whyTitle")}</h2>
-          <ul className="grid gap-(--sb-space-8) sm:grid-cols-2">
+          <ul className="grid gap-8 sm:grid-cols-2">
             {WHY.map((key) => (
               <li key={key} className="sb-stack">
                 <h3>{t(`landing.why.${key}.title`)}</h3>
@@ -197,7 +195,7 @@ export function LandingPage() {
         >
           <h2 className="sb-section__title">{t("landing.closingTitle")}</h2>
           <p className="sb-page-lead__text">{t("landing.closingText")}</p>
-          <p className="mt-(--sb-space-8)">
+          <p className="mt-8">
             <Link
               to="/new"
               data-testid="landing-bottom-cta"
@@ -208,7 +206,7 @@ export function LandingPage() {
           </p>
           <p
             data-testid="landing-notice"
-            className="mt-(--sb-space-8) max-w-prose text-(--sb-color-text-muted)"
+            className="mt-8 max-w-prose text-text-muted"
           >
             {t("landing.notice")}
           </p>

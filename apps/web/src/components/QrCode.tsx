@@ -65,7 +65,7 @@ export function QrCode({
       <div
         data-testid="qr-failed"
         style={box}
-        className={`sb-card__meta flex aspect-square items-center justify-center p-(--sb-space-2) text-center ${className}`}
+        className={`sb-card__meta flex aspect-square items-center justify-center p-2 text-center ${className}`}
       >
         {t("invite.qrFailed")}
       </div>
@@ -78,7 +78,7 @@ export function QrCode({
         aria-hidden="true"
         style={box}
         // A still placeholder (sebaro has no pulse).
-        className={`aspect-square bg-(--sb-color-surface-sunken) ${className}`}
+        className={`aspect-square bg-surface-sunken ${className}`}
       />
     );
   }

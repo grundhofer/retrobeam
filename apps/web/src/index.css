@@ -1,23 +1,18 @@
 @import "tailwindcss";
 /* sebaro in the order of shared/ADOPTION.md §4 step 2: fonts, tokens, the
-   sprite's sizes and sebaro.css, all without a layer, so sebaro's element
-   rules win over Tailwind's preflight. tokens.tailwind.css belongs between
-   tokens.css and the sprite, but comes only in stage 6a, at the end of 5h
-   (D102 (49), plan §2.4 F41); until then Tailwind's own palette still works. */
+   bridge, the sprite's sizes and sebaro.css, all without a layer, so
+   sebaro's element rules win over Tailwind's preflight. The bridge
+   (tokens.tailwind.css, stage 6a) clears Tailwind's own palette, radii,
+   shadows, type scale and breakpoints and names sebaro's roles instead:
+   bg-bg, text-text-muted, rounded-container, gap-2. */
 @import "./sebaro/fonts/fonts.css";
 @import "./sebaro/tokens.css";
+@import "./sebaro/tokens.tailwind.css";
 @import "./sebaro/icons/sprite.css";
 @import "./sebaro/css/sebaro.css";
 /* The sebaro export is sebaroDesign's CSS, not class names for Tailwind to
    scan: without this its files would add utilities to the build. */
 @source not "./sebaro";
-
-@theme {
-  /* Calm neutral surface, one teal accent; sticky notes will be the only
-     colorful elements (product spec §12). */
-  --color-accent: #0e7c7b;
-  --color-accent-strong: #0a5958;
-}
 
 /* Notes fade-slide in, as the answer to the reveal (or a new card); the
    stagger comes from per-card delays. sebaro (docs/sebaro-umbau.md §5.5, motion): 8 px,

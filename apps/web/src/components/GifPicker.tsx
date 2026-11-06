@@ -201,14 +201,14 @@ export function GifPicker({ onPick }: { onPick: (url: string) => void }) {
           {message.text}
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-(--sb-space-1) sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
           {results.map((gif) => (
             <button
               key={gif.id}
               type="button"
               data-testid="gif-result"
               onClick={() => onPick(gif.url)}
-              className="overflow-hidden rounded-(--sb-radius-control) border border-(--sb-color-border) hover:border-(--sb-color-accent)"
+              className="overflow-hidden rounded-control border border-border hover:border-(--sb-color-accent)"
             >
               <img
                 src={gif.previewUrl}

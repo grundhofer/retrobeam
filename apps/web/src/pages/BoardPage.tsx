@@ -541,7 +541,7 @@ function Room({
         <div
           role="status"
           data-testid="stale-build"
-          className="sb-callout sb-callout--note m-(--sb-space-2)"
+          className="sb-callout sb-callout--note m-2"
         >
           <Icon name="info--filled" size={20} />
           <p className="sb-callout__text">{t("update.available")}</p>
@@ -585,8 +585,8 @@ function Room({
         />
         {inSettings ? null : (
           <>
-            <div className="flex flex-col gap-(--sb-space-4) border-b border-(--sb-color-border) px-(--sb-spacing-gutter) py-(--sb-space-4)">
-              <div className="flex flex-wrap items-center justify-between gap-x-(--sb-space-6) gap-y-(--sb-space-2)">
+            <div className="flex flex-col gap-4 border-b border-border px-gutter py-4">
+              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
                 <div className="min-w-0">
                   <h1 className="sb-top-bar__title [overflow-wrap:anywhere]">
                     {state.board?.name ?? board.name}
@@ -596,7 +596,7 @@ function Room({
                   lobby that explains it. The tag names it, the sentence
                   beside it says what it means. */}
                   {anonymous ? (
-                    <p className="mt-(--sb-space-1) flex flex-wrap items-baseline gap-x-(--sb-space-2) gap-y-(--sb-space-1)">
+                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <span data-testid="anonymous-badge" className="sb-tag">
                         {t("board.anonymous")}
                       </span>
@@ -606,7 +606,7 @@ function Room({
                     </p>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-(--sb-space-3)">
+                <div className="flex flex-wrap items-center gap-3">
                   <AvatarRow
                     participants={state.roster}
                     youId={you.id}
@@ -654,7 +654,7 @@ function Room({
           <div
             role="status"
             data-testid="connection-status"
-            className="sb-callout sb-callout--warning mx-(--sb-spacing-gutter)"
+            className="sb-callout sb-callout--warning mx-gutter"
           >
             <Icon name="warning" size={20} />
             <p className="sb-callout__text">
@@ -681,7 +681,7 @@ function Room({
         ) : (
           <>
             {!inLobby && state.phase !== "done" ? (
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-(--sb-color-border) px-6 py-2 empty:hidden">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-6 py-2 empty:hidden">
                 <TimerPanel timer={state.timer} isAdmin={isAdmin} />
                 {/* Top-centre, in the phase strip rather than the header: every
                 other phase-scoped control lives here, and the header already

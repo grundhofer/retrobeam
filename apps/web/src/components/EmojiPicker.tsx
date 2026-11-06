@@ -90,10 +90,7 @@ export function EmojiPickerButton({
 
 export function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
   return (
-    <div
-      data-testid="emoji-picker"
-      className="grid grid-cols-8 gap-(--sb-space-1)"
-    >
+    <div data-testid="emoji-picker" className="grid grid-cols-8 gap-1">
       {EMOJI_SET.map((emoji, index) => (
         <button
           key={emoji}
@@ -102,7 +99,7 @@ export function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
           data-autofocus={index === 0 ? true : undefined}
           data-testid={`emoji-${emoji}`}
           onClick={() => onPick(emoji)}
-          className="flex min-h-(--sb-size-target-touch) items-center justify-center rounded-(--sb-radius-control) [font:var(--sb-type-title)] hover:bg-(--sb-color-hover-fill)"
+          className="flex min-h-(--sb-size-target-touch) items-center justify-center rounded-control [font:var(--sb-type-title)] hover:bg-hover-fill"
         >
           {emoji}
         </button>

@@ -90,7 +90,7 @@ export function PresenterFocus({
     <div
       className={`sb-stack mx-auto w-full ${staged ? "max-w-3xl" : "max-w-2xl"}`}
     >
-      <header className="flex flex-wrap items-baseline gap-x-(--sb-space-3)">
+      <header className="flex flex-wrap items-baseline gap-x-3">
         <h2 className="sb-section__title m-0">
           {t("present.focus.heading", { name: presenter.name })}
         </h2>

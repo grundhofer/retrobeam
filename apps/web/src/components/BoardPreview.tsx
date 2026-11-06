@@ -71,8 +71,8 @@ export function BoardPreview() {
         // sebaro.css is unlayered and outranks a Tailwind utility.
         style={{ aspectRatio: "auto" }}
       >
-        <div className="flex flex-wrap items-center gap-x-(--sb-space-4) gap-y-(--sb-space-2) border-b border-(--sb-color-border) px-(--sb-space-4) py-(--sb-space-3)">
-          <span className={`${LABEL} font-semibold text-(--sb-color-text)`}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-4 py-3">
+          <span className={`${LABEL} font-semibold text-text`}>
             {t("landing.preview.boardName")}
           </span>
           {/* Wraps on narrow frames, where the app's own stepper would run
@@ -81,20 +81,17 @@ export function BoardPreview() {
               first step of EACH line — not just the first overall — starts
               without a stray "·". */}
           <div className="overflow-hidden">
-            <ol className="-ml-3 flex flex-wrap items-center gap-y-(--sb-space-1)">
+            <ol className="-ml-3 flex flex-wrap items-center gap-y-1">
               {PHASES.map((step) => (
                 <li key={step} className="flex items-center">
-                  {/* contrast-ok: decorative separator */}
-                  <span className="w-3 text-center text-(--sb-color-text-muted)">
-                    ·
-                  </span>
+                  <span className="w-3 text-center text-text-muted">·</span>
                   <span
                     // The current step as the board's own step line marks it:
                     // ink and weight, not a filled pill.
                     className={
                       step === "write"
-                        ? `${LABEL} px-(--sb-space-1) font-semibold text-(--sb-color-text) underline decoration-2 underline-offset-4`
-                        : `${LABEL} px-(--sb-space-1) text-(--sb-color-text-muted)`
+                        ? `${LABEL} px-1 font-semibold text-text underline decoration-2 underline-offset-4`
+                        : `${LABEL} px-1 text-text-muted`
                     }
                   >
                     {t(`phase.${step}`)}
@@ -104,11 +101,9 @@ export function BoardPreview() {
             </ol>
           </div>
         </div>
-        <div className="grid gap-(--sb-space-3) bg-(--sb-color-surface-sunken) p-(--sb-space-4) sm:grid-cols-3">
-          <div className="flex flex-col gap-(--sb-space-2)">
-            <h3
-              className={`${LABEL} truncate font-semibold text-(--sb-color-text)`}
-            >
+        <div className="grid gap-3 bg-surface-sunken p-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-2">
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[0]}
             </h3>
             <Card
@@ -117,10 +112,8 @@ export function BoardPreview() {
             />
             <HiddenNotes count={HIDDEN_COUNTS[0]} />
           </div>
-          <div className="flex flex-col gap-(--sb-space-2)">
-            <h3
-              className={`${LABEL} truncate font-semibold text-(--sb-color-text)`}
-            >
+          <div className="flex flex-col gap-2">
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[1]}
             </h3>
             <Card
@@ -129,10 +122,8 @@ export function BoardPreview() {
             />
             <HiddenNotes count={HIDDEN_COUNTS[1]} />
           </div>
-          <div className="flex flex-col gap-(--sb-space-2)">
-            <h3
-              className={`${LABEL} truncate font-semibold text-(--sb-color-text)`}
-            >
+          <div className="flex flex-col gap-2">
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[2]}
             </h3>
             <Card
