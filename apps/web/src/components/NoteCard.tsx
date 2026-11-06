@@ -403,13 +403,14 @@ export function NoteCard({
       }
       // sebaro's item card (plan stage 5g): the speaker's cards carry the
       // place mark (aria-current, the 3 px edge), a card not yet shown to the
-      // room a dashed edge, a drop target the cobalt outline.
+      // room says so in its meta line (glyph and word, never a dashed edge
+      // alone), a drop target the cobalt outline.
       aria-current={spotlighted ? "true" : undefined}
       className={`reveal-in sb-card sb-card--item transition-opacity ${
         dropHover
           ? "outline-2 outline-offset-2 outline-(--sb-color-accent) outline-solid"
           : ""
-      } ${pending ? "border-dashed" : ""} ${dimmed && !arranging ? "opacity-70" : ""} ${
+      } ${dimmed && !arranging ? "opacity-70" : ""} ${
         canDrag && !editing ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       style={{ animationDelay: `${Math.min(revealIndex, 12) * 45}ms` }}
@@ -486,7 +487,10 @@ export function NoteCard({
               className="max-h-40 w-full object-contain"
             />
           ) : null}
-          <div className="flex items-center gap-(--sb-space-1)">
+          {/* The meta line spans the card (sebaro's board card puts it under
+              the title, the whole width): beside the title, in the grid's
+              auto column, a wide line squeezed the title to nothing. */}
+          <div className="col-span-full flex items-center gap-(--sb-space-1)">
             {/* §6.1 d: on an anonymous board nobody, not even you. */}
             {author ? (
               <p className="sb-card__meta min-w-0 flex-1 truncate">
@@ -495,6 +499,12 @@ export function NoteCard({
             ) : (
               <span className="flex-1" />
             )}
+            {pending ? (
+              <span data-testid="note-pending" className="sb-tag shrink-0">
+                <Icon name="eye-off" size={16} />
+                {t("note.notPresented")}
+              </span>
+            ) : null}
             {/* The card's keys. On the canvas they are drawn against the
                 world's zoom, as the arrange panel is: 32 px on screen at
                 any zoom (WCAG 2.5.8; owner, 2026-11-05). They grow from the
@@ -717,7 +727,7 @@ export function NoteCard({
                     data-testid={`react-${emoji}`}
                     aria-pressed={unused ? undefined : reacted}
                     onClick={() => toggleReaction(emoji)}
-                    className={`rounded-(--sb-radius-control) border px-1.5 py-0.5 text-xs tabular-nums ${
+                    className={`rounded-(--sb-radius-control) border px-(--sb-space-1) py-(--sb-space-0-5) tabular-nums [font:var(--sb-type-caption)] ${
                       reacted
                         ? "border-(--sb-color-accent) text-(--sb-color-link)"
                         : unused

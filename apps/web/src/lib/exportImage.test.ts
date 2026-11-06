@@ -10,6 +10,7 @@ import {
   type ImageLayout,
   type MeasureText,
   lightPalette,
+  LIGHT_FALLBACK,
 } from "./exportImage.js";
 
 // Every glyph is 8px wide, whatever the font. The whole point of injecting the
@@ -267,3 +268,9 @@ function luminance(hex: string): number {
   );
   return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
 }
+
+// The fallback is read from the export's tokens.css, so it is the light
+// stylesheet's colours exactly — a copy had drifted once (the link colour).
+test("the light fallback is the stylesheet's light palette", () => {
+  expect(LIGHT_FALLBACK).toEqual(lightPalette());
+});

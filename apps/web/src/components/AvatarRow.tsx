@@ -85,7 +85,9 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
           </button>
           {openId === participant.id && isAdmin ? (
             <span
-              className={`absolute top-9 z-40 w-max rounded-lg border border-zinc-200 bg-white p-1 shadow-lg ${
+              // sebaro's overlay surface (the menu's), drawn by hand: the
+              // role key is a dialog-free toggle, not a list of rows.
+              className={`absolute top-9 z-40 w-max rounded-(--sb-radius-container) border border-(--sb-elevation-overlay-border-color) bg-(--sb-elevation-overlay-surface) p-(--sb-space-1) ${
                 alignLeft ? "left-0" : "right-0"
               }`}
             >
@@ -94,11 +96,10 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
                 participants={participants}
                 onDone={() => setOpenId(null)}
                 testId={`role-toggle-${participant.name}`}
-                // contrast-ok: disabled state, exempt from WCAG 1.4.3
-                className="block w-full rounded px-2 py-1 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:text-zinc-400 disabled:hover:bg-transparent"
+                className="sb-secondary-action sb-secondary-action--compact w-full justify-start"
               />
               {participant.id === youId ? (
-                <span className="block px-2 pb-0.5 text-xs text-zinc-500">
+                <span className="sb-card__meta block px-(--sb-space-2)">
                   {t("roster.you")}
                 </span>
               ) : null}

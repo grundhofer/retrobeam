@@ -5,7 +5,7 @@ import type { Timer } from "@retrobeam/shared";
 
 // sebaro's time box (spec/02 §3.29 RB-1, spec/07 „The remaining time of a
 // timebox“, owner D104 (8)): the remaining time as words in whole minutes,
-// rounded up, so the last minute says „noch 1 Min.“ until the time is over;
+// counted up to the next one, so the last minute says „noch 1 Min.“ until the time is over;
 // then „Zeit um“, and nothing locks. No seconds, no colour, no sound — a calm
 // remaining time, not a pressure countdown.
 export type TimeBox =

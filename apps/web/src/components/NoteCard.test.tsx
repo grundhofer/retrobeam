@@ -111,6 +111,10 @@ test("a card the room has not been shown is marked as pending", async () => {
   await expect
     .element(pending.getByTestId("note-card"))
     .toHaveAttribute("data-pending", "true");
+  // Said in words with its glyph, not by a dashed edge alone.
+  await expect
+    .element(pending.getByTestId("note-pending"))
+    .toHaveTextContent(/not presented yet|noch nicht vorgestellt/i);
 
   const shown = await render(
     view({

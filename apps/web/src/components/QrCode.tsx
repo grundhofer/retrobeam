@@ -65,7 +65,7 @@ export function QrCode({
       <div
         data-testid="qr-failed"
         style={box}
-        className={`flex aspect-square items-center justify-center rounded bg-zinc-50 p-2 text-center text-xs text-zinc-500 ${className}`}
+        className={`sb-card__meta flex aspect-square items-center justify-center p-(--sb-space-2) text-center ${className}`}
       >
         {t("invite.qrFailed")}
       </div>
@@ -77,7 +77,8 @@ export function QrCode({
       <div
         aria-hidden="true"
         style={box}
-        className={`aspect-square animate-pulse rounded bg-zinc-100 motion-reduce:animate-none ${className}`}
+        // A still placeholder (sebaro has no pulse).
+        className={`aspect-square bg-(--sb-color-surface-sunken) ${className}`}
       />
     );
   }
@@ -91,12 +92,19 @@ export function QrCode({
       // is enough to trip a scanner on a projected image.
       shapeRendering="crispEdges"
       style={box}
+      // Dark on light in both modes (sebaro §4.6: scanners read inverted
+      // codes badly): the light scheme's ink on its raised white.
+      data-theme="light"
       className={`aspect-square ${className}`}
     >
-      {/* Its own white ground: the quiet zone has to be light whatever the
+      {/* Its own light ground: the quiet zone has to be light whatever the
           card behind it is. */}
-      <rect width={qr.size} height={qr.size} fill="#ffffff" />
-      <path d={qr.path} fill="#18181b" />
+      <rect
+        width={qr.size}
+        height={qr.size}
+        style={{ fill: "var(--sb-color-surface-raised)" }}
+      />
+      <path d={qr.path} style={{ fill: "var(--sb-color-text)" }} />
     </svg>
   );
 }

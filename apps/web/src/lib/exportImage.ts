@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import TOKENS_CSS from "../sebaro/tokens.css?raw";
 import {
   carriedSuffix,
   KUDO_CARD_LABELS,
@@ -56,18 +57,10 @@ export type ImagePalette = Record<
   string
 >;
 
-// sebaro's light values (tokens.css, light mode), for when no token resolves —
-// a test without the stylesheet, or a token renamed in a later export.
-export const LIGHT_FALLBACK: ImagePalette = {
-  page: "#F4F5F8",
-  card: "#FBFCFE",
-  border: "#D7D9DD",
-  ink: "#1C1E22",
-  body: "#1C1E22",
-  muted: "#66696E",
-  accent: "#3057B1",
-};
-
+// sebaro's light values for when no token resolves at the probe — a test
+// without the stylesheet, or a token renamed in a later export. Read from the
+// export's tokens.css itself (its first block is the light one), so they can
+// never drift from it; a copy here had already drifted once (the link colour).
 const TOKEN: ImagePalette = {
   page: "--sb-color-bg",
   card: "--sb-color-surface",
@@ -77,6 +70,19 @@ const TOKEN: ImagePalette = {
   muted: "--sb-color-text-muted",
   accent: "--sb-color-link",
 };
+
+function lightTokenValue(css: string, token: string): string {
+  const match = new RegExp(`${token}:\\s*([^;]+);`).exec(css);
+  if (match?.[1] === undefined) throw new Error(`no ${token} in tokens.css`);
+  return match[1].trim();
+}
+
+export const LIGHT_FALLBACK = Object.fromEntries(
+  Object.entries(TOKEN).map(([role, token]) => [
+    role,
+    lightTokenValue(TOKENS_CSS, token),
+  ]),
+) as ImagePalette;
 
 /** sebaro's light colours as the page's stylesheet has them, read at a
  *  hidden probe with data-theme="light" (no tone of its own; until stage 6b

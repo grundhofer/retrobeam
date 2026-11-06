@@ -3,6 +3,7 @@
 
 import { useTranslation } from "react-i18next";
 import { templateColumnNames } from "@retrobeam/shared";
+import { Icon } from "./Icon.js";
 
 // A still of a board in the write phase, built from the board's own class
 // strings (PhaseStepper pill, BoardColumns header, NoteCard and the dashed
@@ -25,21 +26,15 @@ const PHASES = [
 ] as const;
 const HIDDEN_COUNTS = [3, 2, 4] as const;
 
-const cardClass =
-  "rounded-xl border border-(--sb-color-border) bg-(--sb-color-surface) p-3";
-
-// BoardColumns' team-cards block. Its hint text is one step darker here
-// (text-muted): on the landing page it is a sentence to read, not an ambient
-// count.
+// The board's own card patterns (plan stage 4c, with the 5g cards): the
+// team's cards as sebaro's hidden card — glyph and word — and a card as
+// sebaro's item card with its title and meta line.
 function HiddenNotes({ count }: { count: number }) {
   const { t } = useTranslation();
   return (
-    <div className="rounded-xl border border-dashed border-(--sb-color-border-strong) px-3 py-2">
-      <div className="space-y-1.5">
-        <div className="h-2 w-4/5 rounded bg-(--sb-color-border)" />
-        <div className="h-2 w-3/5 rounded bg-(--sb-color-border)" />
-      </div>
-      <p className="mt-2 text-xs text-(--sb-color-text-muted)">
+    <div className="sb-card sb-card--item sb-card--hidden">
+      <p className="sb-card__title">
+        <Icon name="eye-off" size={20} />
         {t("landing.preview.hiddenNotes", { count })}
       </p>
     </div>
@@ -48,12 +43,15 @@ function HiddenNotes({ count }: { count: number }) {
 
 function Card({ text, author }: { text: string; author: string }) {
   return (
-    <div className={cardClass}>
-      <p className="text-sm text-(--sb-color-text)">{text}</p>
-      <p className="mt-2 text-xs text-(--sb-color-text-muted)">{author}</p>
+    <div className="sb-card sb-card--item">
+      <p className="sb-card__title">{text}</p>
+      <p className="sb-card__meta">{author}</p>
     </div>
   );
 }
+
+const LABEL =
+  "[font:var(--sb-type-label)] [letter-spacing:var(--sb-type-label-tracking)]";
 
 export function BoardPreview() {
   const { t, i18n } = useTranslation();
@@ -73,8 +71,8 @@ export function BoardPreview() {
         // sebaro.css is unlayered and outranks a Tailwind utility.
         style={{ aspectRatio: "auto" }}
       >
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-(--sb-color-border) px-4 py-3">
-          <span className="text-sm font-semibold text-(--sb-color-text)">
+        <div className="flex flex-wrap items-center gap-x-(--sb-space-4) gap-y-(--sb-space-2) border-b border-(--sb-color-border) px-(--sb-space-4) py-(--sb-space-3)">
+          <span className={`${LABEL} font-semibold text-(--sb-color-text)`}>
             {t("landing.preview.boardName")}
           </span>
           {/* Wraps on narrow frames, where the app's own stepper would run
@@ -83,7 +81,7 @@ export function BoardPreview() {
               first step of EACH line — not just the first overall — starts
               without a stray "·". */}
           <div className="overflow-hidden">
-            <ol className="-ml-3 flex flex-wrap items-center gap-y-1.5">
+            <ol className="-ml-3 flex flex-wrap items-center gap-y-(--sb-space-1)">
               {PHASES.map((step) => (
                 <li key={step} className="flex items-center">
                   {/* contrast-ok: decorative separator */}
@@ -91,10 +89,12 @@ export function BoardPreview() {
                     ·
                   </span>
                   <span
+                    // The current step as the board's own step line marks it:
+                    // ink and weight, not a filled pill.
                     className={
                       step === "write"
-                        ? "mx-0.5 rounded-full bg-(--sb-color-accent) px-2.5 py-0.5 text-sm font-medium text-(--sb-color-on-accent)"
-                        : "px-1 text-sm text-(--sb-color-text-muted)"
+                        ? `${LABEL} px-(--sb-space-1) font-semibold text-(--sb-color-text) underline decoration-2 underline-offset-4`
+                        : `${LABEL} px-(--sb-space-1) text-(--sb-color-text-muted)`
                     }
                   >
                     {t(`phase.${step}`)}
@@ -104,9 +104,11 @@ export function BoardPreview() {
             </ol>
           </div>
         </div>
-        <div className="grid gap-3 bg-(--sb-color-surface-sunken) p-4 sm:grid-cols-3">
-          <div className="flex flex-col gap-2">
-            <h3 className="truncate text-sm font-semibold text-(--sb-color-text-muted)">
+        <div className="grid gap-(--sb-space-3) bg-(--sb-color-surface-sunken) p-(--sb-space-4) sm:grid-cols-3">
+          <div className="flex flex-col gap-(--sb-space-2)">
+            <h3
+              className={`${LABEL} truncate font-semibold text-(--sb-color-text)`}
+            >
               {columns[0]}
             </h3>
             <Card
@@ -115,8 +117,10 @@ export function BoardPreview() {
             />
             <HiddenNotes count={HIDDEN_COUNTS[0]} />
           </div>
-          <div className="flex flex-col gap-2">
-            <h3 className="truncate text-sm font-semibold text-(--sb-color-text-muted)">
+          <div className="flex flex-col gap-(--sb-space-2)">
+            <h3
+              className={`${LABEL} truncate font-semibold text-(--sb-color-text)`}
+            >
               {columns[1]}
             </h3>
             <Card
@@ -125,8 +129,10 @@ export function BoardPreview() {
             />
             <HiddenNotes count={HIDDEN_COUNTS[1]} />
           </div>
-          <div className="flex flex-col gap-2">
-            <h3 className="truncate text-sm font-semibold text-(--sb-color-text-muted)">
+          <div className="flex flex-col gap-(--sb-space-2)">
+            <h3
+              className={`${LABEL} truncate font-semibold text-(--sb-color-text)`}
+            >
               {columns[2]}
             </h3>
             <Card

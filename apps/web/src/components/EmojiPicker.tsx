@@ -102,7 +102,7 @@ export function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
           data-autofocus={index === 0 ? true : undefined}
           data-testid={`emoji-${emoji}`}
           onClick={() => onPick(emoji)}
-          className="flex min-h-(--sb-size-target-touch) items-center justify-center rounded-(--sb-radius-control) text-xl hover:bg-(--sb-color-hover-fill)"
+          className="flex min-h-(--sb-size-target-touch) items-center justify-center rounded-(--sb-radius-control) [font:var(--sb-type-title)] hover:bg-(--sb-color-hover-fill)"
         >
           {emoji}
         </button>
