@@ -62,10 +62,29 @@ test("i18n.ts: only the values of the asked language block, never quoted keys", 
     "} as const;",
   ].join("\n");
   assert.deepEqual(i18nStrings(source, "en"), [
-    { line: 3, text: "Hello!" },
-    { line: 4, text: "one" },
+    { line: 3, text: "Hello!", key: "a" },
+    { line: 4, text: "one", key: undefined },
   ]);
-  assert.deepEqual(i18nStrings(source, "de"), [{ line: 7, text: "Hallo" }]);
+  assert.deepEqual(i18nStrings(source, "de"), [
+    { line: 7, text: "Hallo", key: "a" },
+  ]);
+});
+
+// A quotation shown with its source keeps its author's "wir" (owner,
+// 2026-11-06); every other rule still applies to it, and "wir" anywhere else
+// still counts — also for a value wrapped onto the line after its key.
+test("a quotation waives only the wir rule", () => {
+  const source = [
+    "const resources = {",
+    "  de: {",
+    "    primeDirective:",
+    '      "Was wir herausfinden — jede:r",',
+    '    label: "Was nehmen wir uns vor?",',
+    "  },",
+    "} as const;",
+  ].join("\n");
+  const rules = scan(i18nStrings(source, "de"), RULES.de).map((h) => h.rule);
+  assert.deepEqual(rules.sort(), ["em-dash", "gender-sign", "wir"]);
 });
 
 test("index.html: text and content attributes, without scripts and comments", () => {

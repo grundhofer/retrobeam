@@ -633,7 +633,7 @@ test("the static fallback gives way to the app", async ({ browser }) => {
   await expect(page.getByTestId("landing-hero")).toBeVisible();
   await expect(page.locator("[data-static-fallback]")).toHaveCount(0);
   await expect(page).toHaveTitle(
-    /RetroBeam — (Retros, auf die sich dein Team freut\.|Retros your team will look forward to\.)/,
+    /RetroBeam: (Retros, auf die sich dein Team freut\.|Retros your team will look forward to\.)/,
   );
   await context.close();
 });

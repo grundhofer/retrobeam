@@ -34,7 +34,7 @@ const FAQ_GROUPS = [
 ] as const;
 
 // The hero's claims, each one a link to the FAQ answer that carries its
-// caveats: "stored in the EU" is only honest next to the answer that says the
+// caveats: "EU jurisdiction" is only honest next to the answer that says the
 // edge can be outside it, "90 days" next to the one that says a facilitator
 // can keep a board. The chips are the short form; the answer is the promise.
 // No "no account" chip — the kicker and the hint under the button say it.
@@ -66,7 +66,8 @@ export function LandingPage() {
   // index.html carries the German title for crawlers and link previews; once
   // the app runs, the tab follows the UI language.
   useEffect(() => {
-    document.title = `${appName} — ${tagline}`;
+    // A colon, not the em dash (sebaro spec/07; owner, 2026-11-06).
+    document.title = `${appName}: ${tagline}`;
     return () => {
       document.title = appName;
     };
@@ -110,7 +111,7 @@ export function LandingPage() {
                 {t("landing.ctaHint")}
               </p>
               {/* Each one short, a link to the FAQ answer that carries its
-                  caveats: "stored in the EU" is only honest next to the
+                  caveats: "EU jurisdiction" is only honest next to the
                   answer that says the edge can be outside it, "90 days" next
                   to the one that says a facilitator can keep a board. */}
               <ul data-testid="landing-trust">
