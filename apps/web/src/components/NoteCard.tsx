@@ -50,7 +50,7 @@ export const ARRANGE_OPTION =
   "sb-secondary-action sb-secondary-action--compact";
 export const ARRANGE_LABEL = "sb-field__label";
 export const ARRANGE_STEP = ARRANGE_OPTION;
-export const ARRANGE_PANEL = "flex flex-col gap-(--sb-space-2)";
+export const ARRANGE_PANEL = "flex flex-col gap-2";
 
 // Cards that are to take the focus when they mount next (a move or a stack
 // remounts a card elsewhere). A request lapses after two seconds, and at
@@ -433,7 +433,7 @@ export function NoteCard({
             </div>
           </div>
           {draftGif !== null ? (
-            <div className="flex items-start gap-(--sb-space-1)">
+            <div className="flex items-start gap-1">
               <img
                 src={draftGif}
                 alt=""
@@ -490,7 +490,7 @@ export function NoteCard({
           {/* The meta line spans the card (sebaro's board card puts it under
               the title, the whole width): beside the title, in the grid's
               auto column, a wide line squeezed the title to nothing. */}
-          <div className="col-span-full flex items-center gap-(--sb-space-1)">
+          <div className="col-span-full flex items-center gap-1">
             {/* §6.1 d: on an anonymous board nobody, not even you. */}
             {author ? (
               <p className="sb-card__meta min-w-0 flex-1 truncate">
@@ -511,7 +511,7 @@ export function NoteCard({
                 card's corner over its text, which at such a zoom nobody
                 reads; the panel and the menu open at full size anyway. */}
             <span
-              className="flex shrink-0 items-center gap-(--sb-space-1)"
+              className="flex shrink-0 items-center gap-1"
               style={
                 arrangeScale === null
                   ? undefined
@@ -608,7 +608,7 @@ export function NoteCard({
               }}
               className={`${ARRANGE_PANEL} ${
                 arrangeScale === null
-                  ? "border-t border-(--sb-color-border) pt-(--sb-space-2)"
+                  ? "border-t border-border pt-2"
                   : `mt-1 ${CARD_SURFACE}`
               }`}
               style={
@@ -715,7 +715,7 @@ export function NoteCard({
           {/* The reactions are the room's own content (plan §2.4 F24): they
               keep their emoji, in sebaro's colour roles. */}
           {revealed ? (
-            <div className="flex flex-wrap gap-(--sb-space-1)">
+            <div className="flex flex-wrap gap-1">
               {REACTION_EMOJI.map((emoji) => {
                 const reactors = note.reactions[emoji] ?? [];
                 const reacted = reactors.includes(you.id);
@@ -727,12 +727,12 @@ export function NoteCard({
                     data-testid={`react-${emoji}`}
                     aria-pressed={unused ? undefined : reacted}
                     onClick={() => toggleReaction(emoji)}
-                    className={`rounded-(--sb-radius-control) border px-(--sb-space-1) py-(--sb-space-0-5) tabular-nums [font:var(--sb-type-caption)] ${
+                    className={`rounded-control border px-1 py-(--sb-space-0-5) tabular-nums [font:var(--sb-type-caption)] ${
                       reacted
-                        ? "border-(--sb-color-accent) text-(--sb-color-link)"
+                        ? "border-(--sb-color-accent) text-link"
                         : unused
                           ? "border-transparent opacity-40 grayscale hover:opacity-100 hover:grayscale-0"
-                          : "border-(--sb-color-border) text-(--sb-color-text-muted)"
+                          : "border-border text-text-muted"
                     }`}
                   >
                     {unused ? emoji : `${emoji} ${reactors.length}`}

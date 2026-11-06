@@ -64,7 +64,7 @@ export function KudosWall({
       {kudos.length === 0 ? (
         <p className="sb-field__help">{t("kudos.empty")}</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-(--sb-space-3) sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {kudos.map((kudo) => {
             const to = byId.get(kudo.toId);
             const from = kudo.fromId === null ? null : byId.get(kudo.fromId);
@@ -75,8 +75,8 @@ export function KudosWall({
                 data-testid="kudo-card"
                 className="reveal-in sb-card sb-card--item sb-stack"
               >
-                <div className="flex items-center justify-between gap-(--sb-space-2)">
-                  <span className="sb-card__meta flex items-center gap-(--sb-space-1)">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="sb-card__meta flex items-center gap-1">
                     <Icon name={CARD_ICON[kudo.cardType]} size={20} />
                     {t(`kudos.card.${kudo.cardType}`)}
                   </span>
@@ -301,7 +301,7 @@ function KudoComposer({
       </div>
 
       {gifUrl !== null ? (
-        <div className="sb-form-grid__wide flex items-start gap-(--sb-space-2)">
+        <div className="sb-form-grid__wide flex items-start gap-2">
           <img
             src={gifUrl}
             alt=""

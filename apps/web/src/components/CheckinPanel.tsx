@@ -38,7 +38,7 @@ export function CheckinPanel({
 
       {showDirective ? (
         <section aria-labelledby="directive-title" className="sb-stack">
-          <div className="flex items-center justify-between gap-(--sb-space-2)">
+          <div className="flex items-center justify-between gap-2">
             <h2 id="directive-title" className="sb-section__title">
               {t("checkin.primeDirectiveTitle")}
             </h2>

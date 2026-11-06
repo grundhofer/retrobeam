@@ -163,7 +163,7 @@ export function PhaseStepper({
           </p>
         </div>
         {isAdmin && (previous !== null || next === "done") ? (
-          <div className="flex flex-wrap items-center gap-(--sb-space-2)">
+          <div className="flex flex-wrap items-center gap-2">
             {previous !== null ? (
               <button
                 type="button"

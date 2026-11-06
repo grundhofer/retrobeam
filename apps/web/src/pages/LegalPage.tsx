@@ -104,7 +104,7 @@ function LegalLayout({
       <main id={MAIN_ID} className="sb-container sb-section flex-1">
         <h1>{title}</h1>
         {updated ? (
-          <p className="mt-(--sb-space-2) text-(--sb-color-text-muted) tabular-nums [font:var(--sb-type-caption)]">
+          <p className="mt-2 text-text-muted tabular-nums [font:var(--sb-type-caption)]">
             {t("legal.updated")}{" "}
             <time dateTime={updated}>
               {new Date(`${updated}T00:00:00Z`).toLocaleDateString(locale, {
@@ -116,7 +116,7 @@ function LegalLayout({
             </time>
           </p>
         ) : null}
-        <div className="sb-prose mt-(--sb-space-8)">{children}</div>
+        <div className="sb-prose mt-8">{children}</div>
       </main>
       <LegalFooter />
     </div>

@@ -868,7 +868,7 @@ export function BoardCanvas({
     <div className="relative">
       <div
         data-canvas-control
-        className="absolute top-2 right-2 z-40 flex flex-wrap items-center justify-end gap-(--sb-space-1) rounded-(--sb-radius-control) bg-(--sb-color-bg)"
+        className="absolute top-2 right-2 z-40 flex flex-wrap items-center justify-end gap-1 rounded-control bg-bg"
       >
         {isAdmin && arrangedZone !== null ? (
           <button
@@ -982,7 +982,7 @@ export function BoardCanvas({
             },
           }))}
         />
-        <div className="flex items-center gap-(--sb-space-1)">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             aria-label={t("canvas.zoomOut")}
@@ -1043,7 +1043,7 @@ export function BoardCanvas({
         // sebaro's free canvas (spec/02 §3.29, RB-4): the plain ground, no
         // grid. It pans and zooms rather than scrolls (the product's own
         // gesture, kept), so the plane's own positioning rules stay unused.
-        className="sb-canvas relative h-[72vh] overflow-hidden border border-(--sb-color-border)"
+        className="sb-canvas relative h-[72vh] overflow-hidden border border-border"
         style={{ touchAction: "none" }}
       >
         <div
@@ -1091,7 +1091,7 @@ export function BoardCanvas({
                       ? (event) => beginZoneDrag(event, column, "move")
                       : undefined
                   }
-                  className={`flex items-center gap-(--sb-space-1) px-(--sb-space-3) pt-(--sb-space-2) pb-(--sb-space-1) ${
+                  className={`flex items-center gap-1 px-3 pt-2 pb-1 ${
                     isAdmin ? "cursor-move" : ""
                   }`}
                 >
@@ -1100,12 +1100,12 @@ export function BoardCanvas({
                     {column.hidden ? (
                       <span
                         data-testid="column-hidden-badge"
-                        className="sb-tag ms-(--sb-space-1)"
+                        className="sb-tag ms-1"
                       >
                         {t("column.hidden")}
                       </span>
                     ) : null}
-                    <span className="sb-card__meta ms-(--sb-space-1) inline tabular-nums">
+                    <span className="sb-card__meta ms-1 inline tabular-nums">
                       {zoneNotes.length}
                     </span>
                   </h2>
@@ -1137,7 +1137,7 @@ export function BoardCanvas({
                       y: clampUnit((event.clientY - box.top) / box.height),
                     });
                   }}
-                  className="relative flex-1 overflow-hidden rounded-b-(--sb-radius-container)"
+                  className="relative flex-1 overflow-hidden rounded-b-container"
                   style={arrangingHere ? { overflow: "visible" } : undefined}
                 >
                   {phase === "write"
@@ -1256,7 +1256,7 @@ export function BoardCanvas({
 
                   {zoneNotes.length === 0 &&
                   composing?.columnId !== column.id ? (
-                    <p className="sb-card__meta pointer-events-none absolute inset-0 flex items-center justify-center px-(--sb-space-4) text-center">
+                    <p className="sb-card__meta pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center">
                       {t("canvas.hint")}
                     </p>
                   ) : null}
@@ -1277,7 +1277,7 @@ export function BoardCanvas({
                     }
                     // Nor does a press focus it, hidden as it is.
                     onMouseDown={(event) => event.preventDefault()}
-                    className="absolute right-0 bottom-0 flex size-6 cursor-nwse-resize items-center justify-center text-(--sb-color-text-muted) hover:text-(--sb-color-text)"
+                    className="absolute right-0 bottom-0 flex size-6 cursor-nwse-resize items-center justify-center text-text-muted hover:text-text"
                     style={{ touchAction: "none" }}
                   >
                     <Icon name="grip" size={16} />
@@ -1378,13 +1378,13 @@ function CanvasComposer({
         transform: "translate(-50%, -50%)",
         zIndex: 40,
       }}
-      className="flex flex-col gap-(--sb-space-1)"
+      className="flex flex-col gap-1"
     >
       <div className="sb-field">
         <label htmlFor={fieldId} className="sb-visually-hidden">
           {t("note.placeholder")}
         </label>
-        <div className="sb-field__control bg-(--sb-color-bg)">
+        <div className="sb-field__control bg-bg">
           <textarea
             id={fieldId}
             ref={textareaRef}
@@ -1408,7 +1408,7 @@ function CanvasComposer({
         </div>
       </div>
       {gifUrl !== null ? (
-        <div className="flex w-fit items-start gap-(--sb-space-1) bg-(--sb-color-bg)">
+        <div className="flex w-fit items-start gap-1 bg-bg">
           <img
             src={gifUrl}
             alt=""
@@ -1427,7 +1427,7 @@ function CanvasComposer({
       ) : null}
       {/* Same rule as the column composer: a GIF only ever joins text. */}
       {gifsEnabled && gifUrl === null && text.trim() !== "" ? (
-        <div className="w-fit bg-(--sb-color-bg)">
+        <div className="w-fit bg-bg">
           <GifPickerButton
             testId="canvas-composer-gif"
             onPick={setGifUrl}

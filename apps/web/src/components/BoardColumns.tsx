@@ -250,7 +250,7 @@ export function BoardColumns(props: BoardColumnsProps) {
       : null;
 
   return (
-    <div className="sb-stack pb-(--sb-space-4)">
+    <div className="sb-stack pb-4">
       {newCardAction}
       <div
         ref={boardRef}
@@ -706,7 +706,7 @@ function BoardColumn({
             data-testid="ghost-card"
             className="sb-card sb-card--item"
           >
-            <p className="sb-card__meta flex items-center gap-(--sb-space-1)">
+            <p className="sb-card__meta flex items-center gap-1">
               <Icon name="edit" size={16} />
               {t("note.ghostWriting", { name: ghost.name })}
             </p>
@@ -793,7 +793,7 @@ export function NoteStack({
   return (
     <div
       data-testid="note-stack"
-      className="sb-stack rounded-(--sb-radius-container) border border-(--sb-color-border) p-(--sb-space-1)"
+      className="sb-stack rounded-container border border-border p-1"
     >
       <span className="sb-tag self-start tabular-nums">×{count}</span>
       {children}
@@ -854,7 +854,7 @@ export function TargetFrame({
       data-testid="vote-target"
       className={`sb-stack ${
         focused
-          ? "rounded-(--sb-radius-container) outline-[3px] outline-offset-2 outline-(--sb-color-accent) outline-solid"
+          ? "rounded-container outline-[3px] outline-offset-2 outline-(--sb-color-accent) outline-solid"
           : ""
       } ${dim ? "opacity-40" : ""}`}
     >
@@ -874,7 +874,7 @@ export function TargetFrame({
       ) : null}
       {deciding.talliesShown &&
       (rank >= 0 || tally !== undefined || myCount > 0) ? (
-        <div className="flex flex-wrap items-center gap-(--sb-space-2)">
+        <div className="flex flex-wrap items-center gap-2">
           {rank >= 0 ? (
             <span data-testid="crown" className="sb-tag">
               {t("done.rank", {
@@ -886,7 +886,7 @@ export function TargetFrame({
           {tally !== undefined ? (
             <span
               data-testid="tally"
-              className="sb-card__meta flex items-center gap-(--sb-space-1) tabular-nums"
+              className="sb-card__meta flex items-center gap-1 tabular-nums"
             >
               <Icon name="thumbs-up" size={16} />
               {tally}
@@ -1064,7 +1064,7 @@ function NoteComposer({
         </div>
       </div>
       {gifUrl !== null ? (
-        <div className="mt-(--sb-space-1) flex items-start gap-(--sb-space-1)">
+        <div className="mt-1 flex items-start gap-1">
           <img
             src={gifUrl}
             alt=""
@@ -1081,7 +1081,7 @@ function NoteComposer({
           </button>
         </div>
       ) : null}
-      <div className="sb-cluster mt-(--sb-space-1)">
+      <div className="sb-cluster mt-1">
         {text.trim() !== "" ? (
           <button
             type="submit"

@@ -182,7 +182,7 @@ function CardSelectionScene({
         {t("picker.title")}
       </h2>
       <p className="sb-dialog__text">{t("picker.cardDeckHint", { count })}</p>
-      <div className="mt-(--sb-space-4) flex flex-wrap justify-center gap-(--sb-space-3)">
+      <div className="mt-4 flex flex-wrap justify-center gap-3">
         {Array.from({ length: count }, (_, index) => (
           <button
             key={index}
@@ -192,7 +192,7 @@ function CardSelectionScene({
             aria-pressed={selected === index ? true : undefined}
             disabled={selected !== null}
             onClick={() => choose(index)}
-            className={`${CARD_FACE} hover:bg-(--sb-color-hover-fill) disabled:cursor-wait aria-pressed:outline-[3px] aria-pressed:outline-offset-2 aria-pressed:outline-(--sb-color-accent) aria-pressed:outline-solid`}
+            className={`${CARD_FACE} hover:bg-hover-fill disabled:cursor-wait aria-pressed:outline-[3px] aria-pressed:outline-offset-2 aria-pressed:outline-(--sb-color-accent) aria-pressed:outline-solid`}
           >
             <Icon name="help" size={32} />
           </button>
@@ -205,7 +205,7 @@ function CardSelectionScene({
 // A face-down card: sebaro's card edge in ink, a size between a phone and a
 // wall (the dialog wraps them).
 const CARD_FACE =
-  "flex h-32 w-22 shrink-0 items-center justify-center rounded-(--sb-radius-container) border-2 border-(--sb-color-text) bg-(--sb-color-bg) text-(--sb-color-text)";
+  "flex h-32 w-22 shrink-0 items-center justify-center rounded-container border-2 border-text bg-bg text-text";
 
 function SpinScene({
   spin,
@@ -337,7 +337,7 @@ function CardReveal({
     <div
       data-testid="card-reveal"
       aria-hidden="true"
-      className="flex flex-wrap justify-center gap-(--sb-space-3)"
+      className="flex flex-wrap justify-center gap-3"
     >
       {spin.pool.map((participantId, index) => {
         const selected = index === selectedIndex;
@@ -371,7 +371,7 @@ function CardReveal({
               </div>
               {selected ? (
                 <div
-                  className={`absolute inset-0 ${CARD_FACE} flex-col gap-(--sb-space-2) px-(--sb-space-2) text-center`}
+                  className={`absolute inset-0 ${CARD_FACE} flex-col gap-2 px-2 text-center`}
                   style={{
                     backfaceVisibility: "hidden",
                     transform: "rotateY(180deg)",
@@ -584,7 +584,7 @@ function SlotMachine({
     <div
       data-testid="slot-machine"
       aria-hidden="true"
-      className="flex gap-(--sb-space-3)"
+      className="flex gap-3"
     >
       {Array.from({ length: SLOT_REELS }, (_, reelIndex) => (
         <Reel
@@ -637,7 +637,7 @@ function Reel({
 
   return (
     <div
-      className="relative w-16 overflow-hidden rounded-(--sb-radius-container) border-2 border-(--sb-color-text)"
+      className="relative w-16 overflow-hidden rounded-container border-2 border-text"
       style={{ height: SLOT_CELL_PX * 3 }}
     >
       <div
@@ -667,7 +667,7 @@ function Reel({
       </div>
       {/* center window highlight */}
       <div
-        className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 rounded-(--sb-radius-control) border-2 border-(--sb-color-accent)"
+        className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 rounded-control border-2 border-(--sb-color-accent)"
         style={{ height: SLOT_CELL_PX }}
       />
     </div>

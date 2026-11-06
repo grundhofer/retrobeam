@@ -119,7 +119,7 @@ export function PresenceRail({
     // child's automatic min-height refuses to shrink below its content.
     <aside
       aria-labelledby="rail-title"
-      className="sb-stack w-full self-start lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100dvh-2rem)] lg:w-80 lg:shrink-0 lg:border-s lg:border-(--sb-color-border) lg:ps-(--sb-space-4)"
+      className="sb-stack w-full self-start lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100dvh-2rem)] lg:w-80 lg:shrink-0 lg:border-s lg:border-border lg:ps-4"
     >
       <h2 id="rail-title" className="sb-list-header lg:shrink-0">
         {t("board.participants")}{" "}
@@ -190,7 +190,7 @@ export function PresenceRail({
       {mode === "present" && finished ? (
         <p
           data-testid="picker-finished"
-          className="flex items-center gap-(--sb-space-1) lg:shrink-0"
+          className="flex items-center gap-1 lg:shrink-0"
         >
           <Icon name="success" size={20} />
           {t("picker.everyone")}

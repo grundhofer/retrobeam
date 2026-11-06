@@ -45,7 +45,7 @@ export function AdminLink({
     <div data-testid="admin-link" className="sb-callout sb-callout--warning">
       <Icon name="lock" size={20} />
       <div className="sb-callout__text sb-stack">
-        <p className="flex flex-wrap items-center gap-(--sb-space-2)">
+        <p className="flex flex-wrap items-center gap-2">
           <label
             htmlFor={inputId}
             className="[font-weight:var(--sb-type-body-strong-weight)]"
