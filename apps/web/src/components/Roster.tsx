@@ -3,6 +3,7 @@
 
 import { useTranslation } from "react-i18next";
 import type { Participant } from "@retrobeam/shared";
+import { PersonAvatar } from "./PersonAvatar.js";
 import { isLastFacilitator, RoleToggleButton } from "./RoleToggleButton.js";
 
 export interface RosterProps {
@@ -13,63 +14,58 @@ export interface RosterProps {
   isAdmin?: boolean;
 }
 
+// sebaro's list (spec/02 §3.3): one row per person, the avatar as the lead
+// (initials in a ring, presence and role as in the header, D132, F6), the
+// name, a meta line with the role and „offline“ in words, and the role switch
+// at the end for a facilitator. No colour per person.
 export function Roster({ participants, youId, isAdmin = false }: RosterProps) {
   const { t } = useTranslation();
   return (
-    <section aria-label={t("board.participants")}>
-      <h2 className="mb-2 text-sm font-semibold tracking-wide text-zinc-500 uppercase">
-        {t("board.participants")}
+    <section aria-labelledby="roster-title" className="sb-stack">
+      <h2 id="roster-title" className="sb-list-header">
+        {t("board.participants")}{" "}
+        <span className="sb-list-header__count">{participants.length}</span>
       </h2>
-      <ul className="flex flex-col gap-1.5">
-        {participants.map((participant) => (
-          <li
-            key={participant.id}
-            data-testid="roster-item"
-            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${
-              participant.online ? "" : "opacity-45"
-            }`}
-          >
-            <span
-              aria-hidden="true"
-              className="size-3 shrink-0 rounded-full"
-              style={{ backgroundColor: participant.color }}
-            />
-            <span className="truncate text-zinc-800">
-              {participant.name}
-              {participant.id === youId ? (
-                <span className="text-zinc-500"> ({t("board.you")})</span>
+      <ul className="sb-list">
+        {participants.map((participant) => {
+          const meta = [
+            participant.role === "facilitator" ? t("board.facilitator") : null,
+            participant.online ? null : t("board.offline"),
+          ].filter((part) => part !== null);
+          return (
+            <li
+              key={participant.id}
+              data-testid="roster-item"
+              className="sb-list-row"
+            >
+              <span className="sb-list-row__lead">
+                <PersonAvatar participant={participant} />
+              </span>
+              <div className="sb-list-row__main">
+                <p className="sb-list-row__title">
+                  {participant.name}
+                  {participant.id === youId ? ` (${t("board.you")})` : null}
+                </p>
+                {meta.length > 0 ? (
+                  <p className="sb-list-row__meta">{meta.join(" · ")}</p>
+                ) : null}
+              </div>
+              {/* Not on the last facilitator's own row: there it could only be
+                  refused. The avatar menu, where someone looks for it, says
+                  why. */}
+              {isAdmin && !isLastFacilitator(participant, participants) ? (
+                <span className="sb-list-row__trail">
+                  <RoleToggleButton
+                    participant={participant}
+                    participants={participants}
+                    testId={`roster-role-${participant.name}`}
+                    className="sb-secondary-action sb-secondary-action--compact"
+                  />
+                </span>
               ) : null}
-            </span>
-            {participant.role === "facilitator" ? (
-              <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent-strong">
-                {t("board.facilitator")}
-              </span>
-            ) : null}
-            {!participant.online ? (
-              <span className="ml-auto text-xs text-zinc-500">
-                {t("board.offline")}
-              </span>
-            ) : null}
-            {/* Not on the last facilitator's own row: there it could only be
-                refused. The avatar menu, where someone looks for it, says why. */}
-            {isAdmin && !isLastFacilitator(participant, participants) ? (
-              <span
-                className={
-                  participant.role === "facilitator" || !participant.online
-                    ? ""
-                    : "ml-auto"
-                }
-              >
-                <RoleToggleButton
-                  participant={participant}
-                  participants={participants}
-                  testId={`roster-role-${participant.name}`}
-                  className="rounded-lg px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
-                />
-              </span>
-            ) : null}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

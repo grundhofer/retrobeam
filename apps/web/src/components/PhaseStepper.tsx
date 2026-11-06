@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   canTransition,
@@ -12,19 +13,34 @@ import {
   type PhasePlan,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { Icon } from "./Icon.js";
 
 export interface PhaseStepperProps {
   phase: Phase;
   phasePlan: PhasePlan;
   isAdmin: boolean;
+  /** Where the bottom block goes: the end of the board's view. */
+  actionSlot?: HTMLElement | null;
+  /** The time box's words for the line under the bars (sebaro RB-1:
+   *  „Vorstellen · noch 3 Min.“), or nothing. */
+  timeLeft?: ReactNode;
 }
 
 // The always-visible answer to "where are we in the retro?" — plus the one
 // big button the facilitator drives the session with (product spec §12).
-export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
+export function PhaseStepper({
+  phase,
+  phasePlan,
+  isAdmin,
+  actionSlot = null,
+  timeLeft = null,
+}: PhaseStepperProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
   const sequence = enabledPhases(phasePlan);
+  const currentIndex = sequence.indexOf(phase);
+  // sebaro's long form of the steps starts at five (D131).
+  const long = sequence.length >= 5;
   // Offer only steps the server's own transition table would accept, so the UI
   // cannot present a control that is guaranteed to be rejected. "done" is
   // terminal, and it used to render a "← Close" button that failed on every
@@ -69,20 +85,31 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
 
   // Finishing is the one step nobody can take back ("done" is terminal in
   // canTransition) and it freezes the board for the whole room, so it asks
-  // first — the BoardMenu delete pattern: the trigger turns into "Cancel" in
-  // place and the confirmation is a SECOND button, never one swapped in under
-  // the pointer. Here it goes on its own line below rather than beside: the
-  // stepper is centred in the header, so a button appearing beside the
-  // trigger would shift the trigger sideways and could slide the confirmation
-  // under a double click's second press. Below, that press lands on "Cancel".
+  // first, in sebaro's confirmation dialog. A modal: a double click's second
+  // press lands on the backdrop, never on the confirmation.
   //
   // Remembered as the phase it was asked in, and dropped on every phase change
   // by the effect above: a phase that moves on underneath (a co-facilitator, a
-  // rewind) retires the question, and coming back to that phase later must not
-  // bring it back unasked. The phase check hides it on the very render the
+  // rewind) closes the dialog (F5b), and coming back to that phase later must
+  // not bring it back unasked. The phase check hides it on the very render the
   // phase changes, before the effect has run.
   const confirming = next === "done" && confirmingIn === phase;
   const questionId = useId();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (confirming && !dialog.open) dialog.showModal();
+    if (!confirming && dialog.open) dialog.close();
+  }, [confirming]);
+  const withSlot = (action: ReactNode) =>
+    actionSlot ? (
+      createPortal(action, actionSlot)
+    ) : (
+      <div className="sb-bottom-block">
+        <div className="sb-primary-action-bar">{action}</div>
+      </div>
+    );
 
   return (
     // Two rows: the phase row, and the finish question under it. Not one
@@ -92,132 +119,144 @@ export function PhaseStepper({ phase, phasePlan, isAdmin }: PhaseStepperProps) {
     // the stepper, and the centred stepper slid the trigger 6px sideways as
     // the question opened.
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Below `sm` the full row does not fit: seven or eight names are
-            some 560px, and that one row made every board page on a phone
-            scroll sideways — which also pushed the fixed wheel overlay off
-            centre. The phone gets the position and the current phase; the
-            list stays in the accessibility tree (sr-only), so a screen reader
-            hears the same agenda on every screen, and this line is hidden
-            from it to avoid reading the phase twice. */}
-        <p
-          aria-hidden="true"
-          data-testid="phase-compact"
-          className="flex items-center gap-2 text-sm text-zinc-500 sm:hidden"
-        >
-          {t("phase.stepOf", {
-            current: sequence.indexOf(phase) + 1,
-            total: sequence.length,
-          })}
-          {/* contrast-ok: decorative separator */}
-          <span className="text-zinc-300">·</span>
-          <span className="rounded-full bg-accent px-2.5 py-0.5 font-medium text-white">
-            {t(`phase.${phase}`)}
-          </span>
-        </p>
-        <ol
-          className="sr-only flex items-center gap-1 sm:not-sr-only"
-          aria-label={t("phase.stepper")}
-        >
-          {sequence.map((step, index) => (
-            <li key={step} className="flex items-center gap-1">
-              {/* contrast-ok: decorative separator */}
-              {index > 0 ? <span className="text-zinc-300">·</span> : null}
-              <span
+      <div className="flex flex-wrap items-end gap-3">
+        {/* sebaro's steps (spec/02 §3.12, sb-progress). A retro has 5 to 8
+            phases, so it takes the long form (D131): numbered marks, a check
+            on the done ones, the words only for screen readers, and one line
+            under the bars, „Schritt 3 von 7 · Vorstellen“, at every width.
+            React renders that line itself (data-sb-own-now), so sb-fit.js
+            writes nothing into this tree; the long form is set on the first
+            render, so no word flashes up first. Fewer than 5 steps are left
+            to sb-fit.js, which shortens them only where a word does not fit. */}
+        <div className="sb-progress min-w-0 flex-[1_1_24rem]">
+          <ol
+            className="sb-progress__steps"
+            aria-label={t("phase.stepper")}
+            data-sb-own-now=""
+            data-sb-long={long ? "" : undefined}
+            data-sb-fit={long ? "short" : undefined}
+          >
+            {sequence.map((step, index) => (
+              <li
+                key={step}
+                className="sb-progress__step"
+                data-sb-state={index < currentIndex ? "done" : undefined}
                 aria-current={step === phase ? "step" : undefined}
-                className={
-                  step === phase
-                    ? "rounded-full bg-accent px-2.5 py-0.5 text-sm font-medium text-white"
-                    : "px-1 text-sm text-zinc-500"
-                }
               >
-                {t(`phase.${step}`)}
-              </span>
-            </li>
-          ))}
-        </ol>
-        {isAdmin ? (
-          <div className="flex items-center gap-1.5">
+                {index < currentIndex ? <Icon name="check" size={16} /> : null}
+                <span className="sb-progress__word">{t(`phase.${step}`)}</span>
+              </li>
+            ))}
+          </ol>
+          <p
+            data-testid="phase-compact"
+            className="sb-progress__now"
+            aria-hidden="true"
+          >
+            {long
+              ? `${t("phase.stepOf", {
+                  current: currentIndex + 1,
+                  total: sequence.length,
+                })} · ${t(`phase.${phase}`)}`
+              : t(`phase.${phase}`)}
+            {timeLeft ? <> · {timeLeft}</> : null}
+          </p>
+        </div>
+        {isAdmin && (previous !== null || next === "done") ? (
+          <div className="flex flex-wrap items-center gap-2">
             {previous !== null ? (
               <button
                 type="button"
                 data-testid="phase-back"
                 disabled={pending !== null}
                 onClick={() => step(previous)}
-                className="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50"
+                className="sb-secondary-action sb-secondary-action--compact"
               >
-                ← {t(`phase.${previous}`)}
+                <Icon name="arrow-left" size={20} />
+                {t(`phase.${previous}`)}
               </button>
             ) : null}
-            {next !== null ? (
+            {/* Finishing cannot be taken back, so it asks like a deletion
+                (F5b, sebaro D102 (43)): the danger action with the cut and
+                no trash, never beside the primary action bar, and a
+                confirmation dialog. */}
+            {next === "done" ? (
               <button
                 type="button"
                 data-testid="phase-next"
                 disabled={pending !== null}
-                aria-expanded={next === "done" ? confirming : undefined}
-                onClick={() =>
-                  next === "done"
-                    ? setConfirmingIn(confirming ? null : phase)
-                    : step(next)
-                }
-                className={`rounded-lg border px-3 py-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 ${
-                  confirming
-                    ? "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
-                    : "border-transparent bg-accent text-white hover:bg-accent-strong"
-                }`}
+                aria-haspopup="dialog"
+                onClick={() => setConfirmingIn(phase)}
+                className="sb-danger-action"
               >
-                {next === "done" ? (
-                  // Both labels share one grid cell, so the button keeps its
-                  // width when it flips to "Cancel" and does not move under the
-                  // pointer either. The hidden one is out of the accessible name.
-                  <span className="grid">
-                    <span
-                      className={`col-start-1 row-start-1 ${confirming ? "invisible" : ""}`}
-                    >
-                      {`${t("phase.next")}: ${t("phase.done")}`}
-                    </span>
-                    <span
-                      className={`col-start-1 row-start-1 ${confirming ? "" : "invisible"}`}
-                    >
-                      {t("note.cancel")}
-                    </span>
-                  </span>
-                ) : phase === "lobby" ? (
-                  t("phase.startRetro")
-                ) : (
-                  `${t("phase.next")}: ${t(`phase.${next}`)}`
-                )}
+                {t("phase.finish")}
               </button>
             ) : null}
           </div>
         ) : null}
       </div>
-      {confirming ? (
-        // contain: inline-size keeps this line out of the stepper's intrinsic
-        // width. Without it the question's own length widened the stepper
-        // and wrapped the whole header at 1440px; now it takes the width the
-        // phase row already has and wraps inside it.
-        <div
+      {/* The facilitator's primary action is the phase change (F5), in the
+          board's action zone (ActionZone), or in a bottom block of its own
+          when there is no slot (a test). */}
+      {isAdmin && next !== null && next !== "done"
+        ? withSlot(
+            <button
+              type="button"
+              data-testid="phase-next"
+              disabled={pending !== null}
+              onClick={() => step(next)}
+              className="sb-primary-action"
+            >
+              {phase === "lobby"
+                ? t("phase.startRetro")
+                : `${t("phase.next")}: ${t(`phase.${next}`)}`}
+            </button>,
+          )
+        : null}
+      {/* Only while finishing is the next step: once the retro is done the
+          dialog leaves with its trigger, and so does the focus that was in
+          it, which RetroResults then picks up. */}
+      {isAdmin && next === "done" ? (
+        <dialog
+          ref={dialogRef}
           data-testid="phase-done-question"
-          className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5 [contain:inline-size]"
+          // m-auto: Tailwind's preflight zeroes every margin, also the
+          // browser's margin: auto that centres a modal <dialog>, and
+          // sebaro.css does not set it back (reported to sebaroDesign).
+          className="sb-dialog m-auto"
+          aria-labelledby={`${questionId}-title`}
+          aria-describedby={`${questionId}-text`}
+          onClose={() => setConfirmingIn(null)}
         >
-          <p id={questionId} className="text-sm text-zinc-600">
-            {t("phase.finishQuestion")}
+          <p className="sb-dialog__title" id={`${questionId}-title`}>
+            {t("phase.finishTitle")}
           </p>
-          <button
-            type="button"
-            data-testid="phase-done-confirm"
-            aria-describedby={questionId}
-            disabled={pending !== null}
-            onClick={() => {
-              setConfirmingIn(null);
-              step("done");
-            }}
-            className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
-          >
-            {t("phase.finish")}
-          </button>
-        </div>
+          <p className="sb-dialog__text" id={`${questionId}-text`}>
+            {t("phase.finishText")}
+          </p>
+          <div className="sb-dialog__actions">
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setConfirmingIn(null)}
+              className="sb-secondary-action"
+            >
+              {t("note.cancel")}
+            </button>
+            <button
+              type="button"
+              data-testid="phase-done-confirm"
+              disabled={pending !== null}
+              onClick={() => {
+                setConfirmingIn(null);
+                step("done");
+              }}
+              className="sb-danger-action sb-danger-action--outlined"
+            >
+              {t("phase.finish")}
+            </button>
+          </div>
+        </dialog>
       ) : null}
     </div>
   );

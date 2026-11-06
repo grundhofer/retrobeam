@@ -50,9 +50,12 @@ test("the initial action follows the selected slots tool", async () => {
     </ConnectionProvider>,
   );
 
-  await expect
-    .element(screen.getByTestId("spin-button"))
-    .toHaveTextContent(`🎰 ${i18n.t("picker.startSlots")}`);
+  // sebaro: the slots icon from the set and the word, no emoji (F7).
+  const spin = screen.getByTestId("spin-button");
+  await expect.element(spin).toHaveTextContent(i18n.t("picker.startSlots"));
+  expect(spin.element().querySelector("use")?.getAttribute("href")).toBe(
+    "#slots",
+  );
 });
 
 test("an anonymous board calls nobody up, and says why the wheel is missing", async () => {

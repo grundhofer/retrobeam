@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
 import "./index.css";
+import sprite from "./sebaro/icons/sprite.svg?raw";
 import "./i18n.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { NoIndex } from "./components/NoIndex.js";
@@ -17,6 +18,15 @@ import { ImprintPage } from "./pages/ImprintPage.js";
 import { LandingPage } from "./pages/LandingPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { PrivacyPage } from "./pages/PrivacyPage.js";
+
+// The timer chime is gone (owner, 2026-11-05: sebaro's time box has no sound),
+// and with it the key that stored its mute. A browser that still holds it has
+// it removed once, so the privacy notice, which no longer lists it, stays true.
+try {
+  localStorage.removeItem("retrobeam.sound");
+} catch {
+  // storage unavailable: nothing was stored either
+}
 
 // errorElement on every route: a render exception during a live retro must
 // offer a way back (the board itself is safe on the server), not a blank page.
@@ -77,11 +87,22 @@ const router = createBrowserRouter([
       </>
     ),
     errorElement: <ErrorBoundary />,
+    // The settings view is a child of the board, so BoardPage — and with it
+    // the board's socket — stays mounted while it is shown (BoardPage reads
+    // the match itself; the children render nothing).
+    children: [{ index: true }, { path: "settings" }],
   },
   { path: "*", element: <NotFoundPage />, errorElement: <ErrorBoundary /> },
 ]);
 
-createRoot(document.getElementById("root") as HTMLElement).render(
+// The icon symbols, once and as exported, ahead of #root and after the start
+// tile, which has to stay the first child of <body> (sebaro spec/09 §1,
+// spec/03 §14): every <Icon> is a <use> of one of them, and the sprite hides
+// itself.
+const root = document.getElementById("root") as HTMLElement;
+root.insertAdjacentHTML("beforebegin", sprite);
+
+createRoot(root).render(
   <StrictMode>
     <SkipLink />
     <RouterProvider router={router} />

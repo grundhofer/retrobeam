@@ -1,58 +1,242 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CURSORS_ACTIVATABLE,
   EXPORT_DOWNLOADS,
   EXPORT_SCOPES,
-  layoutModes,
   TEMPLATE_LINK_MAX_COLUMNS,
   templateLinkQuery,
   type Column,
-  type LayoutMode,
-  type Phase,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { loadAdminToken } from "../lib/session.js";
 import { useBoardCopy } from "../lib/useBoardCopy.js";
 import { useBoardExport } from "../lib/useBoardExport.js";
 import { AdminLink } from "./AdminLink.js";
-import { HeaderPopover } from "./HeaderPopover.js";
+import { Dialog } from "./Dialog.js";
+import { Icon } from "./Icon.js";
+import { Menu, type MenuItem } from "./Menu.js";
 
-// Export (anyone) + admin board settings: GIF toggle, layout, duplicate, keep,
-// delete-now. Lives in the board header. The picker SKIN deliberately is not
-// here — it sits next to the spin button in the presenting cockpit, where it is
-// used; one setting, one control.
+// sebaro's menu „Mehr“ (spec/02 §4.10) in the board's head: export for
+// everyone; for the facilitator the facilitator link, follow-up, duplicate,
+// template link, and „Board löschen …“ last after a hairline. The board's
+// switches are in the settings view (BoardSettings). The picker SKIN
+// deliberately is not here — it sits next to the spin button in the
+// presenting cockpit, where it is used; one setting, one control.
+//
+// Rows that need more than a click open a dialog of their own, their label
+// ending in „…“ (D105 (40)): export, whose data path stands under its keys
+// there, never as a second line of a menu row; the facilitator link and the
+// template link, which show a link; and the deletion, which asks first.
+type Open = "export" | "adminLink" | "templateLink" | "delete" | null;
+
 export function BoardMenu({
   boardId,
   boardName,
   isAdmin,
-  gifsEnabled,
-  cursorsEnabled,
-  voterNamesEnabled,
   anonymous,
-  phase,
-  layout,
-  retentionAt,
   columns,
 }: {
   boardId: string;
   boardName: string;
   isAdmin: boolean;
-  gifsEnabled: boolean;
-  cursorsEnabled: boolean;
-  voterNamesEnabled: boolean;
   anonymous: boolean;
-  phase: Phase;
-  layout: LayoutMode;
-  retentionAt: number | null;
   columns: readonly Column[];
 }) {
   const { t } = useTranslation();
   const { send } = useConnection();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<Open>(null);
+  const { copying, failed: copyFailed, copy } = useBoardCopy(boardId);
+  // Same rule as the lobby: the token holder, while it still counts here.
+  const adminToken = isAdmin ? loadAdminToken(boardId) : null;
+  const close = () => setOpen(null);
+
+  const items: MenuItem[] = [
+    {
+      key: "export",
+      label: t("menu.exportOpen"),
+      icon: "download",
+      testId: "export-open",
+      onSelect: () => setOpen("export"),
+    },
+  ];
+  // In every phase, not just the lobby: the moment someone needs to move the
+  // retro to another screen is usually mid-retro.
+  if (adminToken !== null) {
+    items.push({
+      key: "adminLink",
+      label: t("menu.adminLinkOpen"),
+      icon: "lock",
+      testId: "admin-link-open",
+      onSelect: () => setOpen("adminLink"),
+    });
+  }
+  if (isAdmin) {
+    // Both need the admin token itself, not just the role: a co-facilitator
+    // promoted in the room holds no token, and the server would refuse them.
+    if (adminToken !== null) {
+      items.push(
+        {
+          key: "followUp",
+          label: t("menu.followUp"),
+          icon: "repeat",
+          testId: "follow-up-board",
+          disabled: copying !== null,
+          onSelect: () =>
+            void copy("follow-up", t("menu.followUpName", { name: boardName })),
+        },
+        {
+          key: "duplicate",
+          label: t("menu.duplicate"),
+          icon: "copy",
+          testId: "duplicate-board",
+          disabled: copying !== null,
+          onSelect: () =>
+            void copy(
+              "duplicate",
+              t("menu.duplicateName", { name: boardName }),
+            ),
+        },
+      );
+    }
+    items.push(
+      {
+        key: "templateLink",
+        label: t("menu.templateLinkOpen"),
+        icon: "link",
+        testId: "template-link-open",
+        onSelect: () => setOpen("templateLink"),
+      },
+      {
+        key: "delete",
+        label: t("menu.deleteOpen"),
+        icon: "trash",
+        danger: true,
+        separatorBefore: true,
+        testId: "delete-board",
+        onSelect: () => setOpen("delete"),
+      },
+    );
+  }
+
+  const closeKey = (
+    <button type="button" className="sb-secondary-action" onClick={close}>
+      {t("menu.close")}
+    </button>
+  );
+
+  return (
+    <>
+      <Menu
+        label={t("menu.more")}
+        items={items}
+        triggerTestId="board-menu"
+        menuTestId="board-menu-panel"
+      />
+      {copyFailed ? (
+        <p role="alert" className="sb-field__error">
+          <Icon name="error" size={16} />
+          <span>{t("menu.copyFailed")}</span>
+        </p>
+      ) : null}
+
+      <Dialog
+        open={open === "export"}
+        onClose={close}
+        title={t("menu.exportTitle")}
+        testId="export-dialog"
+        actions={closeKey}
+      >
+        {open === "export" ? (
+          <ExportBody boardId={boardId} anonymous={anonymous} />
+        ) : null}
+      </Dialog>
+
+      {adminToken !== null ? (
+        <Dialog
+          open={open === "adminLink"}
+          onClose={close}
+          title={t("menu.adminLinkTitle")}
+          actions={closeKey}
+        >
+          {open === "adminLink" ? (
+            <AdminLink boardId={boardId} adminToken={adminToken} />
+          ) : null}
+        </Dialog>
+      ) : null}
+
+      {isAdmin ? (
+        <Dialog
+          open={open === "templateLink"}
+          onClose={close}
+          title={t("menu.templateLinkTitle")}
+          actions={closeKey}
+        >
+          {open === "templateLink" ? (
+            <TemplateLinkButton columns={columns} />
+          ) : null}
+        </Dialog>
+      ) : null}
+
+      {/* Deleting wipes the board for everyone and cannot be undone, so it
+          asks in sebaro's confirmation dialog (spec/02 §4.6): „Abbrechen“
+          first and focused, „Löschen“ last as the outlined danger action
+          with the trash. The dialog is modal, so a double click on the menu
+          row never lands on the confirmation. */}
+      {isAdmin ? (
+        <Dialog
+          open={open === "delete"}
+          onClose={close}
+          title={t("menu.deleteTitle")}
+          testId="delete-dialog"
+          actions={
+            <>
+              <button
+                type="button"
+                autoFocus
+                className="sb-secondary-action"
+                onClick={close}
+              >
+                {t("note.cancel")}
+              </button>
+              <button
+                type="button"
+                data-testid="delete-board-confirm"
+                className="sb-danger-action sb-danger-action--outlined"
+                onClick={() => {
+                  close();
+                  send({ type: "admin.board.delete" });
+                }}
+              >
+                <Icon name="trash" size={20} />
+                {t("menu.deleteConfirm")}
+              </button>
+            </>
+          }
+        >
+          <p className="sb-dialog__text">
+            {t("menu.deleteText", { name: boardName })}
+          </p>
+        </Dialog>
+      ) : null}
+    </>
+  );
+}
+
+// The export: its scope, whether names go in, and the formats. Every format
+// is its own key, so the data path stands once under them (D105 (40)).
+function ExportBody({
+  boardId,
+  anonymous,
+}: {
+  boardId: string;
+  anonymous: boolean;
+}) {
+  const { t } = useTranslation();
+  const scopeName = useId();
+  const hintId = useId();
   const {
     scope,
     setScope,
@@ -63,68 +247,46 @@ export function BoardMenu({
     downloadImage,
     exportHref,
   } = useBoardExport(boardId);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const { copying, failed: copyFailed, copy } = useBoardCopy(boardId);
-  // Same rule as the lobby: the token holder, while it still counts here.
-  const adminToken = isAdmin ? loadAdminToken(boardId) : null;
-
   return (
-    <HeaderPopover
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) setConfirmingDelete(false);
-      }}
-      title={t("menu.title")}
-      trigger="⋯"
-      triggerTestId="board-menu"
-      triggerAriaLabel={t("menu.title")}
-      triggerClassName="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-accent"
-      panelTestId="board-menu-panel"
-      panelWidth={{ className: "sm:w-64", px: 256 }}
-    >
-      <div>
-        <p className="mb-1.5 font-semibold tracking-wide text-zinc-500 uppercase">
-          {t("menu.export")}
-        </p>
-        <div className="mb-2">
-          <p className="mb-1 text-zinc-600">{t("menu.exportScope")}</p>
-          <div className="flex gap-1.5" role="group">
-            {EXPORT_SCOPES.map((value) => (
-              <button
-                key={value}
-                type="button"
+    <div className="sb-stack">
+      <fieldset className="sb-segmented">
+        <legend>{t("menu.exportScope")}</legend>
+        <div className="sb-segmented__options">
+          {EXPORT_SCOPES.map((value) => (
+            <label key={value} className="sb-segmented__option">
+              <input
+                type="radio"
+                name={scopeName}
+                value={value}
+                checked={scope === value}
                 data-testid={`export-scope-${value}`}
-                aria-pressed={scope === value}
-                onClick={() => setScope(value)}
-                className={`flex-1 rounded-lg border px-2 py-1 text-xs font-medium ${
-                  scope === value
-                    ? "border-accent bg-accent/10 text-accent-strong"
-                    : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                }`}
-              >
+                onChange={() => setScope(value)}
+              />
+              <span className="sb-segmented__face">
+                <Icon name="check" size={16} />
                 {t(`menu.scope.${value}`)}
-              </button>
-            ))}
-          </div>
+              </span>
+            </label>
+          ))}
         </div>
-        <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
+      </fieldset>
+      {/* §6.1 e: names off when the dialog opens, and on an anonymous board
+          no option to put them in at all — the server leaves them out there
+          whatever is asked, and the sentence says so. */}
+      {anonymous ? (
+        <p className="sb-field__help">{t("menu.includeAuthorsAnonymous")}</p>
+      ) : (
+        <label className="sb-checkbox">
           <input
             type="checkbox"
             checked={includeAuthors}
             onChange={(event) => setIncludeAuthors(event.target.checked)}
-            className="accent-accent"
           />
-          {t("menu.includeAuthors")}
+          <span>{t("menu.includeAuthors")}</span>
         </label>
-        {/* The server leaves them out whatever this box says; say so, so
-                the box cannot be read as a way to get them back. */}
-        {anonymous ? (
-          <p className="-mt-1 mb-2 text-xs text-zinc-500">
-            {t("menu.includeAuthorsAnonymous")}
-          </p>
-        ) : null}
-        <div className="flex flex-wrap gap-2">
+      )}
+      <div role="group" aria-label={t("menu.exportFormat")}>
+        <div className="sb-cluster">
           {EXPORT_DOWNLOADS.map((format) =>
             // JPEG is not a link: the Worker cannot encode an image, so the
             // browser draws it from the very same export JSON these links
@@ -135,9 +297,10 @@ export function BoardMenu({
                 key={format}
                 type="button"
                 data-testid="export-jpeg"
-                disabled={imaging}
+                aria-describedby={hintId}
+                aria-busy={imaging || undefined}
                 onClick={() => void downloadImage()}
-                className="rounded-lg border border-zinc-200 px-3 py-1 font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                className="sb-secondary-action"
               >
                 {imaging ? t("menu.rendering") : "JPEG"}
               </button>
@@ -147,214 +310,25 @@ export function BoardMenu({
                 href={exportHref(format)}
                 download
                 data-testid={`export-${format}`}
-                className="rounded-lg border border-zinc-200 px-3 py-1 font-medium text-zinc-700 hover:bg-zinc-50"
+                aria-describedby={hintId}
+                className="sb-secondary-action"
               >
                 {format.toUpperCase()}
               </a>
             ),
           )}
         </div>
-        {imageFailed ? (
-          <p className="mt-1.5 text-xs text-red-700">{t("menu.imageFailed")}</p>
-        ) : null}
+        <p id={hintId} className="sb-action-hint">
+          {t("menu.exportHint")}
+        </p>
       </div>
-
-      {/* In every phase, not just the lobby: the moment someone needs to
-              move the retro to another screen is usually mid-retro. */}
-      {adminToken !== null ? (
-        <div className="border-t border-zinc-100 pt-3">
-          <AdminLink boardId={boardId} adminToken={adminToken} compact />
-        </div>
+      {imageFailed ? (
+        <p role="alert" className="sb-field__error">
+          <Icon name="error" size={16} />
+          <span>{t("menu.imageFailed")}</span>
+        </p>
       ) : null}
-
-      {isAdmin ? (
-        <div className="border-t border-zinc-100 pt-3">
-          <p className="mb-1.5 font-semibold tracking-wide text-zinc-500 uppercase">
-            {t("menu.settings")}
-          </p>
-          <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
-            <input
-              type="checkbox"
-              checked={gifsEnabled}
-              data-testid="gifs-toggle"
-              onChange={(event) =>
-                send({
-                  type: "admin.gifs.set",
-                  enabled: event.target.checked,
-                })
-              }
-              className="accent-accent"
-            />
-            {t("menu.gifsEnabled")}
-          </label>
-          {/* Whether the reveal names the voters. Disabled rather than
-                  hidden once voting has closed: the lock is part of the
-                  promise — nobody may be de-blinded in a round they already
-                  voted in — and a control that silently vanishes teaches
-                  nothing. The server refuses it either way. */}
-          <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
-            <input
-              type="checkbox"
-              checked={voterNamesEnabled && !anonymous}
-              // The lock is one-way, exactly like the server's: after the
-              // reveal you may still take names down, never put them up.
-              disabled={
-                anonymous || (voterNamesLocked(phase) && !voterNamesEnabled)
-              }
-              data-testid="voter-names-toggle"
-              onChange={(event) =>
-                send({
-                  type: "admin.voterNames.set",
-                  enabled: event.target.checked,
-                })
-              }
-              className="accent-accent"
-            />
-            {t("menu.voterNamesEnabled")}
-          </label>
-          {anonymous || (voterNamesLocked(phase) && !voterNamesEnabled) ? (
-            <p className="-mt-1 mb-2 text-xs text-zinc-500">
-              {anonymous
-                ? t("menu.voterNamesAnonymous")
-                : t("menu.voterNamesLocked")}
-            </p>
-          ) : null}
-          {/* Kept behind one emergency feature gate even though the 1 Hz
-                  client throttle and daily server budget normally make it safe. */}
-          {CURSORS_ACTIVATABLE ? (
-            <label className="mb-2 flex items-center gap-1.5 text-zinc-600">
-              <input
-                type="checkbox"
-                checked={cursorsEnabled && !anonymous}
-                // Refused by the server on an anonymous board, like voter
-                // names — disabled with the reason rather than hidden.
-                disabled={anonymous}
-                data-testid="cursors-toggle"
-                onChange={(event) =>
-                  send({
-                    type: "admin.cursors.set",
-                    enabled: event.target.checked,
-                  })
-                }
-                className="accent-accent"
-              />
-              {t("menu.cursorsEnabled")}
-            </label>
-          ) : null}
-          {CURSORS_ACTIVATABLE && anonymous ? (
-            <p className="-mt-1 mb-2 text-xs text-zinc-500">
-              {t("menu.cursorsAnonymous")}
-            </p>
-          ) : null}
-          <div className="mb-2">
-            <p className="mb-1 text-zinc-600">{t("menu.layout")}</p>
-            <div className="flex gap-1.5" role="group">
-              {layoutModes.map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  data-testid={`layout-${mode}`}
-                  aria-pressed={layout === mode}
-                  onClick={() =>
-                    send({ type: "admin.layout.set", layout: mode })
-                  }
-                  className={`flex-1 rounded-lg border px-2 py-1 font-medium ${
-                    layout === mode
-                      ? "border-accent bg-accent/10 text-accent-strong"
-                      : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                  }`}
-                >
-                  {t(`menu.layoutMode.${mode}`)}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Both need the admin token itself, not just the role: a
-              co-facilitator promoted in the room holds no token, and the
-              server would refuse them. */}
-          {adminToken !== null ? (
-            <>
-              <button
-                type="button"
-                data-testid="follow-up-board"
-                onClick={() =>
-                  void copy(
-                    "follow-up",
-                    t("menu.followUpName", { name: boardName }),
-                  )
-                }
-                disabled={copying !== null}
-                className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-              >
-                {t("menu.followUp")}
-              </button>
-              <button
-                type="button"
-                data-testid="duplicate-board"
-                onClick={() =>
-                  void copy(
-                    "duplicate",
-                    t("menu.duplicateName", { name: boardName }),
-                  )
-                }
-                disabled={copying !== null}
-                className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-              >
-                {t("menu.duplicate")}
-              </button>
-              {copyFailed ? (
-                <p role="alert" className="mb-2 text-xs text-red-700">
-                  {t("menu.copyFailed")}
-                </p>
-              ) : null}
-            </>
-          ) : null}
-          <TemplateLinkButton columns={columns} />
-          <p className="mb-2 text-xs text-zinc-500">
-            {retentionAt === null
-              ? t("menu.retentionKept")
-              : t("menu.retentionNotice", {
-                  date: formatDate(retentionAt),
-                })}
-          </p>
-          <div className="flex gap-2">
-            {retentionAt !== null ? (
-              <button
-                type="button"
-                onClick={() => send({ type: "admin.board.keep" })}
-                className="rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50"
-              >
-                {t("menu.keep")}
-              </button>
-            ) : null}
-            {/* Deleting wipes the board for everyone and cannot be undone.
-                    The confirmation is therefore a SECOND button beside the
-                    trigger, never one swapped in underneath the pointer — with
-                    an in-place swap a double-click on "Delete now" destroyed
-                    the retro on its own second click. */}
-            <button
-              type="button"
-              data-testid="delete-board"
-              aria-expanded={confirmingDelete}
-              onClick={() => setConfirmingDelete(!confirmingDelete)}
-              className="rounded-lg border border-red-200 px-3 py-1 text-red-700 hover:bg-red-50"
-            >
-              {confirmingDelete ? t("note.cancel") : t("menu.deleteNow")}
-            </button>
-            {confirmingDelete ? (
-              <button
-                type="button"
-                data-testid="delete-board-confirm"
-                onClick={() => send({ type: "admin.board.delete" })}
-                className="rounded-lg bg-red-700 px-3 py-1 font-medium text-white"
-              >
-                {t("menu.reallyDelete")}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </HeaderPopover>
+    </div>
   );
 }
 
@@ -386,53 +360,39 @@ function TemplateLinkButton({ columns }: { columns: readonly Column[] }) {
   }
 
   return (
-    <div className="mb-2">
-      <button
-        type="button"
-        data-testid="template-link-copy"
-        disabled={names.length === 0 || tooMany}
-        onClick={() => void copy()}
-        className="w-full rounded-lg border border-zinc-200 px-3 py-1 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-      >
-        {copied ? t("board.copied") : t("menu.templateLink")}
-      </button>
-      {/* A disabled button says why, as the voter-names switch does. */}
-      <p className="mt-1 text-xs text-zinc-500">
+    <div className="sb-stack">
+      {/* A locked key says why, as the voter-names switch does. */}
+      <p className="sb-dialog__text">
         {names.length === 0
           ? t("menu.templateLinkNoVisible")
           : tooMany
             ? t("menu.templateLinkTooMany", { max: TEMPLATE_LINK_MAX_COLUMNS })
             : t("menu.templateLinkHint")}
       </p>
+      <p>
+        <button
+          type="button"
+          data-testid="template-link-copy"
+          disabled={names.length === 0 || tooMany}
+          onClick={() => void copy()}
+          className="sb-secondary-action"
+        >
+          <Icon name="copy" size={20} />
+          {copied ? t("board.copied") : t("menu.templateLink")}
+        </button>
+      </p>
       {fallbackUrl !== null ? (
-        <input
-          readOnly
-          autoFocus
-          data-testid="template-link-input"
-          aria-label={t("menu.templateLink")}
-          value={fallbackUrl}
-          onFocus={(event) => event.currentTarget.select()}
-          className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600"
-        />
+        <div className="sb-field__control">
+          <input
+            readOnly
+            autoFocus
+            data-testid="template-link-input"
+            aria-label={t("menu.templateLink")}
+            value={fallbackUrl}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </div>
       ) : null}
     </div>
   );
-}
-
-// Once voting has started, the setting is frozen: turning names on afterwards
-// would attribute dots that were cast under the blind promise, and nobody can
-// take a dot back. The server draws the line at the first dot; the menu draws
-// it one step earlier, at the vote phase itself, so the control never offers a
-// click the server would refuse.
-function voterNamesLocked(phase: Phase): boolean {
-  return (
-    phase === "vote" ||
-    phase === "discuss" ||
-    phase === "close" ||
-    phase === "done"
-  );
-}
-
-function formatDate(epochMs: number): string {
-  return new Date(epochMs).toISOString().slice(0, 10);
 }

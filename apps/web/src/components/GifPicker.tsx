@@ -1,18 +1,15 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useConnection } from "../lib/connection.js";
 import { searchGifs, type GifResult } from "../lib/gifs.js";
+import { Icon } from "./Icon.js";
+import { Sheet } from "./Sheet.js";
 
-// The "GIF" button with its picker as a popover. The popover is portaled to
-// <body> with fixed coordinates so it escapes the columns' horizontal-scroll
-// container (which clips absolute children and made the picker overflow onto
-// neighbouring columns) and the canvas's scaled world (a transform turns
-// `position: fixed` into "fixed to the transformed box"). Anchored above the
-// button, clamped to the viewport.
+// The „GIF“ key and its picker in sebaro's bottom sheet (plan stage 5g).
 export function GifPickerButton({
   testId,
   onPick,
@@ -20,49 +17,19 @@ export function GifPickerButton({
 }: {
   testId: string;
   onPick: (url: string) => void;
-  /** called BEFORE the picker takes focus and before it gives it back, for a
-   *  host that commits on blur (the canvas composer) */
+  /** called BEFORE the picker takes focus, and once it is gone again, for a
+   *  host that commits on blur (the canvas composer). Gone first: while the
+   *  modal sheet is open the page behind it is inert, and a focus() there
+   *  does nothing. */
   onOpenChange?: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [anchor, setAnchor] = useState<{
-    left: number;
-    top?: number;
-    bottom?: number;
-  } | null>(null);
 
   function close() {
+    flushSync(() => setOpen(false));
     onOpenChange?.(false);
-    setOpen(false);
-  }
-
-  function toggle() {
-    if (open) {
-      close();
-      return;
-    }
-    const rect = buttonRef.current?.getBoundingClientRect();
-    if (rect) {
-      const width = 288; // GifPicker is w-72
-      const height = 330; // w-72 search row + max-h-64 grid + attribution
-      const left = Math.max(
-        8,
-        Math.min(rect.left, window.innerWidth - width - 8),
-      );
-      // Above the button by default — but the composer now sits directly under
-      // the column header, and a `position: fixed` picker that grows past the
-      // top of the viewport is unreachable (nothing can scroll a fixed
-      // element back into view). When there is no room above, flip below.
-      setAnchor(
-        rect.top >= height + 8
-          ? { left, bottom: window.innerHeight - rect.top + 6 }
-          : { left, top: rect.bottom + 6 },
-      );
-    }
-    onOpenChange?.(true);
-    setOpen(true);
   }
 
   return (
@@ -71,49 +38,30 @@ export function GifPickerButton({
         ref={buttonRef}
         type="button"
         data-testid={testId}
-        onClick={toggle}
-        className="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-50"
+        aria-haspopup="dialog"
+        onClick={() => {
+          onOpenChange?.(true);
+          setOpen(true);
+        }}
+        className="sb-secondary-action sb-secondary-action--compact"
       >
-        🎞 {t("gif.add")}
+        <Icon name="gif" size={20} />
+        {t("gif.add")}
       </button>
-      {open && anchor
-        ? createPortal(
-            // A portal leaves the DOM tree but not React's: without these, a
-            // press inside the picker bubbles to whatever holds the button —
-            // on the canvas that starts a card drag or a pan, and a
-            // double-click opens a new note behind the picker.
-            <div
-              className="fixed inset-0 z-50"
-              onPointerDown={(event) => event.stopPropagation()}
-              onDoubleClick={(event) => event.stopPropagation()}
-            >
-              <button
-                type="button"
-                aria-label={t("note.cancel")}
-                tabIndex={-1}
-                onClick={close}
-                className="absolute inset-0 cursor-default"
-              />
-              <div
-                className="absolute"
-                style={{
-                  left: anchor.left,
-                  top: anchor.top,
-                  bottom: anchor.bottom,
-                }}
-              >
-                <GifPicker
-                  onPick={(url) => {
-                    onPick(url);
-                    close();
-                  }}
-                  onClose={close}
-                />
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      <Sheet
+        open={open}
+        onClose={close}
+        title={t("gif.title")}
+        testId="gif-sheet"
+        returnTo={buttonRef}
+      >
+        <GifPicker
+          onPick={(url) => {
+            onPick(url);
+            close();
+          }}
+        />
+      </Sheet>
     </>
   );
 }
@@ -121,13 +69,7 @@ export function GifPickerButton({
 // Search runs through our Worker proxy (key server-side, employee IPs hidden).
 // When no KLIPY key is configured the proxy returns empty + configured:false,
 // and we show a friendly "unavailable" note instead of breaking.
-export function GifPicker({
-  onPick,
-  onClose,
-}: {
-  onPick: (url: string) => void;
-  onClose: () => void;
-}) {
+export function GifPicker({ onPick }: { onPick: (url: string) => void }) {
   const { t, i18n } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GifResult[]>([]);
@@ -143,6 +85,8 @@ export function GifPicker({
   const { boardId } = useConnection();
   const locale = i18n.language.startsWith("de") ? "de" : "en";
   const reqId = useRef(0);
+  const searchId = useId();
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const term = query.trim();
@@ -188,72 +132,83 @@ export function GifPicker({
     };
   }, [boardId, query, locale]);
 
+  const message =
+    state === "quota"
+      ? { testId: "gif-quota", text: t("gif.quota") }
+      : state === "throttled"
+        ? { testId: "gif-throttled", text: t("gif.throttled") }
+        : state === "failed"
+          ? { testId: "gif-failed", text: t("gif.failed") }
+          : state === "unavailable"
+            ? { testId: undefined, text: t("gif.unavailable") }
+            : state === "loading"
+              ? { testId: undefined, text: t("gif.loading") }
+              : state === "empty"
+                ? { testId: undefined, text: t("gif.none") }
+                : results.length === 0
+                  ? { testId: undefined, text: t("gif.hint") }
+                  : null;
+
   return (
-    <div className="w-72 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg">
-      <div className="mb-2 flex items-center gap-2">
-        <input
-          autoFocus
-          value={query}
-          data-testid="gif-search"
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("gif.search")}
-          className="min-w-0 flex-1 rounded-lg border border-zinc-200 px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-accent"
-        />
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t("note.cancel")}
-          className="rounded px-1 text-sm text-zinc-500 hover:bg-zinc-100"
-        >
-          ✕
-        </button>
+    <div className="sb-stack">
+      <div className="sb-field">
+        <label htmlFor={searchId} className="sb-visually-hidden">
+          {t("gif.search")}
+        </label>
+        <div className="sb-field__control sb-search">
+          <Icon name="search" />
+          <input
+            id={searchId}
+            ref={searchRef}
+            type="search"
+            data-autofocus
+            value={query}
+            data-testid="gif-search"
+            aria-describedby={`${searchId}-path`}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              // Enter would submit the sheet's form, which closes it.
+              if (event.key === "Enter") event.preventDefault();
+              // Escape empties a filled field and the focus stays (sebaro's
+              // search); on an empty one it closes the sheet.
+              if (event.key === "Escape" && query !== "") {
+                event.preventDefault();
+                setQuery("");
+              }
+            }}
+            placeholder={t("gif.search")}
+          />
+          <button
+            type="button"
+            className="sb-icon-button"
+            aria-label={t("gif.clear")}
+            hidden={query === ""}
+            onClick={() => {
+              setQuery("");
+              searchRef.current?.focus();
+            }}
+          >
+            <Icon name="close" />
+          </button>
+        </div>
+        {/* BEL-10: the data path of the search, from the privacy notice §5. */}
+        <p id={`${searchId}-path`} className="sb-action-hint">
+          {t("gif.dataPath")}
+        </p>
       </div>
-      {state === "quota" ? (
-        <p
-          data-testid="gif-quota"
-          className="px-1 py-4 text-center text-xs text-zinc-500"
-        >
-          {t("gif.quota")}
-        </p>
-      ) : state === "throttled" ? (
-        <p
-          data-testid="gif-throttled"
-          className="px-1 py-4 text-center text-xs text-zinc-500"
-        >
-          {t("gif.throttled")}
-        </p>
-      ) : state === "failed" ? (
-        <p
-          data-testid="gif-failed"
-          className="px-1 py-4 text-center text-xs text-zinc-500"
-        >
-          {t("gif.failed")}
-        </p>
-      ) : state === "unavailable" ? (
-        <p className="px-1 py-4 text-center text-xs text-zinc-500">
-          {t("gif.unavailable")}
-        </p>
-      ) : state === "loading" ? (
-        <p className="px-1 py-4 text-center text-xs text-zinc-500">
-          {t("gif.loading")}
-        </p>
-      ) : state === "empty" ? (
-        <p className="px-1 py-4 text-center text-xs text-zinc-500">
-          {t("gif.none")}
-        </p>
-      ) : results.length === 0 ? (
-        <p className="px-1 py-4 text-center text-xs text-zinc-500">
-          {t("gif.hint")}
+      {message !== null ? (
+        <p data-testid={message.testId} role="status" className="sb-card__meta">
+          {message.text}
         </p>
       ) : (
-        <div className="grid max-h-64 grid-cols-2 gap-1.5 overflow-y-auto">
+        <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
           {results.map((gif) => (
             <button
               key={gif.id}
               type="button"
               data-testid="gif-result"
               onClick={() => onPick(gif.url)}
-              className="overflow-hidden rounded-lg border border-zinc-100 hover:border-accent focus-visible:outline-2 focus-visible:outline-accent"
+              className="overflow-hidden rounded-control border border-border hover:border-(--sb-color-accent)"
             >
               <img
                 src={gif.previewUrl}
@@ -266,9 +221,7 @@ export function GifPicker({
           ))}
         </div>
       )}
-      <p className="mt-1 px-1 text-right text-[10px] text-zinc-500">
-        {t("gif.poweredBy")}
-      </p>
+      <p className="sb-card__meta text-end">{t("gif.poweredBy")}</p>
     </div>
   );
 }

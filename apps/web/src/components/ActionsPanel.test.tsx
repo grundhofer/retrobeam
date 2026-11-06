@@ -104,3 +104,46 @@ test("the owner is labelled optional and can be none", async () => {
     .poll(() => sent[0])
     .toMatchObject({ type: "action.create", ownerId: null });
 });
+
+// Plan stage 5f: an item is a list row with its check and the owner by name
+// only (F6, no colour dot); removing it asks first.
+test("an item is a list row by name, and removing it asks first", async () => {
+  const sent: ClientCommand[] = [];
+  const connection = {
+    boardId: "b".repeat(32),
+    send: () => {},
+    mutate: (command: ClientCommand) => {
+      sent.push(command);
+    },
+  };
+  const screen = await render(
+    <ConnectionProvider value={connection}>
+      <ActionsPanel
+        actions={[
+          {
+            id: "c".repeat(32),
+            text: "Automate the deploy",
+            ownerId: anna.id,
+            status: "open",
+            carriedFrom: null,
+          },
+        ]}
+        roster={[anna]}
+        you={anna}
+        readOnly={false}
+      />
+    </ConnectionProvider>,
+  );
+  const row = screen.getByTestId("action-item");
+  await expect.element(row).toHaveClass("sb-list-row");
+  await expect.element(row).toHaveTextContent("Anna");
+  expect(row.element().querySelector("[style]")).toBeNull();
+
+  await screen.getByRole("button", { name: i18n.t("action.delete") }).click();
+  await expect
+    .element(screen.getByRole("button", { name: i18n.t("note.cancel") }))
+    .toHaveFocus();
+  expect(sent).toEqual([]);
+  await screen.getByTestId("action-delete-confirm").click();
+  expect(sent.map((command) => command.type)).toEqual(["action.delete"]);
+});

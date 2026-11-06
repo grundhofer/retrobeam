@@ -38,7 +38,7 @@ async function structure(view: React.ReactElement) {
     h3: root.querySelectorAll("h3").length,
     tables: root.querySelectorAll("table").length,
     tableRegions: root.querySelectorAll(
-      '.table-scroll[role="region"][tabindex="0"][aria-label]',
+      '.sb-table-wrap[role="region"][tabindex="0"][aria-label]',
     ).length,
     rows: root.querySelectorAll("tr").length,
     items: root.querySelectorAll("li").length,

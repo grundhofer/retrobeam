@@ -1,17 +1,27 @@
 @import "tailwindcss";
+/* sebaro in the order of shared/ADOPTION.md §4 step 2: fonts, tokens, the
+   bridge, the sprite's sizes and sebaro.css, all without a layer, so
+   sebaro's element rules win over Tailwind's preflight. The bridge
+   (tokens.tailwind.css, stage 6a) clears Tailwind's own palette, radii,
+   shadows, type scale and breakpoints and names sebaro's roles instead:
+   bg-bg, text-text-muted, rounded-container, gap-2. */
+@import "./sebaro/fonts/fonts.css";
+@import "./sebaro/tokens.css";
+@import "./sebaro/tokens.tailwind.css";
+@import "./sebaro/icons/sprite.css";
+@import "./sebaro/css/sebaro.css";
+/* The sebaro export is sebaroDesign's CSS, not class names for Tailwind to
+   scan: without this its files would add utilities to the build. */
+@source not "./sebaro";
 
-@theme {
-  /* Calm neutral surface, one teal accent; sticky notes will be the only
-     colorful elements (product spec §12). */
-  --color-accent: #0e7c7b;
-  --color-accent-strong: #0a5958;
-}
-
-/* Notes fade-slide in; the reveal stagger comes from per-card delays. */
+/* Notes fade-slide in, as the answer to the reveal (or a new card); the
+   stagger comes from per-card delays. sebaro (docs/sebaro-umbau.md §5.5, motion): 8 px,
+   200 ms, emphasized; only where motion is wanted, by the system and by
+   data-sb-motion (sebaro's own switch, on any container). */
 @keyframes reveal-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -19,71 +29,9 @@
   }
 }
 
-.reveal-in {
-  animation: reveal-in 0.3s ease-out backwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal-in {
-    animation: none;
-  }
-  .animate-pulse {
-    animation: none;
-  }
-}
-
-/* The reading column of the privacy notice and the imprint. The content files
-   emit plain HTML (h2/h3/p/ul/table…) so the text stays readable as text;
-   the styling lives here once instead of on every element. Element styles
-   only — no new colors, radii or type sizes beyond what the app already uses. */
-@layer components {
-  /* A long address or code name breaks rather than push the page sideways
-     at large text (WCAG 1.4.10); the tables scroll in their own box. */
-  .legal-prose {
-    @apply text-[17px] leading-[1.65] break-words text-zinc-700;
-  }
-  .legal-prose h2 {
-    @apply mt-12 mb-4 text-2xl font-semibold tracking-tight text-zinc-900;
-  }
-  .legal-prose h3 {
-    @apply mt-8 mb-3 text-lg font-semibold text-zinc-900;
-  }
-  .legal-prose p {
-    @apply my-4;
-  }
-  .legal-prose ul {
-    @apply my-4 list-disc pl-6;
-  }
-  .legal-prose ol {
-    @apply my-4 list-decimal pl-6;
-  }
-  .legal-prose li {
-    @apply my-1.5;
-  }
-  .legal-prose a {
-    @apply rounded text-accent underline underline-offset-4 hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-accent;
-  }
-  .legal-prose strong {
-    @apply font-semibold text-zinc-900;
-  }
-  .legal-prose code {
-    @apply rounded bg-zinc-100 px-1 py-0.5 text-base;
-  }
-  /* Unfilled operator placeholders (content/operator.ts) — loud on purpose. */
-  .legal-prose mark {
-    @apply rounded bg-amber-100 px-1 text-amber-900;
-  }
-  .legal-prose .table-scroll {
-    @apply my-6 overflow-x-auto rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
-  }
-  .legal-prose table {
-    @apply w-full border-collapse text-base;
-  }
-  .legal-prose th,
-  .legal-prose td {
-    @apply border-b border-zinc-200 py-2 pr-4 text-left align-top;
-  }
-  .legal-prose th {
-    @apply font-semibold text-zinc-900;
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-in:not([data-sb-motion="reduce"], [data-sb-motion="reduce"] *) {
+    animation: reveal-in var(--sb-motion-duration-long)
+      var(--sb-motion-easing-emphasized) backwards;
   }
 }

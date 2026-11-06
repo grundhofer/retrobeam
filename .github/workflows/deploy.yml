@@ -30,6 +30,7 @@ jobs:
       # there publishes a legal page with no reachable operator, so it fails
       # the deploy rather than the deploy failing a visitor.
       - run: pnpm check:legal
+      - run: node apps/web/src/sebaro/checks/verify-export.mjs --strict
       - name: Build for the preview environment
         run: pnpm --filter @retrobeam/web build
         env:
@@ -61,6 +62,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:legal
+      - run: node apps/web/src/sebaro/checks/verify-export.mjs --strict
       - run: pnpm --filter @retrobeam/web build
         env:
           # AGPL §13: the running build must link to its own source

@@ -20,26 +20,25 @@ const storedKeys = () =>
 // after the long-form content, and both instances lead to the create form.
 test("keeps the create action clear at the start and end", async () => {
   const screen = await render(page());
-  await expect.element(screen.getByTestId("brand-logo")).toBeVisible();
-  expect(
-    screen.getByTestId("brand-logo").element().querySelector("img")?.src,
-  ).toMatch(/\/brand-mark\.svg$/);
+  // The header's lockup: sebaro's tile and the name, back to this page.
+  const lockup = screen.getByRole("link", { name: "RetroBeam", exact: true });
+  await expect.element(lockup).toBeVisible();
+  expect(lockup.element().getAttribute("href")).toBe("/");
+  expect(lockup.element().querySelector(".sb-sign-tile svg")).not.toBeNull();
   const cta = screen.getByTestId("landing-cta");
   await expect.element(cta).toBeVisible();
   expect(cta.element().getAttribute("href")).toBe("/new");
   await expect
     .element(cta)
     .toHaveTextContent(/Retro-Board erstellen|Create a retro board/);
-  // One action in the hero; the trust chips are in-page anchors, not exits.
+  // The first screen is only the h1, one sentence and the one action
+  // (sebaro BIL-02); the chips and the board preview follow under it.
+  const hero = screen.getByTestId("landing-hero").element();
+  expect(hero.querySelectorAll("a")).toHaveLength(1);
+  expect(hero.querySelectorAll("h1, p")).toHaveLength(3);
   expect(
     screen
-      .getByTestId("landing-hero")
-      .element()
-      .querySelectorAll('a:not([href^="#faq-"])'),
-  ).toHaveLength(1);
-  expect(
-    screen
-      .getByTestId("landing-hero")
+      .getByTestId("landing-intro")
       .element()
       .querySelector('[data-testid="board-preview"]'),
   ).not.toBeNull();

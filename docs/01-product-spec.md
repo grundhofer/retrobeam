@@ -4,7 +4,7 @@ Status: draft v1 · 2026-07-17 · based on competitive/platform research verifie
 
 ## 1. Vision
 
-RetroBeam is a **guided, playful, genuinely free** retrospective tool for teams. One facilitator steps the whole room through a clear phase flow; participants write in private, present in a random order picked by a wheel of fortune, vote blind, and end on appreciation. Clean and minimal to look at, with moments of deliberate delight (the spin, the reveal, the confetti).
+RetroBeam is a **guided, playful, genuinely free** retrospective tool for teams. One facilitator steps the whole room through a clear phase flow; participants write in private, present in a random order picked by a wheel of fortune, vote blind, and end on appreciation. Clean and minimal to look at, with moments of deliberate delight (the spin, the reveal).
 
 **Positioning — the empty quadrant.** Research across 11 competitors shows the market splits into _guided-but-utilitarian_ tools (Parabol, Retrium, Neatro — repeatedly criticized as joyless) and _playful-but-unguided_ ones (Metro Retro/Spreo — fun, but novices get lost without a phase flow). Nobody occupies **guided + playful**. On top of that, the market has retreated from free (Retrium/TeamRetro/Spreo are trial-only; EasyRetro is down to 1 board/month), and no mainstream tool offers German UI or EU data residency. RetroBeam takes all three: guided **and** playful **and** free, with board data stored in the EU and a German/English UI.
 
@@ -78,7 +78,7 @@ Optional final section, hidden until the Close phase (staged reveal — the surp
 
 One shared abstraction, three skins (see architecture doc §6 for the sync protocol):
 
-1. **Wheel of Fortune (MVP)** — equal segments per remaining participant, 4–6 s ease-out spin with per-segment tick, pointer-flapper overshoot, confetti + big winner card on stop, frozen ~2 s.
+1. **Wheel of Fortune (MVP)** — equal segments per remaining participant, 4.5 s ease-out spin (D114), drawn flat in ink (sebaro's wheel), the name as the dialog's status sentence on stop, frozen ~2 s; no confetti since 2026-11 (plan F7).
 2. **Slot machine (v1.x)** — hand-rolled reels; better than a wheel for long name lists.
 3. **Lotto ball machine (v2)** — matter-js cosmetic tumbling, scripted draw.
 
@@ -106,9 +106,9 @@ German + English from day one. All strings externalized; language auto-detected,
 
 1. **One primary action per screen per role.** The facilitator's is the big "next phase" button; the participant's is the phase's core verb (write / vote / present). Everything else recedes.
 2. **A phase stepper is always visible** — everyone knows where in the retro they are and what comes next. This is the single biggest complaint-fixer vs. EasyRetro/GoRetro's settings-toggle chaos.
-3. **Clean, minimal surface; playfulness in moments, not decoration.** Generous whitespace, calm neutral palette with one accent, sticky notes as the only colorful element. Delight is reserved for events: the reveal stagger, the wheel, confetti when the pool empties. No mascots, no clutter. (Skip list: whiteboard shapes, drawing tools, 30k icon libraries.)
+3. **Clean, minimal surface; playfulness in one moment, not decoration.** The sebaro design system (since 2026-11): calm grounds, ink, one cobalt accent for place and links; participants are told apart by name, never by colour. Delight is reserved for the choosing moment — the wheel, the slots or the face-down cards, drawn flat in ink. No confetti, no mascots, no clutter. (Skip list: whiteboard shapes, drawing tools, 30k icon libraries.)
 4. **Zero-friction entry**: share link or QR code → type a name → you're in. Under 10 seconds.
-5. **Motion respects `prefers-reduced-motion` everywhere**; the timer chime is ON by default and muted per person in one click from the timer panel. It used to be off by default for open offices and calls — but a timer nobody hears is a timer that failed, and the mute button beside the countdown serves that case without costing every other room the signal.
+5. **Motion respects `prefers-reduced-motion` everywhere**, and the setting „Bewegung immer reduzieren“ does the same on any device. The time box is a calm sentence in whole minutes („Noch 3 Min.“), with no countdown, no colour and no sound: the chime was removed in 2026-11 (plan §2.4).
 6. **Explain in place**: template "when to use" one-liners, vote-count heuristic hint, "how picks work" fairness note. No manual.
 7. Responsive web; no native apps (no competitor has them either).
 

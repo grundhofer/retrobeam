@@ -164,7 +164,7 @@ export function PrivacyEn() {
       </p>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Stored board data"
         tabIndex={0}
@@ -422,7 +422,7 @@ export function PrivacyEn() {
       </p>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Local browser storage"
         tabIndex={0}
@@ -445,16 +445,35 @@ export function PrivacyEn() {
             </tr>
             <tr>
               <td>
-                <code>retrobeam.lang</code>
+                <code>sb-lang</code>
               </td>
               <td>Chosen language (de/en)</td>
               <td>Remember the language</td>
             </tr>
             <tr>
               <td>
-                <code>retrobeam.sound</code>
+                <code>sb-theme</code>
               </td>
-              <td>Sound on/off</td>
+              <td>
+                Chosen display “Light” or “Dark” (only if it differs from the
+                system)
+              </td>
+              <td>Remember the display</td>
+            </tr>
+            <tr>
+              <td>
+                <code>sb-tone</code>
+              </td>
+              <td>
+                Chosen tone “Warm” (nothing is stored for the standard “Cool”)
+              </td>
+              <td>Remember the tone</td>
+            </tr>
+            <tr>
+              <td>
+                <code>sb-motion</code>
+              </td>
+              <td>The setting “Always reduce motion”</td>
               <td>Remember the setting</td>
             </tr>
             <tr>
@@ -490,18 +509,25 @@ export function PrivacyEn() {
         board to the respective board; the admin key is also sent when
         duplicating a board; the chosen language is sent when creating a board
         so that the default columns are named in that language, and with every
-        GIF search to the RetroBeam server (section 5). The sound setting never
-        leaves the browser. If local storage is unavailable (e.g. private mode),
-        the application falls back to an in-memory substitute that ends with the
-        tab.
+        GIF search to the RetroBeam server (section 5). If local storage is
+        unavailable (e.g. private mode), the application falls back to an
+        in-memory substitute that ends with the tab.
+      </p>
+
+      <p>
+        The three display entries (<code>sb-theme</code>, <code>sb-tone</code>,{" "}
+        <code>sb-motion</code>) are only created when you make that choice, and
+        are never transmitted. If one of these settings is dropped in a later
+        version, its entry stays in your browser until you delete it, but is no
+        longer read.
       </p>
 
       <p>
         Storing these entries is exempt from the consent requirement under §
         25(2) no. 2 TDDDG (the German implementation of the ePrivacy rule)
         because it is strictly necessary to provide the service you explicitly
-        requested — your board, your session, your language. That is why there
-        is no cookie banner.
+        requested — your board, your session, your language and the display you
+        chose. That is why there is no cookie banner.
       </p>
 
       <h2>5. GIFs (KLIPY)</h2>
@@ -605,7 +631,7 @@ export function PrivacyEn() {
       <h2>7. Recipients and transfers to third countries</h2>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Recipients and transfers to third countries"
         tabIndex={0}

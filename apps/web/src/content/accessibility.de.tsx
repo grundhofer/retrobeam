@@ -64,21 +64,23 @@ export function AccessibilityDe() {
         </li>
         <li>
           Im Layout „Spalten“ öffnet die Schaltfläche „Verschieben oder stapeln“
-          (⋯) an einer Karte eine Auswahl: „Verschieben nach“ in eine andere
-          Spalte und, beim Vorstellen, „Stapeln mit“ einer anderen Karte. Sie
-          ersetzt das Ziehen mit der Maus und steht dort, wo Ziehen erlaubt ist.
-          Escape schließt die Auswahl und setzt den Fokus zurück auf die
-          Schaltfläche; nach dem Verschieben oder Stapeln steht der Fokus wieder
-          an der Karte.
+          an einer Karte eine Auswahl: „Verschieben nach“ in eine andere Spalte
+          und, beim Vorstellen, „Stapeln mit“ einer anderen Karte. Sie ersetzt
+          das Ziehen mit der Maus und steht dort, wo Ziehen erlaubt ist. Escape
+          schließt die Auswahl und setzt den Fokus zurück auf die Schaltfläche;
+          nach dem Verschieben oder Stapeln steht der Fokus wieder an der Karte.
         </li>
         <li>
-          Auf dem Canvas öffnet dieselbe Schaltfläche (⋯) an einer Karte eine
+          Auf dem Canvas öffnet dieselbe Schaltfläche an einer Karte eine
           Auswahl: „Verschieben nach“ in eine andere Zone, an eine freie Stelle,
           und Schritte nach oben, unten, links und rechts, als Schaltflächen
           oder mit den Pfeiltasten. Sie ersetzt auch hier das Ziehen. Die
-          Schaltfläche „+ Notiz“ öffnet das Schreibfeld für eine neue Karte,
-          ohne Doppelklick. „Verkleinern“, „An Fenster anpassen“ und
-          „Vergrößern“ sind Schaltflächen.
+          Schaltfläche „Notiz“ oben rechts fragt nach der Zone und öffnet das
+          Schreibfeld für eine neue Karte, ohne Doppelklick. „Verkleinern“, „An
+          Fenster anpassen“ und „Vergrößern“ sind Schaltflächen. Die
+          Schaltflächen an den Karten behalten bei jedem Zoom ihre Größe. Unter
+          640&nbsp;Pixel Breite zeigt ein Canvas-Board seine Zonen als Spalten
+          zum Wischen.
         </li>
         <li>
           Die Moderation verschiebt Zonen auf dem Canvas und ändert ihre Größe
@@ -133,8 +135,8 @@ export function AccessibilityDe() {
       <p>
         Hast du in deinem System eingestellt, dass du weniger Bewegung möchtest,
         dreht sich das Glücksrad nicht, sondern zeigt sofort, wer dran ist.
-        Einblend- und Puls-Animationen und das Konfetti entfallen, und beim
-        Vorstellen springt die Ansicht, statt zu scrollen.
+        Einblend- und Puls-Animationen entfallen, und beim Vorstellen springt
+        die Ansicht, statt zu scrollen.
       </p>
 
       <h3>Hell oder Dunkel</h3>
@@ -189,12 +191,10 @@ export function AccessibilityDe() {
           nur auf Englisch die Startseite, ein Board in der Lobby und beim
           Schreiben und den Canvas, einmal mit geöffneter Auswahl zum
           Verschieben einer Karte und einmal mit geöffneter Auswahl der Zonen.
-          Ergebnis: bestanden auf allen diesen Seiten außer dem Canvas. Auf dem
-          Canvas nicht bestanden in vier Punkten: „⋯“, „✎“, „🗑“ und „+ Notiz“
-          sind beim angepassten Zoom kleiner als 24&nbsp;Pixel. Das ist als
-          bekannte Einschränkung eingetragen. Jeder andere Verstoß lässt die
-          Prüfung scheitern. Ein solches Werkzeug findet nur einen Teil
-          möglicher Barrieren.
+          Den Canvas prüft es bei 1440&nbsp;Pixel, bei 390&nbsp;Pixel dasselbe
+          Board als Spalten. Ergebnis: bestanden auf allen diesen Seiten, ohne
+          eingetragene Ausnahme. Jeder Verstoß lässt die Prüfung scheitern. Ein
+          solches Werkzeug findet nur einen Teil möglicher Barrieren.
         </li>
         <li>
           Seitliches Scrollen bei 390&nbsp;Pixel und 1440&nbsp;Pixel Breite, auf
@@ -286,12 +286,6 @@ export function AccessibilityDe() {
       </p>
 
       <ul>
-        <li>
-          Auf dem Canvas sind die Schaltflächen „⋯“, „✎“, „🗑“ und „+ Notiz“ beim
-          angepassten Zoom kleiner als 24&nbsp;Pixel, weil sie mit der Fläche
-          verkleinert werden. Die Auswahl zum Verschieben hat volle Größe. Der
-          Canvas soll bei der Umstellung neu gebaut werden.
-        </li>
         <li>
           Eine Wahl zwischen Hell und Dunkel fehlt. Sie ist für die Umstellung
           geplant.

@@ -35,13 +35,7 @@ function view(boardId: string, isAdmin: boolean) {
           boardId={boardId}
           boardName="Sprint 42"
           isAdmin={isAdmin}
-          gifsEnabled
-          cursorsEnabled={false}
-          voterNamesEnabled={false}
           anonymous={false}
-          phase="discuss"
-          layout="columns"
-          retentionAt={null}
           columns={[]}
         />
       </ConnectionProvider>
@@ -54,7 +48,7 @@ async function openMenu(boardId: string, isAdmin: boolean) {
   const trigger = screen.getByTestId("board-menu");
   await expect.element(trigger).toBeVisible();
   await trigger.click();
-  await expect.element(screen.getByTestId("export-md")).toBeVisible();
+  await expect.element(screen.getByTestId("export-open")).toBeVisible();
   return screen;
 }
 
@@ -62,6 +56,7 @@ test("the token holder gets the link mid-retro, masked until asked", async () =>
   const boardId = "1".repeat(32);
   saveAdminToken(boardId, TOKEN);
   const screen = await openMenu(boardId, true);
+  await screen.getByTestId("admin-link-open").click();
 
   const input = screen.getByTestId("admin-link-input");
   await expect.element(screen.getByTestId("admin-link")).toBeVisible();
@@ -78,9 +73,9 @@ test("the token holder gets the link mid-retro, masked until asked", async () =>
 
 test("a co-facilitator promoted by role holds no token and is offered none", async () => {
   const screen = await openMenu("2".repeat(32), true);
-  // The settings section renders, so the menu really is the facilitator's.
-  await expect.element(screen.getByTestId("gifs-toggle")).toBeVisible();
-  expect(screen.getByTestId("admin-link").elements()).toHaveLength(0);
+  // The template link renders, so the menu really is the facilitator's.
+  await expect.element(screen.getByTestId("template-link-open")).toBeVisible();
+  expect(screen.getByTestId("admin-link-open").elements()).toHaveLength(0);
   // Duplicate and follow-up need the token too; the server would refuse a
   // co-facilitator, so the buttons are not offered (they used to do nothing).
   expect(screen.getByTestId("duplicate-board").elements()).toHaveLength(0);
@@ -91,7 +86,7 @@ test("a demoted token holder is not offered it either", async () => {
   const boardId = "3".repeat(32);
   saveAdminToken(boardId, TOKEN);
   const screen = await openMenu(boardId, false);
-  expect(screen.getByTestId("admin-link").elements()).toHaveLength(0);
+  expect(screen.getByTestId("admin-link-open").elements()).toHaveLength(0);
 });
 
 test("the reveal toggle keeps its label; the state is in aria-pressed", async () => {
@@ -118,34 +113,23 @@ test("the reveal toggle keeps its label; the state is in aria-pressed", async ()
 // The lobby renders it at full width. On a phone the buttons used to share the
 // field's row and squeeze it down to "https://", so neither the masked link
 // nor a revealed one could be read.
-test("on a phone the lobby's field gets a row of its own", async () => {
-  await page.viewport(390, 844);
-  const screen = await render(
-    <div style={{ width: 274 }}>
-      <AdminLink boardId={"5".repeat(32)} adminToken={TOKEN} />
-    </div>,
-  );
-  const input = screen.getByTestId("admin-link-input").element();
-  const reveal = screen.getByTestId("admin-link-reveal").element();
-  const row = input.parentElement!.getBoundingClientRect();
-  const field = input.getBoundingClientRect();
-
-  expect(field.width).toBeGreaterThan(row.width - 1);
-  expect(reveal.getBoundingClientRect().top).toBeGreaterThanOrEqual(
-    field.bottom,
-  );
-});
-
-test("from sm up the lobby keeps field and buttons on one row", async () => {
+// The field has a row of its own at every width, the keys under it: two keys
+// beside it left a phone's field with little more than "https://" — not enough
+// to see which link it is.
+test("the field has a row of its own, its keys under it", async () => {
   await page.viewport(1024, 768);
   const screen = await render(
     <div style={{ width: 560 }}>
-      <AdminLink boardId={"6".repeat(32)} adminToken={TOKEN} />
+      <AdminLink boardId={"5".repeat(32)} adminToken={TOKEN} />
     </div>,
   );
   const field = screen.getByTestId("admin-link-input").element();
+  const reveal = screen.getByTestId("admin-link-reveal").element();
   const copy = screen.getByTestId("admin-link-copy").element();
-  expect(copy.getBoundingClientRect().top).toBeLessThan(
+  expect(reveal.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+    field.getBoundingClientRect().bottom,
+  );
+  expect(copy.getBoundingClientRect().top).toBeGreaterThanOrEqual(
     field.getBoundingClientRect().bottom,
   );
 });

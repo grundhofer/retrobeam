@@ -7,7 +7,7 @@ import { Link } from "react-router";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { NoIndex } from "../components/NoIndex.js";
 import { SiteHeader } from "../components/SiteHeader.js";
-import { MAIN_ID } from "../components/SkipLink.js";
+import { StateView } from "../components/StateView.js";
 
 // Every path the router does not know lands here instead of in the
 // ErrorBoundary, which used to print "[object Object]" for a mistyped link.
@@ -34,26 +34,23 @@ export function NotFoundPage() {
   }, [appName, title]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
-      <NoIndex />
-      <SiteHeader />
-      <main
-        id={MAIN_ID}
-        data-testid="page-not-found"
-        className="flex flex-1 flex-col items-center justify-center gap-4 px-6 pb-24 text-center"
-      >
-        <h1 className="text-2xl font-semibold text-zinc-900">{title}</h1>
-        <p className="max-w-prose break-words text-zinc-600">
-          {t("pageNotFound.body", { host: location.host })}
-        </p>
-        <Link
-          to="/"
-          className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
+    <StateView
+      view="not-found"
+      testId="page-not-found"
+      header={
+        <>
+          <NoIndex />
+          <SiteHeader />
+        </>
+      }
+      title={title}
+      text={t("pageNotFound.body", { host: location.host })}
+      action={
+        <Link to="/" className="sb-primary-action">
           {t("pageNotFound.home")}
         </Link>
-      </main>
-      <LegalFooter />
-    </div>
+      }
+      footer={<LegalFooter />}
+    />
   );
 }

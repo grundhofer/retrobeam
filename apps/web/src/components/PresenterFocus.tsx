@@ -14,8 +14,10 @@ import {
   type PickerState,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { motionReduced } from "../lib/motion.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
+import { Icon } from "./Icon.js";
 import { NoteCard } from "./NoteCard.js";
 
 export interface PresenterFocusProps {
@@ -44,6 +46,11 @@ export interface PresenterFocusProps {
 // that the remote participants land on the same card at the same moment. The
 // card on stage is the server's, not this component's: `spotlightId` comes down
 // the wire and is already filtered per viewer.
+//
+// sebaro (plan stage 5h): the person and the count as the section's head, the
+// zones under their names, the card on stage with sebaro's place edge
+// (aria-current); the step key is a secondary action, the phase's own step
+// stays the one primary action in the action zone.
 export function PresenterFocus({
   notes,
   columns,
@@ -81,18 +88,13 @@ export function PresenterFocus({
 
   return (
     <div
-      className={`mx-auto flex flex-col gap-6 ${staged ? "max-w-3xl" : "max-w-2xl"}`}
+      className={`sb-stack mx-auto w-full ${staged ? "max-w-3xl" : "max-w-2xl"}`}
     >
-      <header className="flex items-center gap-2.5">
-        <span
-          aria-hidden="true"
-          className="size-3 rounded-full"
-          style={{ backgroundColor: presenter.color }}
-        />
-        <h2 className="text-lg font-semibold text-zinc-800">
-          🎤 {t("present.focus.heading", { name: presenter.name })}
+      <header className="flex flex-wrap items-baseline gap-x-3">
+        <h2 className="sb-section__title m-0">
+          {t("present.focus.heading", { name: presenter.name })}
         </h2>
-        <span className="ml-auto text-sm text-zinc-500 tabular-nums">
+        <span className="sb-card__meta ms-auto tabular-nums">
           {staged
             ? t("present.walkthrough.position", {
                 index: index + 1,
@@ -103,9 +105,7 @@ export function PresenterFocus({
       </header>
 
       {zones.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-zinc-200 py-12 text-center text-sm text-zinc-500">
-          {t("present.focus.empty")}
-        </p>
+        <p className="sb-card__meta">{t("present.focus.empty")}</p>
       ) : staged && onStage !== null ? (
         <StagedCard
           note={onStage}
@@ -119,10 +119,8 @@ export function PresenterFocus({
         />
       ) : (
         zones.map((zone) => (
-          <section key={zone.column.id} className="flex flex-col gap-2">
-            <h3 className="text-xs font-semibold tracking-wide text-zinc-500 uppercase">
-              {zone.column.name}
-            </h3>
+          <section key={zone.column.id} className="sb-stack">
+            <h3 className="sb-field__label m-0">{zone.column.name}</h3>
             {zone.cards.map((note, cardIndex) => (
               <NoteCard
                 key={note.id}
@@ -177,13 +175,11 @@ function StagedCard({
   // Keyed by note id, so stepping the row brings the new card into view on a
   // small screen without the facilitator having to scroll for the room.
   useEffect(() => {
+    // Without smoothing where motion is to be left out — the system's
+    // setting or sebaro's data-sb-motion.
     ref.current?.scrollIntoView({
       block: "center",
-      behavior:
-        typeof matchMedia !== "undefined" &&
-        matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "auto"
-          : "smooth",
+      behavior: motionReduced(ref.current) ? "auto" : "smooth",
     });
   }, [note.id]);
 
@@ -191,17 +187,15 @@ function StagedCard({
     <div
       ref={ref}
       data-testid="present-stage"
-      className="flex flex-col gap-2"
+      className="sb-stack"
       // The card on stage changes because SOMEBODY ELSE clicked — a scroll is
       // not something a screen reader announces, so the stage says what it now
       // holds. Polite, not assertive: it is a change of subject, not an alert.
       aria-live="polite"
       aria-atomic="true"
     >
-      <h3 className="text-xs font-semibold tracking-wide text-zinc-500 uppercase">
-        {columnName}
-      </h3>
-      <div className="text-lg">
+      <h3 className="sb-field__label m-0">{columnName}</h3>
+      <div>
         <NoteCard
           note={note}
           revealIndex={0}
@@ -209,7 +203,8 @@ function StagedCard({
           you={you}
           phase={phase}
           isAdmin={isAdmin}
-          presenterId={null}
+          // The card on stage carries the place edge (aria-current).
+          presenterId={note.authorId}
           interactive={false}
           gifsEnabled={false}
           onDropNote={() => {}}
@@ -266,11 +261,8 @@ function WalkthroughControl({
 
   if (chooseFromDeck) {
     return (
-      <p
-        data-testid="choose-card-hint"
-        className="text-center text-sm font-medium text-zinc-500"
-      >
-        🂠 {t("picker.chooseCardHint")}
+      <p data-testid="choose-card-hint" className="sb-card__meta text-center">
+        {t("picker.chooseCardHint")}
       </p>
     );
   }
@@ -293,9 +285,10 @@ function WalkthroughControl({
               // presenting, and the facilitator usually is not.)
               send({ type: "admin.picker.spin" })
         }
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
+        className="sb-secondary-action"
       >
-        {label} ›
+        {label}
+        <Icon name="chevron-right" size={20} />
       </button>
     </div>
   );

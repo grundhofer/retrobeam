@@ -4,6 +4,7 @@
 import { useTranslation } from "react-i18next";
 import type { Participant } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { Icon } from "./Icon.js";
 
 export interface ReadyBarProps {
   readyIds: string[];
@@ -17,25 +18,22 @@ export function ReadyBar({ readyIds, roster, youId }: ReadyBarProps) {
   const online = roster.filter((p) => p.online);
   const youReady = youId !== null && readyIds.includes(youId);
 
+  // sebaro: one secondary key with a fixed label, its state in aria-pressed
+  // and the check (a label that swapped while pressed would be read as the
+  // opposite), and the count as words, „3 von 5 fertig“.
   return (
-    <div className="flex items-center gap-3">
+    <div className="sb-cluster">
       <button
         type="button"
         data-testid="ready-toggle"
         aria-pressed={youReady}
         onClick={() => send({ type: "ready.set", ready: !youReady })}
-        className={`rounded-lg px-3 py-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-          youReady
-            ? "bg-accent/10 text-accent-strong"
-            : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-        }`}
+        className="sb-secondary-action sb-secondary-action--compact"
       >
-        {youReady ? `✓ ${t("ready.done")}` : t("ready.imDone")}
+        {youReady ? <Icon name="check" size={20} /> : null}
+        {t("ready.imDone")}
       </button>
-      <span
-        data-testid="ready-count"
-        className="text-sm text-zinc-500 tabular-nums"
-      >
+      <span data-testid="ready-count" className="sb-field__help tabular-nums">
         {t("ready.count", { ready: readyIds.length, total: online.length })}
       </span>
     </div>

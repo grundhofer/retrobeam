@@ -41,25 +41,27 @@ test("board fits a phone", async ({ browser }) => {
   await expect(anna.getByTestId("phase-compact")).toBeVisible();
   await expectFits(anna, ben, "lobby");
 
-  // The menu: every export option reachable, the whole panel on screen.
+  // The menu on screen, and every export option reachable in its dialog.
   await openPanel(anna, "board-menu", "board-menu-panel");
+  await expectOnScreen(anna.getByTestId("delete-board"));
+  await anna.getByTestId("export-open").click();
+  await expect(anna.getByTestId("board-menu-panel")).toBeHidden();
   await expectOnScreen(anna.getByTestId("export-pdf"));
   await expectOnScreen(anna.getByTestId("export-md"));
   await expectOnScreen(anna.getByTestId("export-scope-all"));
-  await expectOnScreen(anna.getByTestId("delete-board"));
   await anna.keyboard.press("Escape");
-  await expect(anna.getByTestId("board-menu-panel")).toHaveCount(0);
+  await expect(anna.getByTestId("export-dialog")).toBeHidden();
 
-  // The member's invite panel: the team link and its QR code, on screen.
+  // The member's invite dialog: the team link and its QR code, on screen.
   await openPanel(ben, "invite-button", "invite-panel");
   await expect(
     ben.getByTestId("invite-panel").getByTestId("qr-code"),
   ).toBeVisible();
   await expect(
-    ben.getByTestId("invite-panel").getByTestId("share-link-input"),
-  ).toHaveValue(boardUrl);
+    ben.getByTestId("invite-panel").getByTestId("share-link-text"),
+  ).toContainText(boardUrl.replace(/^https?:\/\//, ""));
   await ben.getByTestId("invite-panel-close").click();
-  await expect(ben.getByTestId("invite-panel")).toHaveCount(0);
+  await expect(ben.getByTestId("invite-panel")).toBeHidden();
 
   // Write, in columns.
   await step(anna, ben, /write|schreiben/i);
@@ -75,13 +77,19 @@ test("board fits a phone", async ({ browser }) => {
   }
   await expectFits(anna, ben, "write (columns)");
 
-  // Write, on the canvas — switched from the phone's own menu.
-  await openPanel(anna, "board-menu", "board-menu-panel");
+  // Write, on a canvas board — switched in the phone's own settings view. A
+  // phone shows its zones as the swiping columns (owner, 2026-11-05), the
+  // cards still there.
+  await anna.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await expectOnScreen(anna.getByTestId("layout-canvas"));
   await anna.getByTestId("layout-canvas").click();
-  await anna.keyboard.press("Escape");
-  await expect(anna.getByTestId("canvas-viewport")).toBeVisible();
-  await expect(ben.getByTestId("canvas-viewport")).toBeVisible();
-  await expectFits(anna, ben, "write (canvas)");
+  await anna.getByRole("link", { name: /^board$/i }).click();
+  for (const page of [anna, ben]) {
+    await expect(page.locator(".sb-board")).toBeVisible();
+    await expect(page.getByTestId("canvas-viewport")).toHaveCount(0);
+    await expect(page.getByTestId("note-card").first()).toBeVisible();
+  }
+  await expectFits(anna, ben, "write (canvas board)");
 
   // Present, with the wheel mid-spin on the member's screen.
   await step(anna, ben, /present|vorstellen/i);

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   actionTextSchema,
@@ -11,6 +11,8 @@ import {
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { useMissingField } from "../lib/useMissingField.js";
+import { Dialog } from "./Dialog.js";
+import { Icon } from "./Icon.js";
 
 export interface ActionsPanelProps {
   actions: Action[];
@@ -34,6 +36,7 @@ export function ActionsPanel({
   // "Add" stays pressable on an empty field and says at the field what is
   // missing (sebaro STA-03), like the create and join forms.
   const textField = useMissingField();
+  const id = useId();
 
   function add(event: React.FormEvent) {
     event.preventDefault();
@@ -90,49 +93,62 @@ export function ActionsPanel({
     );
   }
 
+  // sebaro (plan stage 5f): a section of the side column, the form with
+  // labelled fields — the item's words, „Verantwortlich (optional)“ with
+  // „Keine“ — and „Hinzufügen“ never locked, saying at the field what is
+  // missing; the items as list rows with their check, the owner by name
+  // only (F6), and removing with a confirmation.
   return (
     <aside
       data-testid="actions-panel"
-      className="w-80 shrink-0 rounded-xl border border-zinc-200 bg-white p-4"
-      aria-label={t("action.title")}
+      className="sb-stack w-80 shrink-0"
+      aria-labelledby={`${id}-title`}
     >
-      <h2 className="mb-3 text-sm font-semibold tracking-wide text-zinc-600 uppercase">
-        ✅ {t("action.title")}
+      <h2 id={`${id}-title`} className="sb-section__title">
+        {t("action.title")}
       </h2>
 
       {!readOnly ? (
-        <form onSubmit={add} className="mb-4 flex flex-col gap-2">
-          <input
-            {...textField.fieldProps}
-            value={text}
-            data-testid="action-input"
-            onChange={(event) => {
-              setText(event.target.value);
-              textField.typed(event.target.value);
-            }}
-            maxLength={300}
-            placeholder={t("action.placeholder")}
-            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
-          />
-          {textField.missing ? (
-            <p id={textField.messageId}>{t("action.textMissing")}</p>
-          ) : null}
-          <p role="status" className="sr-only">
-            {textField.spoken ? t("action.textMissing") : ""}
-          </p>
-          <div className="flex items-end gap-2">
-            {/* The owner may stay empty ("None"), so the label says
-                "(optional)". The type size sits on the label; the select
-                inherits it. */}
-            <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-zinc-600">
-              <span>
-                {t("action.owner")} <span>{t("form.optional")}</span>
-              </span>
+        <form onSubmit={add} className="sb-stack">
+          <div className="sb-field">
+            <label
+              className="sb-field__label"
+              htmlFor={textField.fieldProps.id}
+            >
+              {t("action.label")}
+            </label>
+            <div className="sb-field__control">
+              <input
+                {...textField.fieldProps}
+                value={text}
+                data-testid="action-input"
+                onChange={(event) => {
+                  setText(event.target.value);
+                  textField.typed(event.target.value);
+                }}
+                maxLength={300}
+              />
+            </div>
+            {textField.missing ? (
+              <p className="sb-field__error" id={textField.messageId}>
+                <Icon name="error--filled-16" size={16} />
+                {t("action.textMissing")}
+              </p>
+            ) : null}
+            <p role="status" className="sb-visually-hidden">
+              {textField.spoken ? t("action.textMissing") : ""}
+            </p>
+          </div>
+          <div className="sb-field">
+            <label htmlFor={`${id}-owner`} className="sb-field__label">
+              {t("action.owner")} {t("form.optional")}
+            </label>
+            <div className="sb-field__control sb-select">
               <select
+                id={`${id}-owner`}
                 value={ownerId}
                 data-testid="action-owner"
                 onChange={(event) => setOwnerId(event.target.value)}
-                className="rounded-lg border border-zinc-200 px-2 py-1"
               >
                 <option value="">{t("action.ownerNone")}</option>
                 {roster.map((p) => (
@@ -141,89 +157,150 @@ export function ActionsPanel({
                   </option>
                 ))}
               </select>
-            </label>
+              <Icon name="chevron-down" />
+            </div>
+          </div>
+          <p>
             <button
               type="submit"
-              className="rounded-lg bg-accent px-3 py-1 text-sm font-medium text-white hover:bg-accent-strong"
+              data-testid="action-add"
+              className="sb-secondary-action"
             >
+              <Icon name="plus" size={20} />
               {t("action.add")}
             </button>
-          </div>
+          </p>
         </form>
       ) : null}
 
-      <ul className="flex flex-col gap-2">
-        {actions.map((action) => {
-          const owner =
-            action.ownerId === null
-              ? null
-              : roster.find((p) => p.id === action.ownerId);
-          return (
-            <li
-              key={action.id}
-              data-testid="action-item"
-              className="flex items-start gap-2 rounded-lg border border-zinc-100 p-2"
-            >
-              <input
-                type="checkbox"
-                checked={action.status === "done"}
-                disabled={readOnly}
-                onChange={() =>
-                  update(action, {
-                    status: action.status === "done" ? "open" : "done",
-                  })
+      {actions.length === 0 ? (
+        <p className="sb-field__help">{t("action.empty")}</p>
+      ) : (
+        <ul className="sb-list">
+          {actions.map((action) => {
+            const owner =
+              action.ownerId === null
+                ? null
+                : roster.find((p) => p.id === action.ownerId);
+            const done = action.status === "done";
+            return (
+              <li
+                key={action.id}
+                data-testid="action-item"
+                className={
+                  done ? "sb-list-row sb-list-row--done" : "sb-list-row"
                 }
-                aria-label={t("action.toggle")}
-                className="mt-0.5 accent-accent"
-              />
-              <span className="min-w-0 flex-1">
-                <span
-                  className={`block text-sm break-words ${
-                    action.status === "done"
-                      ? "text-zinc-500 line-through"
-                      : "text-zinc-800"
-                  }`}
-                >
-                  {action.text}
-                </span>
-                {owner ? (
-                  <span className="mt-0.5 flex items-center gap-1 text-xs text-zinc-500">
-                    <span
-                      aria-hidden="true"
-                      className="size-2 rounded-full"
-                      style={{ backgroundColor: owner.color }}
+              >
+                <span className="sb-list-row__lead">
+                  <label className="sb-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={done}
+                      disabled={readOnly}
+                      onChange={() =>
+                        update(action, { status: done ? "open" : "done" })
+                      }
+                      aria-label={t("action.toggle")}
                     />
-                    {owner.name}
+                  </label>
+                </span>
+                <div className="sb-list-row__main">
+                  <p className="sb-list-row__title break-words">
+                    {done ? (
+                      <span className="sb-visually-hidden">
+                        {t("lobby.carried.done")}:{" "}
+                      </span>
+                    ) : null}
+                    {action.text}
+                  </p>
+                  {owner ? (
+                    <p className="sb-list-row__meta">{owner.name}</p>
+                  ) : null}
+                  {/* Carried in by a follow-up retro: the previous board's
+                      name, so the room can tell last time's promises from
+                      today's. */}
+                  {action.carriedFrom !== null ? (
+                    <p
+                      data-testid="action-carried"
+                      className="sb-list-row__meta"
+                    >
+                      {t("action.carriedFrom", { name: action.carriedFrom })}
+                    </p>
+                  ) : null}
+                </div>
+                {!readOnly ? (
+                  <span className="sb-list-row__trail">
+                    <DeleteAction
+                      onConfirm={() => remove(action)}
+                      text={action.text}
+                    />
                   </span>
                 ) : null}
-                {/* Carried in by a follow-up retro: the previous board's name,
-                    so the room can tell last time's promises from today's. */}
-                {action.carriedFrom !== null ? (
-                  <span
-                    data-testid="action-carried"
-                    className="mt-0.5 block text-xs text-zinc-500"
-                  >
-                    {t("action.carriedFrom", { name: action.carriedFrom })}
-                  </span>
-                ) : null}
-              </span>
-              {!readOnly ? (
-                <button
-                  type="button"
-                  aria-label={t("action.delete")}
-                  onClick={() => remove(action)}
-                  className="rounded px-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
-                >
-                  🗑
-                </button>
-              ) : null}
-            </li>
-          );
-        })}
-        {actions.length === 0 ? (
-          <li className="text-sm text-zinc-500">{t("action.empty")}</li>
-        ) : null}
-      </ul>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </aside>
+  );
+}
+
+// Removing an action item asks first, in sebaro's confirmation dialog: it is
+// gone for everyone and cannot be brought back.
+function DeleteAction({
+  onConfirm,
+  text,
+}: {
+  onConfirm: () => void;
+  text: string;
+}) {
+  const { t } = useTranslation();
+  const [asking, setAsking] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        aria-label={t("action.delete")}
+        aria-haspopup="dialog"
+        onClick={() => setAsking(true)}
+        className="sb-icon-button"
+      >
+        <Icon name="trash" />
+      </button>
+      <Dialog
+        open={asking}
+        onClose={() => setAsking(false)}
+        title={t("action.deleteTitle")}
+        returnTo={trigger}
+        actions={
+          <>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setAsking(false)}
+              className="sb-secondary-action"
+            >
+              {t("note.cancel")}
+            </button>
+            <button
+              type="button"
+              data-testid="action-delete-confirm"
+              onClick={() => {
+                setAsking(false);
+                onConfirm();
+              }}
+              className="sb-danger-action sb-danger-action--outlined"
+            >
+              <Icon name="trash" size={20} />
+              {t("menu.deleteConfirm")}
+            </button>
+          </>
+        }
+      >
+        <p className="sb-dialog__text">{t("action.deleteText", { text })}</p>
+      </Dialog>
+    </>
   );
 }

@@ -4,6 +4,7 @@
 import { useTranslation } from "react-i18next";
 import type { Note } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { Icon } from "./Icon.js";
 
 export interface DiscussBarProps {
   topTargetIds: string[];
@@ -51,18 +52,20 @@ export function DiscussBar({
     return stackMembers.length > 0 ? `${short} ×${stackMembers.length}` : short;
   }
 
+  // sebaro's chips (spec/02 §3.x): one per crowned card, in rank order, the
+  // one in discussion aria-pressed; its rank, the card's words and its votes,
+  // no crown and no dot. Members read them; only the facilitator moves on.
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-sm font-medium text-zinc-600">
-        {t("discuss.queue")}:
-      </span>
+    <div role="group" aria-label={t("discuss.queue")} className="sb-chips">
       {topTargetIds.map((targetId, index) => {
         const focused = focusId === targetId;
+        const count = tallies?.[targetId] ?? 0;
         return (
           <button
             key={targetId}
             type="button"
             data-testid={`discuss-chip-${index + 1}`}
+            aria-pressed={focused}
             disabled={!isAdmin}
             onClick={() =>
               send({
@@ -70,16 +73,12 @@ export function DiscussBar({
                 targetId: focused ? null : targetId,
               })
             }
-            className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs focus-visible:outline-2 focus-visible:outline-accent ${
-              focused
-                ? "bg-accent text-white"
-                : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-            } ${isAdmin ? "" : "cursor-default"}`}
+            className="sb-chip"
           >
-            <span className="font-semibold">👑 {index + 1}</span>
-            {excerptFor(targetId)}
-            <span className="tabular-nums opacity-70">
-              {tallies?.[targetId] ?? 0}●
+            <Icon name="check" size={16} />
+            {`${index + 1}. ${excerptFor(targetId)} · `}
+            <span className="tabular-nums">
+              {t("discuss.votes", { count })}
             </span>
           </button>
         );

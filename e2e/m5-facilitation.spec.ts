@@ -39,7 +39,7 @@ test("facilitator chooses optional phases before the retro starts", async ({
     /discuss|diskutieren/i,
   );
   await page.getByTestId("phase-next").click();
-  await expect(page.getByTestId("phase-next")).toContainText(/done|fertig/i);
+  await expect(page.getByTestId("phase-next")).toContainText(/finish|beenden/i);
   await page.getByTestId("phase-next").click();
   await page.getByTestId("phase-done-confirm").click();
   await expect(page.getByTestId("phase-next")).toHaveCount(0);
@@ -129,14 +129,8 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   await expect(ben.getByTestId("roti-result")).toHaveCount(0);
 
   // Anna's own selection is highlighted for her; Ben can't tell it was a 5.
-  await expect(anna.getByTestId("roti-5")).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(ben.getByTestId("roti-5")).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  await expect(anna.getByTestId("roti-5")).toBeChecked();
+  await expect(ben.getByTestId("roti-5")).not.toBeChecked();
 
   // Closing the retro publishes the result once — (5 + 3 + 4) / 3 = 4.
   await anna.getByTestId("phase-next").click();
