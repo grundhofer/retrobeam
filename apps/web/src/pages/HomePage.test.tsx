@@ -176,7 +176,9 @@ test("creating without a name says so at the field and sends nothing", async () 
     .element(field)
     .toHaveAccessibleDescription(i18n.t("home.boardNameMissing"));
   // The focus moved, so the field's description carries the message.
-  await expect.element(screen.getByRole("status")).toBeEmptyDOMElement();
+  await expect
+    .element(screen.getByRole("main").getByRole("status"))
+    .toBeEmptyDOMElement();
   expect(seen.body).toBeNull();
 
   // Spaces alone leave the field empty, so the message stays.
@@ -204,12 +206,14 @@ test("Enter in the empty name field says the message aloud", async () => {
   );
   const field = screen.getByRole("textbox", { name: i18n.t("home.boardName") });
   await expect.element(field).toHaveFocus();
-  await expect.element(screen.getByRole("status")).toBeEmptyDOMElement();
+  await expect
+    .element(screen.getByRole("main").getByRole("status"))
+    .toBeEmptyDOMElement();
 
   await userEvent.keyboard("{Enter}");
   await expect.element(field).toHaveAttribute("aria-invalid", "true");
   await expect
-    .element(screen.getByRole("status"))
+    .element(screen.getByRole("main").getByRole("status"))
     .toHaveTextContent(i18n.t("home.boardNameMissing"));
   await expect.element(field).toHaveFocus();
   expect(seen.body).toBeNull();

@@ -476,6 +476,33 @@ export function PrivacyDe() {
             </tr>
             <tr>
               <td>
+                <code>sb-theme</code>
+              </td>
+              <td>
+                Gewählte Darstellung „Hell“ oder „Dunkel“ (nur, wenn sie vom
+                System abweicht)
+              </td>
+              <td>Darstellung merken</td>
+            </tr>
+            <tr>
+              <td>
+                <code>sb-tone</code>
+              </td>
+              <td>
+                Gewählter Farbton „Warm“ (beim Standard „Kühl“ wird nichts
+                gespeichert)
+              </td>
+              <td>Farbton merken</td>
+            </tr>
+            <tr>
+              <td>
+                <code>sb-motion</code>
+              </td>
+              <td>Die Einstellung „Bewegung immer reduzieren“</td>
+              <td>Einstellung merken</td>
+            </tr>
+            <tr>
+              <td>
                 <code>retrobeam.board.{"<Board-ID>"}.sessionKey</code>
               </td>
               <td>Zufälliger Sitzungsschlüssel für genau dieses Board</td>
@@ -515,10 +542,19 @@ export function PrivacyDe() {
       </p>
 
       <p>
+        Die drei Einträge zur Darstellung (<code>sb-theme</code>,{" "}
+        <code>sb-tone</code>, <code>sb-motion</code>) entstehen nur, wenn Sie
+        die jeweilige Wahl treffen, und werden nie übertragen. Fällt eine dieser
+        Einstellungen in einer späteren Version weg, bleibt ihr Eintrag in Ihrem
+        Browser, bis Sie ihn löschen, wird aber nicht mehr gelesen.
+      </p>
+
+      <p>
         Das Speichern dieser Einträge ist nach § 25 Abs. 2 Nr. 2 TDDDG von der
         Einwilligungspflicht ausgenommen, weil es unbedingt erforderlich ist, um
         den von Ihnen ausdrücklich gewünschten Dienst — Ihr Board, Ihre Sitzung,
-        Ihre Sprache — bereitzustellen. Deshalb gibt es keinen Cookie-Banner.
+        Ihre Sprache und die von Ihnen gewählte Darstellung — bereitzustellen.
+        Deshalb gibt es keinen Cookie-Banner.
       </p>
 
       <h2>5. GIFs (KLIPY)</h2>

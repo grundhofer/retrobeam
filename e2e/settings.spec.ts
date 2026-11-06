@@ -60,10 +60,16 @@ test("the settings view keeps the room connected and applies a switch at once", 
   await expect(anna).toHaveURL(boardUrl);
   await expect(anna.getByTestId("phase-next")).toBeVisible();
 
-  // A participant's settings view has the language, not the board's switches.
+  // A participant's settings view has the device's own settings (language,
+  // tone, motion), not the board's switches. Waited for: a count of 0 right
+  // after the click could still be the board view.
   await ben.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
-  await expect(ben.getByRole("switch")).toHaveCount(0);
+  await expect(ben.getByRole("heading", { level: 1 })).toHaveText(
+    /^(settings|einstellungen)$/i,
+  );
   await expect(ben.getByRole("radio", { name: "Deutsch" })).toBeVisible();
+  await expect(ben.getByTestId("motion-toggle")).toBeVisible();
+  await expect(ben.getByRole("switch")).toHaveCount(1);
 
   await benContext.close();
   await annaContext.close();

@@ -452,6 +452,32 @@ export function PrivacyEn() {
             </tr>
             <tr>
               <td>
+                <code>sb-theme</code>
+              </td>
+              <td>
+                Chosen display “Light” or “Dark” (only if it differs from the
+                system)
+              </td>
+              <td>Remember the display</td>
+            </tr>
+            <tr>
+              <td>
+                <code>sb-tone</code>
+              </td>
+              <td>
+                Chosen tone “Warm” (nothing is stored for the standard “Cool”)
+              </td>
+              <td>Remember the tone</td>
+            </tr>
+            <tr>
+              <td>
+                <code>sb-motion</code>
+              </td>
+              <td>The setting “Always reduce motion”</td>
+              <td>Remember the setting</td>
+            </tr>
+            <tr>
+              <td>
                 <code>{"retrobeam.board.<board id>.sessionKey"}</code>
               </td>
               <td>Random session key for this one board</td>
@@ -489,11 +515,19 @@ export function PrivacyEn() {
       </p>
 
       <p>
+        The three display entries (<code>sb-theme</code>, <code>sb-tone</code>,{" "}
+        <code>sb-motion</code>) are only created when you make that choice, and
+        are never transmitted. If one of these settings is dropped in a later
+        version, its entry stays in your browser until you delete it, but is no
+        longer read.
+      </p>
+
+      <p>
         Storing these entries is exempt from the consent requirement under §
         25(2) no. 2 TDDDG (the German implementation of the ePrivacy rule)
         because it is strictly necessary to provide the service you explicitly
-        requested — your board, your session, your language. That is why there
-        is no cookie banner.
+        requested — your board, your session, your language and the display you
+        chose. That is why there is no cookie banner.
       </p>
 
       <h2>5. GIFs (KLIPY)</h2>
