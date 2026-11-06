@@ -271,6 +271,55 @@ test("canvas layout: a phone shows the zones as columns", async ({
   await context.close();
 });
 
+// sebaro's pointers (RB-5, F6): another person's pointer is an ink arrow with
+// their name, hidden from screen readers, and the action zone says how many
+// are on the canvas.
+test("canvas layout: the others' pointers, and the sentence that counts them", async ({
+  browser,
+}) => {
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
+  const anna = await annaContext.newPage();
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Canvas pointer retro");
+  await anna.getByTestId("home-layout-canvas").click();
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  const boardUrl = anna.url();
+  await join(anna, "Anna");
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(boardUrl);
+  await join(ben, "Ben");
+
+  await anna.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await anna.getByTestId("cursors-toggle").click();
+  await expect(anna.getByTestId("cursors-toggle")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await anna.getByRole("link", { name: /^board$/i }).click();
+  await anna.getByTestId("phase-next").click();
+
+  const viewport = ben.getByTestId("canvas-viewport");
+  await expect(viewport).toBeVisible();
+  const box = (await viewport.boundingBox())!;
+  await ben.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4);
+  await ben.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5, {
+    steps: 5,
+  });
+
+  const pointer = anna.getByTestId("live-cursor");
+  await expect(pointer).toHaveText("Ben");
+  await expect(pointer).toHaveAttribute("aria-hidden", "true");
+  await expect(anna.getByTestId("pointer-count")).toHaveText(
+    /^1\s(person is on the canvas|Person ist auf der Fläche)\.$/,
+  );
+  await annaContext.close();
+  await benContext.close();
+});
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();

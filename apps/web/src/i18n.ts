@@ -302,6 +302,8 @@ const resources = {
       canvas: {
         hint: "Double-click, or “Note” at the top, to add one",
         addNote: "Note",
+        pointers_one: "{{count}}\u00a0person is on the canvas.",
+        pointers_other: "{{count}}\u00a0people are on the canvas.",
         addNoteMenu: "New note in a zone",
         addNoteIn: "New note in “{{name}}”",
         occupied: "Occupied by another note",
@@ -1120,6 +1122,8 @@ const resources = {
       canvas: {
         hint: "Doppelklick oder oben „Notiz“ zum Hinzufügen",
         addNote: "Notiz",
+        pointers_one: "{{count}}\u00a0Person ist auf der Fläche.",
+        pointers_other: "{{count}}\u00a0Personen sind auf der Fläche.",
         addNoteMenu: "Neue Notiz in einer Zone",
         addNoteIn: "Neue Notiz in „{{name}}“",
         occupied: "Durch eine andere Notiz belegt",

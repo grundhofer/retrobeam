@@ -446,6 +446,17 @@ function Room({
     config?.anonymous ?? false,
   );
   const narrow = useNarrow();
+  // sebaro's pointers (RB-5) are aria-hidden; the action zone says how many
+  // others are on the canvas: „2 Personen sind auf der Fläche.“ Counted as
+  // BoardCanvas draws them.
+  const cursorsShown =
+    (config?.cursorsEnabled ?? false) && CURSORS_ACTIVATABLE && !anonymous;
+  const pointerCount =
+    surface === "canvas" && !narrow && cursorsShown
+      ? state.roster.filter(
+          (p) => p.id !== you?.id && state.cursors[p.id] !== undefined,
+        ).length
+      : 0;
   const presenter =
     presenterId !== null
       ? (state.roster.find((p) => p.id === presenterId) ?? null)
@@ -816,11 +827,7 @@ function Room({
                         unpresentedAuthorIds={unpresentedAuthorIds}
                         gifsEnabled={gifsEnabled}
                         cursors={state.cursors}
-                        cursorsEnabled={
-                          (config?.cursorsEnabled ?? false) &&
-                          CURSORS_ACTIVATABLE &&
-                          !anonymous
-                        }
+                        cursorsEnabled={cursorsShown}
                       />
                     ) : surface === "focus" && presenter ? (
                       <PresenterFocus
@@ -905,7 +912,7 @@ function Room({
             <ActionZone
               slotRef={setActionSlot}
               status={
-                hasStatus ? (
+                hasStatus || pointerCount > 0 ? (
                   <>
                     <PhaseGuide
                       phase={state.phase}
@@ -913,6 +920,14 @@ function Room({
                       anonymous={anonymous}
                     />{" "}
                     <TimeLeft timer={state.timer} form="sentence" />
+                    {pointerCount > 0 ? (
+                      <>
+                        {" "}
+                        <span data-testid="pointer-count">
+                          {t("canvas.pointers", { count: pointerCount })}
+                        </span>
+                      </>
+                    ) : null}
                   </>
                 ) : null
               }
