@@ -679,6 +679,11 @@ const resources = {
       },
       settings: {
         title: "Settings",
+        tone: "Tone",
+        toneName: { cool: "Cool", warm: "Warm" },
+        motion: "Always reduce motion",
+        motionHelp:
+          "New things then appear without motion; they only fade in. Applies even if the device allows motion.",
         languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {
@@ -1518,6 +1523,11 @@ const resources = {
       },
       settings: {
         title: "Einstellungen",
+        tone: "Farbton",
+        toneName: { cool: "Kühl", warm: "Warm" },
+        motion: "Bewegung immer reduzieren",
+        motionHelp:
+          "Neues erscheint dann ohne Bewegung, es wird nur eingeblendet. Gilt auch, wenn das Gerät Bewegung zulässt.",
         languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {

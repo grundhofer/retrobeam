@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CURSORS_ACTIVATABLE,
@@ -21,6 +21,21 @@ import { SwitchField } from "./SwitchField.js";
 // action (D74). The board's own switches are the facilitator's; everyone has
 // the language. „Farbton“ and „Bewegung immer reduzieren“ join in stage 6b,
 // the timer sound in 5c.
+// „Bewegung immer reduzieren“ as sebaro's sb-controls.js sets it: the page
+// attribute that sebaro.css and the app's motion checks read, and the key
+// theme-init.js applies before the next first paint.
+function applyMotion(reduce: boolean) {
+  const root = document.documentElement;
+  if (reduce) root.dataset.sbMotion = "reduce";
+  else delete root.dataset.sbMotion;
+  try {
+    if (reduce) localStorage.setItem("sb-motion", "reduce");
+    else localStorage.removeItem("sb-motion");
+  } catch {
+    // Storage blocked: the choice holds for this page only.
+  }
+}
+
 export function BoardSettings({
   isAdmin,
   gifsEnabled,
@@ -49,6 +64,12 @@ export function BoardSettings({
   // only be switched off — the lock is one-way, exactly like the server's.
   const voterNamesBlocked =
     anonymous || (voterNamesLocked(phase) && !voterNamesEnabled);
+  const [initialTone] = useState(() =>
+    document.documentElement.dataset.sbTone === "warm" ? "warm" : "cool",
+  );
+  const [motionReduced, setMotionReduced] = useState(
+    () => document.documentElement.dataset.sbMotion === "reduce",
+  );
 
   return (
     <div data-testid="board-settings" className="sb-container sb-section">
@@ -73,6 +94,49 @@ export function BoardSettings({
             ))}
           </div>
         </fieldset>
+        {/* The device's own settings (sebaro spec/03 §6.6, L11), for
+            everyone: „Farbton“ through sebaro's sb-tone.js, which stores it
+            and announces it in the status below (only its change handler
+            reaches a group React mounts later, so the group is drawn
+            visible and checked here); „Bewegung immer reduzieren“ as
+            sb-controls.js would do it — sb-controls.js itself is not loaded,
+            its other parts would act on React's markup. „Hell oder Dunkel“
+            stays the header's button. */}
+        <fieldset
+          className="sb-segmented"
+          data-sb-tone-choice
+          data-testid="tone-choice"
+        >
+          <legend>{t("settings.tone")}</legend>
+          <div className="sb-segmented__options">
+            {(["cool", "warm"] as const).map((tone) => (
+              <label key={tone} className="sb-segmented__option">
+                <input
+                  type="radio"
+                  name="sb-tone"
+                  value={tone}
+                  defaultChecked={initialTone === tone}
+                  data-testid={`tone-${tone}`}
+                />
+                <span className="sb-segmented__face">
+                  <Icon name="check" size={16} />
+                  {t(`settings.toneName.${tone}`)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <p data-sb-tone-status role="status" className="sb-visually-hidden" />
+        <SwitchField
+          label={t("settings.motion")}
+          checked={motionReduced}
+          help={t("settings.motionHelp")}
+          testId="motion-toggle"
+          onChange={(reduce) => {
+            setMotionReduced(reduce);
+            applyMotion(reduce);
+          }}
+        />
 
         {isAdmin ? (
           <>

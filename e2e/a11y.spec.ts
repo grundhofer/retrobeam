@@ -17,11 +17,15 @@ import { newContext } from "./helpers.js";
 // runs) because e2e/ has no Node types to read files with.
 const AXE = "node_modules/axe-core/axe.min.js";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+// The warm tone (stage 6b, G15: contrast in light, dark and warm) at the
+// desktop width: the tone changes only grounds, text and lines.
 const RUNS = [
-  { width: 390, height: 844, scheme: "light" },
-  { width: 390, height: 844, scheme: "dark" },
-  { width: 1440, height: 900, scheme: "light" },
-  { width: 1440, height: 900, scheme: "dark" },
+  { width: 390, height: 844, scheme: "light", tone: "cool" },
+  { width: 390, height: 844, scheme: "dark", tone: "cool" },
+  { width: 1440, height: 900, scheme: "light", tone: "cool" },
+  { width: 1440, height: 900, scheme: "dark", tone: "cool" },
+  { width: 1440, height: 900, scheme: "light", tone: "warm" },
+  { width: 1440, height: 900, scheme: "dark", tone: "warm" },
 ] as const;
 
 test.skip(
@@ -67,6 +71,10 @@ async function audit(
   for (const run of runs) {
     await page.setViewportSize({ width: run.width, height: run.height });
     await page.emulateMedia({ colorScheme: run.scheme });
+    await page.evaluate((tone) => {
+      if (tone === "warm") document.documentElement.dataset.sbTone = "warm";
+      else delete document.documentElement.dataset.sbTone;
+    }, run.tone);
     await settle?.();
     await page.addScriptTag({ path: AXE });
     const violations = await page.evaluate(async (tags) => {
@@ -97,7 +105,7 @@ async function audit(
       );
       if (!waived)
         found.push(
-          `${name} ${run.width}/${run.scheme}: ${rule} at ${target} ${html}`,
+          `${name} ${run.width}/${run.scheme}/${run.tone}: ${rule} at ${target} ${html}`,
         );
     }
   }
