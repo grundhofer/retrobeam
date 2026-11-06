@@ -5,7 +5,8 @@ import { afterEach, expect, test } from "vitest";
 import { render } from "vitest-browser-react";
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
-import { GifPicker } from "./GifPicker.js";
+import { userEvent } from "vitest/browser";
+import { GifPicker, GifPickerButton } from "./GifPicker.js";
 
 // Four different things stop a GIF search, and each needs its own answer,
 // because the useful advice differs: wait seconds, wait an hour, it is broken,
@@ -37,7 +38,7 @@ async function searchFor(term: string) {
     <ConnectionProvider
       value={{ boardId: "a".repeat(32), send: () => {}, mutate: () => {} }}
     >
-      <GifPicker onPick={() => {}} onClose={() => {}} />
+      <GifPicker onPick={() => {}} />
     </ConnectionProvider>,
   );
   await screen.getByTestId("gif-search").fill(term);
@@ -110,4 +111,38 @@ test("results render, and carry no referrer to the provider", async () => {
   const image = screen.getByTestId("gif-result").element().querySelector("img");
   // The board URL is the capability; it must never travel to a third party.
   expect(image?.getAttribute("referrerpolicy")).toBe("no-referrer");
+});
+
+// sebaro's bottom sheet (plan stage 5g): a modal with its title, the search
+// and the line that says where a search goes (BEL-10). Escape first empties a
+// filled search and keeps the sheet; on an empty one it closes the sheet, and
+// the focus goes back to the GIF key.
+test("the picker is a sheet: data path, Escape empties then closes", async () => {
+  respondWith(200, { configured: true, gifs: [] });
+  const screen = await render(
+    <ConnectionProvider
+      value={{ boardId: "a".repeat(32), send: () => {}, mutate: () => {} }}
+    >
+      <GifPickerButton testId="open-gif" onPick={() => {}} />
+    </ConnectionProvider>,
+  );
+  await screen.getByTestId("open-gif").click();
+  const sheet = screen.getByTestId("gif-sheet");
+  await expect.element(sheet).toBeVisible();
+  expect((sheet.element() as HTMLDialogElement).matches(":modal")).toBe(true);
+  await expect.element(sheet).toHaveTextContent(/KLIPY \(USA\)/);
+  const search = screen.getByTestId("gif-search");
+  await expect.element(search).toHaveFocus();
+
+  await search.fill("ship");
+  await userEvent.keyboard("{Escape}");
+  await expect.element(search).toHaveValue("");
+  await expect.element(search).toHaveFocus();
+  await expect.element(sheet).toBeVisible();
+
+  await userEvent.keyboard("{Escape}");
+  await expect
+    .poll(() => screen.getByTestId("gif-sheet").elements().length)
+    .toBe(0);
+  await expect.element(screen.getByTestId("open-gif")).toHaveFocus();
 });

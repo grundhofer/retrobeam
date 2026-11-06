@@ -24,7 +24,7 @@ const SCHEMES = ["light", "dark"] as const;
 // Any instant will do, as long as it is the same one on every run.
 const FIXED_NOW = new Date("2026-09-01T10:00:00Z");
 
-// Reduced motion skips the wheel and the confetti, which would otherwise be
+// Reduced motion skips the wheel, which would otherwise be
 // mid-flight in a picture that has to come out the same every time.
 async function visualContext(browser: Browser): Promise<BrowserContext> {
   const context = await newContext(browser, { reducedMotion: "reduce" });
@@ -148,7 +148,7 @@ test("board through every phase", async ({ browser }) => {
     }
     await expect(target.getByTestId("vote-count")).toHaveText(String(dots));
   }
-  await expect(anna.getByTestId("vote-meter")).toContainText("2 / 2");
+  await expect(anna.getByTestId("vote-meter")).toContainText(/2 (of|von) 2/);
   await shoot(anna, "board-vote");
 
   await step(anna, ben, /discuss|diskutieren/i);

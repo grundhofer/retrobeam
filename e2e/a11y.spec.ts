@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { waivers } from "./a11y-waivers.js";
 import { newContext } from "./helpers.js";
 
@@ -17,17 +17,36 @@ import { newContext } from "./helpers.js";
 // runs) because e2e/ has no Node types to read files with.
 const AXE = "node_modules/axe-core/axe.min.js";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+// The warm tone (stage 6b, G15: contrast in light, dark and warm) at the
+// desktop width: the tone changes only grounds, text and lines.
 const RUNS = [
-  { width: 390, height: 844, scheme: "light" },
-  { width: 390, height: 844, scheme: "dark" },
-  { width: 1440, height: 900, scheme: "light" },
-  { width: 1440, height: 900, scheme: "dark" },
+  { width: 390, height: 844, scheme: "light", tone: "cool" },
+  { width: 390, height: 844, scheme: "dark", tone: "cool" },
+  { width: 1440, height: 900, scheme: "light", tone: "cool" },
+  { width: 1440, height: 900, scheme: "dark", tone: "cool" },
+  { width: 1440, height: 900, scheme: "light", tone: "warm" },
+  { width: 1440, height: 900, scheme: "dark", tone: "warm" },
 ] as const;
 
 test.skip(
   ({ browserName }) => browserName !== "chromium",
   "axe runs in one engine",
 );
+
+// On the sebaro-umbau branch, from stage 2c on, sebaro.css styles every view
+// before the view itself has moved to sebaro: a button or link no longer
+// keeps Tailwind's colour and size, and in dark mode the not yet converted
+// zinc surfaces stay light under light text (docs/sebaro-umbau.md §5.3,
+// §5.4). Each view still waiting for its stage is listed here with that stage
+// and runs as test.fixme; the stage takes it out, and from then on axe must
+// pass there (owner decision of 2026-11-02). The waiver list is not used for
+// this, and the list must be empty before the final merge to main.
+const KNOWN: Record<string, string> = {};
+const known = (...names: string[]) =>
+  names
+    .filter((name) => name in KNOWN)
+    .map((name) => `${name}: ${KNOWN[name]}`)
+    .join("; ");
 
 test("every waiver has a page, a rule, a target and a reason", () => {
   for (const waiver of waivers) {
@@ -46,11 +65,16 @@ async function audit(
   page: Page,
   name: string,
   settle?: () => Promise<void>,
+  runs: readonly (typeof RUNS)[number][] = RUNS,
 ): Promise<string[]> {
   const found: string[] = [];
-  for (const run of RUNS) {
+  for (const run of runs) {
     await page.setViewportSize({ width: run.width, height: run.height });
     await page.emulateMedia({ colorScheme: run.scheme });
+    await page.evaluate((tone) => {
+      if (tone === "warm") document.documentElement.dataset.sbTone = "warm";
+      else delete document.documentElement.dataset.sbTone;
+    }, run.tone);
     await settle?.();
     await page.addScriptTag({ path: AXE });
     const violations = await page.evaluate(async (tags) => {
@@ -81,7 +105,7 @@ async function audit(
       );
       if (!waived)
         found.push(
-          `${name} ${run.width}/${run.scheme}: ${rule} at ${target} ${html}`,
+          `${name} ${run.width}/${run.scheme}/${run.tone}: ${rule} at ${target} ${html}`,
         );
     }
   }
@@ -100,6 +124,7 @@ for (const [name, path] of [
   ["not-found", "/does-not-exist"],
 ] as const) {
   test(`axe: ${name}`, async ({ browser }) => {
+    test.fixme(known(name) !== "", known(name));
     const context = await newContext(browser);
     const page = await context.newPage();
     await page.goto(path);
@@ -109,29 +134,33 @@ for (const [name, path] of [
   });
 }
 
-// The runs above have an English browser, so the switch on the pages without a
-// language URL reads "DE, auf Deutsch umschalten". A German browser gets the
-// other name, "EN, switch to English", checked here on the views that carry no
-// waiver.
+// The runs above have an English browser. A German browser renders the same
+// views in German, with DE chosen in the header's language choice, checked
+// here on the views that carry no waiver.
 for (const [name, path] of [
   ["new-board", "/new"],
   ["not-found", "/does-not-exist"],
 ] as const) {
   test(`axe: ${name} in a German browser`, async ({ browser }) => {
+    test.fixme(known(name) !== "", known(name));
     const context = await newContext(browser, { locale: "de-DE" });
     const page = await context.newPage();
     await page.goto(path);
     await expect(
-      page.getByRole("button", { name: "EN, switch to English", exact: true }),
-    ).toBeVisible();
+      page.getByRole("group", { name: "Sprache" }).getByRole("radio", {
+        name: "DE",
+      }),
+    ).toBeChecked();
     expect(await audit(page, name)).toEqual([]);
     await context.close();
   });
 }
 
 // One board, pictured in the lobby and the write phase: the two screens every
-// participant sees. The later phases follow as their views move to sebaro.
-test("axe: board", async ({ browser }) => {
+// participant sees, each its own test, so the lobby (done in stage 5b) is held
+// to axe while the write phase still waits for its stages. The later phases
+// follow as their views move to sebaro.
+async function joinedBoard(browser: Browser) {
   const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/new");
@@ -143,25 +172,38 @@ test("axe: board", async ({ browser }) => {
   await page.getByRole("textbox").fill("Anna");
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(page.getByTestId("roster-item").first()).toBeVisible();
-  const lobby = await audit(page, "board-lobby");
+  return { context, page };
+}
 
+test("axe: board lobby", async ({ browser }) => {
+  test.fixme(known("board-lobby") !== "", known("board-lobby"));
+  const { context, page } = await joinedBoard(browser);
+  expect(await audit(page, "board-lobby")).toEqual([]);
+  await context.close();
+});
+
+test("axe: board write", async ({ browser }) => {
+  test.fixme(known("board-write") !== "", known("board-write"));
+  const { context, page } = await joinedBoard(browser);
   await page.getByTestId("phase-next").click();
   await expect(page.getByTestId("phase-compact")).toContainText(
     /write|schreiben/i,
   );
-  const write = await audit(page, "board-write");
-
-  expect([...lobby, ...write]).toEqual([]);
+  expect(await audit(page, "board-write")).toEqual([]);
   await context.close();
 });
 
-// The canvas, with a card's ⋯ open on its move and step options, then the
+// The canvas, with a card's arrange panel open on its move and step options, then the
 // facilitator's zone panel: the drags' keyboard twins have to pass the same
 // audit as the rest of the write phase, at the zoom a visitor gets — the
 // fitted one, refitted at each width. The first audit of the canvas at all,
 // hence its waivers: the controls drawn in the zoomed world, which shrink
 // below 24px with it.
 test("axe: canvas arrange panel", async ({ browser }) => {
+  test.fixme(
+    known("board-canvas-arrange") !== "",
+    known("board-canvas-arrange"),
+  );
   const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/new");
@@ -175,7 +217,8 @@ test("axe: canvas arrange panel", async ({ browser }) => {
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(page.getByTestId("roster-item").first()).toBeVisible();
   await page.getByTestId("phase-next").click();
-  await page.getByTestId("canvas-add-note").first().click();
+  await page.getByTestId("canvas-add-note").click();
+  await page.getByRole("menuitem").first().click();
   await page.getByTestId("canvas-composer").fill("Deploys are slow");
   await page.keyboard.press("Enter");
   // The new card fades in; mid-fade its text would fail contrast.
@@ -186,19 +229,31 @@ test("axe: canvas arrange panel", async ({ browser }) => {
     name: /fit to screen|an fenster anpassen/i,
   });
 
+  // The canvas is drawn from 640 px on; under it a canvas board shows its
+  // zones as columns (owner, 2026-11-05), audited at the end.
+  const wide = RUNS.filter((run) => run.width >= 640);
   expect(
-    await audit(page, "board-canvas-arrange", async () => {
-      // Fitted to this width, then the panel opened the way a visitor would.
-      if (await panel.isVisible()) {
+    await audit(
+      page,
+      "board-canvas-arrange",
+      async () => {
+        // Fitted to this width, then the panel opened the way a visitor would.
+        if (await panel.isVisible()) {
+          await toggle.focus();
+          await page.keyboard.press("Enter");
+        }
+        await fit.click();
+        // Off the key again: a hovered key fades its fill when the scheme
+        // changes, and axe would read the frame in between (sebaro's keys
+        // fade their background).
+        await page.mouse.move(0, 0);
         await toggle.focus();
         await page.keyboard.press("Enter");
-      }
-      await fit.click();
-      await toggle.focus();
-      await page.keyboard.press("Enter");
-      // axe skips what is off screen; the panel has to be there to count.
-      await expect(panel).toBeInViewport({ ratio: 1 });
-    }),
+        // axe skips what is off screen; the panel has to be there to count.
+        await expect(panel).toBeInViewport({ ratio: 1 });
+      },
+      wide,
+    ),
   ).toEqual([]);
 
   // The facilitator's zone panel, the zone drag's twin: the same canvas, the
@@ -209,11 +264,44 @@ test("axe: canvas arrange panel", async ({ browser }) => {
   const zones = page.getByTestId("zones-toggle");
   const zonePanel = page.getByTestId("zones-panel");
   expect(
-    await audit(page, "board-canvas-arrange", async () => {
-      if (!(await zonePanel.isVisible())) await zones.click();
-      await fit.click();
-      await expect(zonePanel).toBeInViewport({ ratio: 1 });
-    }),
+    await audit(
+      page,
+      "board-canvas-arrange",
+      async () => {
+        if (!(await zonePanel.isVisible())) await zones.click();
+        await fit.click();
+        await page.mouse.move(0, 0);
+        await expect(zonePanel).toBeInViewport({ ratio: 1 });
+      },
+      wide,
+    ),
+  ).toEqual([]);
+
+  // On a phone the same board is the swiping columns, with the card.
+  const narrow = RUNS.filter((run) => run.width < 640);
+  expect(
+    await audit(
+      page,
+      "board-canvas-phone",
+      async () => {
+        // The columns mount at this width and their card fades in, and the
+        // scheme just changed: wait until nothing fades any more, or axe
+        // reads a colour in between.
+        await expect(page.getByTestId("note-card")).toBeVisible();
+        await page.evaluate(() =>
+          Promise.all(
+            document
+              .getAnimations()
+              .filter(
+                (animation) =>
+                  animation.effect?.getComputedTiming().iterations !== Infinity,
+              )
+              .map((animation) => animation.finished),
+          ),
+        );
+      },
+      narrow,
+    ),
   ).toEqual([]);
   await context.close();
 });

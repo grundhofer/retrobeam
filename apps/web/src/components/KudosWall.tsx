@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   generateHexId,
@@ -12,15 +12,19 @@ import {
   type Participant,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
-import { EmojiPicker } from "./EmojiPicker.js";
-import { GifPicker } from "./GifPicker.js";
+import { Dialog } from "./Dialog.js";
+import { EmojiPickerButton } from "./EmojiPicker.js";
+import { GifPickerButton } from "./GifPicker.js";
+import { Icon } from "./Icon.js";
 
-const CARD_ACCENT: Record<KudoCardType, string> = {
-  "thank-you": "bg-rose-50 border-rose-200",
-  "great-job": "bg-amber-50 border-amber-200",
-  "well-done": "bg-emerald-50 border-emerald-200",
-  congratulations: "bg-violet-50 border-violet-200",
-  "totally-awesome": "bg-sky-50 border-sky-200",
+// sebaro (plan stage 5d): a kind of kudo is an icon and its word, never a
+// colour of its own.
+const CARD_ICON: Record<KudoCardType, string> = {
+  "thank-you": "heart",
+  "great-job": "thumbs-up",
+  "well-done": "star",
+  congratulations: "success",
+  "totally-awesome": "flash",
 };
 
 export interface KudosWallProps {
@@ -45,50 +49,49 @@ export function KudosWall({
   const byId = new Map(roster.map((p) => [p.id, p]));
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold text-zinc-900">
-          💛 {t("kudos.title")}
+    <div className="sb-stack sb-stack--group mx-auto max-w-4xl">
+      <section aria-labelledby="kudos-title" className="sb-stack">
+        <h2 id="kudos-title" className="sb-section__title">
+          {t("kudos.title")}
         </h2>
-        <p className="mt-1 text-zinc-500">{t("kudos.subtitle")}</p>
-      </div>
+        <p className="sb-page-lead__text">{t("kudos.subtitle")}</p>
+      </section>
 
       {!readOnly ? (
         <KudoComposer roster={roster} you={you} gifsEnabled={gifsEnabled} />
       ) : null}
 
       {kudos.length === 0 ? (
-        <p className="text-center text-sm text-zinc-500">{t("kudos.empty")}</p>
+        <p className="sb-field__help">{t("kudos.empty")}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {kudos.map((kudo) => {
             const to = byId.get(kudo.toId);
             const from = kudo.fromId === null ? null : byId.get(kudo.fromId);
             const canRemove = !readOnly && (kudo.fromId === you.id || isAdmin);
             return (
-              <article
+              <li
                 key={kudo.id}
                 data-testid="kudo-card"
-                className={`reveal-in flex flex-col gap-2 rounded-2xl border p-4 shadow-sm ${CARD_ACCENT[kudo.cardType]}`}
+                className="reveal-in sb-card sb-card--item sb-stack"
               >
-                <div className="flex items-center justify-between">
-                  {/* zinc-600, not the zinc-500 used on white: this sits on the card's
-                      pastel fill, and zinc-500 on rose-50/violet-50 is 4.4:1. */}
-                  <span className="text-xs font-semibold tracking-wide text-zinc-600 uppercase">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="sb-card__meta flex items-center gap-1">
+                    <Icon name={CARD_ICON[kudo.cardType]} size={20} />
                     {t(`kudos.card.${kudo.cardType}`)}
                   </span>
                   {canRemove ? <RemoveButton kudoId={kudo.id} /> : null}
                 </div>
-                <p className="font-medium text-zinc-800">
-                  →{" "}
-                  {kudo.toId === KUDO_EVERYONE
-                    ? t("kudos.everyone")
-                    : (to?.name ?? t("kudos.someone"))}
+                <p className="sb-card__title">
+                  {t("kudos.toName", {
+                    name:
+                      kudo.toId === KUDO_EVERYONE
+                        ? t("kudos.everyone")
+                        : (to?.name ?? t("kudos.someone")),
+                  })}
                 </p>
                 {kudo.text.trim() !== "" ? (
-                  <p className="text-sm whitespace-pre-wrap text-zinc-700">
-                    {kudo.text}
-                  </p>
+                  <p className="whitespace-pre-wrap">{kudo.text}</p>
                 ) : null}
                 {kudo.gifUrl !== null ? (
                   <img
@@ -96,40 +99,78 @@ export function KudosWall({
                     alt=""
                     loading="lazy"
                     referrerPolicy="no-referrer"
-                    className="max-h-40 w-full rounded-lg object-contain"
+                    className="max-h-40 w-full object-contain"
                   />
                 ) : null}
-                <span className="mt-auto text-xs text-zinc-600">
+                <p className="sb-card__meta">
                   {from
                     ? t("kudos.from", { name: from.name })
                     : t("kudos.anonymous")}
-                </span>
-              </article>
+                </p>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );
 }
 
+// Removing a kudo asks first, in sebaro's confirmation dialog: it is gone
+// for everyone and cannot be brought back.
 function RemoveButton({ kudoId }: { kudoId: string }) {
   const { t } = useTranslation();
   const { mutate } = useConnection();
+  const [asking, setAsking] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   return (
-    <button
-      type="button"
-      aria-label={t("kudos.remove")}
-      onClick={() =>
-        mutate(
-          { type: "kudo.delete", opId: generateHexId(), kudoId },
-          { type: "kudo.deleted", seq: 0, kudoId },
-        )
-      }
-      className="rounded px-1 text-xs text-zinc-500 hover:bg-white/60 hover:text-zinc-700"
-    >
-      🗑
-    </button>
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        aria-label={t("kudos.remove")}
+        aria-haspopup="dialog"
+        onClick={() => setAsking(true)}
+        className="sb-icon-button"
+      >
+        <Icon name="trash" />
+      </button>
+      <Dialog
+        open={asking}
+        onClose={() => setAsking(false)}
+        title={t("kudos.removeTitle")}
+        returnTo={trigger}
+        actions={
+          <>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setAsking(false)}
+              className="sb-secondary-action"
+            >
+              {t("note.cancel")}
+            </button>
+            <button
+              type="button"
+              data-testid="kudo-remove-confirm"
+              onClick={() => {
+                setAsking(false);
+                mutate(
+                  { type: "kudo.delete", opId: generateHexId(), kudoId },
+                  { type: "kudo.deleted", seq: 0, kudoId },
+                );
+              }}
+              className="sb-danger-action sb-danger-action--outlined"
+            >
+              <Icon name="trash" size={20} />
+              {t("menu.deleteConfirm")}
+            </button>
+          </>
+        }
+      >
+        <p className="sb-dialog__text">{t("kudos.removeText")}</p>
+      </Dialog>
+    </>
   );
 }
 
@@ -150,7 +191,7 @@ function KudoComposer({
   const [text, setText] = useState("");
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [anonymous, setAnonymous] = useState(false);
-  const [popover, setPopover] = useState<"none" | "gif" | "emoji">("none");
+  const id = useId();
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -183,15 +224,22 @@ function KudoComposer({
     setText("");
     setGifUrl(null);
     setAnonymous(false);
-    setPopover("none");
   }
 
+  // sebaro's form (plan stage 5d, F5b): the kind as chips, the recipient and
+  // the reason as labelled fields, „Anonym senden“ (§6.1 f), and „Kudos
+  // senden“ as the close phase's primary action.
   return (
     <form
       onSubmit={submit}
-      className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4"
+      aria-label={t("kudos.send")}
+      className="sb-form-grid"
     >
-      <div className="flex flex-wrap gap-1.5">
+      <div
+        role="group"
+        aria-label={t("kudos.kind")}
+        className="sb-chips sb-form-grid__wide"
+      >
         {KUDO_CARD_TYPES.map((type) => (
           <button
             key={type}
@@ -199,130 +247,101 @@ function KudoComposer({
             data-testid={`kudo-type-${type}`}
             aria-pressed={cardType === type}
             onClick={() => setCardType(type)}
-            className={`rounded-full px-3 py-1 text-sm ${
-              cardType === type
-                ? "bg-accent text-white"
-                : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-            }`}
+            className="sb-chip"
           >
+            <Icon name="check" size={16} />
             {t(`kudos.card.${type}`)}
           </button>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-sm text-zinc-600">{t("kudos.to")}</label>
-        <select
-          value={toId}
-          data-testid="kudo-recipient"
-          onChange={(event) => setToId(event.target.value)}
-          className="rounded-lg border border-zinc-200 px-2 py-1 text-sm"
-        >
-          {/* "Everyone" leads the list: thanking the room is the common
-              closing move, and on a one-person board it is the only option.
-              The sender is left OUT rather than greyed out — a disabled
-              "Anna (you)" invites the question, absence answers it. The server
-              refuses a self-kudo anyway, so this is convenience, not the rule. */}
-          <option value={KUDO_EVERYONE}>{t("kudos.everyone")}</option>
-          {others.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+      <div className="sb-field sb-form-grid__wide">
+        <label htmlFor={`${id}-to`} className="sb-field__label">
+          {t("kudos.to")}
+        </label>
+        <div className="sb-field__control sb-select">
+          <select
+            id={`${id}-to`}
+            value={toId}
+            data-testid="kudo-recipient"
+            onChange={(event) => setToId(event.target.value)}
+          >
+            {/* "Everyone" leads the list: thanking the room is the common
+                closing move, and on a one-person board it is the only option.
+                The sender is left OUT rather than greyed out — a disabled
+                "Anna (you)" invites the question, absence answers it. The
+                server refuses a self-kudo anyway, so this is convenience, not
+                the rule. */}
+            <option value={KUDO_EVERYONE}>{t("kudos.everyone")}</option>
+            {others.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <Icon name="chevron-down" />
+        </div>
       </div>
 
-      {/* A kudo may go without a reason, so the label says "(optional)".
-          The type size sits on the label; the textarea inherits it. */}
-      <label className="flex flex-col gap-1 text-sm">
-        <span>
-          {t("kudos.reason")} <span>{t("form.optional")}</span>
-        </span>
-        <textarea
-          value={text}
-          data-testid="kudo-text"
-          onChange={(event) => setText(event.target.value)}
-          maxLength={300}
-          rows={2}
-          placeholder={t("kudos.placeholder")}
-          className="resize-none rounded-lg border border-zinc-200 px-3 py-2 placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-accent"
-        />
-      </label>
+      {/* A kudo may go without a reason, so the label says "(optional)". */}
+      <div className="sb-field sb-form-grid__wide">
+        <label htmlFor={`${id}-reason`} className="sb-field__label">
+          {t("kudos.reason")} {t("form.optional")}
+        </label>
+        <div className="sb-field__control">
+          <textarea
+            id={`${id}-reason`}
+            value={text}
+            data-testid="kudo-text"
+            onChange={(event) => setText(event.target.value)}
+            maxLength={300}
+            rows={2}
+          />
+        </div>
+      </div>
 
       {gifUrl !== null ? (
-        <div className="relative w-fit">
+        <div className="sb-form-grid__wide flex items-start gap-2">
           <img
             src={gifUrl}
             alt=""
             referrerPolicy="no-referrer"
-            className="max-h-28 rounded-lg"
+            className="max-h-28"
           />
           <button
             type="button"
             onClick={() => setGifUrl(null)}
             aria-label={t("gif.remove")}
-            className="absolute -top-1.5 -right-1.5 rounded-full bg-zinc-800 px-1.5 text-xs text-white"
+            className="sb-icon-button"
           >
-            ✕
+            <Icon name="close" />
           </button>
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="sb-cluster sb-form-grid__wide">
         {gifsEnabled ? (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setPopover(popover === "gif" ? "none" : "gif")}
-              className="rounded-lg border border-zinc-200 px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-50"
-            >
-              🎞 {t("gif.add")}
-            </button>
-            {popover === "gif" ? (
-              <div className="absolute bottom-9 left-0 z-40">
-                <GifPicker
-                  onPick={(url) => {
-                    setGifUrl(url);
-                    setPopover("none");
-                  }}
-                  onClose={() => setPopover("none")}
-                />
-              </div>
-            ) : null}
-          </div>
+          <GifPickerButton testId="kudos-gif" onPick={setGifUrl} />
         ) : null}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setPopover(popover === "emoji" ? "none" : "emoji")}
-            className="rounded-lg border border-zinc-200 px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-50"
-          >
-            😊
-          </button>
-          {popover === "emoji" ? (
-            <div className="absolute bottom-9 left-0 z-40">
-              <EmojiPicker
-                onPick={(emoji) => {
-                  setText((current) => current + emoji);
-                  setPopover("none");
-                }}
-              />
-            </div>
-          ) : null}
-        </div>
-        <label className="flex items-center gap-1.5 text-sm text-zinc-600">
+        <EmojiPickerButton
+          label={t("kudos.emoji")}
+          onPick={(emoji) => setText((current) => current + emoji)}
+        />
+        <label className="sb-checkbox">
           <input
             type="checkbox"
             checked={anonymous}
             onChange={(event) => setAnonymous(event.target.checked)}
-            className="accent-accent"
           />
-          {t("kudos.anonymousSend")}
+          <span>{t("kudos.anonymousSend")}</span>
         </label>
+      </div>
+
+      <div className="sb-form-grid__wide">
         <button
           type="submit"
           data-testid="kudo-send"
-          className="ml-auto rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-strong"
+          className="sb-primary-action"
         >
           {t("kudos.send")}
         </button>

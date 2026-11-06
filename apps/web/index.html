@@ -1,7 +1,30 @@
 <!doctype html>
-<html lang="de">
+<!-- sebaro's load order (spec/09 §1): theme-init.js first, as a classic
+     script before any stylesheet, so a stored choice holds at first paint;
+     sb-start.js right after it, which shows the start tile below until the
+     page has loaded. With data-sb-start="nostore" it reads and writes no
+     storage and shows on every load (plan §2.4 F15, F40). sb-fit.js gives
+     the parts their forms for large text (F38); sb-board.js the board's swipe
+     layout on narrow screens, wired by BoardColumns through sbBoard.setup and
+     teardown (plan stage 5g); sb-sheet.js the scrim press and the Tab trap
+     of the pickers' bottom sheets (Sheet.tsx); theme-button.js „Hell oder
+     Dunkel“ in the header and sb-tone.js „Farbton“ in the settings view
+     (stage 6b). The stylesheets come from
+     main.tsx. The retrobeam:sebaro plugin in vite.config.ts serves these
+     files from the export and inlines the export's tile at its sb:inline
+     comment. No theme attribute on <html> here: the page follows the system
+     until someone chooses (sebaro WEB-02; CI gate G20). -->
+<html lang="de" data-sb-start="nostore">
   <head>
     <meta charset="UTF-8" />
+    <script src="/sebaro/js/theme-init.js"></script>
+    <script src="/sebaro/js/sb-start.js"></script>
+    <script src="/sebaro/js/sb-fit.js" defer></script>
+    <script src="/sebaro/js/sb-board.js" defer></script>
+    <script src="/sebaro/js/sb-sheet.js" defer></script>
+    <script src="/sebaro/js/theme-button.js" defer></script>
+    <script src="/sebaro/js/sb-tone.js" defer></script>
+    <meta name="color-scheme" content="light dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- The board URL IS the capability: /board/<128-bit id> grants access to
          anyone holding it. GIF thumbnails load from the provider's CDN, and the
@@ -9,8 +32,13 @@
          URL in a Referer header. Browsers default to origin-only cross-origin
          today; this states the guarantee rather than relying on that default. -->
     <meta name="referrer" content="no-referrer" />
-    <meta name="theme-color" content="#0e7c7b" />
-    <link rel="icon" href="/brand-mark.svg" type="image/svg+xml" />
+    <!-- sebaro's head snippet (brand/site-root/head.snippet.html), the files
+         served from the export by the retrobeam:sebaro plugin. No
+         theme-color: the manifest names the ground (plan §2.4 F29). -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Link previews (Teams, Slack, chat apps) and crawlers that run no
          script see only this file, so it carries the product's own German
          wording; once the app runs, i18n.ts switches <html lang> and the pages
@@ -23,7 +51,7 @@
          their English lang, title and hreflang links only exist once the app
          runs (LegalPage.tsx),
          and sitemap.xml names the language versions for search engines. -->
-    <title>RetroBeam — Retros, auf die sich dein Team freut.</title>
+    <title>RetroBeam: Retros, auf die sich dein Team freut.</title>
     <meta
       name="description"
       content="Geführte Team-Retrospektiven im Browser: verdeckt schreiben, Glücksrad, verdeckt abstimmen, Action Items festhalten. Kostenlos, ohne Account, Open Source."
@@ -32,7 +60,7 @@
     <meta property="og:site_name" content="RetroBeam" />
     <meta
       property="og:title"
-      content="RetroBeam — Retros, auf die sich dein Team freut."
+      content="RetroBeam: Retros, auf die sich dein Team freut."
     />
     <meta
       property="og:description"
@@ -44,7 +72,7 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="RetroBeam — Retros, auf die sich dein Team freut."
+      content="RetroBeam: Retros, auf die sich dein Team freut."
     />
     <meta property="og:locale" content="de_DE" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -61,39 +89,39 @@
       }
     </style>
   </head>
-  <body>
-    <div id="root">
-      <main
-        data-static-fallback
-        class="mx-auto max-w-2xl px-6 py-16 leading-relaxed text-zinc-700"
+  <body class="sb-page">
+    <div class="sb-start" aria-hidden="true">
+      <span class="sb-start__tile"
+        ><!-- sb:inline src="brand/inline/tile-retrobeam.svg" --></span
       >
-        <h1 class="text-3xl font-semibold tracking-tight text-zinc-900">
-          RetroBeam — Retros, auf die sich dein Team freut.
-        </h1>
-        <p class="mt-6">
-          Kostenloses Retro-Tool ohne Anmeldung und ohne Board-Limit. Eine
-          Person moderiert, RetroBeam führt euer Team Schritt für Schritt durch
-          die Retrospektive.
-        </p>
-        <ul class="mt-6 list-disc space-y-2 pl-6">
-          <li>
-            Alle schreiben erst verdeckt – fremde Notizen verlassen den Server
-            erst, wenn sie dran sind.
-          </li>
-          <li>
-            Das Glücksrad entscheidet, wer vorstellt; danach wird verdeckt
-            abgestimmt, diskutiert und ihr haltet Action Items fest.
-          </li>
-          <li>
-            Boards in der EU gespeichert, standardmäßig nach 90 Tagen gelöscht,
-            Open Source unter der AGPL-3.0.
-          </li>
-        </ul>
-        <p class="mt-8">
-          <a href="/new" class="text-accent underline underline-offset-4"
-            >Retro-Board erstellen</a
-          >
-        </p>
+    </div>
+    <div id="root">
+      <main data-static-fallback class="sb-container sb-section">
+        <div class="sb-prose">
+          <h1>RetroBeam: Retros, auf die sich dein Team freut.</h1>
+          <p>
+            Kostenloses Retro-Tool ohne Anmeldung und ohne Board-Limit. Eine
+            Person moderiert, RetroBeam führt euer Team Schritt für Schritt
+            durch die Retrospektive.
+          </p>
+          <ul>
+            <li>
+              Alle schreiben erst verdeckt – fremde Notizen verlassen den Server
+              erst, wenn sie dran sind.
+            </li>
+            <li>
+              Das Glücksrad entscheidet, wer vorstellt; danach wird verdeckt
+              abgestimmt, diskutiert und ihr haltet Action Items fest.
+            </li>
+            <li>
+              Speicherort: Cloudflare, Rechtsraum EU; Boards löschen sich
+              standardmäßig nach 90&nbsp;Tagen. Open Source unter der AGPL-3.0.
+            </li>
+          </ul>
+          <p>
+            <a href="/new" class="sb-primary-action">Retro-Board erstellen</a>
+          </p>
+        </div>
       </main>
     </div>
     <script type="module" src="/src/main.tsx"></script>

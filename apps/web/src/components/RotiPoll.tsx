@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { useConnection } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
+import { Icon } from "./Icon.js";
 
 const SCORES = [1, 2, 3, 4, 5] as const;
 
@@ -11,60 +13,74 @@ const SCORES = [1, 2, 3, 4, 5] as const;
 // never leave the server, and the average is published once when the poll
 // closes (a running mean would be differenceable, see ROTI_MIN_ANONYMOUS).
 // `readOnly` renders the published result on the archived board.
+//
+// sebaro (plan stage 5d): the scores as a segmented choice, the result as a
+// rating, a star and „4 von 5“ with its count. Only the average, and only
+// from enough answers to stay anonymous (§6.1 g); the server decides both.
 export function RotiPoll({ readOnly = false }: { readOnly?: boolean }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { send } = useConnection();
   const roti = useBoardStore((store) => store.state.roti);
+  const name = useId();
+  const format = new Intl.NumberFormat(i18n.language, {
+    maximumFractionDigits: 1,
+  });
 
   return (
     <section
       data-testid="roti-poll"
-      className="mx-auto flex max-w-md flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-5 text-center"
+      aria-labelledby={`${name}-title`}
+      className="sb-stack mx-auto max-w-(--sb-size-measure-prose)"
     >
-      <p className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">
+      <h2 id={`${name}-title`} className="sb-section__title">
         {t("roti.title")}
-      </p>
-      <p className="text-sm text-zinc-500">{t("roti.question")}</p>
-      <div className="flex gap-2">
-        {(readOnly ? [] : SCORES).map((score) => (
-          <button
-            key={score}
-            type="button"
-            data-testid={`roti-${score}`}
-            aria-pressed={roti.yourScore === score}
-            onClick={() => send({ type: "roti.set", score })}
-            className={`size-10 rounded-full text-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-              roti.yourScore === score
-                ? "bg-accent text-white"
-                : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-            }`}
-          >
-            {score}
-          </button>
-        ))}
-      </div>
+      </h2>
+      {readOnly ? null : (
+        <fieldset className="sb-segmented">
+          <legend>{t("roti.question")}</legend>
+          <div className="sb-segmented__options">
+            {SCORES.map((score) => (
+              <label key={score} className="sb-segmented__option">
+                <input
+                  type="radio"
+                  name={name}
+                  value={score}
+                  data-testid={`roti-${score}`}
+                  checked={roti.yourScore === score}
+                  onChange={() => send({ type: "roti.set", score })}
+                />
+                <span className="sb-segmented__face">
+                  <Icon name="check" size={16} />
+                  {score}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
       {roti.average !== null ? (
-        <p
-          data-testid="roti-result"
-          className="text-sm text-zinc-500 tabular-nums"
-        >
-          {t("roti.result", { average: roti.average, count: roti.count })}
+        <p data-testid="roti-result" className="sb-rating">
+          <Icon name="star--filled" />
+          <span className="sb-visually-hidden">{t("roti.rating")} </span>
+          <span className="sb-rating__value">
+            {t("roti.value", { average: format.format(roti.average) })}
+          </span>{" "}
+          <span className="sb-rating__count">
+            · {t("roti.responses", { count: roti.count })}
+          </span>
         </p>
       ) : roti.released ? (
         // Closed with too few answers to summarise anonymously — say so, rather
         // than leave a promise of an average that will never arrive.
-        <p data-testid="roti-too-few" className="text-xs text-zinc-500">
+        <p data-testid="roti-too-few" className="sb-field__help">
           {t("roti.tooFew")}
         </p>
       ) : roti.count > 0 ? (
-        <p
-          data-testid="roti-pending"
-          className="text-xs text-zinc-500 tabular-nums"
-        >
+        <p data-testid="roti-pending" className="sb-field__help tabular-nums">
           {t("roti.pending", { count: roti.count })}
         </p>
       ) : (
-        <p className="text-xs text-zinc-500">{t("roti.anonymous")}</p>
+        <p className="sb-field__help">{t("roti.anonymous")}</p>
       )}
     </section>
   );

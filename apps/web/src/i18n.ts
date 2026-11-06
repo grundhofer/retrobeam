@@ -4,7 +4,11 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-const LANG_KEY = "retrobeam.lang";
+// The stored UI language uses sebaro's key (D102 (50)). Before the move it
+// was retrobeam.lang; a value there is taken over once and the old key
+// removed (plan §2.4 F18b, 2026-11-02).
+const LANG_KEY = "sb-lang";
+const LEGACY_LANG_KEY = "retrobeam.lang";
 
 const resources = {
   en: {
@@ -38,6 +42,9 @@ const resources = {
         create: "Create board",
         creating: "Creating …",
         createFailed: "Creating the board failed. Please try again.",
+        retry: "Try again",
+        dataPath:
+          "Only when you say so. Destination: Cloudflare, stored in the EU.",
         linkColumns: "Custom columns from the link: {{columns}}",
         linkColumnsDrop: "Use a template instead",
         linkColumnsInvalid:
@@ -99,6 +106,7 @@ const resources = {
         carried: {
           title: "Open action items from the last retro",
           hint: "Carried over from “{{name}}” – start by checking where they stand.",
+          done: "done",
         },
       },
       board: {
@@ -130,7 +138,8 @@ const resources = {
         qrLabel: "QR code for the team link",
         qrHint: "For everyone in the room: scan the code with a phone to join.",
         enlarge: "Show QR code large",
-        scan: "Scan to join the retro",
+        copyLink: "Copy link",
+        linkSentence: "Link to join:",
         qrFailed: "QR code unavailable – reload the page.",
         close: "Close",
       },
@@ -147,7 +156,9 @@ const resources = {
         done: "Done",
         next: "Next",
         startRetro: "Start retro",
-        finishQuestion: "Finish the retro? The board becomes read-only.",
+        finishTitle: "Finish the retro?",
+        finishText:
+          "The board then becomes read-only: nobody can write cards or vote any more. Everything stays readable and can be exported.",
         finish: "Finish retro",
       },
       phasePlan: {
@@ -156,7 +167,6 @@ const resources = {
         adminHint: "Choose the optional phases before you start.",
         memberHint: "This is the planned agenda for the retro.",
         locked: "The agenda is locked because this retro has already started.",
-        alwaysIncluded: "Always included",
         checkin: {
           question: "Icebreaker question",
           randomOnStart: "Choose a random question when the check-in starts",
@@ -191,22 +201,34 @@ const resources = {
       },
       ready: {
         imDone: "I'm done",
-        done: "Done",
-        count: "{{ready}} / {{total}} done",
+        count: "{{ready}} of {{total}} done",
       },
       timer: {
+        label: "Time box",
         pause: "Pause",
         resume: "Resume",
         stop: "Stop",
-        paused: "paused",
-        sound: "Timer sound",
+        extend: "+1\u00a0min",
         minutes: "{{count}}\u00a0min",
+        line: {
+          left: "{{count}}\u00a0min left",
+          paused: "paused, {{count}}\u00a0min left",
+          up: "time's up",
+        },
+        sentence: {
+          left: "{{count}}\u00a0min left.",
+          paused: "Time paused, {{count}}\u00a0min left.",
+          up: "Time's up.",
+        },
       },
       note: {
         placeholder: "Write a note … (Enter to add)",
         add: "Add",
         edit: "Edit note",
-        delete: "Delete note",
+        more: "More for this note",
+        deleteOpen: "Delete note …",
+        deleteTitle: "Delete the note?",
+        deleteText: "The note disappears for everyone. This can't be undone.",
         save: "Save",
         cancel: "Cancel",
         ghostWriting: "{{name}} is writing …",
@@ -225,8 +247,17 @@ const resources = {
         add: "Add",
         namePlaceholder: "Column name",
         rename: "Rename column",
-        delete: "Delete column",
-        reallyDelete: "Really delete?",
+        deleteOpen: "Delete column …",
+        deleteTitle: "Delete the column?",
+        deleteText:
+          "“{{name}}” and all its cards will be removed. This can't be undone.",
+        more: "More for {{name}}",
+        previous: "Previous column",
+        next: "Next column",
+        empty: "No cards yet.",
+        newCard: "New card in “{{name}}”",
+        cards_one: "card",
+        cards_other: "cards",
         hide: "Hide from team",
         reveal: "Reveal to team",
         hidden: "hidden",
@@ -237,10 +268,15 @@ const resources = {
         chooseCard: "Choose a face-down card",
         chooseCardAria: "Choose card {{index}}",
         chooseCardHint: "Open the card selection on the right",
-        cardDeckTitle: "Who presents next?",
+        title: "Who presents next?",
         cardDeckHint:
           "Choose one of {{count}} face-down cards. The person is drawn fairly only after your choice.",
-        closeCards: "Close card selection",
+        wheelLabel_one: "Wheel with {{count}} name",
+        wheelLabel_other: "Wheel with {{count}} names",
+        wheelLabelLanded_one:
+          "Wheel with {{count}} name, the pointer is on {{name}}",
+        wheelLabelLanded_other:
+          "Wheel with {{count}} names, the pointer is on {{name}}",
         next: "Next person",
         finishRound: "Finish the round",
         presenting: "{{name}} is presenting",
@@ -259,10 +295,17 @@ const resources = {
         youPresenting: "You're up",
         donePresenting: "Done presenting",
         waiting: "The facilitator is leading the round",
+        presented: "presented",
+        excluded: "not in the draw",
+        ready: "done",
       },
       canvas: {
-        hint: "Double-click or + Note to add one",
-        addNote: "+ Note",
+        hint: "Double-click, or “Note” at the top, to add one",
+        addNote: "Note",
+        pointers_one: "{{count}}\u00a0person is on the canvas.",
+        pointers_other: "{{count}}\u00a0people are on the canvas.",
+        addNoteMenu: "New note in a zone",
+        addNoteIn: "New note in “{{name}}”",
         occupied: "Occupied by another note",
         zoomIn: "Zoom in",
         zoomOut: "Zoom out",
@@ -305,15 +348,16 @@ const resources = {
         ungroup: "Unstack note",
       },
       vote: {
-        yourVotes: "Your votes",
-        remaining_one: "{{count}}\u00a0vote left",
-        remaining_other: "{{count}}\u00a0votes left",
-        meter: "{{done}} / {{total}} finished voting",
+        left: "{{count}} of {{total}}\u00a0votes left.",
+        allGiven: "All {{total}}\u00a0votes given.",
+        meter: "{{done}} of {{total}} finished voting",
         settings: "Voting",
+        settingsTitle: "Set up the vote",
         votesPerPerson: "Votes per person",
         maxPerTarget: "Maximum per card",
         topN: "Top cards",
         apply: "Apply",
+        group: "Your votes for this card",
         plus: "Add a vote",
         minus: "Remove a vote",
         yours_one: "Your vote: {{count}}",
@@ -326,12 +370,16 @@ const resources = {
       },
       discuss: {
         queue: "Discussion",
+        votes_one: "{{count}}\u00a0vote",
+        votes_other: "{{count}}\u00a0votes",
         focusCard: "Discuss this card",
         clearFocus: "Show all cards",
       },
       action: {
         title: "Action items",
-        placeholder: "What are we going to do?",
+        label: "What are we going to do?",
+        deleteTitle: "Delete the action item?",
+        deleteText: "“{{text}}” disappears for everyone. This can't be undone.",
         textMissing: "Action item is missing.",
         add: "Add",
         owner: "Owner",
@@ -347,7 +395,6 @@ const resources = {
         empty: "No kudos yet. You can be the first to appreciate someone.",
         to: "To",
         reason: "Reason",
-        placeholder: "Say why …",
         send: "Send kudos",
         from: "– {{name}}",
         anonymous: "– anonymous",
@@ -355,6 +402,11 @@ const resources = {
         someone: "someone",
         everyone: "Everyone",
         remove: "Remove kudo",
+        removeTitle: "Remove the kudo?",
+        removeText: "The card disappears for everyone. This can't be undone.",
+        toName: "To {{name}}",
+        kind: "Kind",
+        emoji: "Insert emoji",
         card: {
           "thank-you": "Thank you",
           "great-job": "Great job",
@@ -363,9 +415,19 @@ const resources = {
           "totally-awesome": "Totally awesome",
         },
       },
+      sheet: {
+        close: "Close",
+      },
+      emoji: {
+        title: "Choose an emoji",
+      },
       gif: {
         add: "GIF",
+        title: "Choose a GIF",
         search: "Search GIFs …",
+        clear: "Clear search",
+        dataPath:
+          "As you type, after a short pause. Destination: KLIPY (USA), through the RetroBeam server; your browser loads the pictures straight from KLIPY.",
         loading: "Searching …",
         none: "No GIFs found.",
         hint: "Type to search for a GIF.",
@@ -378,9 +440,22 @@ const resources = {
         poweredBy: "Powered by KLIPY",
       },
       menu: {
-        title: "Board menu",
+        more: "More",
         close: "Close",
-        export: "Export",
+        exportOpen: "Export …",
+        exportTitle: "Export the board",
+        exportFormat: "Format",
+        exportHint:
+          "Only when you say so. Destination: a file in a place you choose.",
+        adminLinkOpen: "Facilitator link …",
+        adminLinkTitle: "Facilitator link",
+        templateLinkOpen: "Template link …",
+        templateLinkTitle: "Template link",
+        deleteOpen: "Delete board …",
+        deleteTitle: "Delete the board?",
+        deleteText:
+          "“{{name}}” and all its cards, votes and action items will be removed. This can't be undone.",
+        deleteConfirm: "Delete",
         exportScope: "Scope",
         scope: {
           all: "Everything",
@@ -391,7 +466,6 @@ const resources = {
           "Who wrote a card and who voted for it stay out on this board.",
         rendering: "Rendering …",
         imageFailed: "The image could not be created. Try a smaller scope.",
-        settings: "Board settings",
         gifsEnabled: "Allow GIFs",
         cursorsEnabled: "Live cursors (1\u00a0update/s)",
         voterNamesEnabled: "Show who voted (after the reveal)",
@@ -424,8 +498,6 @@ const resources = {
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
         keep: "Keep",
-        deleteNow: "Delete now",
-        reallyDelete: "Really delete?",
       },
       guide: {
         checkin: {
@@ -468,17 +540,19 @@ const resources = {
       },
       done: {
         title: "Retro finished",
-        cards_one: "{{count}}\u00a0card",
-        cards_other: "{{count}}\u00a0cards",
-        people_one: "{{count}}\u00a0person",
-        people_other: "{{count}}\u00a0people",
-        actions_one: "{{count}}\u00a0action item",
-        actions_other: "{{count}}\u00a0action items",
         retention:
           "This board is read-only and deletes itself automatically on {{date}} – export what you want to keep before then.",
         retentionKept:
           "This board is read-only and is being kept – it won't delete itself automatically.",
         export: "Save the results",
+        exportTitle: "Export",
+        rank: "Rank {{rank}} of {{total}}",
+        votesChart: "Votes per top topic",
+        stat: {
+          cards: "Cards",
+          people: "People",
+          actions: "Action items",
+        },
         moreFormats: "More formats",
         scopeHint: {
           summary: "Top topics and action items.",
@@ -507,6 +581,8 @@ const resources = {
         noQuestion: "Warming up …",
         shuffle: "New question",
         primeDirectiveTitle: "The Prime Directive",
+        primeDirectiveSource: "Norman L. Kerth, Project Retrospectives (2001)",
+        hideDirective: "Hide the Prime Directive",
         primeDirective:
           "Regardless of what we discover, we understand and truly believe that everyone did the best job they could, given what they knew at the time, their skills and abilities, the resources available, and the situation at hand.",
         agreements: "Working agreements",
@@ -517,7 +593,10 @@ const resources = {
       roti: {
         title: "Return on time invested",
         question: "Was this retro a good use of your time?",
-        result: "Average {{average}} · {{count}}\u00a0responses",
+        rating: "Rating:",
+        value: "{{average}} of 5",
+        responses_one: "{{count}}\u00a0response",
+        responses_other: "{{count}}\u00a0responses",
         pending_one:
           "{{count}}\u00a0response so far · the average is shared when the retro closes",
         pending_other:
@@ -588,10 +667,24 @@ const resources = {
         title: "The page could not be shown",
         body: "The board itself is safe – it lives on the server. Reloading rejoins it.",
         reload: "Reload the board",
+        details: "Details",
       },
       site: {
-        nav: "Site",
         skipToContent: "Skip to content",
+        language: "Language",
+        theme: "Light or dark",
+        nav: "Main menu",
+        board: "Board",
+        settings: "Settings",
+      },
+      settings: {
+        title: "Settings",
+        tone: "Tone",
+        toneName: { cool: "Cool", warm: "Warm" },
+        motion: "Always reduce motion",
+        motionHelp:
+          "New things then appear without motion; they only fade in. Applies even if the device allows motion.",
+        languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {
         title: "This page doesn't exist.",
@@ -599,14 +692,15 @@ const resources = {
         home: "Go to the home page",
       },
       landing: {
-        kicker: "Free retro tool · no sign-up · no board limits",
-        lede: "One person facilitates, RetroBeam walks your team through it step by step: everyone writes privately first, a wheel picks who presents, then you vote blind and capture action items. Free, no trial, no ads.",
+        lede: "One person facilitates, RetroBeam walks your team through the retro step by step, free and without sign-up.",
+        description:
+          "Everyone writes privately first, a wheel picks who presents, then you vote blind and capture action items. No trial and no board limits.",
         cta: "Create a retro board",
         ctaHint: "Just enter a board name · no account required",
         trustChips: {
           private: "Others' notes don't leave the server until it's their turn",
           anonymous: "Anonymous if you want",
-          eu: "Boards stored in the EU",
+          eu: "Storage: Cloudflare · EU jurisdiction",
           deletes: "Deletes itself after 90\u00a0days by default",
           openSource: "Open source",
         },
@@ -645,15 +739,15 @@ const resources = {
         why: {
           private: {
             title: "Private means private.",
-            text: "Other people's notes don't leave the server until it's their turn – not just hidden in the browser. Boards are stored in EU data centres.",
+            text: "Other people's notes don't leave the server until it's their turn – not just hidden in the browser. Storage: Cloudflare, EU jurisdiction.",
           },
           nothing: {
             title: "Nothing to manage.",
-            text: "No accounts, no tracking, no seat licences; by default, boards delete themselves after 90\u00a0days.",
+            text: "No accounts, no seat licences; by default, boards delete themselves after 90\u00a0days.",
           },
           guided: {
             title: "Guided, and still fun.",
-            text: "A phase bar walks the room through the retro; the wheel and the confetti bring the moments.",
+            text: "A phase bar walks the room through the retro; the wheel and the slots decide who goes next.",
           },
           languages: {
             title: "German and English.",
@@ -677,7 +771,7 @@ const resources = {
           },
           where: {
             q: "Where does the data live?",
-            a: "Each board lives in its own Cloudflare Durable Object, pinned to the EU when it's created: persistent board storage and the BoardRoom logic stay in EU data centres. To be plain about it: Cloudflare is a US company, and your connection and some request handling run through the nearest Cloudflare edge, which can be outside the EU. The privacy notice lists the sub-processors.",
+            a: "Each board lives in its own Cloudflare Durable Object, pinned to the EU when it's created: persistent board storage and the BoardRoom logic stay in the EU jurisdiction. To be plain about it: Cloudflare is a US company, and your connection and some request handling run through the nearest Cloudflare edge, which can be outside the EU. The privacy notice lists the sub-processors.",
           },
           howLong: {
             q: "How long is it kept?",
@@ -718,15 +812,17 @@ const resources = {
         },
         closingTitle: "Your next retro, set up in a minute.",
         closingText:
-          "Create a board, drop the link in your team chat, go. Free, no accounts, boards stored in the EU.",
+          "Create a board, drop the link in your team chat, go. Free and without an account.",
         notice:
-          "Not a commercial service: RetroBeam is a private open-source project by Sebastian Grundhöfer — no company, no ads, no tracking, no sale of data.",
+          "Not a commercial service: RetroBeam is a private open-source project by Sebastian Grundhöfer, not a company.",
       },
       legal: {
-        license: "Free software: AGPL-3.0-or-later",
-        redistribute: "Redistribution and modification permitted, no warranty.",
-        source: "Source code",
-        sourceVersion: "Source code of the version running here",
+        notice:
+          "Free software under AGPL-3.0-or-later: redistribution and modification permitted, no warranty.",
+        source: "Source code of the version running here",
+        fonts: "Fonts:",
+        fontSans: "Sans",
+        fontMono: "Mono",
         privacy: "Privacy",
         privacyTitle: "Privacy notice",
         imprint: "Imprint",
@@ -769,6 +865,9 @@ const resources = {
         creating: "Wird angelegt …",
         createFailed:
           "Board anlegen hat nicht geklappt. Versuch es noch einmal.",
+        retry: "Noch mal versuchen",
+        dataPath:
+          "Nur auf deinen Befehl. Ziel: Cloudflare, gespeichert in der EU.",
         linkColumns: "Eigene Spalten aus dem Link: {{columns}}",
         linkColumnsDrop: "Stattdessen eine Vorlage nehmen",
         linkColumnsInvalid:
@@ -830,6 +929,7 @@ const resources = {
         carried: {
           title: "Offene Action Items aus der letzten Retro",
           hint: "Übernommen aus „{{name}}“ – schaut zu Beginn, wie es damit steht.",
+          done: "erledigt",
         },
       },
       board: {
@@ -861,7 +961,8 @@ const resources = {
         qrLabel: "QR-Code für den Team-Link",
         qrHint: "Für alle im Raum: Code mit dem Handy scannen und mitmachen.",
         enlarge: "QR-Code groß anzeigen",
-        scan: "Scannen und mitmachen",
+        copyLink: "Link kopieren",
+        linkSentence: "Link zum Beitreten:",
         qrFailed: "QR-Code nicht verfügbar – lade die Seite neu.",
         close: "Schließen",
       },
@@ -878,7 +979,9 @@ const resources = {
         done: "Fertig",
         next: "Weiter",
         startRetro: "Retro starten",
-        finishQuestion: "Retro beenden? Danach ist das Board schreibgeschützt.",
+        finishTitle: "Retro beenden?",
+        finishText:
+          "Danach ist das Board schreibgeschützt: Niemand kann mehr Karten schreiben oder abstimmen. Alles bleibt lesbar und lässt sich exportieren.",
         finish: "Retro beenden",
       },
       phasePlan: {
@@ -888,7 +991,6 @@ const resources = {
         memberHint: "Das ist der geplante Ablauf dieser Retro.",
         locked:
           "Der Ablauf ist gesperrt, da diese Retro bereits gestartet wurde.",
-        alwaysIncluded: "Gehört immer dazu",
         checkin: {
           question: "Icebreaker-Frage",
           randomOnStart: "Beim Check-in eine zufällige Frage auswählen",
@@ -923,22 +1025,35 @@ const resources = {
       },
       ready: {
         imDone: "Ich bin fertig",
-        done: "Fertig",
-        count: "{{ready}} / {{total}} fertig",
+        count: "{{ready}} von {{total}} fertig",
       },
       timer: {
+        label: "Zeitbox",
         pause: "Pause",
         resume: "Weiter",
         stop: "Stopp",
-        paused: "pausiert",
-        sound: "Timer-Ton",
+        extend: "+1\u00a0Min.",
         minutes: "{{count}}\u00a0Min.",
+        line: {
+          left: "noch {{count}}\u00a0Min.",
+          paused: "angehalten, noch {{count}}\u00a0Min.",
+          up: "Zeit um",
+        },
+        sentence: {
+          left: "Noch {{count}}\u00a0Min.",
+          paused: "Zeit angehalten, noch {{count}}\u00a0Min.",
+          up: "Zeit um.",
+        },
       },
       note: {
         placeholder: "Notiz schreiben … (Enter zum Hinzufügen)",
         add: "Hinzufügen",
         edit: "Notiz bearbeiten",
-        delete: "Notiz löschen",
+        more: "Mehr zu dieser Notiz",
+        deleteOpen: "Notiz löschen …",
+        deleteTitle: "Notiz löschen?",
+        deleteText:
+          "Die Notiz verschwindet für alle. Das lässt sich nicht rückgängig machen.",
         save: "Sichern",
         cancel: "Abbrechen",
         ghostWriting: "{{name}} schreibt …",
@@ -957,8 +1072,17 @@ const resources = {
         add: "Hinzufügen",
         namePlaceholder: "Name der Spalte",
         rename: "Spalte umbenennen",
-        delete: "Spalte löschen",
-        reallyDelete: "Wirklich löschen?",
+        deleteOpen: "Spalte löschen …",
+        deleteTitle: "Spalte löschen?",
+        deleteText:
+          "„{{name}}“ und alle Karten darin werden entfernt. Das lässt sich nicht rückgängig machen.",
+        more: "Mehr zu {{name}}",
+        previous: "Vorige Spalte",
+        next: "Nächste Spalte",
+        empty: "Noch keine Karte.",
+        newCard: "Neue Karte in „{{name}}“",
+        cards_one: "Karte",
+        cards_other: "Karten",
         hide: "Vor dem Team verbergen",
         reveal: "Für das Team freigeben",
         hidden: "verborgen",
@@ -969,10 +1093,15 @@ const resources = {
         chooseCard: "Verdeckte Karte wählen",
         chooseCardAria: "Karte {{index}} wählen",
         chooseCardHint: "Öffne rechts die Kartenauswahl",
-        cardDeckTitle: "Wer präsentiert als Nächstes?",
+        title: "Wer präsentiert als Nächstes?",
         cardDeckHint:
           "Wähle eine von {{count}} verdeckten Karten. Die Person wird erst danach fair ausgelost.",
-        closeCards: "Kartenauswahl schließen",
+        wheelLabel_one: "Glücksrad mit {{count}} Namen",
+        wheelLabel_other: "Glücksrad mit {{count}} Namen",
+        wheelLabelLanded_one:
+          "Glücksrad mit {{count}} Namen, der Zeiger steht auf {{name}}",
+        wheelLabelLanded_other:
+          "Glücksrad mit {{count}} Namen, der Zeiger steht auf {{name}}",
         next: "Nächste Person",
         finishRound: "Runde abschließen",
         presenting: "{{name}} präsentiert",
@@ -991,10 +1120,17 @@ const resources = {
         youPresenting: "Du bist dran",
         donePresenting: "Fertig mit Vorstellen",
         waiting: "Die Moderation führt durch die Runde",
+        presented: "hat vorgestellt",
+        excluded: "nicht im Rad",
+        ready: "fertig",
       },
       canvas: {
-        hint: "Doppelklick oder + Notiz zum Hinzufügen",
-        addNote: "+ Notiz",
+        hint: "Doppelklick oder oben „Notiz“ zum Hinzufügen",
+        addNote: "Notiz",
+        pointers_one: "{{count}}\u00a0Person ist auf der Fläche.",
+        pointers_other: "{{count}}\u00a0Personen sind auf der Fläche.",
+        addNoteMenu: "Neue Notiz in einer Zone",
+        addNoteIn: "Neue Notiz in „{{name}}“",
         occupied: "Durch eine andere Notiz belegt",
         zoomIn: "Vergrößern",
         zoomOut: "Verkleinern",
@@ -1038,15 +1174,16 @@ const resources = {
         ungroup: "Aus Stapel lösen",
       },
       vote: {
-        yourVotes: "Deine Stimmen",
-        remaining_one: "{{count}}\u00a0Stimme übrig",
-        remaining_other: "{{count}}\u00a0Stimmen übrig",
-        meter: "{{done}} / {{total}} fertig abgestimmt",
+        left: "Noch {{count}} von {{total}}\u00a0Stimmen.",
+        allGiven: "Alle {{total}}\u00a0Stimmen vergeben.",
+        meter: "{{done}} von {{total}} fertig abgestimmt",
         settings: "Abstimmung",
+        settingsTitle: "Abstimmung einstellen",
         votesPerPerson: "Stimmen pro Person",
         maxPerTarget: "Höchstens pro Karte",
         topN: "Top-Karten",
         apply: "Sichern",
+        group: "Deine Stimmen für diese Karte",
         plus: "Stimme hinzufügen",
         minus: "Stimme entfernen",
         yours_one: "Deine Stimme: {{count}}",
@@ -1059,12 +1196,17 @@ const resources = {
       },
       discuss: {
         queue: "Diskussion",
+        votes_one: "{{count}}\u00a0Stimme",
+        votes_other: "{{count}}\u00a0Stimmen",
         focusCard: "Diese Karte diskutieren",
         clearFocus: "Alle Karten zeigen",
       },
       action: {
         title: "Action Items",
-        placeholder: "Was nehmen wir uns vor?",
+        label: "Was nimmt sich das Team vor?",
+        deleteTitle: "Action Item löschen?",
+        deleteText:
+          "„{{text}}“ verschwindet für alle. Das lässt sich nicht rückgängig machen.",
         textMissing: "Action Item fehlt.",
         add: "Hinzufügen",
         owner: "Verantwortlich",
@@ -1081,7 +1223,6 @@ const resources = {
         empty: "Noch kein Kudos. Du kannst als erste Person jemanden würdigen.",
         to: "An",
         reason: "Begründung",
-        placeholder: "Sag warum …",
         send: "Kudos senden",
         from: "– {{name}}",
         anonymous: "– anonym",
@@ -1089,6 +1230,12 @@ const resources = {
         someone: "jemanden",
         everyone: "Alle",
         remove: "Kudo löschen",
+        removeTitle: "Kudo löschen?",
+        removeText:
+          "Die Karte verschwindet für alle. Das lässt sich nicht rückgängig machen.",
+        toName: "An {{name}}",
+        kind: "Art",
+        emoji: "Emoji einfügen",
         card: {
           "thank-you": "Danke",
           "great-job": "Super gemacht",
@@ -1097,9 +1244,19 @@ const resources = {
           "totally-awesome": "Absolut großartig",
         },
       },
+      sheet: {
+        close: "Schließen",
+      },
+      emoji: {
+        title: "Emoji wählen",
+      },
       gif: {
         add: "GIF",
+        title: "GIF wählen",
         search: "GIFs suchen …",
+        clear: "Suche leeren",
+        dataPath:
+          "Beim Tippen, nach einer kurzen Pause. Ziel: KLIPY (USA), über den RetroBeam-Server; die Bilder lädt dein Browser direkt von KLIPY.",
         loading: "Suche …",
         none: "Keine GIFs gefunden.",
         hint: "Tippe, um nach einem GIF zu suchen.",
@@ -1117,9 +1274,22 @@ const resources = {
         poweredBy: "Powered by KLIPY",
       },
       menu: {
-        title: "Board-Menü",
+        more: "Mehr",
         close: "Schließen",
-        export: "Export",
+        exportOpen: "Exportieren …",
+        exportTitle: "Board exportieren",
+        exportFormat: "Format",
+        exportHint:
+          "Nur auf deinen Befehl. Ziel: Datei an einem Ort deiner Wahl.",
+        adminLinkOpen: "Moderationslink …",
+        adminLinkTitle: "Moderationslink",
+        templateLinkOpen: "Vorlage-Link …",
+        templateLinkTitle: "Vorlage-Link",
+        deleteOpen: "Board löschen …",
+        deleteTitle: "Board löschen?",
+        deleteText:
+          "„{{name}}“ und alle Karten, Stimmen und Action Items werden entfernt. Das lässt sich nicht rückgängig machen.",
+        deleteConfirm: "Löschen",
         exportScope: "Umfang",
         scope: {
           all: "Alles",
@@ -1131,7 +1301,6 @@ const resources = {
         rendering: "Wird erstellt …",
         imageFailed:
           "Das Bild konnte nicht erstellt werden. Versuche einen kleineren Umfang.",
-        settings: "Board-Einstellungen",
         gifsEnabled: "GIFs erlauben",
         cursorsEnabled: "Live-Cursor (1\u00a0Aktualisierung/s)",
         voterNamesEnabled: "Zeigen, wer gestimmt hat (nach der Auflösung)",
@@ -1164,8 +1333,6 @@ const resources = {
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
         keep: "Behalten",
-        deleteNow: "Jetzt löschen",
-        reallyDelete: "Wirklich löschen?",
       },
       guide: {
         checkin: {
@@ -1213,17 +1380,19 @@ const resources = {
       },
       done: {
         title: "Retro abgeschlossen",
-        cards_one: "{{count}}\u00a0Karte",
-        cards_other: "{{count}}\u00a0Karten",
-        people_one: "{{count}}\u00a0Person",
-        people_other: "{{count}}\u00a0Personen",
-        actions_one: "{{count}}\u00a0Action Item",
-        actions_other: "{{count}}\u00a0Action Items",
         retention:
           "Dieses Board ist schreibgeschützt und löscht sich am {{date}} automatisch – exportiere vorher, was ihr behalten wollt.",
         retentionKept:
           "Dieses Board ist schreibgeschützt und wird behalten – es löscht sich nicht automatisch.",
         export: "Ergebnis sichern",
+        exportTitle: "Exportieren",
+        rank: "Platz {{rank}} von {{total}}",
+        votesChart: "Stimmen je Top-Thema",
+        stat: {
+          cards: "Karten",
+          people: "Personen",
+          actions: "Action Items",
+        },
         moreFormats: "Weitere Formate",
         scopeHint: {
           summary: "Top-Themen und Action Items.",
@@ -1253,8 +1422,10 @@ const resources = {
         noQuestion: "Aufwärmen …",
         shuffle: "Neue Frage",
         primeDirectiveTitle: "Die oberste Direktive",
+        primeDirectiveSource: "Norman L. Kerth, Project Retrospectives (2001)",
+        hideDirective: "Oberste Direktive ausblenden",
         primeDirective:
-          "Ungeachtet dessen, was wir herausfinden, verstehen und glauben wir aufrichtig, dass jede:r die bestmögliche Arbeit geleistet hat — angesichts des damaligen Wissensstands, der Fähigkeiten, der verfügbaren Ressourcen und der jeweiligen Situation.",
+          "Ungeachtet dessen, was wir herausfinden, verstehen und glauben wir aufrichtig, dass jede und jeder die bestmögliche Arbeit geleistet hat – angesichts des damaligen Wissensstands, der Fähigkeiten, der verfügbaren Ressourcen und der jeweiligen Situation.",
         agreements: "Arbeitsvereinbarungen",
         agreementsDefault:
           "• Vegas-Regel – was hier gesagt wird, bleibt hier\n• Probleme angreifen, nicht Personen\n• Immer nur ein Gespräch\n• Jede Stimme zählt",
@@ -1263,7 +1434,10 @@ const resources = {
       roti: {
         title: "Return on Time Invested",
         question: "War diese Retro deine Zeit wert?",
-        result: "Durchschnitt {{average}} · {{count}}\u00a0Antworten",
+        rating: "Bewertung:",
+        value: "{{average}} von 5",
+        responses_one: "{{count}}\u00a0Antwort",
+        responses_other: "{{count}}\u00a0Antworten",
         pending_one:
           "{{count}}\u00a0Antwort bisher · der Durchschnitt wird zum Abschluss geteilt",
         pending_other:
@@ -1337,10 +1511,24 @@ const resources = {
         title: "Die Seite ließ sich nicht anzeigen",
         body: "Das Board selbst ist sicher – es liegt auf dem Server. Neu laden verbindet dich wieder.",
         reload: "Board neu laden",
+        details: "Details",
       },
       site: {
-        nav: "Website",
         skipToContent: "Zum Inhalt",
+        language: "Sprache",
+        theme: "Hell oder Dunkel",
+        nav: "Hauptmenü",
+        board: "Board",
+        settings: "Einstellungen",
+      },
+      settings: {
+        title: "Einstellungen",
+        tone: "Farbton",
+        toneName: { cool: "Kühl", warm: "Warm" },
+        motion: "Bewegung immer reduzieren",
+        motionHelp:
+          "Neues erscheint dann ohne Bewegung, es wird nur eingeblendet. Gilt auch, wenn das Gerät Bewegung zulässt.",
+        languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {
         title: "Diese Seite gibt es nicht.",
@@ -1348,15 +1536,16 @@ const resources = {
         home: "Zur Startseite",
       },
       landing: {
-        kicker: "Kostenloses Retro-Tool · ohne Anmeldung · ohne Board-Limit",
-        lede: "Eine Person moderiert, RetroBeam führt euch Schritt für Schritt: Alle schreiben erst verdeckt, das Glücksrad entscheidet, wer vorstellt, dann wird verdeckt abgestimmt und ihr haltet Action Items fest. Kostenlos, ohne Testphase, ohne Werbung.",
+        lede: "Eine Person moderiert, RetroBeam führt euer Team Schritt für Schritt durch die Retro, kostenlos und ohne Anmeldung.",
+        description:
+          "Alle schreiben erst verdeckt, das Glücksrad entscheidet, wer vorstellt, dann wird verdeckt abgestimmt, und ihr haltet Action Items fest. Ohne Testphase und ohne Board-Limit.",
         cta: "Retro-Board erstellen",
         ctaHint: "Nur einen Boardnamen eingeben · kein Account nötig",
         trustChips: {
           private:
             "Fremde Notizen verlassen den Server erst, wenn sie dran sind",
           anonymous: "Anonym möglich",
-          eu: "Boards in der EU gespeichert",
+          eu: "Speicherort: Cloudflare · Rechtsraum EU",
           deletes: "Löscht sich standardmäßig nach 90\u00a0Tagen",
           openSource: "Open Source",
         },
@@ -1396,15 +1585,15 @@ const resources = {
         why: {
           private: {
             title: "Privat heißt privat.",
-            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind – nicht nur im Browser versteckt. Boards werden in EU-Rechenzentren gespeichert.",
+            text: "Fremde Notizen verlassen den Server erst, wenn sie dran sind – nicht nur im Browser versteckt. Speicherort: Cloudflare, Rechtsraum EU.",
           },
           nothing: {
             title: "Nichts zu verwalten.",
-            text: "Kein Account, kein Tracking, keine Sitzlizenzen; standardmäßig löschen sich Boards nach 90\u00a0Tagen von selbst.",
+            text: "Kein Account, keine Sitzlizenzen; standardmäßig löschen sich Boards nach 90\u00a0Tagen von selbst.",
           },
           guided: {
             title: "Geführt, und trotzdem Spaß.",
-            text: "Eine Phasenleiste führt durch die Retro; Glücksrad und Konfetti sorgen für die Momente.",
+            text: "Eine Phasenleiste führt durch die Retro; Glücksrad und Slots entscheiden, wer dran ist.",
           },
           languages: {
             title: "Deutsch und Englisch.",
@@ -1428,7 +1617,7 @@ const resources = {
           },
           where: {
             q: "Wo liegen die Daten?",
-            a: "Jedes Board liegt in einem eigenen Cloudflare Durable Object, das beim Erstellen auf die EU festgelegt wird: Dauerhafter Board-Speicher und BoardRoom-Logik bleiben in EU-Rechenzentren. Offen gesagt: Cloudflare ist ein US-Unternehmen, und deine Verbindung sowie Teile der Anfrageverarbeitung laufen über den nächstgelegenen Cloudflare-Knoten, der außerhalb der EU liegen kann. Die Auftragsverarbeiter stehen in der Datenschutzerklärung.",
+            a: "Jedes Board liegt in einem eigenen Cloudflare Durable Object, das beim Erstellen auf die EU festgelegt wird: Dauerhafter Board-Speicher und BoardRoom-Logik bleiben im Rechtsraum EU. Offen gesagt: Cloudflare ist ein US-Unternehmen, und deine Verbindung sowie Teile der Anfrageverarbeitung laufen über den nächstgelegenen Cloudflare-Knoten, der außerhalb der EU liegen kann. Die Auftragsverarbeiter stehen in der Datenschutzerklärung.",
           },
           howLong: {
             q: "Wie lange bleiben die Daten?",
@@ -1469,15 +1658,17 @@ const resources = {
         },
         closingTitle: "Deine nächste Retro, in einer Minute vorbereitet.",
         closingText:
-          "Board anlegen, Link in den Team-Chat, loslegen. Kostenlos, ohne Account, Boards in der EU gespeichert.",
+          "Board anlegen, Link in den Team-Chat, loslegen. Kostenlos und ohne Account.",
         notice:
-          "Kein kommerzielles Angebot: RetroBeam ist ein privates Open-Source-Projekt von Sebastian Grundhöfer — keine Firma, keine Werbung, kein Tracking, kein Verkauf von Daten.",
+          "Kein kommerzielles Angebot: RetroBeam ist ein privates Open-Source-Projekt von Sebastian Grundhöfer, keine Firma.",
       },
       legal: {
-        license: "Freie Software: AGPL-3.0-or-later",
-        redistribute: "Weitergabe und Änderung erlaubt, ohne Gewährleistung.",
-        source: "Quelltext",
-        sourceVersion: "Quelltext der hier laufenden Version",
+        notice:
+          "Freie Software unter AGPL-3.0-or-later: Weitergabe und Änderung erlaubt, ohne Gewährleistung.",
+        source: "Quelltext der hier laufenden Version",
+        fonts: "Schriften:",
+        fontSans: "Sans",
+        fontMono: "Mono",
         privacy: "Datenschutz",
         privacyTitle: "Datenschutzerklärung",
         imprint: "Impressum",
@@ -1496,6 +1687,12 @@ function initialLanguage(): "de" | "en" {
   try {
     const stored = localStorage.getItem(LANG_KEY);
     if (stored === "de" || stored === "en") return stored;
+    const legacy = localStorage.getItem(LEGACY_LANG_KEY);
+    localStorage.removeItem(LEGACY_LANG_KEY);
+    if (legacy === "de" || legacy === "en") {
+      localStorage.setItem(LANG_KEY, legacy);
+      return legacy;
+    }
   } catch {
     // fall through to the navigator language
   }
@@ -1529,6 +1726,11 @@ export function setLanguage(lang: "de" | "en"): void {
   }
   syncDocumentLanguage(lang);
   void i18n.changeLanguage(lang);
+  // sebaro's contract for a stored language choice (spec/03 §6.6): its
+  // scripts and any listener learn the new language from this event.
+  document.dispatchEvent(
+    new CustomEvent("sb-language-change", { detail: { lang } }),
+  );
 }
 
 /** Exported for the DE/EN parity test — not part of the runtime surface. */

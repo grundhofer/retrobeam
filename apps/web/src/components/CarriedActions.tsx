@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useTranslation } from "react-i18next";
+import { Icon } from "./Icon.js";
 import type { Action } from "@retrobeam/shared";
 
 // The lobby of a follow-up retro opens on what the room promised last time,
@@ -13,35 +14,53 @@ export function CarriedActions({ actions }: { actions: Action[] }) {
   const carried = actions.filter((a) => a.carriedFrom !== null);
   if (carried.length === 0) return null;
   const from = carried[0]?.carriedFrom ?? "";
+  // sebaro's list: open items as rows, done ones in the done form with the
+  // success glyph and „erledigt:“ for screen readers (spec/02 §3.3).
   return (
     <section
       data-testid="carried-actions"
       aria-labelledby="carried-actions-title"
-      className="rounded-xl border border-zinc-200 bg-white p-5"
+      className="sb-stack"
     >
-      <h2
-        id="carried-actions-title"
-        className="text-sm font-semibold tracking-wide text-zinc-600 uppercase"
-      >
-        ✅ {t("lobby.carried.title")}
+      <h2 id="carried-actions-title" className="sb-list-header">
+        {t("lobby.carried.title")}{" "}
+        <span className="sb-list-header__count">{carried.length}</span>
       </h2>
-      <p className="mt-1 mb-3 text-sm text-zinc-500">
+      <p className="sb-field__help">
         {t("lobby.carried.hint", { name: from })}
       </p>
-      <ul className="flex flex-col gap-1.5">
-        {carried.map((action) => (
-          <li
-            key={action.id}
-            data-testid="carried-action"
-            className={`text-sm break-words ${
-              action.status === "done"
-                ? "text-zinc-500 line-through"
-                : "text-zinc-800"
-            }`}
-          >
-            {action.text}
-          </li>
-        ))}
+      <ul className="sb-list">
+        {carried.map((action) =>
+          action.status === "done" ? (
+            <li
+              key={action.id}
+              data-testid="carried-action"
+              className="sb-list-row sb-list-row--done"
+            >
+              <span className="sb-list-row__lead">
+                <Icon name="success--filled-16" size={16} />
+              </span>
+              <div className="sb-list-row__main">
+                <p className="sb-list-row__title">
+                  <span className="sb-visually-hidden">
+                    {t("lobby.carried.done")}:{" "}
+                  </span>
+                  {action.text}
+                </p>
+              </div>
+            </li>
+          ) : (
+            <li
+              key={action.id}
+              data-testid="carried-action"
+              className="sb-list-row"
+            >
+              <div className="sb-list-row__main">
+                <p className="sb-list-row__title">{action.text}</p>
+              </div>
+            </li>
+          ),
+        )}
       </ul>
     </section>
   );

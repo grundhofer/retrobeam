@@ -99,9 +99,10 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
   expect((await pdf.body()).subarray(0, 7).toString("latin1")).toBe("%PDF-1.");
 
-  // The condensed scope is chosen in the menu, and the link the menu builds is
-  // what the browser downloads — assert the chain, not just the server.
-  await openMenu(anna);
+  // The condensed scope is chosen in the export dialog, and the link it builds
+  // is what the browser downloads — assert the chain, not just the server.
+  await anna.getByTestId("board-menu").click();
+  await anna.getByTestId("export-open").click();
   await anna.getByTestId("export-scope-summary").click();
   const summaryHref = await anna.getByTestId("export-md").getAttribute("href");
   expect(summaryHref).toContain("scope=summary");
@@ -111,9 +112,8 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   expect(summaryBody).not.toContain("shipped the wheel"); // kudos stay out
 
   // JPEG is drawn by the BROWSER from that same export JSON — the Worker has
-  // no canvas — so the only honest test of it is a real download. Done from
-  // the menu that is already open: whether a download click also blurs the
-  // menu shut differs between engines, so nothing here may depend on it.
+  // no canvas — so the only honest test of it is a real download, from the
+  // export dialog that is already open.
   const download = anna.waitForEvent("download");
   await anna.getByTestId("export-jpeg").click();
   const file = await download;
@@ -124,7 +124,10 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   // this spec is in no workspace package and deliberately has no node types.
   expect(file.suggestedFilename()).toMatch(/-summary\.jpg$/);
 
-  // Finish and archive: the wall persists read-only on the done screen.
+  // Finish and archive: the wall persists read-only on the done screen. The
+  // export dialog is modal; it is closed the way a person would.
+  await anna.getByRole("button", { name: /^(close|schließen)$/i }).click();
+  await expect(anna.getByTestId("export-dialog")).toBeHidden();
   await anna.getByTestId("phase-next").click();
   await anna.getByTestId("phase-done-confirm").click();
   await expect(
@@ -132,9 +135,12 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   ).toBeVisible();
   await expect(anna.getByTestId("kudo-card").first()).toBeVisible();
 
-  // Admin delete-now removes the board for everyone.
-  await openMenu(anna);
+  // Admin delete-now removes the board for everyone, after asking.
+  await anna.getByTestId("board-menu").click();
   await anna.getByTestId("delete-board").click();
+  await expect(anna.getByTestId("delete-dialog")).toContainText(
+    "Sprint 45 retro",
+  );
   await anna.getByTestId("delete-board-confirm").click();
   await expect(ben.getByText(/board deleted|board gelöscht/i)).toBeVisible({
     timeout: 15_000,
@@ -180,17 +186,6 @@ test("GIF search degrades gracefully with no key configured", async ({
 
   await context.close();
 });
-
-// The board menu is a blur-closed popover, and engines disagree about whether
-// a click inside it (a download link, say) leaves focus there: WebKit does not
-// focus a button on click, so the menu stays open where Chromium closes it.
-// Toggling blindly therefore closes a menu that was already open. Assert the
-// state instead of assuming it.
-async function openMenu(page: Page): Promise<void> {
-  if (await page.getByTestId("export-md").isVisible()) return;
-  await page.getByTestId("board-menu").click();
-  await expect(page.getByTestId("export-md")).toBeVisible();
-}
 
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);

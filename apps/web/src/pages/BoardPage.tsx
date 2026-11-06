@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router";
+import { Link, useMatch, useParams } from "react-router";
 import {
   boardSurface,
   CURSORS_ACTIVATABLE,
@@ -14,13 +14,18 @@ import {
 } from "@retrobeam/shared";
 import { ActionsPanel } from "../components/ActionsPanel.js";
 import { CarriedActions } from "../components/CarriedActions.js";
+import { ActionZone } from "../components/ActionZone.js";
 import { AdminLink } from "../components/AdminLink.js";
 import { AvatarRow } from "../components/AvatarRow.js";
 import { BoardCanvas } from "../components/BoardCanvas.js";
 import { BoardColumns } from "../components/BoardColumns.js";
 import { BoardMenu } from "../components/BoardMenu.js";
-import { BrandLogo } from "../components/BrandLogo.js";
-import { PhaseAnnouncer, PhaseGuide } from "../components/PhaseGuide.js";
+import { BoardSettings } from "../components/BoardSettings.js";
+import {
+  PhaseAnnouncer,
+  PhaseGuide,
+  phaseGuideKey,
+} from "../components/PhaseGuide.js";
 import { PresenterFocus } from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
 import { InviteButton } from "../components/InviteButton.js";
@@ -29,22 +34,22 @@ import { DiscussBar } from "../components/DiscussBar.js";
 import { KudosWall } from "../components/KudosWall.js";
 import { RetroResults } from "../components/RetroResults.js";
 import { RotiPoll } from "../components/RotiPoll.js";
-import { LanguageToggle } from "../components/LanguageToggle.js";
 import { LegalFooter } from "../components/LegalFooter.js";
-import { NoticeRail } from "../components/NoticeRail.js";
 import { PhaseStepper } from "../components/PhaseStepper.js";
 import { PhasePlanPanel } from "../components/PhasePlanPanel.js";
 import { PresenceRail } from "../components/PresenceRail.js";
 import { ReadyBar } from "../components/ReadyBar.js";
 import { Roster } from "../components/Roster.js";
 import { ShareLink } from "../components/ShareLink.js";
+import { Icon } from "../components/Icon.js";
 import { MAIN_ID } from "../components/SkipLink.js";
-import { TimerPanel } from "../components/TimerPanel.js";
+import { SiteHeader } from "../components/SiteHeader.js";
+import { StateView } from "../components/StateView.js";
+import { TimeLeft, TimerPanel } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
 import { adoptAdminLink } from "../lib/adminLink.js";
 import { fetchBoardInfo } from "../lib/api.js";
-import { playTimerChime, soundEnabled, unlockAudio } from "../lib/beep.js";
 import { ConnectionProvider, type BoardConnection } from "../lib/connection.js";
 import {
   ensureSessionKey,
@@ -55,6 +60,7 @@ import {
 } from "../lib/session.js";
 import { BoardSocket } from "../lib/socket.js";
 import { useMissingField } from "../lib/useMissingField.js";
+import { useNarrow } from "../lib/useNarrow.js";
 import { useBoardStore } from "../store/boardStore.js";
 
 type Gate =
@@ -181,58 +187,63 @@ function JoinGate({
       return;
     }
     saveDisplayName(trimmed);
-    // Start the audio context while the join click is still on the stack — the
-    // autoplay policy will not let us open one later, when the timer ends.
-    unlockAudio();
     onJoin(trimmed);
   }
 
+  // The same form as /new (stage 4a): sebaro's grid, the name in an
+  // sb-field with its missing-name error at the field (STA-03), the primary
+  // action never disabled, and under it where the name goes (BEL-10, F20).
+  // Joining is still outside the board, so it has the site's header.
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
-      <header className="flex items-center justify-between px-6 py-4">
-        <BrandLogo compact />
-        <LanguageToggle />
-      </header>
-      <main
-        id={MAIN_ID}
-        className="flex flex-1 items-center justify-center px-6 pb-24"
-      >
-        <form onSubmit={submit} className="flex w-full max-w-md flex-col gap-4">
-          <h1 className="text-2xl font-semibold text-zinc-900">
-            {t("join.title", { board: board.name })}
-          </h1>
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor={nameField.fieldProps.id}
-              className="text-sm font-medium text-zinc-700"
-            >
-              {t("join.yourName")}
-            </label>
-            <input
-              {...nameField.fieldProps}
-              autoFocus
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                nameField.typed(event.target.value);
-              }}
-              maxLength={40}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
-            />
-            {nameField.missing ? (
-              <p id={nameField.messageId}>{t("join.nameMissing")}</p>
-            ) : null}
-            <p role="status" className="sr-only">
-              {nameField.spoken ? t("join.nameMissing") : ""}
-            </p>
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            {t("join.submit")}
-          </button>
-        </form>
+    <div data-sb-view="board" className="flex min-h-dvh flex-col">
+      <SiteHeader />
+      <main id={MAIN_ID} className="sb-container sb-section flex-1">
+        <div className="mx-auto max-w-md">
+          <form className="sb-form-grid" onSubmit={submit}>
+            <h1 className="sb-form-grid__wide">
+              {t("join.title", { board: board.name })}
+            </h1>
+            <div className="sb-field sb-form-grid__wide">
+              <label
+                className="sb-field__label"
+                htmlFor={nameField.fieldProps.id}
+              >
+                {t("join.yourName")}
+              </label>
+              <div className="sb-field__control">
+                <input
+                  {...nameField.fieldProps}
+                  type="text"
+                  autoFocus
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                    nameField.typed(event.target.value);
+                  }}
+                  maxLength={40}
+                  autoComplete="off"
+                />
+              </div>
+              {nameField.missing ? (
+                <p className="sb-field__error" id={nameField.messageId}>
+                  <Icon name="error--filled-16" size={16} />
+                  {t("join.nameMissing")}
+                </p>
+              ) : null}
+              <p role="status" className="sb-visually-hidden">
+                {nameField.spoken ? t("join.nameMissing") : ""}
+              </p>
+            </div>
+            <div className="sb-form-grid__actions">
+              <button type="submit" className="sb-primary-action">
+                <span className="sb-primary-action__label">
+                  {t("join.submit")}
+                </span>
+              </button>
+              <p className="sb-action-hint">{t("home.dataPath")}</p>
+            </div>
+          </form>
+        </div>
       </main>
       <LegalFooter />
     </div>
@@ -264,6 +275,9 @@ function Room({
   // costs nothing but the click.
   const [staleBuild, setStaleBuild] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
+  const [actionSlot, setActionSlot] = useState<HTMLDivElement | null>(null);
+  const boardPath = `/board/${boardId}`;
+  const inSettings = useMatch("/board/:boardId/settings") !== null;
 
   // Stable connection facade over whichever socket is currently alive. User
   // interactions can only happen after the effect below has run, so the ref
@@ -272,8 +286,6 @@ function Room({
   // rather than state: nothing renders from it, and a re-render must not lose
   // an entry that is waiting on a round trip.
   const rejectHandlers = useRef(new Map<string, () => void>());
-  // Last time the timer chime actually played — see the timer.ended handler.
-  const lastChimeAt = useRef(0);
   // Whether the first sync after a facilitator link has been checked yet.
   const adminLinkChecked = useRef(false);
 
@@ -294,7 +306,7 @@ function Room({
   );
 
   useEffect(() => {
-    const { dispatch, setStatus, setClockOffset, notify } =
+    const { dispatch, setStatus, setClockOffset, notify, clearNotices } =
       useBoardStore.getState();
     const socket = new BoardSocket({
       boardId,
@@ -333,18 +345,6 @@ function Room({
         if (event.type === "timer.changed") {
           setClockOffset(event.serverNow - Date.now());
         }
-        if (event.type === "timer.ended" && soundEnabled()) {
-          // The DO broadcasts timer.ended BEFORE clearing the deadline and
-          // leans on an at-least-once alarm retry re-broadcasting it. The
-          // reducer is idempotent, but a chime is not — and seq is explicitly
-          // not a dedupe key (see reducer.ts). While sound was off by default
-          // the duplicate was inaudible; now it would ring twice.
-          const at = Date.now();
-          if (at - lastChimeAt.current > 3000) {
-            lastChimeAt.current = at;
-            playTimerChime();
-          }
-        }
         if (event.type === "board.deleted") {
           // The board is gone — stop reconnecting (the DO would 404 anyway).
           dispatch(event);
@@ -361,7 +361,12 @@ function Room({
             rejectHandlers.current.delete(event.opId);
           }
         }
-        if (event.type === "ack") rejectHandlers.current.delete(event.opId);
+        if (event.type === "ack") {
+          rejectHandlers.current.delete(event.opId);
+          // The next command went through: a refusal shown before is past.
+          clearNotices();
+        }
+        if (event.type === "phase.changed") clearNotices();
         if (event.type === "error" && event.code === "RATE_LIMIT") {
           notify("reject.RATE_LIMIT", "warning");
         }
@@ -423,6 +428,12 @@ function Room({
   // either way, so flipping it back restores the board instantly.
   const focusMode = config?.focusMode ?? false;
   const anonymous = config?.anonymous ?? false;
+  // The action zone's state sentence: the phase's guide and the time box.
+  const timerActive =
+    state.timer.endsAt !== null || state.timer.pausedRemainingMs !== null;
+  const hasStatus =
+    phaseGuideKey({ phase: state.phase, isAdmin, anonymous }) !== null ||
+    timerActive;
   const surface = boardSurface(
     layout,
     state.phase,
@@ -434,6 +445,18 @@ function Room({
     // target id and does not care who wrote what.
     config?.anonymous ?? false,
   );
+  const narrow = useNarrow();
+  // sebaro's pointers (RB-5) are aria-hidden; the action zone says how many
+  // others are on the canvas: „2 Personen sind auf der Fläche.“ Counted as
+  // BoardCanvas draws them.
+  const cursorsShown =
+    (config?.cursorsEnabled ?? false) && CURSORS_ACTIVATABLE && !anonymous;
+  const pointerCount =
+    surface === "canvas" && !narrow && cursorsShown
+      ? state.roster.filter(
+          (p) => p.id !== you?.id && state.cursors[p.id] !== undefined,
+        ).length
+      : 0;
   const presenter =
     presenterId !== null
       ? (state.roster.find((p) => p.id === presenterId) ?? null)
@@ -470,35 +493,28 @@ function Room({
 
   if (state.deleted) {
     return (
-      <div className="flex min-h-dvh flex-col bg-zinc-50">
-        <main
-          id={MAIN_ID}
-          className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
-        >
-          <h1 className="text-2xl font-semibold text-zinc-900">
-            {t("deleted.title")}
-          </h1>
-          <p className="text-zinc-500">{t("deleted.body")}</p>
-          <Link
-            to="/new"
-            className="text-accent underline underline-offset-4 hover:text-accent-strong"
-          >
+      <StateView
+        view="board"
+        title={t("deleted.title")}
+        text={t("deleted.body")}
+        action={
+          <Link to="/new" className="sb-primary-action">
             {t("notFound.home")}
           </Link>
-        </main>
-        <LegalFooter />
-      </div>
+        }
+        footer={<LegalFooter />}
+      />
     );
   }
 
   if (you === null || phasePlan === undefined) {
     return (
-      <div className="flex min-h-dvh flex-col bg-zinc-50">
-        <main
-          id={MAIN_ID}
-          className="flex flex-1 items-center justify-center text-zinc-600"
-        >
-          {t("status.connecting")}
+      <div data-sb-view="board" className="flex min-h-dvh flex-col">
+        <main id={MAIN_ID} className="sb-container sb-section flex-1">
+          <p className="sb-loading" role="status">
+            <Icon name="loader" size={20} className="sb-spinner" />
+            {t("status.connecting")}
+          </p>
         </main>
         <LegalFooter openLegalLinksInNewTab />
       </div>
@@ -514,26 +530,30 @@ function Room({
         isAdmin={isAdmin}
         onCloseCardSelection={() => setCardsOpen(false)}
       />
-      <NoticeRail />
       <PhaseAnnouncer
         phase={state.phase}
         isAdmin={isAdmin}
         anonymous={anonymous}
       />
       {staleBuild ? (
+        // A note, not an error: the board works on, and reloading fetches the
+        // new version (sebaro spec/02 §3.11, one sentence with an action).
         <div
           role="status"
           data-testid="stale-build"
-          className="flex items-center justify-center gap-3 bg-amber-100 px-4 py-2 text-sm text-amber-900"
+          className="sb-callout sb-callout--note m-2"
         >
-          {t("update.available")}
-          <button
-            type="button"
-            onClick={() => location.reload()}
-            className="rounded-md bg-amber-900 px-2 py-0.5 font-medium text-white"
-          >
-            {t("update.reload")}
-          </button>
+          <Icon name="info--filled" size={20} />
+          <p className="sb-callout__text">{t("update.available")}</p>
+          <div className="sb-callout__actions">
+            <button
+              type="button"
+              onClick={() => location.reload()}
+              className="sb-secondary-action sb-secondary-action--compact"
+            >
+              {t("update.reload")}
+            </button>
+          </div>
         </div>
       ) : null}
       {/* overflow-x: clip is a safety net, not the fix: every known cause of
@@ -545,317 +565,380 @@ function Room({
           it creates no scroll container, so nothing sticky breaks. */}
       <div
         data-board-root
-        className="flex min-h-dvh flex-col overflow-x-clip bg-zinc-50"
+        data-sb-view="board"
+        className="sb-view sb-view--wide min-h-dvh overflow-x-clip"
       >
-        <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-200 bg-white px-6 py-3">
-          <div className="flex min-w-0 items-baseline gap-3">
-            <BrandLogo compact />
-            <h1 className="truncate text-zinc-600">
-              {state.board?.name ?? board.name}
-            </h1>
-            {/* On every screen, in every phase: anonymity only earns trust if
-                the room can see it is on — a latecomer never passes the lobby
-                that explains it. */}
-            {anonymous ? (
-              <span
-                data-testid="anonymous-badge"
-                title={t("board.anonymousHint")}
-                className="shrink-0 rounded-full border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-500"
-              >
-                {t("board.anonymous")}
-              </span>
-            ) : null}
+        {/* sebaro's web app without a window (spec/03 §6.6): the site header
+            with the tile, DE / EN as a choice and (from 6b) „Hell oder
+            Dunkel“; the board's own head follows under it. The settings
+            view is a child route, so this same Room — and its socket —
+            renders it. */}
+        <SiteHeader
+          nav={[
+            { to: boardPath, label: t("site.board"), current: !inSettings },
+            {
+              to: `${boardPath}/settings`,
+              label: t("site.settings"),
+              current: inSettings,
+            },
+          ]}
+        />
+        {inSettings ? null : (
+          <>
+            <div className="flex flex-col gap-4 border-b border-border px-gutter py-4">
+              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+                <div className="min-w-0">
+                  <h1 className="sb-top-bar__title [overflow-wrap:anywhere]">
+                    {state.board?.name ?? board.name}
+                  </h1>
+                  {/* On every screen, in every phase: anonymity only earns trust
+                  if the room can see it is on — a latecomer never passes the
+                  lobby that explains it. The tag names it, the sentence
+                  beside it says what it means. */}
+                  {anonymous ? (
+                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <span data-testid="anonymous-badge" className="sb-tag">
+                        {t("board.anonymous")}
+                      </span>
+                      <span className="sb-top-bar__subtitle">
+                        {t("board.anonymousHint")}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <AvatarRow
+                    participants={state.roster}
+                    youId={you.id}
+                    isAdmin={isAdmin}
+                  />
+                  {/* Only where there is no rail to carry it — otherwise the same
+                  count would render twice on one screen. */}
+                  {showActions ? (
+                    <span className="sb-top-bar__subtitle tabular-nums">
+                      {t("rail.online", { count: onlineCount })}
+                    </span>
+                  ) : null}
+                  {/* Not once the retro is over: "done" is terminal and nobody
+                  joins it to take part. */}
+                  {state.phase !== "done" ? (
+                    <InviteButton boardId={boardId} />
+                  ) : null}
+                  <BoardMenu
+                    boardId={boardId}
+                    boardName={state.board?.name ?? board.name}
+                    isAdmin={isAdmin}
+                    anonymous={config?.anonymous ?? false}
+                    columns={state.columns}
+                  />
+                </div>
+              </div>
+              <PhaseStepper
+                phase={state.phase}
+                phasePlan={phasePlan}
+                isAdmin={isAdmin}
+                actionSlot={actionSlot}
+                timeLeft={
+                  timerActive ? (
+                    <TimeLeft timer={state.timer} form="line" />
+                  ) : null
+                }
+              />
+            </div>
+          </>
+        )}
+
+        {status !== "online" ? (
+          // sebaro's warning callout: the glyph and the sentence, never the
+          // colour alone.
+          <div
+            role="status"
+            data-testid="connection-status"
+            className="sb-callout sb-callout--warning mx-gutter"
+          >
+            <Icon name="warning" size={20} />
+            <p className="sb-callout__text">
+              {status === "connecting"
+                ? t("status.connecting")
+                : t("status.offline")}
+            </p>
           </div>
-          <div className="mx-auto">
-            <PhaseStepper
-              phase={state.phase}
-              phasePlan={phasePlan}
-              isAdmin={isAdmin}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <AvatarRow
-              participants={state.roster}
-              youId={you.id}
-              isAdmin={isAdmin}
-            />
-            {/* Only where there is no rail to carry it — otherwise the same
-                count would render twice on one screen. */}
-            {showActions ? (
-              <span className="text-xs text-zinc-500 tabular-nums">
-                {t("rail.online", { count: onlineCount })}
-              </span>
-            ) : null}
-            {/* Not once the retro is over: "done" is terminal and nobody joins
-                it to take part. */}
-            {state.phase !== "done" ? <InviteButton boardId={boardId} /> : null}
-            <BoardMenu
-              boardId={boardId}
-              boardName={state.board?.name ?? board.name}
+        ) : null}
+
+        {inSettings ? (
+          <main id={MAIN_ID} className="flex-1">
+            <BoardSettings
               isAdmin={isAdmin}
               gifsEnabled={gifsEnabled}
               cursorsEnabled={config?.cursorsEnabled ?? false}
               voterNamesEnabled={config?.voterNamesEnabled ?? false}
-              anonymous={config?.anonymous ?? false}
+              anonymous={anonymous}
               phase={state.phase}
               layout={layout}
               retentionAt={state.retentionAt}
-              columns={state.columns}
             />
-            <LanguageToggle />
-          </div>
-        </header>
-
-        {status !== "online" ? (
-          <div
-            role="status"
-            data-testid="connection-status"
-            className="bg-amber-100 px-6 py-2 text-sm text-amber-900"
-          >
-            {status === "connecting"
-              ? t("status.connecting")
-              : t("status.offline")}
-          </div>
-        ) : null}
-
-        {!inLobby && state.phase !== "done" ? (
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-zinc-100 bg-white/60 px-6 py-2">
-            <PhaseGuide
-              phase={state.phase}
-              isAdmin={isAdmin}
-              anonymous={anonymous}
-            />
-            <TimerPanel timer={state.timer} isAdmin={isAdmin} />
-            {/* Top-centre, in the phase strip rather than the header: every
+          </main>
+        ) : (
+          <>
+            {!inLobby && state.phase !== "done" ? (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-6 py-2 empty:hidden">
+                <TimerPanel timer={state.timer} isAdmin={isAdmin} />
+                {/* Top-centre, in the phase strip rather than the header: every
                 other phase-scoped control lives here, and the header already
                 has one primary element (the phase stepper). Only where it
                 bites — presenting a person's cards, and walking the crowned
                 ones in the discussion. */}
-            {/* Not while presenting on an anonymous board: nobody is on stage
+                {/* Not while presenting on an anonymous board: nobody is on stage
                 there, so the switch would have nothing to act on. */}
-            {(state.phase === "present" && !anonymous) ||
-            state.phase === "discuss" ? (
-              <div className="mx-auto">
-                <FocusToggle focusMode={focusMode} isAdmin={isAdmin} />
+                {(state.phase === "present" && !anonymous) ||
+                state.phase === "discuss" ? (
+                  <div className="mx-auto">
+                    <FocusToggle focusMode={focusMode} isAdmin={isAdmin} />
+                  </div>
+                ) : null}
+                {/* Ready lives in the presence rail for the board phases; check-in
+                has no rail, so keep the inline toggle there. */}
+                {state.phase === "checkin" ? (
+                  <ReadyBar
+                    readyIds={state.readyIds}
+                    roster={state.roster}
+                    youId={you.id}
+                  />
+                ) : null}
+                {state.phase === "vote" && config ? (
+                  <VoteBar config={config} isAdmin={isAdmin} />
+                ) : null}
+                {state.phase === "discuss" ? (
+                  <DiscussBar
+                    topTargetIds={state.votes.topTargetIds}
+                    tallies={state.votes.tallies}
+                    focusId={state.discussFocusId}
+                    notes={state.notes}
+                    isAdmin={isAdmin}
+                  />
+                ) : null}
               </div>
             ) : null}
-            {/* Ready lives in the presence rail for the board phases; check-in
-                has no rail, so keep the inline toggle there. */}
-            {state.phase === "checkin" ? (
-              <ReadyBar
-                readyIds={state.readyIds}
-                roster={state.roster}
-                youId={you.id}
-              />
-            ) : null}
-            {state.phase === "vote" && config ? (
-              <VoteBar config={config} isAdmin={isAdmin} />
-            ) : null}
-            {state.phase === "discuss" ? (
-              <DiscussBar
-                topTargetIds={state.votes.topTargetIds}
-                tallies={state.votes.tallies}
-                focusId={state.discussFocusId}
-                notes={state.notes}
-                isAdmin={isAdmin}
-              />
-            ) : null}
-          </div>
-        ) : null}
 
-        {/* Where "Zum Inhalt" lands: past the header and the phase strip, on
+            {/* Where "Zum Inhalt" lands: past the header and the phase strip, on
             what the phase is about — the columns or the canvas with the rail
             beside them, or the lobby, check-in, close and results that take
             their place. The phase strip's controls (timer, votes left, ready)
             sit right before it. */}
-        <main id={MAIN_ID} className="flex-1 px-6 py-6">
-          {inLobby ? (
-            <div className="mx-auto flex max-w-2xl flex-col gap-8">
-              {/* Who's in and how to get others in comes first — for the
+            <main id={MAIN_ID} className="flex-1 px-6 py-6">
+              {inLobby ? (
+                <div
+                  data-testid="lobby"
+                  className="sb-stack sb-stack--group mx-auto max-w-(--sb-size-measure-prose)"
+                >
+                  {/* Who's in and how to get others in comes first — for the
                   facilitator, inviting is the first job; for everyone else the
                   first thing to know is that they are in and what happens next.
-                  The agenda follows. */}
-              <div className="rounded-xl border border-zinc-200 bg-white p-5">
-                <p
-                  data-testid="lobby-hint"
-                  className={
-                    isAdmin
-                      ? "mb-4 text-sm text-zinc-500"
-                      : "mb-4 text-zinc-700"
-                  }
-                >
-                  {isAdmin
-                    ? t("lobby.hint", { count: onlineCount })
-                    : t("lobby.memberHint")}
-                </p>
-                {anonymous ? (
-                  <p
-                    data-testid="lobby-anonymous"
-                    className="mb-4 text-sm text-zinc-700"
-                  >
-                    {t("board.anonymousHint")}
-                  </p>
-                ) : null}
-                <ShareLink boardId={boardId} />
-                {/* Only in the browser that holds the token — a co-facilitator
-                    promoted by role has none and must not be handed one — and
-                    only while it still counts here: a demoted holder is not
-                    running this retro. */}
-                {isAdmin && adminToken !== null ? (
-                  <div className="mt-4">
-                    <AdminLink boardId={boardId} adminToken={adminToken} />
+                  The agenda follows. Sections on the page's own ground, no
+                  cards (sebaro). */}
+                  <section className="sb-stack">
+                    <p data-testid="lobby-hint">
+                      {isAdmin
+                        ? t("lobby.hint", { count: onlineCount })
+                        : t("lobby.memberHint")}
+                    </p>
+                    {anonymous ? (
+                      <p
+                        data-testid="lobby-anonymous"
+                        className="sb-field__help"
+                      >
+                        {t("board.anonymousHint")}
+                      </p>
+                    ) : null}
+                    <ShareLink boardId={boardId} />
+                    {/* Only in the browser that holds the token — a
+                    co-facilitator promoted by role has none and must not be
+                    handed one — and only while it still counts here: a
+                    demoted holder is not running this retro. */}
+                    {isAdmin && adminToken !== null ? (
+                      <AdminLink boardId={boardId} adminToken={adminToken} />
+                    ) : null}
+                  </section>
+                  <CarriedActions actions={state.actions} />
+                  <PhasePlanPanel
+                    phasePlan={phasePlan}
+                    isAdmin={isAdmin}
+                    locked={config?.phasePlanLocked ?? false}
+                    icebreakerId={state.icebreakerId}
+                    workingAgreements={state.workingAgreements}
+                  />
+                  <Roster
+                    participants={state.roster}
+                    youId={you.id}
+                    isAdmin={isAdmin}
+                  />
+                </div>
+              ) : state.phase === "checkin" ? (
+                <CheckinPanel
+                  icebreakerId={state.icebreakerId}
+                  workingAgreements={state.workingAgreements}
+                />
+              ) : state.phase === "close" ? (
+                <div className="flex flex-col gap-8">
+                  <KudosWall
+                    kudos={state.kudos}
+                    roster={state.roster}
+                    you={you}
+                    isAdmin={isAdmin}
+                    gifsEnabled={gifsEnabled}
+                    readOnly={false}
+                  />
+                  <RotiPoll />
+                </div>
+              ) : state.phase === "done" ? (
+                <RetroResults
+                  boardId={boardId}
+                  boardName={state.board?.name ?? board.name}
+                  columns={state.columns}
+                  notes={state.notes}
+                  roster={state.roster}
+                  you={you}
+                  isAdmin={isAdmin}
+                  votes={state.votes}
+                  actions={state.actions}
+                  kudos={state.kudos}
+                  rotiReleased={state.roti.released}
+                  retentionAt={state.retentionAt}
+                  headcount={state.headcount}
+                  anonymous={anonymous}
+                  voterNamesEnabled={config?.voterNamesEnabled ?? false}
+                  gifsEnabled={gifsEnabled}
+                />
+              ) : (
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+                  <div className="min-w-0 flex-1">
+                    {/* On a phone a canvas board shows its zones as the
+                        board's swiping columns (owner, 2026-11-05): at the
+                        zoom that fits a phone a card is some 35 px wide and
+                        its keys cannot keep their size. The places stay
+                        stored; a card written here is placed on the canvas. */}
+                    {surface === "canvas" && !narrow ? (
+                      <BoardCanvas
+                        columns={state.columns}
+                        notes={state.notes}
+                        columnCounts={state.columnCounts}
+                        canvasOccupancy={state.canvasOccupancy}
+                        roster={state.roster}
+                        you={you}
+                        phase={state.phase}
+                        editing={state.editing}
+                        isAdmin={isAdmin}
+                        presenterId={presenterId}
+                        unpresentedAuthorIds={unpresentedAuthorIds}
+                        gifsEnabled={gifsEnabled}
+                        cursors={state.cursors}
+                        cursorsEnabled={cursorsShown}
+                      />
+                    ) : surface === "focus" && presenter ? (
+                      <PresenterFocus
+                        notes={state.notes}
+                        columns={state.columns}
+                        roster={state.roster}
+                        you={you}
+                        phase={state.phase}
+                        isAdmin={isAdmin}
+                        presenter={presenter}
+                        spotlightId={state.spotlightId}
+                        focusMode={focusMode}
+                        picker={state.picker}
+                        pickerStyle={pickerStyle}
+                      />
+                    ) : (
+                      <BoardColumns
+                        actionSlot={isAdmin ? null : actionSlot}
+                        columns={state.columns}
+                        notes={state.notes}
+                        columnCounts={state.columnCounts}
+                        roster={state.roster}
+                        you={you}
+                        phase={state.phase}
+                        editing={state.editing}
+                        isAdmin={isAdmin}
+                        presenterId={presenterId}
+                        unpresentedAuthorIds={unpresentedAuthorIds}
+                        deciding={{
+                          voteActive: state.phase === "vote",
+                          mine: state.votes.mine,
+                          remaining: Math.max(
+                            0,
+                            (config?.votesPerPerson ?? 0) - usedVotes,
+                          ),
+                          maxPerTarget: config?.maxPerTarget ?? null,
+                          talliesShown,
+                          tallies: state.votes.tallies,
+                          topTargetIds: state.votes.topTargetIds,
+                          voters: state.votes.voters,
+                          focusId: state.discussFocusId,
+                        }}
+                        focusMode={focusMode}
+                        gifsEnabled={gifsEnabled}
+                      />
+                    )}
                   </div>
-                ) : null}
-              </div>
-              <CarriedActions actions={state.actions} />
-              <PhasePlanPanel
-                phasePlan={phasePlan}
-                isAdmin={isAdmin}
-                locked={config?.phasePlanLocked ?? false}
-                icebreakerId={state.icebreakerId}
-                workingAgreements={state.workingAgreements}
-              />
-              <Roster
-                participants={state.roster}
-                youId={you.id}
-                isAdmin={isAdmin}
-              />
-            </div>
-          ) : state.phase === "checkin" ? (
-            <CheckinPanel
-              icebreakerId={state.icebreakerId}
-              workingAgreements={state.workingAgreements}
-            />
-          ) : state.phase === "close" ? (
-            <div className="flex flex-col gap-8">
-              <KudosWall
-                kudos={state.kudos}
-                roster={state.roster}
-                you={you}
-                isAdmin={isAdmin}
-                gifsEnabled={gifsEnabled}
-                readOnly={false}
-              />
-              <RotiPoll />
-            </div>
-          ) : state.phase === "done" ? (
-            <RetroResults
-              boardId={boardId}
-              boardName={state.board?.name ?? board.name}
-              columns={state.columns}
-              notes={state.notes}
-              roster={state.roster}
-              you={you}
-              isAdmin={isAdmin}
-              votes={state.votes}
-              actions={state.actions}
-              kudos={state.kudos}
-              rotiReleased={state.roti.released}
-              retentionAt={state.retentionAt}
-              headcount={state.headcount}
-              anonymous={anonymous}
-              voterNamesEnabled={config?.voterNamesEnabled ?? false}
-              gifsEnabled={gifsEnabled}
-            />
-          ) : (
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="min-w-0 flex-1">
-                {surface === "canvas" ? (
-                  <BoardCanvas
-                    columns={state.columns}
-                    notes={state.notes}
-                    columnCounts={state.columnCounts}
-                    canvasOccupancy={state.canvasOccupancy}
-                    roster={state.roster}
-                    you={you}
-                    phase={state.phase}
-                    editing={state.editing}
-                    isAdmin={isAdmin}
-                    presenterId={presenterId}
-                    unpresentedAuthorIds={unpresentedAuthorIds}
-                    gifsEnabled={gifsEnabled}
-                    cursors={state.cursors}
-                    cursorsEnabled={
-                      (config?.cursorsEnabled ?? false) &&
-                      CURSORS_ACTIVATABLE &&
-                      !anonymous
-                    }
-                  />
-                ) : surface === "focus" && presenter ? (
-                  <PresenterFocus
-                    notes={state.notes}
-                    columns={state.columns}
-                    roster={state.roster}
-                    you={you}
-                    phase={state.phase}
-                    isAdmin={isAdmin}
-                    presenter={presenter}
-                    spotlightId={state.spotlightId}
-                    focusMode={focusMode}
-                    picker={state.picker}
-                    pickerStyle={pickerStyle}
-                  />
-                ) : (
-                  <BoardColumns
-                    columns={state.columns}
-                    notes={state.notes}
-                    columnCounts={state.columnCounts}
-                    roster={state.roster}
-                    you={you}
-                    phase={state.phase}
-                    editing={state.editing}
-                    isAdmin={isAdmin}
-                    presenterId={presenterId}
-                    unpresentedAuthorIds={unpresentedAuthorIds}
-                    deciding={{
-                      voteActive: state.phase === "vote",
-                      mine: state.votes.mine,
-                      remaining: Math.max(
-                        0,
-                        (config?.votesPerPerson ?? 0) - usedVotes,
-                      ),
-                      maxPerTarget: config?.maxPerTarget ?? null,
-                      talliesShown,
-                      tallies: state.votes.tallies,
-                      topTargetIds: state.votes.topTargetIds,
-                      voters: state.votes.voters,
-                      focusId: state.discussFocusId,
-                    }}
-                    focusMode={focusMode}
-                    gifsEnabled={gifsEnabled}
-                  />
-                )}
-              </div>
-              {/* One right-hand column, never two. In the discussion phase the
+                  {/* One right-hand column, never two. In the discussion phase the
                   rail is a heading and a roster list and nothing else (its
                   ready toggle and picker cockpit are write/vote/present only),
                   and that roster is already in the header — so 288px of
                   duplicate was pushing board columns out of view in exactly
                   the phase that also pays 320px for the action list. */}
-              {showActions ? (
-                <ActionsPanel
-                  actions={state.actions}
-                  roster={state.roster}
-                  you={you}
-                  readOnly={false}
-                />
-              ) : (
-                <PresenceRail
-                  phase={state.phase}
-                  roster={state.roster}
-                  readyIds={state.readyIds}
-                  picker={state.picker}
-                  you={you}
-                  isAdmin={isAdmin}
-                  scopedRound={scopedRound}
-                  anonymous={anonymous}
-                  pickerStyle={pickerStyle}
-                  onOpenCards={() => setCardsOpen(true)}
-                />
+                  {showActions ? (
+                    <ActionsPanel
+                      actions={state.actions}
+                      roster={state.roster}
+                      you={you}
+                      readOnly={false}
+                    />
+                  ) : (
+                    <PresenceRail
+                      phase={state.phase}
+                      roster={state.roster}
+                      readyIds={state.readyIds}
+                      picker={state.picker}
+                      you={you}
+                      isAdmin={isAdmin}
+                      scopedRound={scopedRound}
+                      anonymous={anonymous}
+                      pickerStyle={pickerStyle}
+                      onOpenCards={() => setCardsOpen(true)}
+                    />
+                  )}
+                </div>
               )}
-            </div>
-          )}
-        </main>
+            </main>
+            {/* The bottom block (sebaro spec/03 §2): a child of the view
+                itself, so its position: sticky holds to the viewport's
+                bottom. The facilitator's phase change comes in through a
+                portal from PhaseStepper. */}
+            <ActionZone
+              slotRef={setActionSlot}
+              status={
+                hasStatus || pointerCount > 0 ? (
+                  <>
+                    <PhaseGuide
+                      phase={state.phase}
+                      isAdmin={isAdmin}
+                      anonymous={anonymous}
+                    />{" "}
+                    <TimeLeft timer={state.timer} form="sentence" />
+                    {pointerCount > 0 ? (
+                      <>
+                        {" "}
+                        <span data-testid="pointer-count">
+                          {t("canvas.pointers", { count: pointerCount })}
+                        </span>
+                      </>
+                    ) : null}
+                  </>
+                ) : null
+              }
+            />
+          </>
+        )}
         <LegalFooter openLegalLinksInNewTab />
       </div>
     </ConnectionProvider>
@@ -865,49 +948,34 @@ function Room({
 function LookupFailed({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
-      <main
-        id={MAIN_ID}
-        data-testid="lookup-failed"
-        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
-      >
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {t("lookupFailed.title")}
-        </h1>
-        <p className="max-w-prose text-zinc-500">{t("lookupFailed.body")}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
+    <StateView
+      view="board"
+      testId="lookup-failed"
+      title={t("lookupFailed.title")}
+      text={t("lookupFailed.body")}
+      action={
+        <button type="button" onClick={onRetry} className="sb-primary-action">
           {t("lookupFailed.retry")}
         </button>
-      </main>
-      <LegalFooter />
-    </div>
+      }
+      footer={<LegalFooter />}
+    />
   );
 }
 
 function NotFound() {
   const { t } = useTranslation();
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
-      <main
-        id={MAIN_ID}
-        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
-      >
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {t("notFound.title")}
-        </h1>
-        <p className="text-zinc-500">{t("notFound.body")}</p>
-        <Link
-          to="/new"
-          className="text-accent underline underline-offset-4 hover:text-accent-strong"
-        >
+    <StateView
+      view="board"
+      title={t("notFound.title")}
+      text={t("notFound.body")}
+      action={
+        <Link to="/new" className="sb-primary-action">
           {t("notFound.home")}
         </Link>
-      </main>
-      <LegalFooter />
-    </div>
+      }
+      footer={<LegalFooter />}
+    />
   );
 }

@@ -398,10 +398,10 @@ test("a pinch belongs to the page while the page itself is zoomed", async () => 
   await expect.poll(world).not.toBe(before);
 });
 
-// WCAG 2.1.1: a canvas note used to be double-click only. The zone's "+ Note"
-// opens the same composer — for the facilitator too, whose zone header is also
-// the zone's drag handle — at a free spot, not on top of the existing card.
-test("the zone's + Note button opens the composer at a free spot", async () => {
+// WCAG 2.1.1: a canvas note used to be double-click only. „Note“ in the
+// canvas's key row asks for the zone and opens the same composer there, at a
+// free spot, not on top of the existing card.
+test("„Note“ opens the composer in the chosen zone at a free spot", async () => {
   const mutate = vi.fn();
   const screen = await render(
     <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send: vi.fn() }}>
@@ -428,6 +428,7 @@ test("the zone's + Note button opens the composer at a free spot", async () => {
     .element(screen.getByTestId("canvas-composer"))
     .not.toBeInTheDocument();
   await screen.getByTestId("canvas-add-note").click();
+  await screen.getByTestId(`canvas-add-note-${column.id}`).click();
   const composer = screen.getByTestId("canvas-composer");
   await expect.element(composer).toHaveFocus();
   // Where it OPENS, not only where it commits: createNote nudges the commit
@@ -789,12 +790,19 @@ test("the canvas's ⋯ panel is on top, unclipped and full size", async () => {
     await card.getByTestId("note-arrange-toggle").click();
     const button = card.getByTestId(testId).element() as HTMLElement;
     button.focus();
+    // The canvas lifts the card and its zone once the panel has rendered (an
+    // effect, onArrangeChange), and WebKit commits that a frame later: wait
+    // for the lift rather than test the frame before it.
+    const onTop = () => {
+      const now = button.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        now.left + now.width / 2,
+        now.top + now.height / 2,
+      );
+      return hit === button || button.contains(hit);
+    };
+    await expect.poll(onTop).toBe(true);
     const box = button.getBoundingClientRect();
-    const hit = document.elementFromPoint(
-      box.left + box.width / 2,
-      box.top + box.height / 2,
-    );
-    expect(hit === button || button.contains(hit)).toBe(true);
     // Unscaled: as tall on screen as its own layout box, at any zoom.
     expect(box.height).toBeCloseTo(button.offsetHeight, 0);
     return box;
@@ -813,6 +821,12 @@ test("the canvas's ⋯ panel is on top, unclipped and full size", async () => {
     neighbour.top + neighbour.height / 2,
   );
   expect(panel.contains(covered)).toBe(true);
+  // Closed the way a person closes it (the focus is in the panel): an open
+  // panel is on top by design, over the next card's keys too.
+  await userEvent.keyboard("{Escape}");
+  await expect
+    .poll(() => screen.getByTestId("note-arrange").elements().length)
+    .toBe(0);
 
   // A card at the zone's bottom edge: its panel reaches past the zone.
   const edge = await topmost("Bottom", "note-nudge-up");

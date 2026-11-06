@@ -25,6 +25,8 @@ import {
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { GifPickerButton } from "./GifPicker.js";
+import { Icon } from "./Icon.js";
+import { Menu } from "./Menu.js";
 import {
   ARRANGE_LABEL,
   ARRANGE_OPTION,
@@ -148,10 +150,10 @@ export function nearestOpenCanvasPosition(
 
 // The canvas's own controls, over its top right corner: the zoom and the
 // facilitator's zone panel button.
-const CONTROL_SURFACE =
-  "rounded-lg border border-zinc-200 bg-white text-zinc-600 shadow-sm";
-const CONTROL_BUTTON =
-  "hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-accent";
+// The canvas's own keys (zoom, zones) as sebaro's compact secondary actions.
+// They lie over the canvas, so their row carries the ground — not the keys:
+// a key's own background is the hover fill, and it fades.
+const CONTROL_KEY = "sb-secondary-action sb-secondary-action--compact";
 
 type ZoneStepKind = "move" | "size";
 
@@ -866,7 +868,7 @@ export function BoardCanvas({
     <div className="relative">
       <div
         data-canvas-control
-        className="absolute top-2 right-2 z-40 flex flex-wrap items-center justify-end gap-1.5"
+        className="absolute top-2 right-2 z-40 flex flex-wrap items-center justify-end gap-1 rounded-control bg-bg"
       >
         {isAdmin && arrangedZone !== null ? (
           <button
@@ -876,7 +878,7 @@ export function BoardCanvas({
             aria-expanded={zonesOpen}
             aria-controls={zonesOpen ? zonePanelId : undefined}
             onClick={() => setZonePanel(!zonePanel)}
-            className={`${CONTROL_SURFACE} ${CONTROL_BUTTON} px-2 py-1 text-xs`}
+            className={CONTROL_KEY}
           >
             {t("canvas.zones")}
           </button>
@@ -899,7 +901,7 @@ export function BoardCanvas({
                     data-testid="zones-option"
                     aria-pressed={column.id === arrangedZone.id}
                     onClick={() => setZoneTarget(column.id)}
-                    className={`max-w-full truncate ${ARRANGE_OPTION} aria-pressed:border-accent aria-pressed:bg-accent/10 aria-pressed:text-accent-strong`}
+                    className={`max-w-full truncate ${ARRANGE_OPTION} aria-pressed:outline-[3px] aria-pressed:outline-offset-2 aria-pressed:outline-(--sb-color-accent) aria-pressed:outline-solid`}
                   >
                     {column.name}
                   </button>
@@ -946,7 +948,7 @@ export function BoardCanvas({
                           onClick={() => stepZone(kind, nudge.direction)}
                           className={ARRANGE_STEP}
                         >
-                          <span aria-hidden="true">{nudge.glyph}</span>
+                          <Icon name={`arrow-${nudge.direction}`} size={20} />
                         </button>
                       );
                     })}
@@ -956,22 +958,47 @@ export function BoardCanvas({
             })}
           </div>
         ) : null}
-        <div className={`flex items-center ${CONTROL_SURFACE}`}>
+        {/* The double-click's visible, keyboard-reachable twin (WCAG 2.1.1):
+            „Notiz“ asks which zone and opens the same composer there, at the
+            zone's centre nudged to the nearest free spot, the way a commit
+            is. Out here, not in each zone's head: the head is drawn in the
+            zoomed world, where a key cannot keep its size (owner,
+            2026-11-05). */}
+        <Menu
+          label={t("canvas.addNoteMenu")}
+          trigger={{ text: t("canvas.addNote"), icon: "plus" }}
+          triggerTestId="canvas-add-note"
+          menuTestId="canvas-add-note-menu"
+          items={ordered.map((column) => ({
+            key: column.id,
+            label: t("canvas.addNoteIn", { name: column.name }),
+            testId: `canvas-add-note-${column.id}`,
+            onSelect: () => {
+              const centre = { x: 0.5, y: 0.5 };
+              setComposing({
+                columnId: column.id,
+                ...(openPosition(column.id, centre) ?? centre),
+              });
+            },
+          }))}
+        />
+        <div className="flex items-center gap-1">
           <button
             type="button"
             aria-label={t("canvas.zoomOut")}
             onClick={() => zoomBy(0.8)}
-            className={`px-2 py-1 ${CONTROL_BUTTON}`}
+            className={CONTROL_KEY}
           >
-            −
+            <Icon name="zoom-out" size={20} />
           </button>
           {/* Named after what it shows first (WCAG 2.5.3): a speech user says
               the "49%" they see, then the name tells what it does. */}
           <button
             type="button"
             onClick={fitView}
-            className={`min-w-11 border-x border-zinc-200 px-1 py-1 text-center text-xs tabular-nums ${CONTROL_BUTTON}`}
+            className={`${CONTROL_KEY} tabular-nums`}
           >
+            <Icon name="zoom-fit" size={20} />
             {Math.round(view.zoom * 100)}%
             <span className="sr-only"> – {t("canvas.fit")}</span>
           </button>
@@ -979,9 +1006,9 @@ export function BoardCanvas({
             type="button"
             aria-label={t("canvas.zoomIn")}
             onClick={() => zoomBy(1.25)}
-            className={`px-2 py-1 ${CONTROL_BUTTON}`}
+            className={CONTROL_KEY}
           >
-            +
+            <Icon name="zoom-in" size={20} />
           </button>
         </div>
       </div>
@@ -1013,7 +1040,10 @@ export function BoardCanvas({
             panY: v.panY - scrollTop,
           }));
         }}
-        className="relative h-[72vh] overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-100/40"
+        // sebaro's free canvas (spec/02 §3.29, RB-4): the plain ground, no
+        // grid. It pans and zooms rather than scrolls (the product's own
+        // gesture, kept), so the plane's own positioning rules stay unused.
+        className="sb-canvas relative h-[72vh] overflow-hidden border border-border"
         style={{ touchAction: "none" }}
       >
         <div
@@ -1037,12 +1067,12 @@ export function BoardCanvas({
               <section
                 key={column.id}
                 aria-label={column.name}
-                className={`absolute flex flex-col rounded-2xl border border-zinc-200 bg-white/60 ${
-                  column.hidden ? "opacity-60" : ""
-                } ${
+                // A zone is sebaro's group: a 1 px frame, its name, no fill.
+                // A hidden one says so in words (the tag), not by fading.
+                className={`sb-canvas__group absolute flex flex-col p-0 ${
                   zoneDrag?.columnId === column.id ||
                   (zonesOpen && arrangedZone?.id === column.id)
-                    ? "ring-2 ring-accent/40"
+                    ? "outline-[3px] outline-offset-2 outline-(--sb-color-accent) outline-solid"
                     : ""
                 }`}
                 style={{
@@ -1061,54 +1091,29 @@ export function BoardCanvas({
                       ? (event) => beginZoneDrag(event, column, "move")
                       : undefined
                   }
-                  className={`flex items-center gap-1.5 px-3 pt-2.5 pb-1.5 ${
+                  className={`flex items-center gap-1 px-3 pt-2 pb-1 ${
                     isAdmin ? "cursor-move" : ""
                   }`}
                 >
-                  <h2 className="flex-1 truncate text-sm font-semibold tracking-wide text-zinc-600 uppercase">
+                  <h2 className="sb-canvas__group-name static flex-1 truncate">
                     {column.name}
                     {column.hidden ? (
                       <span
                         data-testid="column-hidden-badge"
-                        className="ml-1.5 rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lowercase"
+                        className="sb-tag ms-1"
                       >
                         {t("column.hidden")}
                       </span>
                     ) : null}
-                    <span className="ml-1.5 font-normal text-zinc-500 tabular-nums">
+                    <span className="sb-card__meta ms-1 inline tabular-nums">
                       {zoneNotes.length}
                     </span>
                   </h2>
                   {othersCount > 0 ? (
-                    <span
-                      data-testid="team-cards"
-                      className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600"
-                    >
+                    <span data-testid="team-cards" className="sb-tag">
                       {t("rail.teamCards", { count: othersCount })}
                     </span>
                   ) : null}
-                  {/* The double-click's visible, keyboard-reachable twin
-                      (WCAG 2.1.1): same composer, same zone, same (absent)
-                      conditions. It opens at the zone's centre, nudged to the
-                      nearest free spot the way a commit is. */}
-                  <button
-                    type="button"
-                    data-testid="canvas-add-note"
-                    // Not a zone drag: the facilitator's header is the zone's
-                    // move handle, and a captured pointer would swallow the click.
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={() => {
-                      const centre = { x: 0.5, y: 0.5 };
-                      setComposing({
-                        columnId: column.id,
-                        ...(openPosition(column.id, centre) ?? centre),
-                      });
-                    }}
-                    className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-accent-strong hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-accent"
-                  >
-                    {t("canvas.addNote")}
-                    <span className="sr-only"> ({column.name})</span>
-                  </button>
                 </header>
 
                 <div
@@ -1132,7 +1137,7 @@ export function BoardCanvas({
                       y: clampUnit((event.clientY - box.top) / box.height),
                     });
                   }}
-                  className="relative flex-1 overflow-hidden rounded-b-2xl"
+                  className="relative flex-1 overflow-hidden rounded-b-container"
                   style={arrangingHere ? { overflow: "visible" } : undefined}
                 >
                   {phase === "write"
@@ -1143,7 +1148,7 @@ export function BoardCanvas({
                             key={`${column.id}-${index}`}
                             data-testid="canvas-occupancy"
                             aria-label={t("canvas.occupied")}
-                            className="pointer-events-none absolute flex min-h-28 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-100/80 px-3 text-center text-xs font-medium text-zinc-600"
+                            className="sb-card sb-card--item sb-card--hidden pointer-events-none absolute min-h-28 justify-center text-center"
                             style={{
                               left: `${slot.x * 100}%`,
                               top: `${slot.y * 100}%`,
@@ -1152,7 +1157,10 @@ export function BoardCanvas({
                               zIndex: 0,
                             }}
                           >
-                            {t("canvas.occupied")}
+                            <p className="sb-card__title">
+                              <Icon name="eye-off" size={20} />
+                              {t("canvas.occupied")}
+                            </p>
                           </div>
                         ))
                     : null}
@@ -1248,7 +1256,7 @@ export function BoardCanvas({
 
                   {zoneNotes.length === 0 &&
                   composing?.columnId !== column.id ? (
-                    <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-xs text-zinc-500">
+                    <p className="sb-card__meta pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center">
                       {t("canvas.hint")}
                     </p>
                   ) : null}
@@ -1269,10 +1277,10 @@ export function BoardCanvas({
                     }
                     // Nor does a press focus it, hidden as it is.
                     onMouseDown={(event) => event.preventDefault()}
-                    className="absolute right-0 bottom-0 size-5 cursor-nwse-resize rounded-br-2xl text-zinc-500 hover:text-zinc-700"
+                    className="absolute right-0 bottom-0 flex size-6 cursor-nwse-resize items-center justify-center text-text-muted hover:text-text"
                     style={{ touchAction: "none" }}
                   >
-                    ⤡
+                    <Icon name="grip" size={16} />
                   </button>
                 ) : null}
               </section>
@@ -1285,37 +1293,25 @@ export function BoardCanvas({
                 const c = cursors[p.id];
                 if (!c) return null;
                 return (
+                  // sebaro's pointer (RB-5, F6): an ink arrow with the name in
+                  // a box, no colour per person; the name tells them apart.
                   <div
                     key={p.id}
                     data-testid="live-cursor"
-                    className="pointer-events-none absolute z-40"
+                    aria-hidden="true"
+                    className="sb-pointer absolute z-40"
                     style={{
-                      left: c.x * WORLD_W,
-                      top: c.y * WORLD_H,
-                      // counter the world scale so cursors stay a readable size
+                      insetInlineStart: c.x * WORLD_W,
+                      insetBlockStart: c.y * WORLD_H,
+                      // counter the world scale so pointers stay a readable size
                       transform: `scale(${1 / view.zoom})`,
                       transformOrigin: "0 0",
                     }}
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      className="drop-shadow"
-                    >
-                      <path
-                        d="M1 1 L1 13 L4.5 9.5 L7 15 L9 14 L6.5 8.5 L11.5 8.5 Z"
-                        fill={p.color}
-                        stroke="white"
-                        strokeWidth="1"
-                      />
+                    <svg className="sb-pointer__arrow" viewBox="0 0 16 20">
+                      <path d="M1 1 L1 16 L5 12 L8 19 L11 18 L8 11 L14 11 Z" />
                     </svg>
-                    <span
-                      className="-mt-1 ml-3 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap text-white"
-                      style={{ backgroundColor: p.color }}
-                    >
-                      {p.name}
-                    </span>
+                    <span className="sb-pointer__name">{p.name}</span>
                   </div>
                 );
               })
@@ -1340,6 +1336,7 @@ function CanvasComposer({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const fieldId = useId();
   const [text, setText] = useState("");
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1383,47 +1380,54 @@ function CanvasComposer({
       }}
       className="flex flex-col gap-1"
     >
-      <textarea
-        ref={textareaRef}
-        autoFocus
-        value={text}
-        data-testid="canvas-composer"
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            onCommit(text, gifUrl);
-          } else if (event.key === "Escape") {
-            event.preventDefault();
-            onCancel();
-          }
-        }}
-        rows={2}
-        maxLength={500}
-        placeholder={t("note.placeholder")}
-        className="resize-none rounded-xl border border-accent bg-white px-3 py-2 text-sm shadow-md focus-visible:outline-2 focus-visible:outline-accent"
-      />
+      <div className="sb-field">
+        <label htmlFor={fieldId} className="sb-visually-hidden">
+          {t("note.placeholder")}
+        </label>
+        <div className="sb-field__control bg-bg">
+          <textarea
+            id={fieldId}
+            ref={textareaRef}
+            autoFocus
+            value={text}
+            data-testid="canvas-composer"
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                onCommit(text, gifUrl);
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                onCancel();
+              }
+            }}
+            rows={2}
+            maxLength={500}
+            placeholder={t("note.placeholder")}
+          />
+        </div>
+      </div>
       {gifUrl !== null ? (
-        <div className="relative w-fit">
+        <div className="flex w-fit items-start gap-1 bg-bg">
           <img
             src={gifUrl}
             alt=""
             referrerPolicy="no-referrer"
-            className="max-h-24 rounded-lg shadow-md"
+            className="max-h-24"
           />
           <button
             type="button"
             onClick={() => setGifUrl(null)}
             aria-label={t("gif.remove")}
-            className="absolute -top-1.5 -right-1.5 rounded-full bg-zinc-800 px-1.5 text-xs text-white"
+            className="sb-icon-button"
           >
-            ✕
+            <Icon name="close" />
           </button>
         </div>
       ) : null}
       {/* Same rule as the column composer: a GIF only ever joins text. */}
       {gifsEnabled && gifUrl === null && text.trim() !== "" ? (
-        <div className="w-fit rounded-lg bg-white/80">
+        <div className="w-fit bg-bg">
           <GifPickerButton
             testId="canvas-composer-gif"
             onPick={setGifUrl}

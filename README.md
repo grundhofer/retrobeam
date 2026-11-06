@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="apps/web/public/brand-mark.svg" width="96" alt="">
+<img src="apps/web/src/sebaro/brand/site-root/icon.svg" width="96" alt="">
 
 # RetroBeam
 
@@ -68,7 +68,7 @@ Kudos to teammates, anonymously if you'd rather. Then an anonymous ROTI poll —
 - **Facilitation kit** — an optional opening check-in with 24 localized icebreakers (pick one in the lobby or let the check-in draw one), the Prime Directive, live-editable working agreements, and a shared timer with a chime
 - **Grouping** — drag cards into stacks; votes and reactions come along
 - **Staged columns** — prepare a column and reveal it to the room when you're ready
-- **Emoji reactions and GIFs**, and confetti where it's earned
+- **Emoji reactions and GIFs**
 - **Exports** — Markdown, CSV, JSON and PDF from the board itself, plus a JPEG the browser renders from the same snapshot, in two scopes: everything, or a summary of the crowned cards and the action items. Author names are excluded by default.
 - **Board duplication** — clone the structure for next sprint, nothing else
 - **German and English** throughout, switchable mid-retro
@@ -204,7 +204,7 @@ Pull requests need a signed [Contributor License Agreement](CLA.md) — a bot ch
 Copyright © 2026 Sebastian Grundhöfer.
 
 RetroBeam is free software under the **GNU Affero General Public License v3.0 or later** — see
-[LICENSE](LICENSE). Every source file carries an [SPDX](https://reuse.software) header; generated files without one, such as the sebaro design-system export, are covered by [REUSE.toml](REUSE.toml).
+[LICENSE](LICENSE). Every source file carries an [SPDX](https://reuse.software) header; generated files without one, such as the sebaro design-system export, are covered by [REUSE.toml](REUSE.toml). The export itself is MIT, its fonts are under the OFL-1.1, and the RetroBeam marks — the tile, the favicon and app icons, the share image — are reserved (`LicenseRef-sebaro-reserved`), not under the AGPL: a fork replaces them with its own ([docs/06](docs/06-legal.md)).
 
 If you run a modified RetroBeam and let others reach it over a network, AGPL §13 requires you to
 offer those users the source of your version. The licence rationale, the monetisation model it keeps

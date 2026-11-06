@@ -32,6 +32,8 @@ interface BoardStore {
   setClockOffset: (offsetMs: number) => void;
   notify: (key: string, tone?: Notice["tone"]) => void;
   dismiss: (id: number) => void;
+  /** The room moved on (an ack, a phase change): what went wrong is past. */
+  clearNotices: () => void;
   reset: () => void;
 }
 
@@ -58,6 +60,8 @@ export const useBoardStore = create<BoardStore>()((set) => ({
     ),
   dismiss: (id) =>
     set((store) => ({ notices: store.notices.filter((n) => n.id !== id) })),
+  clearNotices: () =>
+    set((store) => (store.notices.length === 0 ? store : { notices: [] })),
   reset: () =>
     set({
       state: initialBoardState,

@@ -76,7 +76,13 @@ export const RULES = {
   ],
 };
 
-// The string literals of one language block of i18n.ts, with their line.
+// Quotations shown with their source (sebaro's sb-quote): the words are the
+// author's, so the "wir" of a quotation is not the interface speaking. Only
+// that rule is waived for them (owner, 2026-11-06).
+export const QUOTATIONS = new Set(["primeDirective"]);
+
+// The string literals of one language block of i18n.ts, with their line and
+// their key (on the same line, or on the line before for a wrapped value).
 // Object keys are identifiers, but a quoted key ("1": …) is skipped.
 export function i18nStrings(source, language) {
   const lines = source.split("\n");
@@ -88,8 +94,11 @@ export function i18nStrings(source, language) {
   );
   const strings = [];
   for (let index = start + 1; index < end; index++) {
+    const key =
+      /^\s*(\w+):\s*"/.exec(lines[index])?.[1] ??
+      /^\s*(\w+):\s*$/.exec(lines[index - 1] ?? "")?.[1];
     for (const match of lines[index].matchAll(/"((?:[^"\\]|\\.)*)"(\s*:)?/g)) {
-      if (!match[2]) strings.push({ line: index + 1, text: match[1] });
+      if (!match[2]) strings.push({ line: index + 1, text: match[1], key });
     }
   }
   return strings;
@@ -114,8 +123,9 @@ export function htmlStrings(source) {
 
 export function scan(strings, rules) {
   const hits = [];
-  for (const { line, text } of strings) {
+  for (const { line, text, key } of strings) {
     for (const [rule, pattern] of rules) {
+      if (rule === "wir" && QUOTATIONS.has(key)) continue;
       for (const match of text.matchAll(pattern)) {
         hits.push({ rule, line, match: match[0] });
       }

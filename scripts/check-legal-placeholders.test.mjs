@@ -41,9 +41,9 @@ after(() => rmSync(base, { recursive: true, force: true }));
 let runs = 0;
 
 // `edit` maps a repo-relative path to a function over its content.
-function run({ edit = {}, origin, env = {} } = {}) {
+function run({ edit = {}, origin, env = {}, extra = [] } = {}) {
   const dir = join(base, String(runs++));
-  for (const path of [SCRIPT, OPERATOR, WRANGLER, ...HOST_FILES]) {
+  for (const path of [SCRIPT, OPERATOR, WRANGLER, ...HOST_FILES, ...extra]) {
     mkdirSync(dirname(join(dir, path)), { recursive: true });
     const content = readFileSync(join(ROOT, path), "utf8");
     writeFileSync(join(dir, path), edit[path] ? edit[path](content) : content);
@@ -188,4 +188,17 @@ test("an unterminated block comment or string fails instead of hanging", () => {
 test("the fixture copies every file the guard reads", () => {
   const script = readFileSync(join(ROOT, SCRIPT), "utf8");
   for (const path of HOST_FILES) assert.ok(script.includes(`"${path}"`), path);
+});
+
+// A fork that still serves RetroBeam's reserved marks (the tile, icons, the
+// share image) is told so, without being blocked (stage 6c).
+test("a de-branded fork that keeps the marks is warned, not blocked", () => {
+  const { status, stderr } = run({
+    edit: debranded(),
+    origin: "git@github.com:jane/retrobeam.git",
+    extra: ["apps/web/src/sebaro/brand/site-root/icon.svg"],
+  });
+  assert.equal(status, 0);
+  assert.match(stderr, /reserved marks/);
+  assert.match(stderr, /brand\/site-root\/icon\.svg/);
 });

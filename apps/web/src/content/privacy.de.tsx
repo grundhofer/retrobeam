@@ -174,7 +174,7 @@ export function PrivacyDe() {
       </p>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Gespeicherte Board-Daten"
         tabIndex={0}
@@ -446,7 +446,7 @@ export function PrivacyDe() {
       </p>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Lokale Browser-Speicherung"
         tabIndex={0}
@@ -469,16 +469,36 @@ export function PrivacyDe() {
             </tr>
             <tr>
               <td>
-                <code>retrobeam.lang</code>
+                <code>sb-lang</code>
               </td>
               <td>Gewählte Sprache (de/en)</td>
               <td>Sprache merken</td>
             </tr>
             <tr>
               <td>
-                <code>retrobeam.sound</code>
+                <code>sb-theme</code>
               </td>
-              <td>Ton an/aus</td>
+              <td>
+                Gewählte Darstellung „Hell“ oder „Dunkel“ (nur, wenn sie vom
+                System abweicht)
+              </td>
+              <td>Darstellung merken</td>
+            </tr>
+            <tr>
+              <td>
+                <code>sb-tone</code>
+              </td>
+              <td>
+                Gewählter Farbton „Warm“ (beim Standard „Kühl“ wird nichts
+                gespeichert)
+              </td>
+              <td>Farbton merken</td>
+            </tr>
+            <tr>
+              <td>
+                <code>sb-motion</code>
+              </td>
+              <td>Die Einstellung „Bewegung immer reduzieren“</td>
               <td>Einstellung merken</td>
             </tr>
             <tr>
@@ -516,17 +536,25 @@ export function PrivacyDe() {
         Admin-Schlüssel geht außerdem beim Duplizieren eines Boards mit; die
         gewählte Sprache wird beim Anlegen eines Boards übermittelt, damit die
         Standardspalten in dieser Sprache benannt werden, und bei jeder
-        GIF-Suche an den RetroBeam-Server (Abschnitt 5). Die Toneinstellung
-        verlässt den Browser nie. Ist der lokale Speicher nicht verfügbar (z. B.
-        privater Modus), arbeitet die Anwendung mit einem Ersatz im
-        Arbeitsspeicher, der mit dem Tab endet.
+        GIF-Suche an den RetroBeam-Server (Abschnitt 5). Ist der lokale Speicher
+        nicht verfügbar (z. B. privater Modus), arbeitet die Anwendung mit einem
+        Ersatz im Arbeitsspeicher, der mit dem Tab endet.
+      </p>
+
+      <p>
+        Die drei Einträge zur Darstellung (<code>sb-theme</code>,{" "}
+        <code>sb-tone</code>, <code>sb-motion</code>) entstehen nur, wenn Sie
+        die jeweilige Wahl treffen, und werden nie übertragen. Fällt eine dieser
+        Einstellungen in einer späteren Version weg, bleibt ihr Eintrag in Ihrem
+        Browser, bis Sie ihn löschen, wird aber nicht mehr gelesen.
       </p>
 
       <p>
         Das Speichern dieser Einträge ist nach § 25 Abs. 2 Nr. 2 TDDDG von der
         Einwilligungspflicht ausgenommen, weil es unbedingt erforderlich ist, um
         den von Ihnen ausdrücklich gewünschten Dienst — Ihr Board, Ihre Sitzung,
-        Ihre Sprache — bereitzustellen. Deshalb gibt es keinen Cookie-Banner.
+        Ihre Sprache und die von Ihnen gewählte Darstellung — bereitzustellen.
+        Deshalb gibt es keinen Cookie-Banner.
       </p>
 
       <h2>5. GIFs (KLIPY)</h2>
@@ -635,7 +663,7 @@ export function PrivacyDe() {
       <h2>7. Empfänger und Übermittlung in Drittländer</h2>
 
       <div
-        className="table-scroll"
+        className="sb-table-wrap"
         role="region"
         aria-label="Empfänger und Drittlandübermittlungen"
         tabIndex={0}

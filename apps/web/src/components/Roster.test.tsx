@@ -37,8 +37,13 @@ test("renders all participants with facilitator badge and offline state", async 
 
   const items = screen.getByTestId("roster-item").elements();
   expect(items).toHaveLength(2);
+  // Offline in words and as sebaro's dashed ring (D132), never dimmed.
   const benItem = items[1] as HTMLElement;
-  expect(benItem.className).toContain("opacity-45");
+  expect(benItem.textContent).toMatch(/offline/);
+  expect(
+    benItem.querySelector(".sb-avatar")?.getAttribute("data-sb-presence"),
+  ).toBe("offline");
+  expect(getComputedStyle(benItem).opacity).toBe("1");
 });
 
 test("marks the current user with a (you) suffix", async () => {

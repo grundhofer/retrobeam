@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   nameGraphemes,
@@ -14,13 +14,20 @@ import {
   type PickerStyle,
   type WheelSpin,
 } from "@retrobeam/shared";
-import { burstConfetti } from "../lib/confetti.js";
 import { useConnection } from "../lib/connection.js";
+import { motionReduced } from "../lib/motion.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
+import { Icon } from "./Icon.js";
 
 // Every client renders the SAME spin from the broadcast seed and lands on the
-// same name. Reduced-motion (and late joiners) skip straight to the result.
+// same name. Reduced motion (the system's or sebaro's data-sb-motion) and late
+// joiners skip straight to the result.
+//
+// sebaro (plan §2.4 F7, D114): the choosing moment is the app's one moment of
+// delight, drawn flat in ink — no participant colours, no gradients, no
+// confetti — in sebaro's modal dialog over the scrim; the wheel keeps its
+// 4.5 s and stands still under reduced motion.
 export function WheelOverlay({
   cardSelectionOpen = false,
   isAdmin = false,
@@ -37,6 +44,9 @@ export function WheelOverlay({
   const phase = useBoardStore((store) => store.state.phase);
   const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
   const now = useNow();
+  // „Schließen“ or Escape ends the moment for this person only (sebaro
+  // §4.6): the spin goes on for the room, and the next spin shows again.
+  const [dismissedSpin, setDismissedSpin] = useState<number | null>(null);
 
   const localEnd =
     spin === null ? 0 : spin.startAt - clockOffsetMs + spin.durationMs;
@@ -46,12 +56,14 @@ export function WheelOverlay({
   }, [activeSpin, cardSelectionOpen, onCloseCardSelection]);
 
   if (activeSpin && spin !== null) {
+    if (dismissedSpin === spin.startAt) return null;
     return (
       <SpinScene
         key={spin.startAt}
         spin={spin}
         roster={roster}
         clockOffsetMs={clockOffsetMs}
+        onClose={() => setDismissedSpin(spin.startAt)}
       />
     );
   }
@@ -77,6 +89,70 @@ export function WheelOverlay({
   );
 }
 
+// Both scenes are sebaro's dialog that shows instead of asking (spec/02 §4.6,
+// RB-7): modal over the scrim, only secondary actions with „Schließen“ last,
+// Escape closes, and the focus goes back to where it was.
+function MomentDialog({
+  labelledBy,
+  testId,
+  onClose,
+  children,
+}: {
+  labelledBy: string;
+  testId: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    const back =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    if (!dialog.open) dialog.showModal();
+    return () => {
+      const active = document.activeElement;
+      if (
+        back?.isConnected &&
+        (active === null ||
+          active === document.body ||
+          !active.isConnected ||
+          dialog.contains(active))
+      )
+        back.focus();
+    };
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      data-testid={testId}
+      aria-labelledby={labelledBy}
+      className="sb-dialog m-auto"
+      // Closed by the parent's state, so the dialog stays in step with it:
+      // the browser's own close is turned into onClose.
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      {children}
+      <div className="sb-dialog__actions">
+        <button
+          type="button"
+          data-testid={`${testId}-close`}
+          onClick={onClose}
+          className="sb-secondary-action"
+        >
+          {t("sheet.close")}
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
 function CardSelectionScene({
   count,
   onClose,
@@ -88,13 +164,7 @@ function CardSelectionScene({
   const { send } = useConnection();
   const [selected, setSelected] = useState<number | null>(null);
 
-  useEffect(() => {
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
+  const titleId = useId();
 
   function choose(index: number) {
     if (selected !== null) return;
@@ -103,74 +173,50 @@ function CardSelectionScene({
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="card-picker-title"
-      data-testid="card-picker-overlay"
-      className="fixed inset-0 z-50 flex flex-col bg-zinc-900/80 px-4 py-5 backdrop-blur-sm sm:px-8"
+    <MomentDialog
+      labelledBy={titleId}
+      testId="card-picker-overlay"
+      onClose={onClose}
     >
-      <div className="mx-auto flex w-full max-w-6xl items-start gap-4 text-white">
-        <div className="min-w-0 flex-1 text-center">
-          <h2
-            id="card-picker-title"
-            className="text-xl font-semibold sm:text-2xl"
-          >
-            {t("picker.cardDeckTitle")}
-          </h2>
-          {/* contrast-ok: light text on the dark overlay */}
-          <p className="mt-1 text-sm text-zinc-300">
-            {t("picker.cardDeckHint", { count })}
-          </p>
-        </div>
-        <button
-          type="button"
-          aria-label={t("picker.closeCards")}
-          onClick={onClose}
-          className="rounded-full bg-white/10 px-3 py-1.5 text-lg text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-        >
-          ×
-        </button>
-      </div>
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-wrap content-center items-center justify-center gap-3 overflow-y-auto py-5 sm:gap-5">
+      <h2 id={titleId} className="sb-dialog__title">
+        {t("picker.title")}
+      </h2>
+      <p className="sb-dialog__text">{t("picker.cardDeckHint", { count })}</p>
+      <div className="mt-4 flex flex-wrap justify-center gap-3">
         {Array.from({ length: count }, (_, index) => (
           <button
             key={index}
             type="button"
             data-testid="picker-card"
             aria-label={t("picker.chooseCardAria", { index: index + 1 })}
+            aria-pressed={selected === index ? true : undefined}
             disabled={selected !== null}
             onClick={() => choose(index)}
-            className={`group relative h-[clamp(8rem,24dvh,15rem)] w-[clamp(5.75rem,17dvh,10.75rem)] shrink-0 rounded-2xl border-4 border-white bg-accent shadow-2xl ring-1 ring-accent-strong transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-wait ${
-              selected === null
-                ? "hover:-translate-y-2 hover:rotate-1 hover:shadow-accent/30"
-                : selected === index
-                  ? "-translate-y-2 ring-4 ring-white"
-                  : "opacity-45"
-            }`}
+            className={`${CARD_FACE} hover:bg-hover-fill disabled:cursor-wait aria-pressed:outline-[3px] aria-pressed:outline-offset-2 aria-pressed:outline-(--sb-color-accent) aria-pressed:outline-solid`}
           >
-            <span className="absolute inset-2 rounded-xl border-2 border-white/45" />
-            <span
-              aria-hidden="true"
-              className="relative text-4xl text-white/90 transition group-hover:scale-110 sm:text-5xl"
-            >
-              ✦
-            </span>
+            <Icon name="help" size={32} />
           </button>
         ))}
       </div>
-    </div>
+    </MomentDialog>
   );
 }
+
+// A face-down card: sebaro's card edge in ink, a size between a phone and a
+// wall (the dialog wraps them).
+const CARD_FACE =
+  "flex h-32 w-22 shrink-0 items-center justify-center rounded-container border-2 border-text bg-bg text-text";
 
 function SpinScene({
   spin,
   roster,
   clockOffsetMs,
+  onClose,
 }: {
   spin: WheelSpin;
   roster: Participant[];
   clockOffsetMs: number;
+  onClose: () => void;
 }) {
   const { t } = useTranslation();
   const now = useNow();
@@ -181,53 +227,38 @@ function SpinScene({
     const config = useBoardStore.getState().state.config;
     return config?.pickerCards ? "cards" : (config?.pickerStyle ?? "wheel");
   });
-  const reducedMotion =
-    typeof matchMedia !== "undefined" &&
-    matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Read once, when the moment starts: a still scene stays still.
+  const [reducedMotion] = useState(() => motionReduced());
+  const titleId = useId();
 
   const localEnd = spin.startAt - clockOffsetMs + spin.durationMs;
   const landed = reducedMotion || now >= localEnd;
   const winner = roster.find((p) => p.id === spin.winnerId);
 
-  const celebrated = useRef(false);
-  useEffect(() => {
-    if (landed && !celebrated.current) {
-      celebrated.current = true;
-      void burstConfetti();
-    }
-  }, [landed]);
-
   return (
-    <div
-      data-testid="wheel-overlay"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-zinc-900/75 px-4 backdrop-blur-sm"
-    >
+    <MomentDialog labelledBy={titleId} testId="wheel-overlay" onClose={onClose}>
+      <h2 id={titleId} className="sb-dialog__title">
+        {t("picker.title")}
+      </h2>
       {!reducedMotion ? (
         <PickerSkin
           style={pickerStyle}
           spin={spin}
           roster={roster}
           clockOffsetMs={clockOffsetMs}
+          landedOn={landed ? (winner?.name ?? null) : null}
         />
       ) : null}
-      {/* max-w-full: a forty-character name at text-2xl is wider than a
-          phone, and the overlay cannot scroll. */}
-      <div aria-live="polite" className="min-h-16 max-w-full text-center">
+      {/* The status sentence of sebaro's wheel: in the page from the start, so
+          the name is heard when it appears. */}
+      <p role="status" className="sb-dialog__text text-center">
         {landed && winner ? (
-          <div
-            data-testid="wheel-winner"
-            className="reveal-in rounded-2xl bg-white px-8 py-4 text-2xl font-semibold break-words text-zinc-900 shadow-xl"
-          >
-            <span
-              aria-hidden="true"
-              className="mr-3 inline-block size-4 rounded-full"
-              style={{ backgroundColor: winner.color }}
-            />
+          <span data-testid="wheel-winner" className="reveal-in">
             {t("picker.winner", { name: winner.name })}
-          </div>
+          </span>
         ) : null}
-      </div>
-    </div>
+      </p>
+    </MomentDialog>
   );
 }
 
@@ -239,11 +270,13 @@ function PickerSkin({
   spin,
   roster,
   clockOffsetMs,
+  landedOn,
 }: {
   style: PickerStyle;
   spin: WheelSpin;
   roster: Participant[];
   clockOffsetMs: number;
+  landedOn: string | null;
 }) {
   switch (style) {
     case "cards":
@@ -260,7 +293,12 @@ function PickerSkin({
       );
     case "wheel":
       return (
-        <Wheel spin={spin} roster={roster} clockOffsetMs={clockOffsetMs} />
+        <Wheel
+          spin={spin}
+          roster={roster}
+          clockOffsetMs={clockOffsetMs}
+          landedOn={landedOn}
+        />
       );
   }
 }
@@ -299,7 +337,7 @@ function CardReveal({
     <div
       data-testid="card-reveal"
       aria-hidden="true"
-      className="flex max-h-[70dvh] max-w-6xl flex-wrap content-center items-center justify-center gap-3 overflow-y-auto px-4 py-6 sm:gap-5"
+      className="flex flex-wrap justify-center gap-3"
     >
       {spin.pool.map((participantId, index) => {
         const selected = index === selectedIndex;
@@ -308,7 +346,7 @@ function CardReveal({
             key={participantId}
             data-testid="reveal-card"
             data-selected={selected ? "true" : "false"}
-            className={`h-[clamp(8rem,24dvh,15rem)] w-[clamp(5.75rem,17dvh,10.75rem)] shrink-0 transition-opacity duration-500 ${
+            className={`h-32 w-22 shrink-0 transition-opacity duration-(--sb-motion-duration-long) ${
               revealed && !selected ? "opacity-30" : "opacity-100"
             }`}
             style={{ perspective: 900 }}
@@ -326,27 +364,23 @@ function CardReveal({
               }}
             >
               <div
-                className="absolute inset-0 flex items-center justify-center rounded-2xl border-4 border-white bg-accent shadow-2xl"
+                className={`absolute inset-0 ${CARD_FACE}`}
                 style={{ backfaceVisibility: "hidden" }}
               >
-                <span className="absolute inset-2 rounded-xl border-2 border-white/45" />
-                <span className="text-4xl text-white/90 sm:text-5xl">✦</span>
+                <Icon name="help" size={32} />
               </div>
               {selected ? (
                 <div
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl border-4 border-white bg-white px-3 text-center shadow-2xl"
+                  className={`absolute inset-0 ${CARD_FACE} flex-col gap-2 px-2 text-center`}
                   style={{
                     backfaceVisibility: "hidden",
                     transform: "rotateY(180deg)",
                   }}
                 >
-                  <span
-                    className="flex size-14 items-center justify-center rounded-full text-lg font-semibold text-white sm:size-16 sm:text-xl"
-                    style={{ backgroundColor: winner?.color ?? "#9AA1AD" }}
-                  >
+                  <span className="sb-avatar sb-avatar--32">
                     {nameMonogram(winner?.name ?? "?")}
                   </span>
-                  <span className="max-w-full truncate text-base font-semibold text-zinc-900 sm:text-lg">
+                  <span className="max-w-full truncate font-semibold">
                     {winner?.name ?? "?"}
                   </span>
                 </div>
@@ -364,10 +398,9 @@ function CardReveal({
 // agree: a name is written ALONG its radius (hub → rim), so what bounds its
 // length is a distance, not the segment's arc — which is the whole reason
 // names no longer have to be cut off.
-const RIM_OUTER = 138; // outer bezel
-const FACE = 126; // coloured segments
-const LABEL_OUTER = 116; // where a name ends, just inside the rim
-const LABEL_INNER = 38; // where it may start, clear of the hub
+const FACE = 126; // sebaro's ink circle
+const LABEL_OUTER = 116; // where a name ends, just inside the circle
+const LABEL_INNER = 30; // where it may start, clear of the centre
 const LABEL_SPAN = LABEL_OUTER - LABEL_INNER;
 const LABEL_MAX_PX = 17;
 const LABEL_MIN_PX = 8.5;
@@ -396,15 +429,22 @@ function labelSize(widthEm: number, count: number): number {
   return Math.max(LABEL_MIN_PX, Math.min(LABEL_MAX_PX, byLength, byWedge));
 }
 
+// sebaro's wheel (spec/02 §3.29, §4.6, RB-7): svg.sb-wheel, a 2 px ink
+// circle, 1.5 px spokes and the names inside g.sb-wheel__disc, the pointer at
+// the top; its colours and strokes come from sebaro's CSS. It turns over the
+// spin's 4.5 s (owner, D114: an approved deviation from sebaro's 200 ms).
 function Wheel({
   spin,
   roster,
   clockOffsetMs,
+  landedOn,
 }: {
   spin: WheelSpin;
   roster: Participant[];
   clockOffsetMs: number;
+  landedOn: string | null;
 }) {
+  const { t } = useTranslation();
   const [rotation, setRotation] = useState(0);
   const target = wheelTargetRotation(spin.pool, spin.winnerId, spin.seed);
 
@@ -425,97 +465,73 @@ function Wheel({
 
   const count = spin.pool.length;
   const segment = 360 / count;
+  const label =
+    landedOn === null
+      ? t("picker.wheelLabel", { count })
+      : t("picker.wheelLabelLanded", { count, name: landedOn });
 
   return (
     <svg
       data-testid="wheel"
-      viewBox="-150 -150 300 300"
-      // Bounded by the SHORTER viewport axis, not just by breakpoint: the
-      // overlay is a fixed, unscrollable column (wheel + winner card), so a
-      // fixed 27rem clipped the winner off a phone in landscape.
-      className="w-[min(27rem,88vw,62dvh)] drop-shadow-2xl"
-      aria-hidden="true"
+      // From 0 0, as sebaro's disc turns about the middle of the view box
+      // counted from its origin; the drawing is moved into the middle.
+      viewBox="0 0 300 300"
+      role="img"
+      aria-label={label}
+      className="sb-wheel"
     >
-      <defs>
-        {/* Depth without touching the segment colours: a light sheen towards
-            the top-left and a soft vignette at the rim, both painted OVER the
-            wedges so every participant colour keeps its identity. */}
-        <radialGradient id="wheel-sheen" cx="35%" cy="28%" r="78%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.38" />
-          <stop offset="45%" stopColor="#ffffff" stopOpacity="0.06" />
-          <stop offset="82%" stopColor="#000000" stopOpacity="0.04" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.22" />
-        </radialGradient>
-        <linearGradient id="wheel-rim" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fdfdfd" />
-          <stop offset="50%" stopColor="#d7dbe2" />
-          <stop offset="100%" stopColor="#a7aeb9" />
-        </linearGradient>
-        <linearGradient id="wheel-hub" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#dfe3e9" />
-        </linearGradient>
-      </defs>
-
-      {/* Bezel — static, so it does not spin with the face. */}
-      <circle r={RIM_OUTER} fill="url(#wheel-rim)" />
-      <circle
-        r={RIM_OUTER - 5}
-        fill="none"
-        stroke="#20242C"
-        strokeOpacity="0.14"
-        strokeWidth="1.5"
-      />
-
       <g
+        className="sb-wheel__disc"
         style={{
-          transform: `rotate(${rotation}deg)`,
+          ["--sb-wheel-turn" as string]: `${rotation}deg`,
           transition:
             rotation !== 0
               ? `transform ${spin.durationMs}ms cubic-bezier(0.12, 0.85, 0.16, 1)`
               : undefined,
         }}
       >
-        <circle r={FACE} fill="#ffffff" />
-        {spin.pool.map((participantId, index) => {
-          const participant = roster.find((p) => p.id === participantId);
-          const color = participant?.color ?? "#9AA1AD";
-          const name = participant?.name ?? "?";
-          const midAngle = index * segment + segment / 2 - 90;
-          // Left-hand segments would render their radial label upside down;
-          // mirroring about the label's outer end fixes the reading direction
-          // without moving the text off its own wedge.
-          //
-          // Computed in the RESTING frame (midAngle + target), not the
-          // unrotated one. The wheel comes to a stop at `target`, which is
-          // never a multiple of 360 — so deciding the flip pre-rotation left
-          // roughly half the names upside down once it stopped, the winner's
-          // own included, which is the one everybody reads for the 2.6s hold.
-          const restAngle = midAngle + target;
-          const flipped = Math.cos((restAngle * Math.PI) / 180) < 0;
-          // Measured in GRAPHEMES, not UTF-16 units: "Christian 🤖".length is
-          // 12 for 11 characters, and code units are the unit that produced
-          // the "C?" bug in the first place.
-          const widthEm = labelWidthEm(nameGraphemes(name));
-          const fontSize = labelSize(widthEm, count);
-          // The chosen size normally fits; when a very long name would still
-          // overrun, textLength condenses it into the span rather than
-          // clipping it. Either way the WHOLE name is on the wheel.
-          const estimated = widthEm * fontSize;
-          return (
-            <g key={participantId}>
-              {count === 1 ? (
-                <circle r={FACE} fill={color} />
-              ) : (
-                <path
-                  d={segmentPath(index, count, FACE)}
-                  fill={color}
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                  strokeLinejoin="round"
-                />
-              )}
-              <g transform={`rotate(${midAngle})`}>
+        <g transform="translate(150 150)">
+          <circle r={FACE} />
+          {count > 1
+            ? spin.pool.map((participantId, index) => {
+                const angle = ((index * segment - 90) * Math.PI) / 180;
+                return (
+                  <line
+                    key={participantId}
+                    x1={0}
+                    y1={0}
+                    x2={FACE * Math.cos(angle)}
+                    y2={FACE * Math.sin(angle)}
+                  />
+                );
+              })
+            : null}
+          {spin.pool.map((participantId, index) => {
+            const participant = roster.find((p) => p.id === participantId);
+            const name = participant?.name ?? "?";
+            const midAngle = index * segment + segment / 2 - 90;
+            // Left-hand segments would render their radial label upside down;
+            // mirroring about the label's outer end fixes the reading direction
+            // without moving the text off its own wedge.
+            //
+            // Computed in the RESTING frame (midAngle + target), not the
+            // unrotated one. The wheel comes to a stop at `target`, which is
+            // never a multiple of 360 — so deciding the flip pre-rotation left
+            // roughly half the names upside down once it stopped, the winner's
+            // own included, which is the one everybody reads for the 2.6s hold.
+            const restAngle = midAngle + target;
+            const flipped = Math.cos((restAngle * Math.PI) / 180) < 0;
+            // Measured in GRAPHEMES, not UTF-16 units: "Christian 🤖".length is
+            // 12 for 11 characters, and code units are the unit that produced
+            // the "C?" bug in the first place.
+            const widthEm = labelWidthEm(nameGraphemes(name));
+            const fontSize = labelSize(widthEm, count);
+            // The chosen size normally fits; when a very long name would still
+            // overrun, textLength condenses it into the span rather than
+            // clipping it. Either way the WHOLE name is on the wheel.
+            const estimated = widthEm * fontSize;
+            return (
+              <g key={participantId} transform={`rotate(${midAngle})`}>
                 <text
                   transform={
                     flipped ? `rotate(180 ${LABEL_OUTER} 0)` : undefined
@@ -524,17 +540,9 @@ function Wheel({
                   y={0}
                   textAnchor={flipped ? "start" : "end"}
                   dominantBaseline="central"
-                  fill="#ffffff"
-                  fontSize={fontSize}
-                  fontWeight="600"
-                  // A painted outline rather than an feDropShadow: up to a
-                  // dozen filter regions re-rasterising every frame of a 4.5s
-                  // transform transition is the one real frame-drop risk here,
-                  // and the outline reads the same against a mid-tone wedge.
-                  paintOrder="stroke"
-                  stroke="#00000055"
-                  strokeWidth="2.5"
-                  strokeLinejoin="round"
+                  // The size is fitted to the name and the wedge; sebaro's
+                  // 11 px is a floor for a few names, not a fit for fifteen.
+                  style={{ fontSize }}
                   {...(estimated > LABEL_SPAN
                     ? {
                         textLength: LABEL_SPAN,
@@ -545,39 +553,11 @@ function Wheel({
                   {name}
                 </text>
               </g>
-            </g>
-          );
-        })}
+            );
+          })}
+        </g>
       </g>
-
-      {/* Sheen sits OUTSIDE the rotating group: the light source is fixed, like
-          the bezel above it. A specular highlight that orbits with the face
-          reads as a rotating lamp rather than a spinning disc. */}
-      <circle r={FACE} fill="url(#wheel-sheen)" pointerEvents="none" />
-
-      {/* Hub, drawn after the face so it caps the wedge tips. */}
-      <circle r="21" fill="#20242C" fillOpacity="0.10" />
-      <circle r="18" fill="url(#wheel-hub)" />
-      <circle
-        r="18"
-        fill="none"
-        stroke="#20242C"
-        strokeOpacity="0.16"
-        strokeWidth="1.5"
-      />
-      <circle r="5" fill="#20242C" fillOpacity="0.22" />
-
-      {/* Pointer at the top, overlapping the bezel so it reads as a physical
-          flapper rather than a floating triangle. */}
-      <g>
-        <path
-          d={`M -13 ${-RIM_OUTER - 9} L 13 ${-RIM_OUTER - 9} L 0 ${-RIM_OUTER + 17} Z`}
-          fill="#20242C"
-          stroke="#ffffff"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-        />
-      </g>
+      <path className="sb-wheel__pointer" d="M 141 4 H 159 L 150 28 Z" />
     </svg>
   );
 }
@@ -601,11 +581,7 @@ function SlotMachine({
   clockOffsetMs: number;
 }) {
   return (
-    <div
-      data-testid="slot-machine"
-      aria-hidden="true"
-      className="flex gap-3 rounded-3xl bg-white p-5 shadow-2xl"
-    >
+    <div data-testid="slot-machine" aria-hidden="true" className="flex gap-3">
       {Array.from({ length: SLOT_REELS }, (_, reelIndex) => (
         <Reel
           key={reelIndex}
@@ -657,7 +633,7 @@ function Reel({
 
   return (
     <div
-      className="relative w-16 overflow-hidden rounded-xl bg-zinc-100"
+      className="relative w-16 overflow-hidden rounded-container border-2 border-text"
       style={{ height: SLOT_CELL_PX * 3 }}
     >
       <div
@@ -671,7 +647,6 @@ function Reel({
       >
         {strip.map((participantId, index) => {
           const participant = roster.find((p) => p.id === participantId);
-          const color = participant?.color ?? "#9AA1AD";
           const name = participant?.name ?? "?";
           return (
             <div
@@ -679,10 +654,7 @@ function Reel({
               className="flex items-center justify-center"
               style={{ height: SLOT_CELL_PX }}
             >
-              <span
-                className="flex size-12 items-center justify-center rounded-full text-lg font-semibold text-white"
-                style={{ backgroundColor: color }}
-              >
+              <span className="sb-avatar sb-avatar--32">
                 {nameMonogram(name)}
               </span>
             </div>
@@ -691,20 +663,9 @@ function Reel({
       </div>
       {/* center window highlight */}
       <div
-        className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 rounded-lg ring-2 ring-accent/70"
+        className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 rounded-control border-2 border-(--sb-color-accent)"
         style={{ height: SLOT_CELL_PX }}
       />
     </div>
   );
-}
-
-function segmentPath(index: number, count: number, radius: number): string {
-  const start = ((index * 360) / count - 90) * (Math.PI / 180);
-  const end = (((index + 1) * 360) / count - 90) * (Math.PI / 180);
-  const largeArc = 360 / count > 180 ? 1 : 0;
-  const x0 = radius * Math.cos(start);
-  const y0 = radius * Math.sin(start);
-  const x1 = radius * Math.cos(end);
-  const y1 = radius * Math.sin(end);
-  return `M 0 0 L ${x0} ${y0} A ${radius} ${radius} 0 ${largeArc} 1 ${x1} ${y1} Z`;
 }

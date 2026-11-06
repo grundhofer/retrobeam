@@ -13,12 +13,15 @@ test("the landing page invites to try and leads to the create form", async ({
   const page = await context.newPage();
   await page.goto("/");
 
-  await expect(page.getByTestId("brand-logo")).toBeVisible();
-  await expect(page.getByRole("link", { name: "RetroBeam" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "RetroBeam", exact: true }),
+  ).toBeVisible();
   await expect(page.getByTestId("landing-hero")).toBeVisible();
   await expect(page.getByTestId("landing-cta")).toHaveCount(1);
+  // The first screen is the h1, one sentence and the action (sebaro BIL-02);
+  // the board preview follows right under it.
   await expect(
-    page.getByTestId("landing-hero").getByTestId("board-preview"),
+    page.getByTestId("landing-intro").getByTestId("board-preview"),
   ).toBeVisible();
   await expect(page.getByTestId("landing-bottom-cta")).toHaveAttribute(
     "href",
@@ -45,7 +48,7 @@ for (const width of [375, 390]) {
 
     await expect(page.getByTestId("landing-cta")).toBeVisible();
     const preview = page
-      .getByTestId("landing-hero")
+      .getByTestId("landing-intro")
       .getByTestId("board-preview");
     await expect(preview).toBeVisible();
     const hasHorizontalOverflow = await page.evaluate(
@@ -135,18 +138,17 @@ test("the non-commercial notice and the legal pages are reachable in both langua
   ).toBeVisible();
   await expect(page.getByTestId("operator-block")).toBeVisible();
 
-  // On a legal page the switch is a link to the other version (sebaro
-  // WEB-10), named in the language it leads to and starting with what it
-  // shows (WCAG 2.5.3).
+  // On a legal page DE / EN are links to the two versions (sebaro WEB-10,
+  // spec/09 §18.2), each in its own language, the current one marked.
   await page.goto("/impressum");
   await expect(
     page.getByRole("heading", { level: 1, name: "Impressum" }),
   ).toBeVisible();
-  const toEnglish = page.getByRole("link", {
-    name: "EN, switch to English",
-    exact: true,
-  });
-  await expect(toEnglish).toHaveText("EN");
+  const language = page.getByRole("group", { name: "Sprache" });
+  await expect(
+    language.getByRole("link", { name: "DE", exact: true }),
+  ).toHaveAttribute("aria-current", "true");
+  const toEnglish = language.getByRole("link", { name: "EN", exact: true });
   await expect(toEnglish).toHaveAttribute("href", "/imprint");
   await expect(toEnglish).toHaveAttribute("lang", "en");
   await expect(toEnglish).toHaveAttribute("hreflang", "en");
@@ -157,56 +159,75 @@ test("the non-commercial notice and the legal pages are reachable in both langua
   ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(
-    page.getByRole("link", { name: "DE, auf Deutsch umschalten", exact: true }),
+    page
+      .getByRole("group", { name: "Language" })
+      .getByRole("link", { name: "DE", exact: true }),
   ).toHaveAttribute("href", "/impressum");
 
   await context.close();
 });
 
-// A page without a language in its path (F18b) keeps the button: it flips the
-// visible text and <html lang>, and stores the choice.
-test("the language button switches and stores the UI language", async ({
+// A page without a language in its path (F18b) offers DE / EN as a choice
+// (sebaro D102 (50)): two radios that switch the visible text and <html lang>
+// without a reload and store the choice as sb-lang.
+test("the language choice switches and stores the UI language", async ({
   browser,
 }) => {
   const context = await newContext(browser, { locale: "de-DE" });
   const page = await context.newPage();
 
-  // The other pages without a language URL have the same button, no link.
+  // The other pages without a language URL have the same choice, no link.
   for (const path of ["/new", "/does-not-exist"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "EN, switch to English", exact: true }),
+      page.getByRole("radio", { name: "EN", exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /switch to English/ }),
+      page.getByRole("link", { name: "EN", exact: true }),
     ).toHaveCount(0);
   }
 
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "de");
-
-  const toEnglish = page.getByRole("button", {
-    name: "EN, switch to English",
-    exact: true,
-  });
-  await expect(toEnglish).toHaveText("EN");
-  await expect(toEnglish).toHaveAttribute("lang", "en");
-  await toEnglish.click();
+  const language = page.getByRole("group", { name: "Sprache" });
+  await expect(language.getByRole("radio", { name: "DE" })).toBeChecked();
+  await language.getByRole("radio", { name: "EN" }).check();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(
     page.getByTestId("legal-footer").getByRole("link", { name: "Privacy" }),
   ).toBeVisible();
-  expect(
-    await page.evaluate(() => localStorage.getItem("retrobeam.lang")),
-  ).toBe("en");
   await expect(
-    page.getByRole("button", {
-      name: "DE, auf Deutsch umschalten",
-      exact: true,
+    page.getByRole("group", { name: "Language" }).getByRole("radio", {
+      name: "EN",
     }),
-  ).toHaveAttribute("lang", "de");
+  ).toBeChecked();
+  expect(await page.evaluate(() => localStorage.getItem("sb-lang"))).toBe("en");
 
+  await context.close();
+});
+
+// The language stored before the move (retrobeam.lang) is taken over once
+// under sebaro's key and the old key removed (F18b, 2026-11-02).
+test("a language stored under the old key is taken over", async ({
+  browser,
+}) => {
+  const context = await newContext(browser, { locale: "de-DE" });
+  await context.addInitScript(() => {
+    if (!sessionStorage.getItem("seeded")) {
+      sessionStorage.setItem("seeded", "1");
+      localStorage.setItem("retrobeam.lang", "en");
+    }
+  });
+  const page = await context.newPage();
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  expect(
+    await page.evaluate(() => [
+      localStorage.getItem("sb-lang"),
+      localStorage.getItem("retrobeam.lang"),
+    ]),
+  ).toEqual(["en", null]);
   await context.close();
 });
 
@@ -219,18 +240,42 @@ for (const view of [
     path: "/privacy",
     lang: "en",
     title: "Privacy notice",
-    footer: ["/privacy", "/imprint", "/accessibility"],
-    other: { name: "DE, auf Deutsch umschalten", href: "/datenschutz" },
-    home: ["/datenschutz", "/impressum", "/barrierefreiheit"],
+    footer: [
+      "/imprint",
+      "/privacy",
+      "/accessibility",
+      "/fonts/sebaro-sans-OFL.txt",
+      "/fonts/sebaro-mono-OFL.txt",
+    ],
+    other: { name: "DE", href: "/datenschutz" },
+    home: [
+      "/impressum",
+      "/datenschutz",
+      "/barrierefreiheit",
+      "/fonts/sebaro-sans-OFL.txt",
+      "/fonts/sebaro-mono-OFL.txt",
+    ],
   },
   {
     stored: "en",
     path: "/datenschutz",
     lang: "de",
     title: "Datenschutzerklärung",
-    footer: ["/datenschutz", "/impressum", "/barrierefreiheit"],
-    other: { name: "EN, switch to English", href: "/privacy" },
-    home: ["/privacy", "/imprint", "/accessibility"],
+    footer: [
+      "/impressum",
+      "/datenschutz",
+      "/barrierefreiheit",
+      "/fonts/sebaro-sans-OFL.txt",
+      "/fonts/sebaro-mono-OFL.txt",
+    ],
+    other: { name: "EN", href: "/privacy" },
+    home: [
+      "/imprint",
+      "/privacy",
+      "/accessibility",
+      "/fonts/sebaro-sans-OFL.txt",
+      "/fonts/sebaro-mono-OFL.txt",
+    ],
   },
 ] as const) {
   test(`${view.path} is in its own language when the stored one is ${view.stored}`, async ({
@@ -238,7 +283,7 @@ for (const view of [
   }) => {
     const context = await newContext(browser);
     await context.addInitScript((stored) => {
-      localStorage.setItem("retrobeam.lang", stored);
+      localStorage.setItem("sb-lang", stored);
     }, view.stored);
     const page = await context.newPage();
     const footerLinks = page
@@ -269,9 +314,9 @@ for (const view of [
         links.map((link) => link.getAttribute("href")),
       ),
     ).toEqual(view.home);
-    expect(
-      await page.evaluate(() => localStorage.getItem("retrobeam.lang")),
-    ).toBe(view.stored);
+    expect(await page.evaluate(() => localStorage.getItem("sb-lang"))).toBe(
+      view.stored,
+    );
 
     await context.close();
   });
@@ -287,7 +332,7 @@ for (const view of [
     path: "/barrierefreiheit",
     lang: "de",
     title: "Barrierefreiheit",
-    other: { name: "EN, switch to English", href: "/accessibility" },
+    other: { name: "EN", href: "/accessibility" },
     sections: [
       "Was RetroBeam ist",
       "So benutzt du RetroBeam",
@@ -302,7 +347,7 @@ for (const view of [
     path: "/accessibility",
     lang: "en",
     title: "Accessibility",
-    other: { name: "DE, auf Deutsch umschalten", href: "/barrierefreiheit" },
+    other: { name: "DE", href: "/barrierefreiheit" },
     sections: [
       "What RetroBeam is",
       "How to use RetroBeam",
@@ -388,6 +433,39 @@ for (const [locale, privacy, imprint, accessibility] of [
 // Both versions of a legal page name each other for search engines, with
 // absolute URLs on the instance host; the landing page has no second version
 // and names none, and leaving a legal page takes its links away again.
+// Paper is light whatever the screen shows (sebaro W8a): tokens.css repeats
+// the light values under @media print, so a legal page printed from a dark
+// system comes out dark text on a light ground.
+test("a legal page prints light from a dark system", async ({ browser }) => {
+  const context = await newContext(browser);
+  const page = await context.newPage();
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/datenschutz");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Datenschutzerklärung" }),
+  ).toBeVisible();
+  const colours = () =>
+    page.evaluate(() => {
+      const style = getComputedStyle(document.body);
+      const heading = getComputedStyle(document.querySelector("h1")!);
+      return { ground: style.backgroundColor, text: heading.color };
+    });
+  const screen = await colours();
+  await page.emulateMedia({ colorScheme: "dark", media: "print" });
+  const paper = await colours();
+  expect(paper).not.toEqual(screen);
+  const lightness = (colour: string) => {
+    const [r, g, b] = colour
+      .match(/\d+(\.\d+)?/g)!
+      .slice(0, 3)
+      .map(Number);
+    return (r! + g! + b!) / 3;
+  };
+  expect(lightness(paper.ground)).toBeGreaterThan(200);
+  expect(lightness(paper.text)).toBeLessThan(80);
+  await context.close();
+});
+
 test("legal pages carry hreflang alternates, the landing page does not", async ({
   browser,
 }) => {
@@ -433,9 +511,7 @@ test("reading the legal pages writes nothing to browser storage", async ({
   const context = await newContext(browser);
   const page = await context.newPage();
   await page.goto("/datenschutz");
-  await page
-    .getByRole("link", { name: "EN, switch to English", exact: true })
-    .click();
+  await page.getByRole("link", { name: "EN", exact: true }).click();
   await expect(page).toHaveURL(/\/privacy$/);
   await page
     .getByTestId("legal-footer")
@@ -450,9 +526,7 @@ test("reading the legal pages writes nothing to browser storage", async ({
     .getByRole("link", { name: "Accessibility" })
     .click();
   await expect(page).toHaveURL(/\/accessibility$/);
-  await page
-    .getByRole("link", { name: "DE, auf Deutsch umschalten", exact: true })
-    .click();
+  await page.getByRole("link", { name: "DE", exact: true }).click();
   await expect(page).toHaveURL(/\/barrierefreiheit$/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Barrierefreiheit" }),
@@ -500,7 +574,7 @@ test("the served HTML carries the link-preview tags and a static fallback", asyn
 }) => {
   const html = await (await request.get("/")).text();
   for (const tag of [
-    /<html lang="de">/,
+    /<html lang="de"[\s>]/,
     /<meta\s+name="description"\s+content="[^"]+"/,
     /<meta property="og:type" content="website"/,
     /<meta property="og:site_name" content="RetroBeam"/,
@@ -510,7 +584,10 @@ test("the served HTML carries the link-preview tags and a static fallback", asyn
     /<meta property="og:locale" content="de_DE"/,
     /<meta property="og:locale:alternate" content="en_US"/,
     /<meta name="twitter:card" content="summary_large_image"/,
-    /<meta name="theme-color" content="#0e7c7b"/,
+    /<link rel="icon" href="\/favicon\.ico" sizes="32x32"/,
+    /<link rel="icon" href="\/icon\.svg" type="image\/svg\+xml"/,
+    /<link rel="apple-touch-icon" href="\/apple-touch-icon\.png"/,
+    /<link rel="manifest" href="\/manifest\.webmanifest"/,
     /data-static-fallback[\s\S]*href="\/new"/,
   ]) {
     expect(html).toMatch(tag);
@@ -518,6 +595,28 @@ test("the served HTML carries the link-preview tags and a static fallback", asyn
   // The same shell answers /board/<id>: a fixed og:url or canonical would turn
   // every invitation into a link to "/".
   expect(html).not.toMatch(/property="og:url"|rel="canonical"/);
+  // No theme-color: the manifest names the ground (plan §2.4 F29).
+  expect(html).not.toMatch(/name="theme-color"/);
+
+  // sebaro's site root, served from the export as real files (stage 6c).
+  for (const [path, type] of [
+    ["/favicon.ico", "image/x-icon"],
+    ["/icon.svg", "image/svg+xml"],
+    ["/apple-touch-icon.png", "image/png"],
+    ["/icon-192.png", "image/png"],
+    ["/icon-512.png", "image/png"],
+    ["/icon-mask.png", "image/png"],
+  ] as const) {
+    const file = await request.get(path);
+    expect(file.status(), path).toBe(200);
+    expect(file.headers()["content-type"], path).toContain(type);
+  }
+  const manifest = await request.get("/manifest.webmanifest");
+  expect(manifest.status()).toBe(200);
+  expect(await manifest.json()).toMatchObject({
+    name: "RetroBeam",
+    display: "standalone",
+  });
 
   const image = await request.get("/og.png");
   expect(image.status()).toBe(200);
@@ -559,7 +658,7 @@ test("the static fallback gives way to the app", async ({ browser }) => {
   await expect(page.getByTestId("landing-hero")).toBeVisible();
   await expect(page.locator("[data-static-fallback]")).toHaveCount(0);
   await expect(page).toHaveTitle(
-    /RetroBeam — (Retros, auf die sich dein Team freut\.|Retros your team will look forward to\.)/,
+    /RetroBeam: (Retros, auf die sich dein Team freut\.|Retros your team will look forward to\.)/,
   );
   await context.close();
 });

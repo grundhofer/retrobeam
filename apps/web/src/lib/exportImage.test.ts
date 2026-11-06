@@ -3,11 +3,14 @@
 
 import { expect, test } from "vitest";
 import type { BoardExport, ExportNote } from "@retrobeam/shared";
+import "../index.css";
 import {
   layoutBoardImage,
   renderBoardImage,
   type ImageLayout,
   type MeasureText,
+  lightPalette,
+  LIGHT_FALLBACK,
 } from "./exportImage.js";
 
 // Every glyph is 8px wide, whatever the font. The whole point of injecting the
@@ -227,4 +230,47 @@ test("the rendered image is not a black rectangle", async () => {
     darkest = Math.min(darkest, all[i] ?? 255);
   }
   expect(darkest).toBeLessThan(120);
+});
+
+// Plan §5.5: the image is a keepsake for a printer or a wiki, so it is light
+// whatever the page is. The colours come from sebaro's light tokens, read at a
+// probe marked data-theme="light", while the page itself is dark.
+test("a dark page still exports a light image, in sebaro's light colours", async () => {
+  const root = document.documentElement;
+  root.setAttribute("data-theme", "dark");
+  try {
+    const pageBg = getComputedStyle(root).getPropertyValue("--sb-color-bg");
+    const palette = lightPalette();
+    // The page really is dark here, and the palette is not.
+    expect(luminance(pageBg)).toBeLessThan(0.2);
+    expect(luminance(palette.page)).toBeGreaterThan(0.8);
+    expect(luminance(palette.ink)).toBeLessThan(0.2);
+
+    const blob = await renderBoardImage(fullBoard, "all", palette);
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (ctx === null) throw new Error("no 2D context to read the image back");
+    ctx.drawImage(bitmap, 0, 0);
+    const [r = 0, g = 0, b = 0] = ctx.getImageData(6, 6, 1, 1).data;
+    expect(Math.min(r, g, b)).toBeGreaterThan(200);
+  } finally {
+    root.removeAttribute("data-theme");
+  }
+});
+
+function luminance(hex: string): number {
+  const value = hex.trim().replace("#", "");
+  const [r, g, b] = [0, 2, 4].map(
+    (at) => parseInt(value.slice(at, at + 2), 16) / 255,
+  );
+  return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
+}
+
+// The fallback is read from the export's tokens.css, so it is the light
+// stylesheet's colours exactly — a copy had drifted once (the link colour).
+test("the light fallback is the stylesheet's light palette", () => {
+  expect(LIGHT_FALLBACK).toEqual(lightPalette());
 });

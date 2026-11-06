@@ -5,17 +5,17 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
 import { BoardPreview } from "../components/BoardPreview.js";
+import { Icon } from "../components/Icon.js";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { SiteHeader } from "../components/SiteHeader.js";
 import { MAIN_ID } from "../components/SkipLink.js";
 
-// The front door uses only the app's own visual vocabulary: zinc surfaces,
-// white cards, rounded controls, the teal accent and system type. The product
-// preview now sits in the hero, while alternating full-width surfaces give the
-// long-form content a clearer rhythm. The create action appears at both ends
-// of the page but always leads to the same form. Nothing is written to
-// localStorage here — the language toggle is the only thing that stores
-// anything, and only on a click.
+// The front door in sebaro (BIL-02, plan stage 4c): the first screen is only
+// the h1, one sentence and the primary action; everything else follows in
+// sections — no eyebrows, no tinted grounds, no dark band. The create action
+// appears at both ends of the page and always leads to the same form.
+// Nothing is written to localStorage here; only the language choice stores
+// anything, and only on a choice.
 const STEPS = ["share", "write", "decide"] as const;
 const WHY = ["private", "nothing", "guided", "languages"] as const;
 const FAQ_GROUPS = [
@@ -34,7 +34,7 @@ const FAQ_GROUPS = [
 ] as const;
 
 // The hero's claims, each one a link to the FAQ answer that carries its
-// caveats: "stored in the EU" is only honest next to the answer that says the
+// caveats: "EU jurisdiction" is only honest next to the answer that says the
 // edge can be outside it, "90 days" next to the one that says a facilitator
 // can keep a board. The chips are the short form; the answer is the promise.
 // No "no account" chip — the kicker and the hint under the button say it.
@@ -57,13 +57,6 @@ function openFaq(id: string): HTMLElement | null {
   return target;
 }
 
-// The app's primary-button class string, one size up.
-const ctaClass =
-  "inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-const labelClass =
-  "text-sm font-semibold tracking-wide text-zinc-600 uppercase";
-const sectionInnerClass = "mx-auto w-full max-w-6xl px-6 sm:px-10";
-
 export function LandingPage() {
   const { t } = useTranslation();
   const { hash } = useLocation();
@@ -73,7 +66,8 @@ export function LandingPage() {
   // index.html carries the German title for crawlers and link previews; once
   // the app runs, the tab follows the UI language.
   useEffect(() => {
-    document.title = `${appName} — ${tagline}`;
+    // A colon, not the em dash (sebaro spec/07; owner, 2026-11-06).
+    document.title = `${appName}: ${tagline}`;
     return () => {
       document.title = appName;
     };
@@ -87,42 +81,43 @@ export function LandingPage() {
   }, [hash]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="landing" className="flex min-h-dvh flex-col">
       <SiteHeader />
       <main id={MAIN_ID} className="flex-1">
-        <section
-          data-testid="landing-hero"
-          className="border-b-[3px] border-zinc-900"
-        >
-          <div
-            className={`${sectionInnerClass} py-12 sm:py-20 lg:grid lg:grid-cols-12 lg:items-center lg:gap-12 lg:py-24`}
-          >
-            <div className="lg:col-span-6">
-              <p className={labelClass}>{t("landing.kicker")}</p>
-              <h1 className="mt-6 text-4xl leading-[1.1] font-semibold tracking-tight text-zinc-900 sm:text-5xl">
-                {t("app.tagline")}
-              </h1>
-              <p className="mt-6 max-w-prose text-lg leading-relaxed text-zinc-600">
-                {t("landing.lede")}
-              </p>
-              <div className="mt-10">
-                <Link to="/new" data-testid="landing-cta" className={ctaClass}>
-                  {t("landing.cta")}
-                </Link>
-              </div>
-              <p className="mt-4 text-sm text-zinc-600">
-                {t("landing.ctaHint")}
-              </p>
-              <ul
-                data-testid="landing-trust"
-                className="mt-6 flex flex-wrap gap-2"
+        <section data-testid="landing-hero" className="sb-container sb-section">
+          <div className="sb-stack sb-stack--group">
+            <h1>{t("app.tagline")}</h1>
+            <p className="sb-page-lead__text">{t("landing.lede")}</p>
+            <p>
+              <Link
+                to="/new"
+                data-testid="landing-cta"
+                className="sb-primary-action"
               >
+                {t("landing.cta")}
+              </Link>
+            </p>
+          </div>
+        </section>
+
+        <section
+          data-testid="landing-intro"
+          className="sb-container sb-section"
+        >
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
+            <div className="sb-prose">
+              <p>{t("landing.description")}</p>
+              <p className="text-text-muted">{t("landing.ctaHint")}</p>
+              {/* Each one short, a link to the FAQ answer that carries its
+                  caveats: "EU jurisdiction" is only honest next to the
+                  answer that says the edge can be outside it, "90 days" next
+                  to the one that says a facilitator can keep a board. */}
+              <ul data-testid="landing-trust">
                 {TRUST_CHIPS.map(({ key, faq }) => (
                   <li key={key}>
                     <a
                       href={`#${faqId(faq)}`}
                       onClick={() => openFaq(faqId(faq))}
-                      className="inline-flex rounded-2xl border border-zinc-300 bg-white px-3 py-1 text-sm text-zinc-700 transition-colors duration-150 hover:border-accent hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       {t(`landing.trustChips.${key}`)}
                     </a>
@@ -130,152 +125,91 @@ export function LandingPage() {
                 ))}
               </ul>
             </div>
-            <div className="mt-12 lg:col-span-6 lg:mt-0">
-              <div className="rounded-2xl bg-accent/[0.06] p-3 sm:p-5">
-                <p
-                  className="mb-3 text-sm font-medium text-zinc-600"
-                  aria-hidden="true"
-                >
-                  {t("landing.preview.label")}
-                </p>
-                <BoardPreview />
-              </div>
-            </div>
+            <BoardPreview />
           </div>
         </section>
 
-        <section
-          data-testid="landing-how"
-          className="border-b border-zinc-200 bg-white"
-        >
-          <div className={`${sectionInnerClass} py-12 sm:py-20`}>
-            <h2 className={labelClass}>{t("landing.howTitle")}</h2>
-            <p className="mt-4 max-w-prose text-lg leading-relaxed text-zinc-700">
-              {t("landing.howRoles")}
-            </p>
-            <ol className="mt-8 grid gap-4 md:grid-cols-3">
-              {STEPS.map((step, index) => (
-                <li
-                  key={step}
-                  className="rounded-xl border border-zinc-200 bg-zinc-50 p-5"
-                >
-                  <span className="flex size-8 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent-strong tabular-nums">
-                    {index + 1}
-                  </span>
-                  <h3 className="mt-5 font-semibold text-zinc-900">
-                    {t(`landing.steps.${step}.title`)}
-                  </h3>
-                  <p className="mt-2 leading-relaxed text-zinc-700">
-                    {t(`landing.steps.${step}.text`)}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </div>
+        <section data-testid="landing-how" className="sb-container sb-section">
+          <h2 className="sb-section__title">{t("landing.howTitle")}</h2>
+          <p className="sb-page-lead__text">{t("landing.howRoles")}</p>
+          <ol className="mt-8 grid gap-8 sm:grid-cols-3">
+            {STEPS.map((step) => (
+              <li key={step} className="sb-stack">
+                <h3>{t(`landing.steps.${step}.title`)}</h3>
+                <p>{t(`landing.steps.${step}.text`)}</p>
+              </li>
+            ))}
+          </ol>
         </section>
 
-        <section
-          data-testid="landing-why"
-          className="border-b border-zinc-200 bg-accent/[0.045]"
-        >
-          <div
-            className={`${sectionInnerClass} py-12 sm:py-20 lg:grid lg:grid-cols-12 lg:gap-12`}
-          >
-            <div className="lg:col-span-4">
-              <h2 className={labelClass}>{t("landing.whyTitle")}</h2>
-            </div>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:col-span-8 lg:mt-0">
-              {WHY.map((key) => (
-                <li
-                  key={key}
-                  className="rounded-xl border border-zinc-200 bg-white p-5"
-                >
-                  <h3 className="font-semibold text-zinc-900">
-                    {t(`landing.why.${key}.title`)}
-                  </h3>
-                  <p className="mt-2 leading-relaxed text-zinc-700">
-                    {t(`landing.why.${key}.text`)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <section data-testid="landing-why" className="sb-container sb-section">
+          <h2 className="sb-section__title">{t("landing.whyTitle")}</h2>
+          <ul className="grid gap-8 sm:grid-cols-2">
+            {WHY.map((key) => (
+              <li key={key} className="sb-stack">
+                <h3>{t(`landing.why.${key}.title`)}</h3>
+                <p>{t(`landing.why.${key}.text`)}</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        <section
-          data-testid="landing-faq"
-          className="border-b border-zinc-200 bg-white"
-        >
-          <div
-            className={`${sectionInnerClass} py-12 sm:py-20 lg:grid lg:grid-cols-12 lg:gap-12`}
-          >
-            <div className="lg:col-span-4">
-              <h2 className={labelClass}>{t("landing.faqTitle")}</h2>
-            </div>
-            <div className="mt-8 space-y-8 lg:col-span-8 lg:mt-0">
-              {FAQ_GROUPS.map((group) => (
-                <div key={group.key} data-testid="landing-faq-group">
-                  <h3 className="text-base font-semibold text-zinc-900">
-                    {t(`landing.faqGroups.${group.key}`)}
-                  </h3>
-                  <div className="mt-3 divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-zinc-50 px-5">
-                    {group.questions.map((key) => (
-                      <details
-                        key={key}
-                        id={faqId(key)}
-                        className="group scroll-mt-6"
-                      >
-                        <summary className="flex cursor-pointer list-none items-baseline justify-between gap-4 py-4 font-medium text-zinc-900 focus-visible:outline-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
-                          <span>{t(`landing.faq.${key}.q`)}</span>
-                          <span
-                            aria-hidden="true"
-                            className="shrink-0 text-zinc-500 transition-transform group-open:rotate-45 motion-reduce:transition-none"
-                          >
-                            +
-                          </span>
-                        </summary>
-                        <p className="max-w-prose pb-5 text-[17px] leading-[1.65] text-zinc-700">
-                          {t(`landing.faq.${key}.a`)}
-                        </p>
-                      </details>
-                    ))}
-                  </div>
+        <section data-testid="landing-faq" className="sb-container sb-section">
+          <h2 className="sb-section__title">{t("landing.faqTitle")}</h2>
+          <div className="sb-stack sb-stack--group">
+            {FAQ_GROUPS.map((group) => (
+              <div
+                key={group.key}
+                data-testid="landing-faq-group"
+                className="sb-stack"
+              >
+                <h3>{t(`landing.faqGroups.${group.key}`)}</h3>
+                <div className="sb-faq">
+                  {group.questions.map((key) => (
+                    <details key={key} id={faqId(key)} className="sb-faq__item">
+                      <summary className="sb-faq__question">
+                        <span>{t(`landing.faq.${key}.q`)}</span>
+                        <Icon
+                          name="chevron-down"
+                          size={20}
+                          className="sb-faq__chevron"
+                        />
+                      </summary>
+                      <div className="sb-faq__answer">
+                        <p>{t(`landing.faq.${key}.a`)}</p>
+                      </div>
+                    </details>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </section>
 
         {/* The last word before the decision is an invitation, not a caveat.
             The private-project line stays visible right under it: docs/06
             relies on the landing saying "not a commercial service". */}
-        <section data-testid="landing-closing" className="bg-zinc-50">
-          <div className={`${sectionInnerClass} py-12 sm:py-20`}>
-            <div className="rounded-2xl bg-zinc-900 px-6 py-8 sm:flex sm:items-center sm:justify-between sm:gap-10 sm:px-8">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  {t("landing.closingTitle")}
-                </h2>
-                {/* contrast-ok: light text on the dark zinc-900 panel */}
-                <p className="mt-3 max-w-2xl text-[17px] leading-[1.65] text-zinc-300">
-                  {t("landing.closingText")}
-                </p>
-              </div>
-              <Link
-                to="/new"
-                data-testid="landing-bottom-cta"
-                className={`${ctaClass} mt-8 w-full shrink-0 sm:mt-0 sm:w-auto`}
-              >
-                {t("landing.cta")}
-              </Link>
-            </div>
-            <p
-              data-testid="landing-notice"
-              className="mt-6 max-w-prose text-sm leading-relaxed text-zinc-600"
+        <section
+          data-testid="landing-closing"
+          className="sb-container sb-section"
+        >
+          <h2 className="sb-section__title">{t("landing.closingTitle")}</h2>
+          <p className="sb-page-lead__text">{t("landing.closingText")}</p>
+          <p className="mt-8">
+            <Link
+              to="/new"
+              data-testid="landing-bottom-cta"
+              className="sb-primary-action"
             >
-              {t("landing.notice")}
-            </p>
-          </div>
+              {t("landing.cta")}
+            </Link>
+          </p>
+          <p
+            data-testid="landing-notice"
+            className="mt-8 max-w-prose text-text-muted"
+          >
+            {t("landing.notice")}
+          </p>
         </section>
       </main>
       <LegalFooter />

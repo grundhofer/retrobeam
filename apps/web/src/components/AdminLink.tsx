@@ -4,6 +4,7 @@
 import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { adminLinkUrl } from "../lib/adminLink.js";
+import { Icon } from "./Icon.js";
 
 // The facilitator's private link, offered only where the token already is (the
 // callers check). It sits beside the team link in the lobby — the screen most
@@ -12,12 +13,9 @@ import { adminLinkUrl } from "../lib/adminLink.js";
 export function AdminLink({
   boardId,
   adminToken,
-  compact = false,
 }: {
   boardId: string;
   adminToken: string;
-  // The board menu is too narrow for field and buttons on one line.
-  compact?: boolean;
 }) {
   const { t } = useTranslation();
   // The lobby and the open board menu can both show it at once.
@@ -41,66 +39,63 @@ export function AdminLink({
     }
   }
 
+  // sebaro's callout (the amber card before): the label with its „Privat“
+  // tag, the sentence, then the masked field and its two keys (§6.1 a).
   return (
-    <div
-      data-testid="admin-link"
-      className="rounded-lg border border-amber-200 bg-amber-50 p-3"
-    >
-      <div className="mb-1 flex items-center gap-2">
-        <label
-          htmlFor={inputId}
-          className="text-sm font-semibold tracking-wide text-amber-900 uppercase"
-        >
-          {t("adminLink.label")}
-        </label>
-        <span className="rounded-full border border-amber-300 px-2 py-0.5 text-xs font-medium text-amber-900">
-          {t("adminLink.private")}
-        </span>
-      </div>
-      <p className="mb-2 text-xs text-amber-900">{t("adminLink.hint")}</p>
-      {/* The field takes a line of its own wherever the buttons would squeeze
-          it: always in the menu, and below `sm` in the lobby, where the two
-          buttons left a phone's field with little more than
-          "https://" — not enough to see which link it is. */}
-      <div
-        className={`flex flex-wrap gap-2 ${compact ? "" : "sm:flex-nowrap"}`}
-      >
-        <input
-          ref={inputRef}
-          id={inputId}
-          data-testid="admin-link-input"
-          readOnly
-          value={revealed ? url : masked}
-          onFocus={(event) => {
-            if (revealed) event.currentTarget.select();
-          }}
-          className={`w-full min-w-0 basis-full rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-sm text-zinc-600 ${compact ? "" : "sm:basis-auto"}`}
-        />
-        <button
-          type="button"
-          data-testid="admin-link-reveal"
-          aria-pressed={revealed}
-          onClick={() => setRevealed(!revealed)}
-          className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-accent ${
-            revealed
-              ? "border-amber-300 bg-amber-100"
-              : "border-amber-200 bg-white"
-          }`}
-        >
-          {/* A fixed label, as FocusToggle's: the button carries aria-pressed,
-              so swapping it to "Hide" once pressed would be announced as
-              "Hide, pressed" — hiding switched on, while the link is shown.
-              State lives in aria-pressed, the fill and the field itself. */}
-          {t("adminLink.show")}
-        </button>
-        <button
-          type="button"
-          data-testid="admin-link-copy"
-          onClick={() => void copy()}
-          className="shrink-0 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          {copied ? t("board.copied") : t("board.copy")}
-        </button>
+    <div data-testid="admin-link" className="sb-callout sb-callout--warning">
+      <Icon name="lock" size={20} />
+      <div className="sb-callout__text sb-stack">
+        <p className="flex flex-wrap items-center gap-2">
+          <label
+            htmlFor={inputId}
+            className="[font-weight:var(--sb-type-body-strong-weight)]"
+          >
+            {t("adminLink.label")}
+          </label>
+          <span className="sb-tag">{t("adminLink.private")}</span>
+        </p>
+        <p>{t("adminLink.hint")}</p>
+        <div className="sb-field__control">
+          <input
+            ref={inputRef}
+            id={inputId}
+            data-testid="admin-link-input"
+            readOnly
+            value={revealed ? url : masked}
+            onFocus={(event) => {
+              if (revealed) event.currentTarget.select();
+            }}
+          />
+        </div>
+        <div className="sb-cluster">
+          <button
+            type="button"
+            data-testid="admin-link-reveal"
+            aria-pressed={revealed}
+            onClick={() => setRevealed(!revealed)}
+            className="sb-secondary-action"
+          >
+            {/* A fixed label, as FocusToggle's: the button carries
+                aria-pressed, so swapping it to "Hide" once pressed would be
+                announced as "Hide, pressed" — hiding switched on, while the
+                link is shown. State lives in aria-pressed, the icon and the
+                field itself. */}
+            <Icon name={revealed ? "eye-off" : "eye"} size={20} />
+            {t("adminLink.show")}
+          </button>
+          <button
+            type="button"
+            data-testid="admin-link-copy"
+            onClick={() => void copy()}
+            className="sb-secondary-action"
+          >
+            <Icon name="copy" size={20} />
+            {copied ? t("board.copied") : t("board.copy")}
+          </button>
+        </div>
+        <p role="status" className="sb-visually-hidden">
+          {copied ? t("board.copied") : ""}
+        </p>
       </div>
     </div>
   );

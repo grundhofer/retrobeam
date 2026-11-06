@@ -90,8 +90,9 @@ export function revealedAuthors(picker: PickerState): ReadonlySet<string> {
 
 // The rotation can put nobody new on stage: nobody waiting, nobody holding the
 // mic. Deliberately NOT pickerFinished, which additionally requires that
-// somebody actually presented because it drives the confetti. For visibility
-// the celebration is irrelevant: if nothing can still be staged there is
+// somebody actually presented because it drives „Alle haben präsentiert“
+// (the confetti it once drove is gone, plan F7). For visibility that line is
+// irrelevant: if nothing can still be staged there is
 // nothing left to withhold, and a room whose facilitator excluded everyone
 // would otherwise never see a single card.
 export function rotationExhausted(picker: PickerState): boolean {

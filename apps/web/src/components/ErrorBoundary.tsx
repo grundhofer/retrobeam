@@ -4,6 +4,7 @@
 import { isRouteErrorResponse, useRouteError } from "react-router";
 import { useTranslation } from "react-i18next";
 import { NotFoundPage } from "../pages/NotFoundPage.js";
+import { Icon } from "./Icon.js";
 import { LegalFooter } from "./LegalFooter.js";
 import { MAIN_ID } from "./SkipLink.js";
 
@@ -29,27 +30,43 @@ export function ErrorBoundary() {
       ? error.message
       : String(error ?? "unknown");
 
+  // The failure as sebaro's error callout (spec/02 §3.11): the sentence, the
+  // reason as the system wrote it under „Details“ (§3.28), closed at first,
+  // and reloading as its action.
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
+    <div data-sb-view="error" className="flex min-h-dvh flex-col">
       <main
         id={MAIN_ID}
-        className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center"
+        className="sb-container sb-section flex-1"
         data-testid="error-boundary"
       >
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {t("error.title")}
-        </h1>
-        <p className="max-w-prose text-zinc-500">{t("error.body")}</p>
-        <button
-          type="button"
-          onClick={() => location.reload()}
-          className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        <div
+          className="sb-callout sb-callout--error"
+          role="note"
+          aria-labelledby="error-title"
         >
-          {t("error.reload")}
-        </button>
-        <p className="max-w-prose font-mono text-xs break-all text-zinc-600">
-          {detail}
-        </p>
+          <Icon name="error--filled" size={20} />
+          <h1 className="sb-callout__title" id="error-title">
+            {t("error.title")}
+          </h1>
+          <p className="sb-callout__text">{t("error.body")}</p>
+          <details className="sb-details">
+            <summary>
+              <Icon name="chevron-down" size={16} />
+              {t("error.details")}
+            </summary>
+            <samp className="sb-details__text">{detail}</samp>
+          </details>
+          <div className="sb-callout__actions">
+            <button
+              type="button"
+              onClick={() => location.reload()}
+              className="sb-secondary-action sb-secondary-action--compact"
+            >
+              {t("error.reload")}
+            </button>
+          </div>
+        </div>
       </main>
       <LegalFooter />
     </div>

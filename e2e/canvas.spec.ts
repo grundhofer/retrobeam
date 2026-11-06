@@ -68,26 +68,22 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
     occupiedBox!.y + occupiedBox!.height > benCardBox!.y;
   expect(overlaps).toBe(false);
 
-  // Ben's invite panel and its full-screen code sit above the canvas's own
-  // controls. The zoom control (z-40, later in the page) was drawn over both —
-  // over the share link, and over the code on the projector, still clickable.
+  // Ben's invite dialog sits above the canvas's own controls: it is a modal
+  // in the top layer, where the zoom control (z-40, later in the page) was
+  // once drawn over the share link and the code, still clickable.
   await ben.getByTestId("invite-button").click();
   const panel = ben.getByTestId("invite-panel");
   await expect(panel.getByTestId("qr-code")).toBeVisible();
   expect(await topmostOverControl(ben, "invite-panel")).not.toBe("beneath");
-  await panel.getByTestId("qr-enlarge").click();
-  await expect(ben.getByTestId("qr-fullscreen")).toBeVisible();
-  expect(await topmostOverControl(ben, "qr-fullscreen")).toBe("above");
   await ben.keyboard.press("Escape");
-  await expect(ben.getByTestId("qr-fullscreen")).toHaveCount(0);
-  await ben.keyboard.press("Escape");
-  await expect(panel).toHaveCount(0);
+  await expect(panel).toBeHidden();
 
-  // Flip live to columns via the board menu → the column composer returns and
-  // the note is still there (positions are ignored, not lost).
-  await page.getByTestId("board-menu").click();
+  // Flip live to columns in the settings view → back on the board the column
+  // composer returns and the note is still there (positions are ignored, not
+  // lost). The view is a child route: the socket stays, nobody goes offline.
+  await page.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
   await page.getByTestId("layout-columns").click();
-  await page.keyboard.press("Escape"); // close the menu
+  await page.getByRole("link", { name: /^board$/i }).click();
   await expect(page.getByTestId(/^composer-/).first()).toBeVisible();
   await expect(page.getByText("Freeform idea")).toBeVisible();
 
@@ -113,7 +109,11 @@ test("canvas layout: a card moves by keyboard alone", async ({ browser }) => {
 
   const zones = page.getByTestId(/^zone-/);
   await expect(zones.nth(1)).toBeVisible();
-  await page.getByTestId("canvas-add-note").first().focus();
+  // „Note“ opens its menu of zones; Enter takes the first, the focus is in
+  // the menu from the start.
+  await page.getByTestId("canvas-add-note").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem").first()).toBeFocused();
   await page.keyboard.press("Enter");
   await page.getByTestId("canvas-composer").fill("Keyboard card");
   await page.keyboard.press("Enter");
@@ -232,6 +232,92 @@ test("canvas layout: the facilitator moves and sizes a zone by keyboard alone", 
   await expect.poll(box).toEqual(arranged);
 
   await context.close();
+});
+
+// On a phone a canvas board is the board's swiping columns (owner,
+// 2026-11-05): at the zoom that fits a phone the cards' keys could not keep
+// their size. A card written there takes its place on the canvas once the
+// window is wide again.
+test("canvas layout: a phone shows the zones as columns", async ({
+  browser,
+}) => {
+  const context = await newContext(browser, { reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/new");
+  await page.getByRole("textbox").fill("Canvas phone retro");
+  await page.getByTestId("home-layout-canvas").click();
+  await page
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(page, "Anna");
+  await page.getByTestId("phase-next").click();
+
+  await expect(page.locator(".sb-board")).toBeVisible();
+  await expect(page.getByTestId("canvas-viewport")).toHaveCount(0);
+  const composer = page.locator('[data-testid^="composer-"]').first();
+  await composer.fill("Written on a phone");
+  await composer.press("Enter");
+  await expect(page.getByTestId("note-card")).toContainText(
+    "Written on a phone",
+  );
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.getByTestId("canvas-viewport")).toBeVisible();
+  await expect(
+    page.getByTestId("canvas-card").filter({ hasText: "Written on a phone" }),
+  ).toBeVisible();
+  await context.close();
+});
+
+// sebaro's pointers (RB-5, F6): another person's pointer is an ink arrow with
+// their name, hidden from screen readers, and the action zone says how many
+// are on the canvas.
+test("canvas layout: the others' pointers, and the sentence that counts them", async ({
+  browser,
+}) => {
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
+  const anna = await annaContext.newPage();
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Canvas pointer retro");
+  await anna.getByTestId("home-layout-canvas").click();
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  const boardUrl = anna.url();
+  await join(anna, "Anna");
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(boardUrl);
+  await join(ben, "Ben");
+
+  await anna.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await anna.getByTestId("cursors-toggle").click();
+  await expect(anna.getByTestId("cursors-toggle")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await anna.getByRole("link", { name: /^board$/i }).click();
+  await anna.getByTestId("phase-next").click();
+
+  const viewport = ben.getByTestId("canvas-viewport");
+  await expect(viewport).toBeVisible();
+  const box = (await viewport.boundingBox())!;
+  await ben.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4);
+  await ben.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5, {
+    steps: 5,
+  });
+
+  const pointer = anna.getByTestId("live-cursor");
+  await expect(pointer).toHaveText("Ben");
+  await expect(pointer).toHaveAttribute("aria-hidden", "true");
+  await expect(anna.getByTestId("pointer-count")).toHaveText(
+    /^1\s(person is on the canvas|Person ist auf der Fläche)\.$/,
+  );
+  await annaContext.close();
+  await benContext.close();
 });
 
 async function join(page: Page, name: string): Promise<void> {

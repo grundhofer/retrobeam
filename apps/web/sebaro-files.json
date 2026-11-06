@@ -1,0 +1,18 @@
+{
+  "sebaro/js/theme-init.js": "js/theme-init.js",
+  "sebaro/js/sb-start.js": "js/sb-start.js",
+  "sebaro/js/sb-fit.js": "js/sb-fit.js",
+  "sebaro/js/sb-board.js": "js/sb-board.js",
+  "sebaro/js/sb-sheet.js": "js/sb-sheet.js",
+  "sebaro/js/theme-button.js": "js/theme-button.js",
+  "sebaro/js/sb-tone.js": "js/sb-tone.js",
+  "fonts/sebaro-sans-OFL.txt": "fonts/web/sebaro-sans-OFL.txt",
+  "fonts/sebaro-mono-OFL.txt": "fonts/web/sebaro-mono-OFL.txt",
+  "favicon.ico": "brand/site-root/favicon.ico",
+  "icon.svg": "brand/site-root/icon.svg",
+  "apple-touch-icon.png": "brand/site-root/apple-touch-icon.png",
+  "icon-192.png": "brand/site-root/icon-192.png",
+  "icon-512.png": "brand/site-root/icon-512.png",
+  "icon-mask.png": "brand/site-root/icon-mask.png",
+  "manifest.webmanifest": "brand/site-root/manifest.webmanifest"
+}

@@ -15,6 +15,8 @@ import type {
 import "../i18n.js";
 import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
+// The board's classic script, as index.html loads it; it sets window.sbBoard.
+import "../sebaro/js/sb-board.js";
 import { BoardColumns } from "./BoardColumns.js";
 
 // Four fixed-width columns needed 1200px; the discussion phase left the board
@@ -124,23 +126,28 @@ test("discussion without a voting result lets the facilitator focus a card", asy
   expect(sent).toEqual([{ type: "admin.discuss.focus", targetId: target.id }]);
 });
 
-test("every column stays inside the board at a starved width", async () => {
+// The board at 576px (the discussion phase at 1280) is below sebaro's 640px:
+// the columns are swiped, and sb-board.js shows where you are and steps
+// between them — none of them is clipped out of reach without a word, which
+// is what the old horizontal overflow did.
+test("at a starved width the board swipes and says which column is in place", async () => {
   await page.viewport(1280, 720);
   const screen = await render(view());
+  const board = screen.getByTestId("column-strip").element();
+  expect(screen.getByTestId("board-column").elements()).toHaveLength(4);
 
-  const strip = screen.getByTestId("column-strip").element();
-  const board = strip.getBoundingClientRect();
-  const cards = screen.getByTestId("board-column").elements();
-  expect(cards).toHaveLength(4);
+  const position = board.querySelector(".sb-board__position");
+  await expect
+    .poll(() => position?.textContent ?? "")
+    .toMatch(/(Column|Spalte) 1 (of|von) 4/);
+  const nav = board.querySelector(".sb-board__nav") as HTMLElement;
+  expect(getComputedStyle(nav).display).not.toBe("none");
 
-  for (const card of cards) {
-    const box = card.getBoundingClientRect();
-    // Sub-pixel tolerance: fractional track widths round the last edge.
-    expect(box.right).toBeLessThanOrEqual(board.right + 1);
-    expect(box.width).toBeGreaterThan(0);
-  }
-  // Nothing is parked in horizontal overflow any more — the columns wrap.
-  expect(strip.scrollWidth).toBeLessThanOrEqual(strip.clientWidth + 1);
+  const next = nav.querySelector('[data-sb-board-step="1"]') as HTMLElement;
+  next.click();
+  await expect
+    .poll(() => position?.textContent ?? "")
+    .toMatch(/(Column|Spalte) 2 (of|von) 4/);
 });
 
 // The reported annoyance: every card that landed in a column — your own, and a
@@ -263,6 +270,20 @@ test("the composer offers a GIF only once the note has text", async () => {
   await expect
     .element(screen.getByTestId(`composer-gif-${columnId}`))
     .not.toBeInTheDocument();
+});
+
+// The field takes its column's width: sebaro's compact field puts a label
+// column before it, which with a hidden label left the composer a narrow strip
+// at the column's end.
+test("the composer fills its column", async () => {
+  const screen = await render(view({ phase: "write" }));
+  const field = screen
+    .getByTestId(`composer-${columns[0]!.id}`)
+    .element() as HTMLElement;
+  const column = field.closest(".sb-board__column") as HTMLElement;
+  const fieldBox = field.getBoundingClientRect();
+  const columnBox = column.getBoundingClientRect();
+  expect(fieldBox.width).toBeGreaterThan(columnBox.width * 0.8);
 });
 
 // WCAG 2.1.1: moving and stacking were drag-only. The card's ⋯ is their
@@ -420,4 +441,24 @@ test("focus follows the card after a keyboard move or stack", async () => {
     .element(screen.getByTestId("board-column").nth(1).getByTestId("note-card"))
     .toBeVisible();
   await expect.poll(() => document.activeElement).toBe(toggleOf("1"));
+});
+
+// sebaro's board card is a grid: the title, „Mehr“ in an auto column beside
+// it, the meta line under both. A meta line left in that auto column (with
+// the „Noch nicht vorgestellt“ tag in it) squeezed the title to nothing.
+test("a card's title keeps the card's width, with a tag in its meta line", async () => {
+  const card = note("e".repeat(32), columns[0]!.id, 1);
+  const screen = await render(
+    view({
+      phase: "present",
+      notes: [card],
+      unpresentedAuthorIds: new Set([card.authorId!]),
+    }),
+  );
+  await expect.element(screen.getByTestId("note-pending")).toBeInTheDocument();
+  const article = screen.getByTestId("note-card").element() as HTMLElement;
+  const title = article.querySelector(".sb-card__title") as HTMLElement;
+  expect(title.getBoundingClientRect().width).toBeGreaterThan(
+    article.getBoundingClientRect().width * 0.6,
+  );
 });

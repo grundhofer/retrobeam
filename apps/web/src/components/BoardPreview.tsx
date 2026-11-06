@@ -2,14 +2,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useTranslation } from "react-i18next";
-import { PARTICIPANT_COLORS, templateColumnNames } from "@retrobeam/shared";
+import { templateColumnNames } from "@retrobeam/shared";
+import { Icon } from "./Icon.js";
 
 // A still of a board in the write phase, built from the board's own class
 // strings (PhaseStepper pill, BoardColumns header, NoteCard and the dashed
 // "cards from the team" placeholder) rather than from a screenshot: it never
-// goes stale against the app and costs no bytes. It is the one colourful
-// element of the landing page — the participant dots — exactly as product
-// spec §12 wants it. Static on purpose: no store, no socket, no interaction.
+// goes stale against the app and costs no bytes. It stands in sebaro's
+// screenshot frame (sb-shot); participants carry no colour of their own, only
+// their name (plan §2.4 F6). The cards inside follow the board's own move in
+// stage 5g. Static on purpose: no store, no socket, no interaction.
 //
 // The placeholder is what makes "private means private" visible: Mira sees
 // her own card and only a COUNT of everyone else's, because the server has
@@ -23,50 +25,33 @@ const PHASES = [
   "close",
 ] as const;
 const HIDDEN_COUNTS = [3, 2, 4] as const;
-const [orange] = PARTICIPANT_COLORS;
 
-const cardClass = "rounded-xl border border-zinc-200 bg-white p-3 shadow-sm";
-
-// BoardColumns' team-cards block. Its hint text is one step darker here
-// (zinc-500, not zinc-400): on the landing page it is a sentence to read, not
-// an ambient count.
+// The board's own card patterns (plan stage 4c, with the 5g cards): the
+// team's cards as sebaro's hidden card — glyph and word — and a card as
+// sebaro's item card with its title and meta line.
 function HiddenNotes({ count }: { count: number }) {
   const { t } = useTranslation();
   return (
-    <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 px-3 py-2">
-      <div className="space-y-1.5">
-        <div className="h-2 w-4/5 rounded bg-zinc-200/70" />
-        <div className="h-2 w-3/5 rounded bg-zinc-200/70" />
-      </div>
-      <p className="mt-2 text-xs text-zinc-500">
+    <div className="sb-card sb-card--item sb-card--hidden">
+      <p className="sb-card__title">
+        <Icon name="eye-off" size={20} />
         {t("landing.preview.hiddenNotes", { count })}
       </p>
     </div>
   );
 }
 
-function Card({
-  text,
-  author,
-  color,
-}: {
-  text: string;
-  author: string;
-  color: string;
-}) {
+function Card({ text, author }: { text: string; author: string }) {
   return (
-    <div className={cardClass}>
-      <p className="text-sm text-zinc-800">{text}</p>
-      <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
-        <span
-          className="size-2 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-        {author}
-      </div>
+    <div className="sb-card sb-card--item">
+      <p className="sb-card__title">{text}</p>
+      <p className="sb-card__meta">{author}</p>
     </div>
   );
 }
+
+const LABEL =
+  "[font:var(--sb-type-label)] [letter-spacing:var(--sb-type-label-tracking)]";
 
 export function BoardPreview() {
   const { t, i18n } = useTranslation();
@@ -76,11 +61,18 @@ export function BoardPreview() {
     <figure
       data-testid="board-preview"
       aria-label={t("landing.preview.label")}
-      className="overflow-hidden rounded-xl border border-zinc-200 bg-white"
+      className="sb-shot"
     >
-      <div aria-hidden="true">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-zinc-200 px-4 py-3">
-          <span className="text-sm font-semibold text-zinc-800">
+      <div
+        aria-hidden="true"
+        className="sb-shot__frame"
+        // sebaro frames a phone screenshot (390 / 844); this still is a wide
+        // board drawn as markup, as tall as its content. Inline, because
+        // sebaro.css is unlayered and outranks a Tailwind utility.
+        style={{ aspectRatio: "auto" }}
+      >
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-4 py-3">
+          <span className={`${LABEL} font-semibold text-text`}>
             {t("landing.preview.boardName")}
           </span>
           {/* Wraps on narrow frames, where the app's own stepper would run
@@ -89,16 +81,17 @@ export function BoardPreview() {
               first step of EACH line — not just the first overall — starts
               without a stray "·". */}
           <div className="overflow-hidden">
-            <ol className="-ml-3 flex flex-wrap items-center gap-y-1.5">
+            <ol className="-ml-3 flex flex-wrap items-center gap-y-1">
               {PHASES.map((step) => (
                 <li key={step} className="flex items-center">
-                  {/* contrast-ok: decorative separator */}
-                  <span className="w-3 text-center text-zinc-300">·</span>
+                  <span className="w-3 text-center text-text-muted">·</span>
                   <span
+                    // The current step as the board's own step line marks it:
+                    // ink and weight, not a filled pill.
                     className={
                       step === "write"
-                        ? "mx-0.5 rounded-full bg-accent px-2.5 py-0.5 text-sm font-medium text-white"
-                        : "px-1 text-sm text-zinc-500"
+                        ? `${LABEL} px-1 font-semibold text-text underline decoration-2 underline-offset-4`
+                        : `${LABEL} px-1 text-text-muted`
                     }
                   >
                     {t(`phase.${step}`)}
@@ -108,42 +101,40 @@ export function BoardPreview() {
             </ol>
           </div>
         </div>
-        <div className="grid gap-3 bg-zinc-50 p-4 sm:grid-cols-3">
+        <div className="grid gap-3 bg-surface-sunken p-4 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
-            <h3 className="truncate text-sm font-semibold tracking-wide text-zinc-600 uppercase">
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[0]}
             </h3>
             <Card
               text={t("landing.preview.note1")}
               author={t("landing.preview.author1")}
-              color={orange}
             />
             <HiddenNotes count={HIDDEN_COUNTS[0]} />
           </div>
           <div className="flex flex-col gap-2">
-            <h3 className="truncate text-sm font-semibold tracking-wide text-zinc-600 uppercase">
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[1]}
             </h3>
             <Card
               text={t("landing.preview.note2")}
               author={t("landing.preview.author2")}
-              color={orange}
             />
             <HiddenNotes count={HIDDEN_COUNTS[1]} />
           </div>
           <div className="flex flex-col gap-2">
-            <h3 className="truncate text-sm font-semibold tracking-wide text-zinc-600 uppercase">
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[2]}
             </h3>
             <Card
               text={t("landing.preview.note3")}
               author={t("landing.preview.author3")}
-              color={orange}
             />
             <HiddenNotes count={HIDDEN_COUNTS[2]} />
           </div>
         </div>
       </div>
+      <figcaption>{t("landing.preview.label")}</figcaption>
     </figure>
   );
 }
