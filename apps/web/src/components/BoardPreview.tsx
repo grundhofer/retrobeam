@@ -84,7 +84,6 @@ export function BoardPreview() {
             <ol className="-ml-3 flex flex-wrap items-center gap-y-1">
               {PHASES.map((step) => (
                 <li key={step} className="flex items-center">
-                  {/* contrast-ok: decorative separator */}
                   <span className="w-3 text-center text-text-muted">·</span>
                   <span
                     // The current step as the board's own step line marks it:
