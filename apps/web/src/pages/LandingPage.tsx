@@ -107,9 +107,7 @@ export function LandingPage() {
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
             <div className="sb-prose">
               <p>{t("landing.description")}</p>
-              <p className="text-text-muted">
-                {t("landing.ctaHint")}
-              </p>
+              <p className="text-text-muted">{t("landing.ctaHint")}</p>
               {/* Each one short, a link to the FAQ answer that carries its
                   caveats: "EU jurisdiction" is only honest next to the
                   answer that says the edge can be outside it, "90 days" next

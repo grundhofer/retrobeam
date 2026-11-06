@@ -14,7 +14,6 @@
    scan: without this its files would add utilities to the build. */
 @source not "./sebaro";
 
-
 /* Notes fade-slide in, as the answer to the reveal (or a new card); the
    stagger comes from per-card delays. sebaro (docs/sebaro-umbau.md §5.5, motion): 8 px,
    200 ms, emphasized; only where motion is wanted, by the system and by

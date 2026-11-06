@@ -111,10 +111,7 @@ export function HomePage() {
           <h1>{t("home.title")}</h1>
           {/* What happens after the button, so nobody fills in a form that
               leads to a black box: a link to share, then a lobby to wait in. */}
-          <p
-            data-testid="home-next-step"
-            className="mt-2 mb-8 text-text-muted"
-          >
+          <p data-testid="home-next-step" className="mt-2 mb-8 text-text-muted">
             {t("home.nextStep")}
           </p>
           <form

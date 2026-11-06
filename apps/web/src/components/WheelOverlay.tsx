@@ -581,11 +581,7 @@ function SlotMachine({
   clockOffsetMs: number;
 }) {
   return (
-    <div
-      data-testid="slot-machine"
-      aria-hidden="true"
-      className="flex gap-3"
-    >
+    <div data-testid="slot-machine" aria-hidden="true" className="flex gap-3">
       {Array.from({ length: SLOT_REELS }, (_, reelIndex) => (
         <Reel
           key={reelIndex}

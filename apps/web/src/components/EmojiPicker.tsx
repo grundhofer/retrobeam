@@ -90,10 +90,7 @@ export function EmojiPickerButton({
 
 export function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
   return (
-    <div
-      data-testid="emoji-picker"
-      className="grid grid-cols-8 gap-1"
-    >
+    <div data-testid="emoji-picker" className="grid grid-cols-8 gap-1">
       {EMOJI_SET.map((emoji, index) => (
         <button
           key={emoji}

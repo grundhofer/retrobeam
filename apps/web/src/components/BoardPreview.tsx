@@ -85,9 +85,7 @@ export function BoardPreview() {
               {PHASES.map((step) => (
                 <li key={step} className="flex items-center">
                   {/* contrast-ok: decorative separator */}
-                  <span className="w-3 text-center text-text-muted">
-                    ·
-                  </span>
+                  <span className="w-3 text-center text-text-muted">·</span>
                   <span
                     // The current step as the board's own step line marks it:
                     // ink and weight, not a filled pill.
@@ -106,9 +104,7 @@ export function BoardPreview() {
         </div>
         <div className="grid gap-3 bg-surface-sunken p-4 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
-            <h3
-              className={`${LABEL} truncate font-semibold text-text`}
-            >
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[0]}
             </h3>
             <Card
@@ -118,9 +114,7 @@ export function BoardPreview() {
             <HiddenNotes count={HIDDEN_COUNTS[0]} />
           </div>
           <div className="flex flex-col gap-2">
-            <h3
-              className={`${LABEL} truncate font-semibold text-text`}
-            >
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[1]}
             </h3>
             <Card
@@ -130,9 +124,7 @@ export function BoardPreview() {
             <HiddenNotes count={HIDDEN_COUNTS[1]} />
           </div>
           <div className="flex flex-col gap-2">
-            <h3
-              className={`${LABEL} truncate font-semibold text-text`}
-            >
+            <h3 className={`${LABEL} truncate font-semibold text-text`}>
               {columns[2]}
             </h3>
             <Card
