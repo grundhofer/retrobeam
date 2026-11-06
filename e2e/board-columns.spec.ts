@@ -70,3 +70,50 @@ test("on a phone the columns are swiped, with a bar that says where you are", as
   expect(sideways).toBe(false);
   await context.close();
 });
+
+// A member's one primary action while writing on a phone (owner,
+// 2026-11-05): „Neue Karte in „<Spalte>““ names the column in place, follows
+// the swipe, and takes the member into that column's field. The facilitator
+// keeps „Weiter: …“ as theirs.
+test("on a phone a member's primary action is a new card in the column in place", async ({
+  browser,
+}) => {
+  const annaContext = await newContext(browser, {
+    viewport: { width: 390, height: 844 },
+    reducedMotion: "reduce",
+  });
+  const anna = await annaContext.newPage();
+  await board(anna);
+  await expect(anna.getByTestId("new-card")).toHaveCount(0);
+
+  const benContext = await newContext(browser, {
+    viewport: { width: 390, height: 844 },
+    reducedMotion: "reduce",
+  });
+  const ben = await benContext.newPage();
+  await ben.goto(anna.url());
+  await ben.getByRole("textbox").fill("Ben");
+  await ben.getByRole("button", { name: /^(join|beitreten)$/i }).click();
+  const newCard = ben.getByTestId("new-card");
+  await expect(newCard).toHaveText(
+    /^(New card in “Went well”|Neue Karte in „Lief gut“)$/,
+  );
+  await ben
+    .getByRole("button", { name: /^(next column|nächste spalte)$/i })
+    .click();
+  await expect(ben.locator(".sb-board__position")).toHaveText(
+    /(Column|Spalte) 2 (of|von) 3/,
+  );
+  await expect(newCard).not.toHaveText(/Went well|Lief gut/);
+  await newCard.click();
+  const focused = await ben.evaluate(
+    () => document.activeElement?.getAttribute("data-testid") ?? "",
+  );
+  const second = await ben
+    .locator('[data-testid^="composer-"]')
+    .nth(1)
+    .getAttribute("data-testid");
+  expect(focused).toBe(second);
+  await annaContext.close();
+  await benContext.close();
+});
