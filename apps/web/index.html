@@ -32,8 +32,13 @@
          URL in a Referer header. Browsers default to origin-only cross-origin
          today; this states the guarantee rather than relying on that default. -->
     <meta name="referrer" content="no-referrer" />
-    <meta name="theme-color" content="#0e7c7b" />
-    <link rel="icon" href="/brand-mark.svg" type="image/svg+xml" />
+    <!-- sebaro's head snippet (brand/site-root/head.snippet.html), the files
+         served from the export by the retrobeam:sebaro plugin. No
+         theme-color: the manifest names the ground (plan §2.4 F29). -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Link previews (Teams, Slack, chat apps) and crawlers that run no
          script see only this file, so it carries the product's own German
          wording; once the app runs, i18n.ts switches <html lang> and the pages

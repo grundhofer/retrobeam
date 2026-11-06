@@ -5,6 +5,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import sebaroFiles from "./sebaro-files.json";
 
 // sebaro's classic scripts have to run before the first paint, outside the
 // module graph, so index.html loads them as plain <script src> tags (sebaro
@@ -16,28 +17,28 @@ import { defineConfig, type Plugin } from "vite";
 // way to /fonts/, because Vite ships no src/ file that nothing imports and the
 // OFL wants its text beside the fonts. The start tile in index.html is the
 // export's own SVG, put where its <!-- sb:inline src="…" --> comment stands
-// (sebaro spec/03 §4.6). The export folder is never edited here (G6).
+// (sebaro spec/03 §4.6). The site root (favicon, icons, the manifest; stage
+// 6c) is served the same way, from brand/site-root, instead of copies in
+// public/ that could drift from the export. The export folder is never
+// edited here (G6).
 const SEBARO_DIR = new URL("./src/sebaro/", import.meta.url);
-const SEBARO_FILES: Record<string, string> = {
-  "sebaro/js/theme-init.js": "js/theme-init.js",
-  "sebaro/js/sb-start.js": "js/sb-start.js",
-  "sebaro/js/sb-fit.js": "js/sb-fit.js",
-  "sebaro/js/sb-board.js": "js/sb-board.js",
-  "sebaro/js/sb-sheet.js": "js/sb-sheet.js",
-  "sebaro/js/theme-button.js": "js/theme-button.js",
-  "sebaro/js/sb-tone.js": "js/sb-tone.js",
-  "fonts/sebaro-sans-OFL.txt": "fonts/web/sebaro-sans-OFL.txt",
-  "fonts/sebaro-mono-OFL.txt": "fonts/web/sebaro-mono-OFL.txt",
-};
+// The served path → the export file; also read by scripts/check-site-root.mjs
+// (gate G13), so what is served and what is checked are one list.
+const SEBARO_FILES: Record<string, string> = sebaroFiles;
 const INLINED = ["brand/inline/tile-retrobeam.svg"];
 const SB_INLINE = /<!-- sb:inline src="([\w./-]+)" -->/g;
 
 const sebaroPath = (path: string) =>
   decodeURIComponent(new URL(path, SEBARO_DIR).pathname);
+const TYPES: Record<string, string> = {
+  js: "text/javascript; charset=utf-8",
+  ico: "image/x-icon",
+  svg: "image/svg+xml",
+  png: "image/png",
+  webmanifest: "application/manifest+json",
+};
 const contentType = (path: string) =>
-  path.endsWith(".js")
-    ? "text/javascript; charset=utf-8"
-    : "text/plain; charset=utf-8";
+  TYPES[path.slice(path.lastIndexOf(".") + 1)] ?? "text/plain; charset=utf-8";
 
 // Read once when the build or the dev server starts (no node types in this
 // tsconfig, so through the plugin context's fs); a new export means a
