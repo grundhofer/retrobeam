@@ -1,0 +1,20 @@
+{
+  "$comment": "The one share image of retrobeam.de (plan §2.4 F28 a): the start page only, rendered with the sebaro export's brand/og/render.mjs (pnpm og). Its head tags are thrown away: index.html writes its own, without og:url or canonical, because every route shares that one file and a board URL is an access right.",
+  "site": {
+    "product": "retrobeam",
+    "name": "RetroBeam",
+    "origin": "https://retrobeam.de",
+    "lang": "de",
+    "imageBase": "/"
+  },
+  "pages": [
+    {
+      "id": "start",
+      "url": "/",
+      "output": "og",
+      "type": "website",
+      "title": "Retros, auf die sich dein Team freut.",
+      "description": "Eine Person moderiert, RetroBeam führt euer Team Schritt für Schritt durch die Retro, kostenlos und ohne Anmeldung."
+    }
+  ]
+}
