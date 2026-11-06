@@ -52,6 +52,24 @@ export const ARRANGE_LABEL = "sb-field__label";
 export const ARRANGE_STEP = ARRANGE_OPTION;
 export const ARRANGE_PANEL = "flex flex-col gap-(--sb-space-2)";
 
+// Cards that are to take the focus when they mount next (a move or a stack
+// remounts a card elsewhere). A request lapses after two seconds, and at
+// once when the card leaves the page without coming back in the same commit
+// (it was deleted, or the view went away).
+const REFOCUS = new Set<string>();
+const MOUNTED = new Map<string, number>();
+function askRefocus(noteId: string) {
+  REFOCUS.add(noteId);
+  setTimeout(() => REFOCUS.delete(noteId), 2000);
+}
+
+function focusArrangeKey(card: HTMLElement) {
+  const target =
+    card.querySelector<HTMLElement>('[data-testid="note-arrange-toggle"]') ??
+    card.querySelector<HTMLElement>("button");
+  target?.focus();
+}
+
 export interface NoteCardProps {
   note: Note;
   roster: Participant[];
@@ -136,6 +154,7 @@ export function NoteCard({
   const [arranging, setArranging] = useState(false);
   const arrangeId = useId();
   const arrangeTrigger = useRef<HTMLButtonElement>(null);
+  const articleRef = useRef<HTMLElement>(null);
   // Open and close, including the close a remount is (a move elsewhere,
   // mine or a teammate's): the canvas never keeps a closed card lifted.
   useEffect(() => {
@@ -266,16 +285,39 @@ export function NoteCard({
   // rendered, hand focus to the same card's ⋯ (or, if it has nothing left
   // to offer, its first button). By id, not a ref: the ref dies with the
   // old mount.
+  //
+  // Not timed: a frame later React had not always committed the move (the
+  // canvas waits for the server's answer), the old card was still the one in
+  // the page, it took the focus and then left with it (task #12, about 2 runs
+  // in 10). Now this card's key takes the focus at once — where it stays if
+  // the move is refused — and the card's next mount takes it over.
   function refocusAfterArrange() {
-    requestAnimationFrame(() => {
-      const card = document.querySelector(`[data-note-id="${note.id}"]`);
-      const target =
-        card?.querySelector<HTMLElement>(
-          '[data-testid="note-arrange-toggle"]',
-        ) ?? card?.querySelector<HTMLElement>("button");
-      target?.focus();
-    });
+    askRefocus(note.id);
+    if (articleRef.current) focusArrangeKey(articleRef.current);
   }
+  // Every mount within the request's two seconds takes it, not only the
+  // first: a move can remount the card twice (its optimistic place, then the
+  // server's), and the second took the focus away again. Only a focus that
+  // is lost (on <body>) is taken back, so nothing is ever pulled away from
+  // where the person went meanwhile.
+  useEffect(() => {
+    if (!interactive) return;
+    const id = note.id;
+    MOUNTED.set(id, (MOUNTED.get(id) ?? 0) + 1);
+    if (REFOCUS.has(id)) {
+      const active = document.activeElement;
+      if ((active === null || active === document.body) && articleRef.current)
+        focusArrangeKey(articleRef.current);
+    }
+    return () => {
+      MOUNTED.set(id, (MOUNTED.get(id) ?? 1) - 1);
+      // A move unmounts and mounts in one commit; after it, a card that is
+      // nowhere drops its request.
+      setTimeout(() => {
+        if ((MOUNTED.get(id) ?? 0) <= 0) REFOCUS.delete(id);
+      }, 0);
+    };
+  }, [interactive, note.id]);
 
   // A step stays in the zone, so the card keeps its mount and the focused
   // step button keeps focus: the panel stays open for the next one.
@@ -323,6 +365,7 @@ export function NoteCard({
 
   return (
     <article
+      ref={articleRef}
       data-testid="note-card"
       // Interactive cards only: the presenter reader can show the same note,
       // and refocusAfterArrange must not land in it.
