@@ -730,7 +730,7 @@ function Room({
               {inLobby ? (
                 <div
                   data-testid="lobby"
-                  className="sb-stack sb-stack--group mx-auto max-w-(--sb-size-measure-prose)"
+                  className="mx-auto max-w-(--sb-size-measure-prose)"
                 >
                   {/* Who's in and how to get others in comes first — for the
                   facilitator, inviting is the first job; for everyone else the
@@ -738,13 +738,16 @@ function Room({
                   The agenda follows. Sections on the page's own ground, no
                   cards (sebaro). The list of who is here stands at the very
                   top (owner, 2026-11-07): under the agenda it sat below the
-                  fold. */}
-                  <Roster
-                    participants={state.roster}
-                    youId={you.id}
-                    isAdmin={isAdmin}
-                  />
-                  <section className="sb-stack">
+                  fold. Each part a sebaro section: room and a hairline
+                  between them (owner, 2026-11-07). */}
+                  <div className="sb-section" style={{ paddingBlockStart: 0 }}>
+                    <Roster
+                      participants={state.roster}
+                      youId={you.id}
+                      isAdmin={isAdmin}
+                    />
+                  </div>
+                  <section className="sb-stack sb-section">
                     <p data-testid="lobby-hint">
                       {isAdmin
                         ? t("lobby.hint", { count: onlineCount })
@@ -767,14 +770,22 @@ function Room({
                       <AdminLink boardId={boardId} adminToken={adminToken} />
                     ) : null}
                   </section>
-                  <CarriedActions actions={state.actions} />
-                  <PhasePlanPanel
-                    phasePlan={phasePlan}
-                    isAdmin={isAdmin}
-                    locked={config?.phasePlanLocked ?? false}
-                    icebreakerId={state.icebreakerId}
-                    workingAgreements={state.workingAgreements}
-                  />
+                  {/* no empty section: CarriedActions draws nothing without
+                      carried items */}
+                  {state.actions.some((a) => a.carriedFrom !== null) ? (
+                    <div className="sb-section">
+                      <CarriedActions actions={state.actions} />
+                    </div>
+                  ) : null}
+                  <div className="sb-section">
+                    <PhasePlanPanel
+                      phasePlan={phasePlan}
+                      isAdmin={isAdmin}
+                      locked={config?.phasePlanLocked ?? false}
+                      icebreakerId={state.icebreakerId}
+                      workingAgreements={state.workingAgreements}
+                    />
+                  </div>
                 </div>
               ) : state.phase === "checkin" ? (
                 <CheckinPanel

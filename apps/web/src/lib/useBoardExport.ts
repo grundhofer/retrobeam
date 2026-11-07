@@ -4,6 +4,8 @@
 import { useState } from "react";
 import {
   exportFileName,
+  toHtml,
+  toMarkdown,
   type ExportFormat,
   type ExportScope,
 } from "@retrobeam/shared";
@@ -56,6 +58,38 @@ export function useBoardExport(
     }
   }
 
+  // The summary (or everything) onto the clipboard as HTML, with the
+  // Markdown as its plain-text form: a wiki keeps headings, lists and the
+  // action table on paste. The clipboard write starts inside the click and
+  // takes the data as promises, so Safari keeps the gesture across the fetch;
+  // like the JPEG, nothing goes anywhere but this machine's clipboard.
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
+  async function copyRich() {
+    setCopyState("idle");
+    const data = fetchBoardExport(boardId, scope, includeAuthors);
+    try {
+      if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": data.then(
+              (d) => new Blob([toHtml(d, scope)], { type: "text/html" }),
+            ),
+            "text/plain": data.then(
+              (d) => new Blob([toMarkdown(d, scope)], { type: "text/plain" }),
+            ),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(toMarkdown(await data, scope));
+      }
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+  }
+
   function exportHref(format: ExportFormat): string {
     const params = new URLSearchParams({ format });
     // Only when non-default, so the "everything" URL stays byte-identical to
@@ -74,5 +108,7 @@ export function useBoardExport(
     imageFailed,
     downloadImage,
     exportHref,
+    copyState,
+    copyRich,
   };
 }

@@ -553,6 +553,13 @@ const resources = {
           actions: "Action items",
         },
         moreFormats: "More formats",
+        exportPdfHint:
+          "Only when you say so. Destination: a PDF file in a place you choose.",
+        copyRich: "Copy formatted",
+        copyRichHint:
+          "Headings, lists and the action table, to paste into a wiki such as Confluence.",
+        copied: "Copied. Paste it where you want to keep it.",
+        copyFailed: "Copying did not work. Use Markdown instead.",
         scopeHint: {
           summary: "Top topics and action items.",
           all: "Every card, the action items and the kudos.",
@@ -1392,6 +1399,13 @@ const resources = {
           actions: "Action Items",
         },
         moreFormats: "Weitere Formate",
+        exportPdfHint:
+          "Nur auf deinen Befehl. Ziel: PDF-Datei an einem Ort deiner Wahl.",
+        copyRich: "Formatiert kopieren",
+        copyRichHint:
+          "Überschriften, Listen und die Tabelle der Action Items, zum Einfügen in ein Wiki wie Confluence.",
+        copied: "Kopiert. Füg es dort ein, wo du es behalten willst.",
+        copyFailed: "Kopieren hat nicht geklappt. Nimm stattdessen Markdown.",
         scopeHint: {
           summary: "Top-Themen und Action Items.",
           all: "Alle Karten, die Action Items und die Kudos.",
