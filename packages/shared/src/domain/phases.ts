@@ -72,13 +72,16 @@ export function previousPhase(current: Phase, plan: PhasePlan): Phase | null {
 }
 
 // Legal transitions: advance exactly one enabled step, or rewind to any
-// earlier enabled phase. "done" is terminal.
+// earlier enabled phase. A finished retro opens again only one step back, to
+// the phase it was finished from (owner, 2026-11-07): finishing is the next
+// step, not a final one.
 export function canTransition(
   from: Phase,
   to: Phase,
   plan: PhasePlan,
 ): boolean {
-  if (from === to || from === "done") return false;
+  if (from === to) return false;
+  if (from === "done") return to === previousPhase("done", plan);
   const sequence = enabledPhases(plan);
   const fromIndex = sequence.indexOf(from);
   const toIndex = sequence.indexOf(to);

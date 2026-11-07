@@ -458,7 +458,8 @@ export function applyServerEvent(
         // keeps a fold equal to a fresh sync.
         spotlightId: null,
         kudos,
-        // "done" is terminal, so this is set once and never cleared.
+        // Taken on entering "done"; kept through a reopening, and replaced
+        // when the retro is finished again.
         headcount: event.headcount ?? state.headcount,
         lastSeq: seq(state, event.seq),
       };

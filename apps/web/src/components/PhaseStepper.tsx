@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -73,9 +73,9 @@ export function PhaseStepper({
   const nowIndex = Math.max(0, currentIndex);
   const nowAtStart = nowIndex < sequence.length / 2;
   // Offer only steps the server's own transition table would accept, so the UI
-  // cannot present a control that is guaranteed to be rejected. "done" is
-  // terminal, and it used to render a "← Close" button that failed on every
-  // click (a rejection also costs a full resync).
+  // cannot present a control that is guaranteed to be rejected (a rejection
+  // also costs a full resync). From "done" the way back is one step, which
+  // reopens the retro.
   const step0 = nextPhase(phase, phasePlan);
   const back0 = previousPhase(phase, phasePlan);
   const next =
@@ -89,15 +89,11 @@ export function PhaseStepper({
   // self-transition (and the rejection costs a full resync) — so the room
   // silently misses a step. Lock the controls until the server confirms.
   const [pending, setPending] = useState<Phase | null>(null);
-  // The finish question (below) — declared here because the phase-change
-  // reset right after clears it as well.
-  const [confirmingIn, setConfirmingIn] = useState<Phase | null>(null);
   const lastPhase = useRef(phase);
   useEffect(() => {
     if (lastPhase.current !== phase) {
       lastPhase.current = phase;
       setPending(null);
-      setConfirmingIn(null);
     }
   }, [phase]);
   // Release valve: a refused step (or a dropped socket) never produces a
@@ -114,25 +110,6 @@ export function PhaseStepper({
     send({ type: "admin.phase.set", phase: target });
   }
 
-  // Finishing is the one step nobody can take back ("done" is terminal in
-  // canTransition) and it freezes the board for the whole room, so it asks
-  // first, in sebaro's confirmation dialog. A modal: a double click's second
-  // press lands on the backdrop, never on the confirmation.
-  //
-  // Remembered as the phase it was asked in, and dropped on every phase change
-  // by the effect above: a phase that moves on underneath (a co-facilitator, a
-  // rewind) closes the dialog (F5b), and coming back to that phase later must
-  // not bring it back unasked. The phase check hides it on the very render the
-  // phase changes, before the effect has run.
-  const confirming = next === "done" && confirmingIn === phase;
-  const questionId = useId();
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (confirming && !dialog.open) dialog.showModal();
-    if (!confirming && dialog.open) dialog.close();
-  }, [confirming]);
   const withSlot = (action: ReactNode) =>
     actionSlot ? (
       createPortal(action, actionSlot)
@@ -219,7 +196,7 @@ export function PhaseStepper({
             </span>
           </p>
         </div>
-        {isAdmin && (previous !== null || next === "done") ? (
+        {isAdmin && previous !== null ? (
           <div className="flex flex-wrap items-center gap-2">
             {previous !== null ? (
               <button
@@ -233,29 +210,15 @@ export function PhaseStepper({
                 {t(`phase.${previous}`)}
               </button>
             ) : null}
-            {/* Finishing cannot be taken back, so it asks like a deletion
-                (F5b, sebaro D102 (43)): the danger action with the cut and
-                no trash, never beside the primary action bar, and a
-                confirmation dialog. */}
-            {next === "done" ? (
-              <button
-                type="button"
-                data-testid="phase-next"
-                disabled={pending !== null}
-                aria-haspopup="dialog"
-                onClick={() => setConfirmingIn(phase)}
-                className="sb-danger-action"
-              >
-                {t("phase.finish")}
-              </button>
-            ) : null}
           </div>
         ) : null}
       </div>
       {/* The facilitator's primary action is the phase change (F5), in the
           board's action zone (ActionZone), or in a bottom block of its own
-          when there is no slot (a test). */}
-      {isAdmin && next !== null && next !== "done"
+          when there is no slot (a test). Finishing too: it is the natural next
+          step and can be taken back from the results (owner, 2026-11-07,
+          replacing F5b's danger action and dialog). */}
+      {isAdmin && next !== null
         ? withSlot(
             <button
               type="button"
@@ -266,55 +229,12 @@ export function PhaseStepper({
             >
               {phase === "lobby"
                 ? t("phase.startRetro")
-                : `${t("phase.next")}: ${t(`phase.${next}`)}`}
+                : next === "done"
+                  ? t("phase.finish")
+                  : `${t("phase.next")}: ${t(`phase.${next}`)}`}
             </button>,
           )
         : null}
-      {/* Only while finishing is the next step: once the retro is done the
-          dialog leaves with its trigger, and so does the focus that was in
-          it, which RetroResults then picks up. */}
-      {isAdmin && next === "done" ? (
-        <dialog
-          ref={dialogRef}
-          data-testid="phase-done-question"
-          // m-auto: Tailwind's preflight zeroes every margin, also the
-          // browser's margin: auto that centres a modal <dialog>, and
-          // sebaro.css does not set it back (reported to sebaroDesign).
-          className="sb-dialog m-auto"
-          aria-labelledby={`${questionId}-title`}
-          aria-describedby={`${questionId}-text`}
-          onClose={() => setConfirmingIn(null)}
-        >
-          <p className="sb-dialog__title" id={`${questionId}-title`}>
-            {t("phase.finishTitle")}
-          </p>
-          <p className="sb-dialog__text" id={`${questionId}-text`}>
-            {t("phase.finishText")}
-          </p>
-          <div className="sb-dialog__actions">
-            <button
-              type="button"
-              autoFocus
-              onClick={() => setConfirmingIn(null)}
-              className="sb-secondary-action"
-            >
-              {t("note.cancel")}
-            </button>
-            <button
-              type="button"
-              data-testid="phase-done-confirm"
-              disabled={pending !== null}
-              onClick={() => {
-                setConfirmingIn(null);
-                step("done");
-              }}
-              className="sb-danger-action sb-danger-action--outlined"
-            >
-              {t("phase.finish")}
-            </button>
-          </div>
-        </dialog>
-      ) : null}
     </div>
   );
 }

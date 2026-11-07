@@ -772,6 +772,25 @@ describe("retention", () => {
     expect(kept.retentionAt).toBeNull();
   });
 
+  it("a kept board can delete itself again, 90 days from now", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    admin.socket.send({ type: "admin.board.keep" });
+    await admin.socket.waitFor(
+      (e) => e.type === "retention.changed" && e.retentionAt === null,
+    );
+    const before = Date.now();
+    admin.socket.send({ type: "admin.board.autoDelete" });
+    const back = await admin.socket.waitFor(
+      (e) => e.type === "retention.changed" && e.retentionAt !== null,
+    );
+    if (back.type !== "retention.changed" || back.retentionAt === null)
+      throw new Error("unreachable");
+    const day = 24 * 60 * 60 * 1000;
+    expect(back.retentionAt).toBeGreaterThanOrEqual(before + 90 * day - 1000);
+    expect(back.retentionAt).toBeLessThanOrEqual(Date.now() + 90 * day + 1000);
+  });
+
   it("the retention alarm deletes the board", async () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);

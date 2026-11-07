@@ -129,7 +129,6 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   await anna.getByRole("button", { name: /^(close|schließen)$/i }).click();
   await expect(anna.getByTestId("export-dialog")).toBeHidden();
   await anna.getByTestId("phase-next").click();
-  await anna.getByTestId("phase-done-confirm").click();
   await expect(
     anna.getByText(/retro finished|retro abgeschlossen/i),
   ).toBeVisible();

@@ -39,7 +39,10 @@ export function RotiPoll({ readOnly = false }: { readOnly?: boolean }) {
       <h2 id={`${name}-title`} className="sb-section__title">
         {t("roti.title")}
       </h2>
-      {readOnly ? null : (
+      {/* Closed for good once its result is out — also in a retro opened
+          again after finishing: a second round of answers could be
+          differenced against the published average. */}
+      {readOnly || roti.released ? null : (
         <fieldset className="sb-segmented">
           <legend>{t("roti.question")}</legend>
           <div className="sb-segmented__options">

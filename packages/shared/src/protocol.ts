@@ -534,8 +534,10 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
   // crowned cards. It changes what every screen RENDERS, never what the server
   // has already sent.
   z.object({ type: z.literal("admin.focus.set"), enabled: z.boolean() }),
-  // Retention: keep the board (clear the 90-day auto-delete) or delete it now.
+  // Retention: keep the board (clear the 90-day auto-delete), let it delete
+  // itself again (a fresh 90 days from now), or delete it now.
   z.object({ type: z.literal("admin.board.keep") }),
+  z.object({ type: z.literal("admin.board.autoDelete") }),
   z.object({ type: z.literal("admin.board.delete") }),
 
   // Check-in warm-up.

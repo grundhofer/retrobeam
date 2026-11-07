@@ -78,9 +78,15 @@ describe("canTransition", () => {
     expect(canTransition("present", "lobby", DEFAULT_PHASE_PLAN)).toBe(true);
   });
 
-  it("done is terminal and self-transitions are illegal", () => {
+  it("done opens again only one step back; self-transitions are illegal", () => {
+    expect(canTransition("done", "close", DEFAULT_PHASE_PLAN)).toBe(true);
     expect(canTransition("done", "present", DEFAULT_PHASE_PLAN)).toBe(false);
+    expect(canTransition("done", "done", DEFAULT_PHASE_PLAN)).toBe(false);
     expect(canTransition("write", "write", DEFAULT_PHASE_PLAN)).toBe(false);
+    // without a closing phase, the step back is the discussion
+    expect(
+      canTransition("done", "discuss", { ...DEFAULT_PHASE_PLAN, close: false }),
+    ).toBe(true);
   });
 
   it("disabled phases are unreachable", () => {

@@ -163,7 +163,6 @@ test("board through every phase", async ({ browser }) => {
   await shoot(anna, "board-close");
 
   await anna.getByTestId("phase-next").click();
-  await anna.getByTestId("phase-done-confirm").click();
   await expect(anna.getByTestId("results-header")).toBeVisible();
   await expect(ben.getByTestId("results-header")).toBeVisible();
   await shoot(anna, "board-results");
