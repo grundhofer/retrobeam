@@ -143,8 +143,15 @@ export function RetroResults({
   };
 
   return (
-    <div className="sb-stack sb-stack--group mx-auto w-full max-w-5xl">
-      <section data-testid="results-header" className="sb-stack">
+    // sebaro's sections (spec/02 sb-section): 48 px (64 from 1024) of room
+    // and a hairline between each, no fills (owner, 2026-11-07). The first
+    // starts at the top of the page's own padding.
+    <div className="mx-auto w-full max-w-5xl">
+      <section
+        data-testid="results-header"
+        className="sb-stack sb-section"
+        style={{ paddingBlockStart: 0 }}
+      >
         <h2
           ref={headingRef}
           tabIndex={-1}
@@ -230,7 +237,7 @@ export function RetroResults({
         // The discussion phase's own arrangement — the board on the left, the
         // action list in its 320px column on the right — so the outcome sits
         // where the room last saw it. Stacked on a phone, topics first.
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="sb-section flex flex-col gap-6 lg:flex-row lg:items-start">
           {topics.length > 0 ? (
             <section
               data-testid="top-topics"
@@ -295,26 +302,34 @@ export function RetroResults({
         </div>
       ) : null}
 
-      <ResultsExport boardId={boardId} anonymous={anonymous} />
+      <div className="sb-section">
+        <ResultsExport boardId={boardId} anonymous={anonymous} />
+      </div>
 
       {/* The ROTI result is published exactly once, on leaving the closing
           phase — so the archived board is where the room actually reads it. */}
-      {rotiReleased ? <RotiPoll readOnly /> : null}
+      {rotiReleased ? (
+        <div className="sb-section">
+          <RotiPoll readOnly />
+        </div>
+      ) : null}
       {kudos.length > 0 ? (
-        <KudosWall
-          kudos={kudos}
-          roster={roster}
-          you={you}
-          isAdmin={isAdmin}
-          gifsEnabled={gifsEnabled}
-          readOnly
-        />
+        <div className="sb-section">
+          <KudosWall
+            kudos={kudos}
+            roster={roster}
+            you={you}
+            isAdmin={isAdmin}
+            gifsEnabled={gifsEnabled}
+            readOnly
+          />
+        </div>
       ) : null}
 
       <section
         data-testid="all-cards"
         aria-labelledby={cardsHeadingId}
-        className="sb-stack"
+        className="sb-stack sb-section"
       >
         {/* The disclosure inside a heading, so the section is reachable by
             heading navigation while closed and the column titles (h3 in
@@ -459,6 +474,8 @@ function ResultsExport({
     imageFailed,
     downloadImage,
     exportHref,
+    copyState,
+    copyRich,
   } = useBoardExport(boardId, "summary");
   const id = useId();
   // Summary first: it is the keepsake the page is about.
@@ -528,7 +545,7 @@ function ResultsExport({
           {t("done.export")}
         </a>
         <p id={`${id}-hint`} className="sb-action-hint">
-          {t("menu.exportHint")}
+          {t("done.exportPdfHint")}
         </p>
       </div>
       <div
@@ -559,6 +576,35 @@ function ResultsExport({
         >
           {imaging ? t("menu.rendering") : "JPEG"}
         </button>
+      </div>
+      <div className="sb-stack sb-stack--start">
+        <button
+          type="button"
+          data-testid="results-copy-rich"
+          aria-describedby={`${id}-copy-hint`}
+          onClick={() => void copyRich()}
+          className="sb-secondary-action sb-secondary-action--compact"
+        >
+          <Icon name="copy" size={20} />
+          {t("done.copyRich")}
+        </button>
+        <p id={`${id}-copy-hint`} className="sb-field__help">
+          {t("done.copyRichHint")}
+        </p>
+        <p role="status" data-testid="results-copy-status">
+          {copyState === "copied" ? (
+            <span className="sb-status sb-status--success">
+              <Icon name="success" size={16} />
+              <span>{t("done.copied")}</span>
+            </span>
+          ) : null}
+        </p>
+        {copyState === "failed" ? (
+          <p role="alert" className="sb-field__error">
+            <Icon name="error" size={16} />
+            <span>{t("done.copyFailed")}</span>
+          </p>
+        ) : null}
       </div>
       {imageFailed ? (
         <p role="alert" className="sb-field__error">

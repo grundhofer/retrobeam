@@ -7,6 +7,7 @@ import {
   renderExport,
   summarizeExport,
   toCsv,
+  toHtml,
   toJson,
   toMarkdown,
   type BoardExport,
@@ -100,6 +101,76 @@ describe("toMarkdown", () => {
 
   it("never leaks author names when they were excluded (null)", () => {
     expect(md).not.toContain("Anna's");
+  });
+});
+
+describe("toHtml", () => {
+  const html = toHtml(sample);
+
+  it("has the title, the date, the columns and the crowns", () => {
+    expect(html).toContain("<h1>Sprint 42</h1>");
+    expect(html).toContain("2026-07-18");
+    expect(html).toContain("<h2>Went well</h2>");
+    expect(html).toContain("<li>👑1 Great teamwork <em>(4 votes)</em></li>");
+    expect(html).toContain("Line one line two");
+    expect(html).toContain('<img src="https://cdn.example/g.gif" alt="GIF">');
+    expect(html).toContain("<p><em>(no notes)</em></p>");
+  });
+
+  it("puts the action items in a table, with owner and carried origin", () => {
+    expect(html).toContain(
+      "<tr><td></td><td>Automate deploys</td><td>Ben</td></tr>",
+    );
+    expect(html).toContain(
+      "<tr><td>✓</td><td>Write more tests (from “Sprint 47”)</td><td></td></tr>",
+    );
+    expect(html).toContain(
+      "<li><strong>Great job</strong> → Anna: shipped the picker</li>",
+    );
+  });
+
+  it("keeps typed text as text, never markup", () => {
+    const typed = '<img src=x onerror="alert(1)"> & <b>';
+    const hostile: BoardExport = {
+      ...sample,
+      boardName: typed,
+      columns: [
+        {
+          name: typed,
+          notes: [
+            {
+              ...sample.columns[0]!.notes[0]!,
+              text: typed,
+              authorName: typed,
+              gifUrl: "javascript:alert(1)",
+            },
+          ],
+        },
+      ],
+      actions: [
+        { text: typed, ownerName: typed, done: false, carriedFrom: typed },
+      ],
+      kudos: [
+        { cardType: "great-job", toName: typed, fromName: typed, text: typed },
+      ],
+    };
+    const out = toHtml(hostile);
+    expect(out).not.toContain("<img src=x");
+    expect(out).not.toContain("<b>");
+    expect(out).not.toContain("javascript:");
+    expect(out).toContain(
+      "&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &lt;b&gt;",
+    );
+  });
+
+  it("says so when a summary has nothing crowned and no action items", () => {
+    const out = toHtml(
+      { ...sample, columns: [], actions: [], kudos: [] },
+      "summary",
+    );
+    expect(out).toContain("Summary (top cards &amp; action items)");
+    expect(out).toContain("No top cards yet.");
+    expect(out).toContain("(no action items)");
   });
 });
 

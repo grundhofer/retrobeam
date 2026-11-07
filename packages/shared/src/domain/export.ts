@@ -252,6 +252,97 @@ export function toMarkdown(
   return lines.join("\n").trimEnd() + "\n";
 }
 
+// Every string here was typed by a participant; in HTML it is text, never
+// markup.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// The same document as toMarkdown, as HTML for the clipboard: Confluence,
+// Notion and Teams keep headings, lists and the action table when it is
+// pasted, where pasted Markdown arrives as plain text. Only http(s) GIF
+// addresses become images.
+export function toHtml(data: BoardExport, scope: ExportScope = "all"): string {
+  const out: string[] = [];
+  out.push(
+    `<h1>${escapeHtml(data.boardName)}</h1>`,
+    scope === "summary"
+      ? `<p><em>Retrospective · ${isoDate(data.createdAt)} · Summary (top cards &amp; action items)</em></p>`
+      : `<p><em>Retrospective · ${isoDate(data.createdAt)}</em></p>`,
+  );
+
+  if (scope === "summary" && data.columns.length === 0) {
+    out.push("<p><em>No top cards yet.</em></p>");
+  }
+
+  for (const column of data.columns) {
+    out.push(`<h2>${escapeHtml(column.name)}</h2>`);
+    if (column.notes.length === 0) {
+      out.push("<p><em>(no notes)</em></p>");
+      continue;
+    }
+    out.push("<ul>");
+    for (const note of column.notes) {
+      const parts: string[] = [];
+      if (note.crownedRank !== null) parts.push(`👑${note.crownedRank}`);
+      parts.push(escapeHtml(note.text.replace(/\n/g, " ")));
+      const meta: string[] = [];
+      if (note.votes !== null && note.votes > 0)
+        meta.push(`${note.votes} votes`);
+      if (note.voterNames !== null && note.voterNames.length > 0)
+        meta.push(`voted by ${note.voterNames.map(escapeHtml).join(", ")}`);
+      if (note.authorName !== null) meta.push(escapeHtml(note.authorName));
+      const suffix = meta.length > 0 ? ` <em>(${meta.join(", ")})</em>` : "";
+      const gif =
+        note.gifUrl !== null && /^https?:\/\//.test(note.gifUrl)
+          ? `<br><img src="${escapeHtml(note.gifUrl)}" alt="GIF">`
+          : "";
+      out.push(`<li>${parts.join(" ")}${suffix}${gif}</li>`);
+    }
+    out.push("</ul>");
+  }
+
+  if (data.actions.length > 0 || scope === "summary") {
+    out.push("<h2>Action items</h2>");
+    if (data.actions.length === 0) {
+      out.push("<p><em>(no action items)</em></p>");
+    } else {
+      out.push(
+        "<table><thead><tr><th>Done</th><th>Action item</th><th>Owner</th></tr></thead><tbody>",
+      );
+      for (const action of data.actions) {
+        out.push(
+          `<tr><td>${action.done ? "✓" : ""}</td><td>${escapeHtml(action.text + carriedSuffix(action))}</td><td>${action.ownerName !== null ? escapeHtml(action.ownerName) : ""}</td></tr>`,
+        );
+      }
+      out.push("</tbody></table>");
+    }
+  }
+
+  if (data.kudos.length > 0) {
+    out.push("<h2>Appreciation</h2>", "<ul>");
+    for (const kudo of data.kudos) {
+      const from =
+        kudo.fromName !== null ? ` — ${escapeHtml(kudo.fromName)}` : "";
+      const text =
+        kudo.text.trim() === ""
+          ? ""
+          : `: ${escapeHtml(kudo.text.replace(/\n/g, " "))}`;
+      out.push(
+        `<li><strong>${escapeHtml(KUDO_CARD_LABELS[kudo.cardType])}</strong> → ${escapeHtml(kudo.toName)}${text}${from}</li>`,
+      );
+    }
+    out.push("</ul>");
+  }
+
+  return out.join("\n") + "\n";
+}
+
 // A retro export is opened in Excel/Sheets, and every cell is text a
 // participant typed. Two hazards follow:
 //  1. Formula injection — a note reading `=HYPERLINK("http://evil","hi")` is
