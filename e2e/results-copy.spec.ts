@@ -51,5 +51,9 @@ test("the results copy the summary as HTML and Markdown", async ({
   expect(clip.html).toContain("<h1>Sprint 58 &lt;retro&gt;</h1>");
   expect(clip.html).toContain("Summary (top cards &amp; action items)");
   expect(clip.text).toContain("# Sprint 58 <retro>");
+  // the confirmation goes again, so a second copy can say so anew
+  await expect(page.getByTestId("results-copy-status")).toHaveText("", {
+    timeout: 10_000,
+  });
   await context.close();
 });

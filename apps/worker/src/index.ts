@@ -14,6 +14,7 @@ import {
   exportContentType,
   exportFileName,
   renderExport,
+  withoutGifs,
   templateColumnNames,
   templateKeySchema,
   templateLinkColumnsSchema,
@@ -243,6 +244,7 @@ app.get("/api/boards/:id", async (c) => {
 // Gating it would mean putting the admin token in a GET URL (history, logs,
 // referrers) for no confidentiality gain. Author names are excluded by default —
 // pass ?authors=true to include them. docs/01 §10 states the same rule.
+// GIFs are in by default; ?gifs=false leaves them out of every format.
 //
 // The PDF is rendered from that SAME snapshot under that same reveal, so every
 // gate above is inherited rather than re-implemented. JPEG is deliberately not
@@ -262,10 +264,12 @@ app.get("/api/boards/:id/export", async (c) => {
     return c.json({ error: "INVALID_SCOPE" }, 400);
   }
   const includeAuthors = c.req.query("authors") === "true";
-  const data = await boardStub(c.env, boardId).exportBoard(includeAuthors);
-  if (data === null) {
+  const includeGifs = c.req.query("gifs") !== "false";
+  const snapshot = await boardStub(c.env, boardId).exportBoard(includeAuthors);
+  if (snapshot === null) {
     return c.json({ error: "BOARD_NOT_FOUND" }, 404);
   }
+  const data = includeGifs ? snapshot : withoutGifs(snapshot);
   const filename = exportFileName(data.boardName, scope, format);
   return new Response(renderExport(format, data, scope), {
     headers: {

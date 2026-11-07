@@ -470,6 +470,8 @@ function ResultsExport({
     setScope,
     includeAuthors,
     setIncludeAuthors,
+    includeGifs,
+    setIncludeGifs,
     imaging,
     imageFailed,
     downloadImage,
@@ -534,6 +536,15 @@ function ResultsExport({
           <span>{t("menu.includeAuthors")}</span>
         </label>
       )}
+      <label className="sb-checkbox">
+        <input
+          type="checkbox"
+          data-testid="results-include-gifs"
+          checked={includeGifs}
+          onChange={(event) => setIncludeGifs(event.target.checked)}
+        />
+        <span>{t("menu.includeGifs")}</span>
+      </label>
       <div>
         <a
           href={exportHref("pdf")}

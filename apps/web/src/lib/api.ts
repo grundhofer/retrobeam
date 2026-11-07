@@ -114,12 +114,14 @@ export async function fetchBoardExport(
   boardId: string,
   scope: ExportScope,
   includeAuthors: boolean,
+  includeGifs = true,
 ): Promise<BoardExport> {
   // The SAME query string the download links build, so the picture and the
   // files can never disagree about what they contain.
   const params = new URLSearchParams({ format: "json" });
   if (scope !== "all") params.set("scope", scope);
   if (includeAuthors) params.set("authors", "true");
+  if (!includeGifs) params.set("gifs", "false");
   const response = await fetch(
     `/api/boards/${boardId}/export?${params.toString()}`,
   );

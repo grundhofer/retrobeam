@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   exportFileName,
   toHtml,
@@ -22,6 +22,8 @@ export function useBoardExport(
   initialScope: ExportScope = "all",
 ) {
   const [includeAuthors, setIncludeAuthors] = useState(false);
+  // GIFs in by default, as before the switch existed (owner, 2026-11-07).
+  const [includeGifs, setIncludeGifs] = useState(true);
   const [scope, setScope] = useState<ExportScope>(initialScope);
   const [imaging, setImaging] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -36,7 +38,12 @@ export function useBoardExport(
     setImageFailed(false);
     let url: string | null = null;
     try {
-      const data = await fetchBoardExport(boardId, scope, includeAuthors);
+      const data = await fetchBoardExport(
+        boardId,
+        scope,
+        includeAuthors,
+        includeGifs,
+      );
       const blob = await renderBoardImage(data, scope);
       url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -68,7 +75,7 @@ export function useBoardExport(
   );
   async function copyRich() {
     setCopyState("idle");
-    const data = fetchBoardExport(boardId, scope, includeAuthors);
+    const data = fetchBoardExport(boardId, scope, includeAuthors, includeGifs);
     try {
       if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
         await navigator.clipboard.write([
@@ -89,6 +96,14 @@ export function useBoardExport(
       setCopyState("failed");
     }
   }
+  // „Kopiert“ goes again after a while: the key can be pressed again, and an
+  // old confirmation would not tell the second copy from the first (owner,
+  // 2026-11-07). A failure stays until the next try.
+  useEffect(() => {
+    if (copyState !== "copied") return;
+    const timer = setTimeout(() => setCopyState("idle"), 6000);
+    return () => clearTimeout(timer);
+  }, [copyState]);
 
   function exportHref(format: ExportFormat): string {
     const params = new URLSearchParams({ format });
@@ -96,6 +111,7 @@ export function useBoardExport(
     // the one that shipped before scopes existed (same as `authors`).
     if (scope !== "all") params.set("scope", scope);
     if (includeAuthors) params.set("authors", "true");
+    if (!includeGifs) params.set("gifs", "false");
     return `/api/boards/${boardId}/export?${params.toString()}`;
   }
 
@@ -104,6 +120,8 @@ export function useBoardExport(
     setScope,
     includeAuthors,
     setIncludeAuthors,
+    includeGifs,
+    setIncludeGifs,
     imaging,
     imageFailed,
     downloadImage,

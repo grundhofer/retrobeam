@@ -461,6 +461,7 @@ const resources = {
           summary: "Summary",
         },
         includeAuthors: "Include author names",
+        includeGifs: "Include GIFs",
         includeAuthorsAnonymous:
           "Who wrote a card and who voted for it stay out on this board.",
         rendering: "Rendering …",
@@ -1301,6 +1302,7 @@ const resources = {
           summary: "Zusammenfassung",
         },
         includeAuthors: "Zeigen, wer was geschrieben hat",
+        includeGifs: "GIFs mitnehmen",
         includeAuthorsAnonymous:
           "Wer eine Karte geschrieben und wer dafür gestimmt hat, bleibt auf diesem Board draußen.",
         rendering: "Wird erstellt …",
