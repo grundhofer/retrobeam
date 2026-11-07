@@ -45,7 +45,6 @@ export function GifPickerButton({
         }}
         className="sb-secondary-action sb-secondary-action--compact"
       >
-        <Icon name="gif" size={20} />
         {t("gif.add")}
       </button>
       <Sheet

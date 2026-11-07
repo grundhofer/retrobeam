@@ -30,7 +30,9 @@ export function ReadyBar({ readyIds, roster, youId }: ReadyBarProps) {
         onClick={() => send({ type: "ready.set", ready: !youReady })}
         className="sb-secondary-action sb-secondary-action--compact"
       >
-        {youReady ? <Icon name="check" size={20} /> : null}
+        {youReady ? (
+          <Icon name="check" size={20} className="text-success" />
+        ) : null}
         {t("ready.imDone")}
       </button>
       <span data-testid="ready-count" className="sb-field__help tabular-nums">

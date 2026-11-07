@@ -13,6 +13,7 @@ import {
   type PhasePlan,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
+import { useNarrow } from "../lib/useNarrow.js";
 import { Icon } from "./Icon.js";
 
 export interface PhaseStepperProps {
@@ -39,8 +40,13 @@ export function PhaseStepper({
   const { send } = useConnection();
   const sequence = enabledPhases(phasePlan);
   const currentIndex = sequence.indexOf(phase);
-  // sebaro's long form of the steps starts at five (D131).
-  const long = sequence.length >= 5;
+  // sebaro's long form of the steps starts at five (D131). RetroBeam keeps it
+  // only on a phone: from 640 px on the steps carry their names (owner,
+  // 2026-11-07, „nur Ziffern“ read as too little), and sb-fit.js still
+  // shortens them where a name does not fit. A deviation from D131, reported
+  // to sebaroDesign.
+  const narrow = useNarrow();
+  const long = sequence.length >= 5 && narrow;
   // Offer only steps the server's own transition table would accept, so the UI
   // cannot present a control that is guaranteed to be rejected. "done" is
   // terminal, and it used to render a "← Close" button that failed on every
@@ -121,13 +127,14 @@ export function PhaseStepper({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
         {/* sebaro's steps (spec/02 §3.12, sb-progress). A retro has 5 to 8
-            phases, so it takes the long form (D131): numbered marks, a check
+            phases; on a phone it takes the long form (D131): numbered marks, a check
             on the done ones, the words only for screen readers, and one line
-            under the bars, „Schritt 3 von 7 · Vorstellen“, at every width.
-            React renders that line itself (data-sb-own-now), so sb-fit.js
-            writes nothing into this tree; the long form is set on the first
-            render, so no word flashes up first. Fewer than 5 steps are left
-            to sb-fit.js, which shortens them only where a word does not fit. */}
+            under the bars, „Schritt 3 von 7 · Vorstellen“. React renders
+            that line itself (data-sb-own-now), so sb-fit.js writes nothing
+            into this tree; the long form is set on the first render, so no
+            word flashes up first. Wider, and with fewer than 5 steps, the
+            names stand and sb-fit.js shortens them only where a word does not
+            fit. */}
         <div className="sb-progress min-w-0 flex-[1_1_24rem]">
           <ol
             className="sb-progress__steps"
