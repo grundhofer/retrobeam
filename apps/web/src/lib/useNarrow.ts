@@ -21,3 +21,22 @@ function snapshot(): boolean {
 export function useNarrow(): boolean {
   return useSyncExternalStore(subscribe, snapshot, () => false);
 }
+
+// A window of 1024 px and more: room for the phase names in the steps
+// (PhaseStepper). Followed live, like useNarrow.
+const WIDE = "(min-width: 1024px)";
+
+function subscribeWide(onChange: () => void): () => void {
+  if (typeof matchMedia === "undefined") return () => undefined;
+  const list = matchMedia(WIDE);
+  list.addEventListener("change", onChange);
+  return () => list.removeEventListener("change", onChange);
+}
+
+function snapshotWide(): boolean {
+  return typeof matchMedia !== "undefined" && matchMedia(WIDE).matches;
+}
+
+export function useWide(): boolean {
+  return useSyncExternalStore(subscribeWide, snapshotWide, () => false);
+}
