@@ -227,7 +227,9 @@ export function PresenceRail({
             onClick={() => send({ type: "ready.set", ready: !youReady })}
             className="sb-secondary-action w-full"
           >
-            {youReady ? <Icon name="check" size={20} /> : null}
+            {youReady ? (
+              <Icon name="check" size={20} className="text-success" />
+            ) : null}
             {t("ready.imDone")}
           </button>
         </p>
@@ -388,12 +390,23 @@ function PresenceRow({
           {participant.name}
           {isYou ? ` ${t("roster.you")}` : null}
         </p>
-        {meta !== null ? <p className="sb-list-row__meta">{meta}</p> : null}
+        {meta !== null ? (
+          <p className="sb-list-row__meta">
+            {/* „fertig“ in the success green, word and check together
+                (owner, 2026-11-07); a span, as sebaro's unlayered row rule
+                would win over a utility on the p. */}
+            {meta === t("rail.ready") ? (
+              <span className="text-success">{meta}</span>
+            ) : (
+              meta
+            )}
+          </p>
+        ) : null}
       </div>
 
       {mode === "ready" && ready ? (
         <span className="sb-list-row__trail">
-          <Icon name="check" size={20} />
+          <Icon name="check" size={20} className="text-success" />
         </span>
       ) : null}
 

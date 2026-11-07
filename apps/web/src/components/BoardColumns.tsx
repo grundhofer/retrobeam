@@ -277,7 +277,13 @@ export function BoardColumns(props: BoardColumnsProps) {
             <Icon name="chevron-right" />
           </button>
         </div>
-        <div className="sb-board__columns">
+        {/* Room for a focus ring in the first and last column: sebaro gives
+            them a 1 px inner edge, a ring reaches 4 px past its field, and the
+            columns' scroll box cut it off (owner, 2026-11-07). The negative
+            margin keeps the columns where they were. Only in the column
+            layout: the swipe layout under 640 px has its own room. Reported
+            to sebaroDesign. */}
+        <div className="sb-board__columns @min-[640px]/sb-board:-mx-1 @min-[640px]/sb-board:px-1">
           {columns.map((column) => (
             <BoardColumn
               key={column.id}

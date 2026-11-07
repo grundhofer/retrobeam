@@ -735,7 +735,14 @@ function Room({
                   facilitator, inviting is the first job; for everyone else the
                   first thing to know is that they are in and what happens next.
                   The agenda follows. Sections on the page's own ground, no
-                  cards (sebaro). */}
+                  cards (sebaro). The list of who is here stands at the very
+                  top (owner, 2026-11-07): under the agenda it sat below the
+                  fold. */}
+                  <Roster
+                    participants={state.roster}
+                    youId={you.id}
+                    isAdmin={isAdmin}
+                  />
                   <section className="sb-stack">
                     <p data-testid="lobby-hint">
                       {isAdmin
@@ -766,11 +773,6 @@ function Room({
                     locked={config?.phasePlanLocked ?? false}
                     icebreakerId={state.icebreakerId}
                     workingAgreements={state.workingAgreements}
-                  />
-                  <Roster
-                    participants={state.roster}
-                    youId={you.id}
-                    isAdmin={isAdmin}
                   />
                 </div>
               ) : state.phase === "checkin" ? (
