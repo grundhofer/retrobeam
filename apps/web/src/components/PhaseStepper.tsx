@@ -13,7 +13,7 @@ import {
   type PhasePlan,
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
-import { useNarrow } from "../lib/useNarrow.js";
+import { useWide } from "../lib/useNarrow.js";
 import { Icon } from "./Icon.js";
 
 export interface PhaseStepperProps {
@@ -41,12 +41,37 @@ export function PhaseStepper({
   const sequence = enabledPhases(phasePlan);
   const currentIndex = sequence.indexOf(phase);
   // sebaro's long form of the steps starts at five (D131). RetroBeam keeps it
-  // only on a phone: from 640 px on the steps carry their names (owner,
-  // 2026-11-07, „nur Ziffern“ read as too little), and sb-fit.js still
-  // shortens them where a name does not fit. A deviation from D131, reported
-  // to sebaroDesign.
-  const narrow = useNarrow();
-  const long = sequence.length >= 5 && narrow;
+  // under 1024 px; from there the steps carry their names (owner, 2026-11-07,
+  // „nur Ziffern“ read as too little), where even eight names fit their
+  // columns. A deviation from D131, reported to sebaroDesign.
+  const wide = useWide();
+  const long = sequence.length >= 5 && !wide;
+  // sb-fit.js applies D131 itself on every pass (a resize, a theme change)
+  // and would put the numbers back. With the names wanted, its two
+  // attributes are taken off again in the same task — a MutationObserver
+  // runs before layout, so the bars never draw the numbers and its
+  // ResizeObserver sees no change to answer.
+  const stepsRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const steps = stepsRef.current;
+    // Fewer than five steps are sb-fit.js's own to shorten.
+    if (!steps || long || sequence.length < 5) return;
+    const names = () => {
+      if (steps.hasAttribute("data-sb-long"))
+        steps.removeAttribute("data-sb-long");
+      if (steps.hasAttribute("data-sb-fit"))
+        steps.removeAttribute("data-sb-fit");
+    };
+    names();
+    const observer = new MutationObserver(names);
+    observer.observe(steps, {
+      attributes: true,
+      attributeFilter: ["data-sb-long", "data-sb-fit"],
+    });
+    return () => observer.disconnect();
+  }, [long, sequence.length]);
+  const nowIndex = Math.max(0, currentIndex);
+  const nowAtStart = nowIndex < sequence.length / 2;
   // Offer only steps the server's own transition table would accept, so the UI
   // cannot present a control that is guaranteed to be rejected. "done" is
   // terminal, and it used to render a "← Close" button that failed on every
@@ -127,16 +152,17 @@ export function PhaseStepper({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
         {/* sebaro's steps (spec/02 §3.12, sb-progress). A retro has 5 to 8
-            phases; on a phone it takes the long form (D131): numbered marks, a check
+            phases; under 1024 px it takes the long form (D131): numbered marks, a check
             on the done ones, the words only for screen readers, and one line
             under the bars, „Schritt 3 von 7 · Vorstellen“. React renders
             that line itself (data-sb-own-now), so sb-fit.js writes nothing
             into this tree; the long form is set on the first render, so no
-            word flashes up first. Wider, and with fewer than 5 steps, the
-            names stand and sb-fit.js shortens them only where a word does not
-            fit. */}
+            word flashes up first. Wider, the names stand (see stepsRef); with
+            fewer than 5 steps sb-fit.js shortens them only where a word does
+            not fit. */}
         <div className="sb-progress min-w-0 flex-[1_1_24rem]">
           <ol
+            ref={stepsRef}
             className="sb-progress__steps"
             aria-label={t("phase.stepper")}
             data-sb-own-now=""
@@ -159,14 +185,38 @@ export function PhaseStepper({
             data-testid="phase-compact"
             className="sb-progress__now"
             aria-hidden="true"
+            // as wide as the bars, so its grid meets theirs: sebaro holds
+            // every p to the reading measure, and its unlayered rule would
+            // win over a utility
+            style={{ maxInlineSize: "none" }}
           >
-            {long
-              ? `${t("phase.stepOf", {
-                  current: currentIndex + 1,
-                  total: sequence.length,
-                })} · ${t(`phase.${phase}`)}`
-              : t(`phase.${phase}`)}
-            {timeLeft ? <> · {timeLeft}</> : null}
+            {/* Under the step it names (owner, 2026-11-07): the line stands
+                in the bars' own grid, from the current step to the end in
+                the first half, and from the start to the current step,
+                end-aligned, in the second, so it never runs out of the row. */}
+            <span
+              className="grid gap-1"
+              style={{
+                gridTemplateColumns: `repeat(${sequence.length}, minmax(0, 1fr))`,
+              }}
+            >
+              <span
+                className={nowAtStart ? "text-start" : "text-end"}
+                style={{
+                  gridColumn: nowAtStart
+                    ? `${nowIndex + 1} / -1`
+                    : `1 / ${nowIndex + 2}`,
+                }}
+              >
+                {long
+                  ? `${t("phase.stepOf", {
+                      current: currentIndex + 1,
+                      total: sequence.length,
+                    })} · ${t(`phase.${phase}`)}`
+                  : t(`phase.${phase}`)}
+                {timeLeft ? <> · {timeLeft}</> : null}
+              </span>
+            </span>
           </p>
         </div>
         {isAdmin && (previous !== null || next === "done") ? (

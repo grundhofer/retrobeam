@@ -30,7 +30,11 @@ export function RotiPoll({ readOnly = false }: { readOnly?: boolean }) {
     <section
       data-testid="roti-poll"
       aria-labelledby={`${name}-title`}
-      className="sb-stack mx-auto max-w-(--sb-size-measure-prose)"
+      className={
+        readOnly
+          ? "sb-stack max-w-(--sb-size-measure-prose)"
+          : "sb-stack mx-auto max-w-(--sb-size-measure-prose)"
+      }
     >
       <h2 id={`${name}-title`} className="sb-section__title">
         {t("roti.title")}
