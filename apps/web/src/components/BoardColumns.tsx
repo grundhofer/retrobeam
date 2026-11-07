@@ -327,7 +327,6 @@ function BoardColumn({
   presenterId,
   unpresentedAuthorIds,
   deciding,
-  focusMode = false,
   gifsEnabled,
   onDropNote,
   onUngroup,
