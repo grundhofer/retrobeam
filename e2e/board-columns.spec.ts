@@ -71,49 +71,42 @@ test("on a phone the columns are swiped, with a bar that says where you are", as
   await context.close();
 });
 
-// A member's one primary action while writing on a phone (owner,
-// 2026-11-05): „Neue Karte in „<Spalte>““ names the column in place, follows
-// the swipe, and takes the member into that column's field. The facilitator
-// keeps „Weiter: …“ as theirs.
-test("on a phone a member's primary action is a new card in the column in place", async ({
-  browser,
-}) => {
-  const annaContext = await newContext(browser, {
-    viewport: { width: 390, height: 844 },
-    reducedMotion: "reduce",
-  });
-  const anna = await annaContext.newPage();
-  await board(anna);
-  await expect(anna.getByTestId("new-card")).toHaveCount(0);
+// A member's one primary action is „Ich bin fertig“ (sebaro spec/03 §2, D39;
+// owner, 2026-11-07), at the bottom on a phone and on a desktop alike; the
+// facilitator keeps „Weiter: …“ there and their ready key in the rail.
+for (const width of [390, 1280]) {
+  test(`a member's primary action is „I'm done“ at ${width} px`, async ({
+    browser,
+  }) => {
+    const annaContext = await newContext(browser, {
+      viewport: { width, height: 844 },
+      reducedMotion: "reduce",
+    });
+    const anna = await annaContext.newPage();
+    await board(anna);
+    const zone = (page: typeof anna) =>
+      page.getByTestId("action-zone").locator(".sb-primary-action");
+    await expect(zone(anna)).toHaveText(/^(Next|Weiter): /);
+    await expect(anna.getByTestId("ready-toggle")).toHaveClass(
+      /sb-secondary-action/,
+    );
 
-  const benContext = await newContext(browser, {
-    viewport: { width: 390, height: 844 },
-    reducedMotion: "reduce",
+    const benContext = await newContext(browser, {
+      viewport: { width, height: 844 },
+      reducedMotion: "reduce",
+    });
+    const ben = await benContext.newPage();
+    await ben.goto(anna.url());
+    await ben.getByRole("textbox").fill("Ben");
+    await ben.getByRole("button", { name: /^(join|beitreten)$/i }).click();
+    await expect(zone(ben)).toHaveCount(1);
+    const done = zone(ben);
+    await expect(done).toHaveText(/^(I'm done|Ich bin fertig)$/);
+    await expect(done).toHaveAttribute("data-testid", "ready-toggle");
+    await done.click();
+    await expect(done).toHaveAttribute("aria-pressed", "true");
+    await expect(anna.getByTestId("ready-count")).toContainText(/1 (of|von) 2/);
+    await annaContext.close();
+    await benContext.close();
   });
-  const ben = await benContext.newPage();
-  await ben.goto(anna.url());
-  await ben.getByRole("textbox").fill("Ben");
-  await ben.getByRole("button", { name: /^(join|beitreten)$/i }).click();
-  const newCard = ben.getByTestId("new-card");
-  await expect(newCard).toHaveText(
-    /^(New card in “Went well”|Neue Karte in „Lief gut“)$/,
-  );
-  await ben
-    .getByRole("button", { name: /^(next column|nächste spalte)$/i })
-    .click();
-  await expect(ben.locator(".sb-board__position")).toHaveText(
-    /(Column|Spalte) 2 (of|von) 3/,
-  );
-  await expect(newCard).not.toHaveText(/Went well|Lief gut/);
-  await newCard.click();
-  const focused = await ben.evaluate(
-    () => document.activeElement?.getAttribute("data-testid") ?? "",
-  );
-  const second = await ben
-    .locator('[data-testid^="composer-"]')
-    .nth(1)
-    .getAttribute("data-testid");
-  expect(focused).toBe(second);
-  await annaContext.close();
-  await benContext.close();
-});
+}
