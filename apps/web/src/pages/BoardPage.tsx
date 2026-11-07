@@ -703,6 +703,7 @@ function Room({
                     readyIds={state.readyIds}
                     roster={state.roster}
                     youId={you.id}
+                    actionSlot={isAdmin ? null : actionSlot}
                   />
                 ) : null}
                 {state.phase === "vote" && config ? (
@@ -852,7 +853,6 @@ function Room({
                       />
                     ) : (
                       <BoardColumns
-                        actionSlot={isAdmin ? null : actionSlot}
                         columns={state.columns}
                         notes={state.notes}
                         columnCounts={state.columnCounts}
@@ -907,6 +907,7 @@ function Room({
                       anonymous={anonymous}
                       pickerStyle={pickerStyle}
                       onOpenCards={() => setCardsOpen(true)}
+                      actionSlot={isAdmin ? null : actionSlot}
                     />
                   )}
                 </div>

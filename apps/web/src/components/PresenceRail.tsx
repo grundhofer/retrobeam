@@ -16,6 +16,7 @@ import { useConnection } from "../lib/connection.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { Icon } from "./Icon.js";
+import { ReadyToggle } from "./ReadyToggle.js";
 import { PersonAvatar } from "./PersonAvatar.js";
 
 export interface PresenceRailProps {
@@ -35,6 +36,9 @@ export interface PresenceRailProps {
   pickerStyle?: PickerStyle;
   /** opens the full-screen face-down deck; the rail only launches it */
   onOpenCards?: () => void;
+  /** the action zone's slot, for a member only: their „Ich bin fertig“ goes
+   *  there as the one primary action (ReadyToggle) */
+  actionSlot?: HTMLElement | null;
 }
 
 // The rail wears three hats depending on the phase, but always as ONE list:
@@ -63,6 +67,7 @@ export function PresenceRail({
   anonymous = false,
   pickerStyle = "wheel",
   onOpenCards,
+  actionSlot = null,
 }: PresenceRailProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -216,22 +221,14 @@ export function PresenceRail({
         ))}
       </ul>
 
-      {mode === "ready" ? (
-        // One key with a fixed label, its state in aria-pressed and the check
-        // (as the check-in's ReadyBar).
+      {mode === "ready" && actionSlot !== null ? (
+        <ReadyToggle youReady={youReady} primarySlot={actionSlot} />
+      ) : mode === "ready" ? (
         <p className="lg:shrink-0">
-          <button
-            type="button"
-            data-testid="ready-toggle"
-            aria-pressed={youReady}
-            onClick={() => send({ type: "ready.set", ready: !youReady })}
+          <ReadyToggle
+            youReady={youReady}
             className="sb-secondary-action w-full"
-          >
-            {youReady ? (
-              <Icon name="check" size={20} className="text-success" />
-            ) : null}
-            {t("ready.imDone")}
-          </button>
+          />
         </p>
       ) : null}
 
