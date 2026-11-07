@@ -49,12 +49,23 @@ export function KudosWall({
   const byId = new Map(roster.map((p) => [p.id, p]));
 
   return (
-    <div className="sb-stack sb-stack--group mx-auto max-w-4xl">
+    // Centred on its own in the closing phase; in the results it is one
+    // section among the others and keeps their start edge (owner,
+    // 2026-11-07), without the invitation to send one.
+    <div
+      className={
+        readOnly
+          ? "sb-stack sb-stack--group"
+          : "sb-stack sb-stack--group mx-auto max-w-4xl"
+      }
+    >
       <section aria-labelledby="kudos-title" className="sb-stack">
         <h2 id="kudos-title" className="sb-section__title">
           {t("kudos.title")}
         </h2>
-        <p className="sb-page-lead__text">{t("kudos.subtitle")}</p>
+        {!readOnly ? (
+          <p className="sb-page-lead__text">{t("kudos.subtitle")}</p>
+        ) : null}
       </section>
 
       {!readOnly ? (
