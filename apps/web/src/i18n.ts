@@ -373,6 +373,7 @@ const resources = {
         votes_other: "{{count}}\u00a0votes",
         focusCard: "Discuss this card",
         clearFocus: "Show all cards",
+        backToTop: "Back to the top topics",
       },
       action: {
         title: "Action items",
@@ -1205,6 +1206,7 @@ const resources = {
         votes_other: "{{count}}\u00a0Stimmen",
         focusCard: "Diese Karte diskutieren",
         clearFocus: "Alle Karten zeigen",
+        backToTop: "Zurück zu den Top-Themen",
       },
       action: {
         title: "Action Items",

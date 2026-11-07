@@ -137,16 +137,29 @@ test("blind voting, crowns, discussion queue and action items", async ({
     "true",
   );
 
-  // Focus mode: with a card focused, the room sees ONLY that card — the
-  // moderator shares a screen, so the switch hides the rest rather than dimming
-  // it, on every participant's screen and not just the facilitator's.
+  // Focus mode: with a card focused, the room sees ONLY that card, on a
+  // stage instead of the columns, as when presenting (owner, 2026-11-07) —
+  // the moderator shares a screen, so the switch hides the rest rather than
+  // dimming it, on every participant's screen and not just the facilitator's.
   await expect(ben.getByTestId("note-card")).toHaveCount(2);
   await anna.getByTestId("focus-mode-toggle").click();
-  await expect(ben.getByTestId("note-card")).toHaveCount(1);
-  await expect(ben.getByTestId("note-card")).toContainText("Slow deploys");
+  const stage = ben.getByTestId("discuss-stage");
+  await expect(stage.getByTestId("note-card")).toHaveCount(1);
+  await expect(stage.getByTestId("note-card")).toContainText("Slow deploys");
+  await expect(ben.getByTestId("column-strip")).toBeHidden();
+  // Taking the focus off goes back to the top topics on the stage.
+  await anna
+    .getByTestId("discuss-stage")
+    .getByTestId("discuss-focus-card")
+    .click();
+  await expect(stage.getByTestId("vote-target")).not.toHaveCount(0);
+  await anna.getByTestId("discuss-chip-1").click();
+  await expect(stage.getByTestId("note-card")).toHaveCount(1);
   // And turning it back off restores the board instantly — nothing was
   // un-sent, so nothing has to be re-fetched.
   await anna.getByTestId("focus-mode-toggle").click();
+  await expect(stage).toHaveCount(0);
+  await expect(ben.getByTestId("column-strip")).toBeVisible();
   await expect(ben.getByTestId("note-card")).toHaveCount(2);
 
   // Action item with an owner, live on both screens; Ben checks it off.
