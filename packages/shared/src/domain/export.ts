@@ -104,6 +104,19 @@ export const boardExportSchema: z.ZodType<BoardExport> = z.object({
   ),
 });
 
+/** The snapshot without its GIFs, for an export asked without them
+ *  (`?gifs=false`, owner 2026-11-07): every note keeps its text, only the
+ *  picture address goes. */
+export function withoutGifs(data: BoardExport): BoardExport {
+  return {
+    ...data,
+    columns: data.columns.map((column) => ({
+      ...column,
+      notes: column.notes.map((note) => ({ ...note, gifUrl: null })),
+    })),
+  };
+}
+
 export const EXPORT_SCOPES = ["all", "summary"] as const;
 export type ExportScope = (typeof EXPORT_SCOPES)[number];
 

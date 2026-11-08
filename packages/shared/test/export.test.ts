@@ -10,6 +10,7 @@ import {
   toHtml,
   toJson,
   toMarkdown,
+  withoutGifs,
   type BoardExport,
 } from "../src/domain/export.js";
 
@@ -171,6 +172,18 @@ describe("toHtml", () => {
     expect(out).toContain("Summary (top cards &amp; action items)");
     expect(out).toContain("No top cards yet.");
     expect(out).toContain("(no action items)");
+  });
+});
+
+describe("withoutGifs", () => {
+  it("drops every GIF address and keeps the rest", () => {
+    const out = withoutGifs(sample);
+    expect(
+      out.columns.flatMap((c) => c.notes).every((n) => n.gifUrl === null),
+    ).toBe(true);
+    expect(toMarkdown(out)).not.toContain("g.gif");
+    expect(toMarkdown(out)).toContain("Line one line two");
+    expect(sample.columns[0]!.notes[1]!.gifUrl).not.toBeNull(); // not mutated
   });
 });
 

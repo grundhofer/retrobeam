@@ -242,6 +242,8 @@ function ExportBody({
     setScope,
     includeAuthors,
     setIncludeAuthors,
+    includeGifs,
+    setIncludeGifs,
     imaging,
     imageFailed,
     downloadImage,
@@ -285,6 +287,15 @@ function ExportBody({
           <span>{t("menu.includeAuthors")}</span>
         </label>
       )}
+      <label className="sb-checkbox">
+        <input
+          type="checkbox"
+          data-testid="export-include-gifs"
+          checked={includeGifs}
+          onChange={(event) => setIncludeGifs(event.target.checked)}
+        />
+        <span>{t("menu.includeGifs")}</span>
+      </label>
       <div role="group" aria-label={t("menu.exportFormat")}>
         <div className="sb-cluster">
           {EXPORT_DOWNLOADS.map((format) =>

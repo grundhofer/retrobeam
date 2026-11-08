@@ -673,6 +673,38 @@ describe("gif URL safety", () => {
     if (created.type !== "note.created") throw new Error("unreachable");
     expect(created.note.gifUrl).toBe("https://media.klipy.com/party.gif");
   });
+
+  it("exports a GIF by default and leaves it out with ?gifs=false", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    await advance(admin, ["write"]);
+    const noteId = newId();
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId,
+      columnId,
+      text: "good gif",
+      gifUrl: "https://media.klipy.com/party.gif",
+    });
+    await admin.socket.waitFor((e) => e.type === "note.created");
+    // every card is in the export once the presenting round is over
+    await advance(admin, ["present", "vote"]);
+    const base = `https://example.com/api/boards/${boardId}/export`;
+    for (const format of ["md", "json", "csv"]) {
+      const withGifs = await (
+        await SELF.fetch(`${base}?format=${format}`)
+      ).text();
+      expect(withGifs).toContain("party.gif");
+      const without = await (
+        await SELF.fetch(`${base}?format=${format}&gifs=false`)
+      ).text();
+      expect(without).not.toContain("party.gif");
+      expect(without).toContain("good gif");
+    }
+  });
 });
 
 describe("kudos wall re-entry", () => {
