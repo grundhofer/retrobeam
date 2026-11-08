@@ -841,6 +841,9 @@ export class BoardRoom extends DurableObject<Env> {
       case "admin.board.keep":
         detach("board.keep", this.handleBoardKeep(ws, participant));
         return;
+      case "admin.board.autoDelete":
+        detach("board.autoDelete", this.handleBoardAutoDelete(ws, participant));
+        return;
       case "admin.board.delete":
         detach("board.delete", this.handleBoardDelete(ws, participant));
         return;
@@ -1504,8 +1507,9 @@ export class BoardRoom extends DurableObject<Env> {
 
     // The results page says how many people took part. Everyone who ever
     // joined has a participants row, and joining a finished board to read it
-    // adds one more — so the number is taken HERE, once ("done" is terminal),
-    // rather than counted from the roster later.
+    // adds one more — so the number is taken HERE, on every entry into "done"
+    // (a reopened retro finished again counts again), rather than counted
+    // from the roster later.
     let headcount: number | undefined;
     if (target === "done") {
       headcount = this.roster().length;
@@ -3891,6 +3895,33 @@ export class BoardRoom extends DurableObject<Env> {
       type: "retention.changed",
       seq: this.nextSeq(),
       retentionAt: null,
+    });
+  }
+
+  // „Board behalten“ taken back: the board deletes itself again, a fresh
+  // retention window from now (as a new or copied board gets), never the old
+  // date, which may already have passed.
+  private async handleBoardAutoDelete(
+    ws: WebSocket,
+    participant: ParticipantRow,
+  ): Promise<void> {
+    if (participant.role !== "facilitator") {
+      this.reject(
+        ws,
+        undefined,
+        "NOT_ADMIN",
+        "Only the facilitator manages retention",
+      );
+      return;
+    }
+    if (this.retentionAt() !== null) return;
+    const retentionAt = Date.now() + RETENTION_MS;
+    this.setMeta("retentionAt", String(retentionAt));
+    await this.rescheduleAlarm();
+    this.broadcastAll({
+      type: "retention.changed",
+      seq: this.nextSeq(),
+      retentionAt,
     });
   }
 

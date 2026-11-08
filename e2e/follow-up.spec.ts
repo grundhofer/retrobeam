@@ -34,10 +34,9 @@ test("a follow-up retro opens on last time's open Action Items", async ({
     .getByRole("checkbox")
     .check();
 
-  // close → done (the last step asks first)
+  // close → done
   await anna.getByTestId("phase-next").click();
   await anna.getByTestId("phase-next").click();
-  await anna.getByTestId("phase-done-confirm").click();
 
   const followUp = anna.getByTestId("results-follow-up");
   await expect(followUp).toBeVisible();

@@ -184,21 +184,16 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await expect(ben.getByTestId("crown")).toHaveCount(0);
   await expect(ben.getByTestId("tally")).toHaveCount(0);
 
-  // Back through the reveal and the close, and finish. The last step is the
-  // one nobody can take back, so it asks first — and until it is confirmed,
-  // nothing has happened on anybody's screen.
+  // Back through the reveal and the close, and finish: the facilitator's
+  // primary action, like every other step (owner, 2026-11-07).
   await anna.getByTestId("phase-next").click(); // discuss, re-revealed
   await expect(ben.getByTestId("crown").first()).toBeVisible();
   await anna.getByTestId("phase-next").click(); // close
   await expect(anna.getByTestId("phase-next")).toContainText(/finish|beenden/i);
-  await anna.getByTestId("phase-next").click();
-  await expect(anna.getByTestId("phase-done-question")).toContainText(
-    /read-only|schreibgeschützt/i,
-  );
   await expect(ben.getByTestId("results-header")).toHaveCount(0);
-  await anna.getByTestId("phase-done-confirm").click();
-  // The confirm button is gone with the phase row; focus lands on the result
-  // rather than falling back to the top of the document.
+  await anna.getByTestId("phase-next").click();
+  // The key is gone with the phase; focus lands on the result rather than
+  // falling back to the top of the document.
   await expect(anna.getByTestId("results-title")).toBeFocused();
 
   // The results page leads with the outcome: the crowned topic in first place

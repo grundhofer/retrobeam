@@ -92,11 +92,21 @@ test("the layout is a segmented choice that applies at once", async () => {
 test("a board with a deletion date can be kept", async () => {
   const { sent, element } = view({ retentionAt: Date.UTC(2027, 0, 31) });
   const screen = await render(element);
-  await expect
-    .element(screen.getByTestId("retention"))
-    .toHaveTextContent("2027-01-31");
-  await screen.getByTestId("keep-board").click();
+  const keep = screen.getByTestId("keep-board");
+  await expect.element(keep).toHaveAttribute("aria-checked", "false");
+  await expect.element(keep).toHaveAccessibleDescription(/2027-01-31/);
+  await keep.click();
   expect(sent).toEqual([{ type: "admin.board.keep" }]);
+});
+
+// Both ways (owner, 2026-11-07): a kept board may delete itself again.
+test("a kept board can be set to delete itself again", async () => {
+  const { sent, element } = view({ retentionAt: null });
+  const screen = await render(element);
+  const keep = screen.getByTestId("keep-board");
+  await expect.element(keep).toHaveAttribute("aria-checked", "true");
+  await keep.click();
+  expect(sent).toEqual([{ type: "admin.board.autoDelete" }]);
 });
 
 // Everyone has the language; the board's switches are the facilitator's.

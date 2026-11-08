@@ -28,14 +28,10 @@ test("the results copy the summary as HTML and Markdown", async ({
   const composer = page.locator('[data-testid^="composer-"]').first();
   await composer.fill("Deploys are slow");
   await composer.press("Enter");
-  // write → present → vote → discuss → close, then the finish question
+  // write → present → vote → discuss → close, then finish
   for (let i = 0; i < 4; i++) await page.getByTestId("phase-next").click();
   await expect(page.getByTestId("phase-next")).toContainText(/finish|beenden/i);
   await page.getByTestId("phase-next").click();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: /finish|beenden/i })
-    .click();
   await expect(page.getByTestId("results-header")).toBeVisible();
 
   await page.getByTestId("results-copy-rich").click();

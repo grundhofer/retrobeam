@@ -205,27 +205,26 @@ export function BoardSettings({
                 ))}
               </div>
             </fieldset>
-            <div className="sb-stack">
-              <p data-testid="retention">
-                {retentionAt === null
+            {/* A switch, both ways (owner, 2026-11-07): kept boards may
+                delete themselves again, a fresh 90 days from then. Its
+                sentence says what happens now. */}
+            <SwitchField
+              label={t("menu.keepBoard")}
+              checked={retentionAt === null}
+              testId="keep-board"
+              help={
+                retentionAt === null
                   ? t("menu.retentionKept")
                   : t("menu.retentionNotice", {
                       date: formatDate(retentionAt),
-                    })}
-              </p>
-              {retentionAt !== null ? (
-                <p>
-                  <button
-                    type="button"
-                    data-testid="keep-board"
-                    onClick={() => send({ type: "admin.board.keep" })}
-                    className="sb-secondary-action"
-                  >
-                    {t("menu.keep")}
-                  </button>
-                </p>
-              ) : null}
-            </div>
+                    })
+              }
+              onChange={(keep) =>
+                send({
+                  type: keep ? "admin.board.keep" : "admin.board.autoDelete",
+                })
+              }
+            />
           </>
         ) : null}
       </div>

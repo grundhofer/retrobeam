@@ -498,7 +498,7 @@ const resources = {
         templateLinkNoVisible: "No visible columns to put in a link.",
         retentionNotice: "Auto-deletes on {{date}}",
         retentionKept: "This board is kept (no auto-delete).",
-        keep: "Keep",
+        keepBoard: "Keep this board",
       },
       guide: {
         checkin: {
@@ -1341,7 +1341,7 @@ const resources = {
         templateLinkNoVisible: "Keine sichtbaren Spalten für einen Link.",
         retentionNotice: "Löscht sich automatisch am {{date}}",
         retentionKept: "Dieses Board wird behalten (keine Auto-Löschung).",
-        keep: "Behalten",
+        keepBoard: "Board behalten",
       },
       guide: {
         checkin: {

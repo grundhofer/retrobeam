@@ -299,6 +299,52 @@ describe("ROTI closing poll", () => {
     expect(sync.roti.released).toBe(false);
   });
 
+  // A finished retro opens again one step back (owner, 2026-11-07). The poll
+  // whose result is out stays closed: a second round of answers could be
+  // differenced against the published average.
+  it("a reopened retro keeps the published ROTI closed and can finish again", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    const cara = await joined(boardId, "Cara");
+    await toClose(admin);
+    for (const [who, score] of [
+      [admin, 4],
+      [ben, 3],
+      [cara, 5],
+    ] as const) {
+      who.socket.send({ type: "roti.set", score });
+    }
+    await admin.socket.waitFor(
+      (e) => e.type === "roti.aggregate" && e.count === 3,
+    );
+    await toPhase(admin.socket, "done");
+    const released = await admin.socket.waitFor(
+      (e) => e.type === "roti.aggregate" && e.released,
+    );
+    if (released.type !== "roti.aggregate") throw new Error("unreachable");
+
+    // only one step back
+    admin.socket.send({ type: "admin.phase.set", phase: "write" });
+    const refused = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("INVALID");
+
+    await toPhase(admin.socket, "close");
+    ben.socket.send({ type: "roti.set", score: 1 });
+    const locked = await ben.socket.waitForNext((e) => e.type === "reject");
+    if (locked.type !== "reject") throw new Error("unreachable");
+    expect(locked.code).toBe("PHASE_LOCKED");
+
+    await toPhase(admin.socket, "done");
+    admin.socket.send({ type: "resync" });
+    const sync = await admin.socket.waitForNext((e) => e.type === "sync");
+    if (sync.type !== "sync") throw new Error("unreachable");
+    expect(sync.phase).toBe("done");
+    expect(sync.roti.average).toBe(released.average);
+    expect(sync.roti.count).toBe(3);
+  });
+
   it("publishes the average ONCE at the end, never as a running mean", async () => {
     // A running mean re-broadcast per submission is differenceable: an observer
     // holding two consecutive aggregates computes n*avg(n) - (n-1)*avg(n-1) and

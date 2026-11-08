@@ -128,12 +128,9 @@ test("board fits a phone", async ({ browser }) => {
   await step(anna, ben, /close|abschluss/i);
   await expectFits(anna, ben, "close");
 
-  // Finishing asks first, and the question fits the phone too.
+  // Finishing is the bottom key, on the phone too.
+  await expectOnScreen(anna.getByTestId("phase-next"));
   await anna.getByTestId("phase-next").click();
-  await expectOnScreen(anna.getByTestId("phase-done-question"));
-  await expectOnScreen(anna.getByTestId("phase-done-confirm"));
-  await expectFits(anna, ben, "finish question");
-  await anna.getByTestId("phase-done-confirm").click();
   await expect(anna.getByTestId("phase-compact")).toContainText(/done|fertig/i);
   await expect(ben.getByTestId("phase-compact")).toContainText(/done|fertig/i);
   await expectFits(anna, ben, "done");
