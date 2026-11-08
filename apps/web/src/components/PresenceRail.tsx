@@ -30,10 +30,6 @@ export interface PresenceRailProps {
   /** anonymous board: nobody is called up, so the presenting phase gets no
    *  rotation board and no cockpit — the server refuses a spin there anyway */
   anonymous?: boolean;
-  /** current draw skin — the facilitator switches it from the cockpit */
-  pickerStyle?: PickerStyle;
-  /** opens the full-screen face-down deck; the rail only launches it */
-  onOpenCards?: () => void;
 }
 
 // The rail wears two hats depending on the phase, but always as ONE list:
@@ -57,8 +53,6 @@ export function PresenceRail({
   isAdmin,
   scopedRound = false,
   anonymous = false,
-  pickerStyle = "wheel",
-  onOpenCards,
 }: PresenceRailProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -67,39 +61,10 @@ export function PresenceRail({
   const mode =
     anonymous && phase === "present" ? "presence" : modeForPhase(phase);
 
-  // Same in-flight guard as the old picker panel: no spinning (or hand-picking)
-  // while the wheel is still animating.
-  const lastSpin = useBoardStore((store) => store.state.lastSpin);
-  const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
-  const now = useNow();
-  const spinning =
-    lastSpin !== null &&
-    now <
-      lastSpin.startAt - clockOffsetMs + lastSpin.durationMs + WHEEL_HOLD_MS;
+  const spinning = useSpinning();
 
   const onlineCount = roster.filter((p) => p.online).length;
   const finished = picker !== null && pickerFinished(picker);
-  const onlineRemaining =
-    picker?.remaining.filter((id) =>
-      roster.some((p) => p.id === id && p.online),
-    ).length ?? 0;
-  const cardCount =
-    onlineRemaining > 0 ? onlineRemaining : (picker?.remaining.length ?? 0);
-
-  // Spin control label — spin, then next … until the pool empties.
-  const spinLabel =
-    picker === null
-      ? null
-      : picker.remaining.length > 0
-        ? picker.current !== null || picker.presented.length > 0
-          ? t("picker.next")
-          : pickerStyle === "slots"
-            ? t("picker.startSlots")
-            : t("picker.spin")
-        : picker.current !== null
-          ? t("picker.finishRound")
-          : null;
-
   const youArePresenting = mode === "present" && picker?.current === you.id;
 
   // sebaro (plan stage 5f): a column of the page beside the board, its
@@ -122,60 +87,6 @@ export function PresenceRail({
           {t("rail.online", { count: onlineCount })}
         </span>
       </h2>
-
-      {mode === "present" && isAdmin && !finished && spinLabel !== null ? (
-        <div className="sb-cluster lg:shrink-0">
-          {pickerStyle === "cards" && cardCount > 0 ? (
-            <button
-              type="button"
-              data-testid="open-card-picker"
-              aria-busy={spinning || undefined}
-              disabled={spinning}
-              onClick={onOpenCards}
-              className="sb-secondary-action sb-secondary-action--compact"
-            >
-              <Icon name="pages" size={20} />
-              {t("picker.chooseCard")}
-            </button>
-          ) : (
-            <button
-              type="button"
-              data-testid="spin-button"
-              aria-busy={spinning || undefined}
-              disabled={spinning}
-              onClick={() => send({ type: "admin.picker.spin" })}
-              className="sb-secondary-action sb-secondary-action--compact"
-            >
-              <Icon
-                name={pickerStyle === "slots" ? "slots" : "wheel"}
-                size={20}
-              />
-              {spinLabel}
-            </button>
-          )}
-          {picker?.current != null ? (
-            <button
-              type="button"
-              onClick={() => send({ type: "admin.picker.skip" })}
-              className="sb-secondary-action sb-secondary-action--compact"
-            >
-              {t("picker.skip")}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* The draw's SKIN, right beside the button that runs it — the one
-          place a facilitator is actually looking when choosing between a
-          wheel and a slot machine. Its own bay rather than inside the cockpit
-          above: that block hides itself once the rotation is exhausted, and
-          the skin is a board setting — a facilitator setting up the next
-          round must still be able to change it. */}
-      {mode === "present" && isAdmin ? (
-        <div className="lg:shrink-0">
-          <PickerStyleSelect style={pickerStyle} disabled={spinning} />
-        </div>
-      ) : null}
 
       {mode === "present" && finished ? (
         <p
@@ -250,6 +161,108 @@ export function PresenceRail({
 // The draw skin picker. Sends the same admin.picker.style command the board
 // menu used to own; the menu no longer carries a second copy of it, because two
 // controls for one setting is how they drift.
+// Same in-flight guard as the old picker panel: no spinning (or hand-picking)
+// while the wheel is still animating.
+function useSpinning(): boolean {
+  const lastSpin = useBoardStore((store) => store.state.lastSpin);
+  const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
+  const now = useNow();
+  return (
+    lastSpin !== null &&
+    now < lastSpin.startAt - clockOffsetMs + lastSpin.durationMs + WHEEL_HOLD_MS
+  );
+}
+
+// The draw's keys and its skin: session controls, so they stand in the
+// facilitator's „Moderation“ group (owner, 2026-11-08), not in the column of
+// people. Spin, then next … until the pool empties; skip the current one; the
+// skin beside the key that runs it, also once the round is through (it is a
+// board setting, and the next round may want another).
+export function PickerControls({
+  picker,
+  roster,
+  pickerStyle,
+  onOpenCards,
+}: {
+  picker: PickerState | null;
+  roster: Participant[];
+  pickerStyle: PickerStyle;
+  onOpenCards?: (() => void) | undefined;
+}) {
+  const { t } = useTranslation();
+  const { send } = useConnection();
+  const spinning = useSpinning();
+  const finished = picker !== null && pickerFinished(picker);
+  const onlineRemaining =
+    picker?.remaining.filter((id) =>
+      roster.some((p) => p.id === id && p.online),
+    ).length ?? 0;
+  const cardCount =
+    onlineRemaining > 0 ? onlineRemaining : (picker?.remaining.length ?? 0);
+
+  // Spin control label — spin, then next … until the pool empties.
+  const spinLabel =
+    picker === null
+      ? null
+      : picker.remaining.length > 0
+        ? picker.current !== null || picker.presented.length > 0
+          ? t("picker.next")
+          : pickerStyle === "slots"
+            ? t("picker.startSlots")
+            : t("picker.spin")
+        : picker.current !== null
+          ? t("picker.finishRound")
+          : null;
+
+  return (
+    <>
+      {!finished && spinLabel !== null ? (
+        <div className="sb-cluster">
+          {pickerStyle === "cards" && cardCount > 0 ? (
+            <button
+              type="button"
+              data-testid="open-card-picker"
+              aria-busy={spinning || undefined}
+              disabled={spinning}
+              onClick={onOpenCards}
+              className="sb-secondary-action sb-secondary-action--compact"
+            >
+              <Icon name="pages" size={20} />
+              {t("picker.chooseCard")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              data-testid="spin-button"
+              aria-busy={spinning || undefined}
+              disabled={spinning}
+              onClick={() => send({ type: "admin.picker.spin" })}
+              className="sb-secondary-action sb-secondary-action--compact"
+            >
+              <Icon
+                name={pickerStyle === "slots" ? "slots" : "wheel"}
+                size={20}
+              />
+              {spinLabel}
+            </button>
+          )}
+          {picker?.current != null ? (
+            <button
+              type="button"
+              onClick={() => send({ type: "admin.picker.skip" })}
+              className="sb-secondary-action sb-secondary-action--compact"
+            >
+              {t("picker.skip")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <PickerStyleSelect style={pickerStyle} disabled={spinning} />
+    </>
+  );
+}
+
 function PickerStyleSelect({
   style,
   disabled,

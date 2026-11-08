@@ -6,7 +6,7 @@ import { render } from "vitest-browser-react";
 import type { Participant, PickerState } from "@retrobeam/shared";
 import i18n from "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
-import { PresenceRail } from "./PresenceRail.js";
+import { PickerControls, PresenceRail } from "./PresenceRail.js";
 
 const anna: Participant = {
   id: "a".repeat(32),
@@ -38,14 +38,7 @@ test("the initial action follows the selected slots tool", async () => {
     <ConnectionProvider
       value={{ boardId: "b".repeat(32), send: vi.fn(), mutate: vi.fn() }}
     >
-      <PresenceRail
-        phase="present"
-        roster={[anna]}
-        picker={picker}
-        you={anna}
-        isAdmin
-        pickerStyle="slots"
-      />
+      <PickerControls picker={picker} roster={[anna]} pickerStyle="slots" />
     </ConnectionProvider>,
   );
 
@@ -81,19 +74,16 @@ test("an anonymous board calls nobody up, and says why the wheel is missing", as
   expect(document.querySelector(`[data-testid='pick-${ben.name}']`)).toBeNull();
 });
 
-test("cards open the full-screen selection instead of rendering in the rail", async () => {
+test("cards open the full-screen selection instead of rendering in the group", async () => {
   const send = vi.fn();
   const openCards = vi.fn();
   const screen = await render(
     <ConnectionProvider
       value={{ boardId: "b".repeat(32), send, mutate: vi.fn() }}
     >
-      <PresenceRail
-        phase="present"
-        roster={[anna, ben]}
+      <PickerControls
         picker={{ ...picker, remaining: [anna.id, ben.id] }}
-        you={anna}
-        isAdmin
+        roster={[anna, ben]}
         pickerStyle="cards"
         onOpenCards={openCards}
       />

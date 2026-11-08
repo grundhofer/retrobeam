@@ -17,7 +17,7 @@ import { ConnectionProvider } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { FocusToggle } from "./FocusToggle.js";
 import { RoundStatus } from "./RoundStatus.js";
-import { VoteBar } from "./VoteBar.js";
+import { VoteBar, VoteSettings } from "./VoteBar.js";
 
 // The phase strip's parts in sebaro (plan stage 5c): the round's ready key and
 // status (RoundStatus), the vote's
@@ -142,13 +142,12 @@ test("votes: what is left is a sentence, the privacy line stands for everyone", 
       votes: { ...store.state.votes, mine: { x: 1 } },
     },
   }));
-  const member = await render(
-    connected([], <VoteBar config={config} isAdmin={false} />),
-  );
+  const member = await render(connected([], <VoteBar config={config} />));
   await expect
     .element(member.getByTestId("votes-remaining"))
     .toHaveTextContent(/2\D+3/);
   await expect.element(member.getByTestId("vote-privacy")).toBeVisible();
+  // the set-up is the facilitator's, in the „Moderation“ group (VoteSettings)
   expect(member.getByTestId("vote-settings").elements()).toHaveLength(0);
   await member.unmount();
 
@@ -158,9 +157,7 @@ test("votes: what is left is a sentence, the privacy line stands for everyone", 
       votes: { ...store.state.votes, mine: { x: 2, y: 1 } },
     },
   }));
-  const spent = await render(
-    connected([], <VoteBar config={config} isAdmin={false} />),
-  );
+  const spent = await render(connected([], <VoteBar config={config} />));
   await expect
     .element(spent.getByTestId("votes-remaining"))
     .toHaveTextContent(
@@ -171,7 +168,7 @@ test("votes: what is left is a sentence, the privacy line stands for everyone", 
 test("votes: the facilitator sets the vote up in a dialog, empty means no cap", async () => {
   const sent: ClientCommand[] = [];
   const screen = await render(
-    connected(sent, <VoteBar config={config} isAdmin />),
+    connected(sent, <VoteSettings config={config} />),
   );
   await screen.getByTestId("vote-settings").click();
   const max = screen.getByLabelText(new RegExp(i18n.t("vote.maxPerTarget")));
