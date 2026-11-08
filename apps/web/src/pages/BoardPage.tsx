@@ -67,7 +67,7 @@ type Gate =
   | { step: "loading" }
   | { step: "missing" }
   | { step: "error" }
-  | { step: "join"; board: BoardInfo }
+  | { step: "join"; board: BoardInfo; takenName?: string }
   | { step: "room"; board: BoardInfo; displayName: string };
 
 export function BoardPage() {
@@ -147,6 +147,7 @@ export function BoardPage() {
       return (
         <JoinGate
           board={gate.board}
+          takenName={gate.takenName}
           onJoin={(displayName) =>
             setGate({ step: "room", board: gate.board, displayName })
           }
@@ -161,6 +162,13 @@ export function BoardPage() {
           displayName={gate.displayName}
           fromAdminLink={adminLinks > 0}
           adminLinkConflict={adminLinkConflict}
+          onNameTaken={() =>
+            setGate({
+              step: "join",
+              board: gate.board,
+              takenName: gate.displayName,
+            })
+          }
         />
       );
   }
@@ -168,13 +176,19 @@ export function BoardPage() {
 
 function JoinGate({
   board,
+  takenName,
   onJoin,
 }: {
   board: BoardInfo;
+  /** the name the server refused: someone in this board already has it */
+  takenName?: string | undefined;
   onJoin: (name: string) => void;
 }) {
   const { t } = useTranslation();
-  const [name, setName] = useState(() => loadDisplayName() ?? "");
+  const [name, setName] = useState(() => takenName ?? loadDisplayName() ?? "");
+  // The server's refusal stands at the field until the name is changed.
+  const taken = takenName !== undefined && name.trim() === takenName;
+  const takenId = useId();
   // Same as the create form: the button stays pressable and an empty name is
   // answered at the field (sebaro STA-03).
   const nameField = useMissingField();
@@ -213,6 +227,9 @@ function JoinGate({
               <div className="sb-field__control">
                 <input
                   {...nameField.fieldProps}
+                  {...(taken
+                    ? { "aria-invalid": true, "aria-describedby": takenId }
+                    : {})}
                   type="text"
                   autoFocus
                   value={name}
@@ -228,6 +245,15 @@ function JoinGate({
                 <p className="sb-field__error" id={nameField.messageId}>
                   <Icon name="error--filled-16" size={16} />
                   {t("join.nameMissing")}
+                </p>
+              ) : taken ? (
+                <p
+                  className="sb-field__error"
+                  id={takenId}
+                  data-testid="join-name-taken"
+                >
+                  <Icon name="error--filled-16" size={16} />
+                  {t("join.nameTaken", { name: takenName })}
                 </p>
               ) : null}
               <p role="status" className="sb-visually-hidden">
@@ -256,6 +282,7 @@ function Room({
   displayName,
   fromAdminLink,
   adminLinkConflict,
+  onNameTaken,
 }: {
   boardId: string;
   board: BoardInfo;
@@ -264,6 +291,8 @@ function Room({
   fromAdminLink: boolean;
   // ...and the latest one differed from the token already stored here.
   adminLinkConflict: boolean;
+  /** the server refused the name: someone in this board already has it */
+  onNameTaken: () => void;
 }) {
   const { t } = useTranslation();
   const state = useBoardStore((store) => store.state);
@@ -288,6 +317,11 @@ function Room({
   const rejectHandlers = useRef(new Map<string, () => void>());
   // Whether the first sync after a facilitator link has been checked yet.
   const adminLinkChecked = useRef(false);
+  // Read through a ref, so a new callback from the gate does not reconnect.
+  const onNameTakenRef = useRef(onNameTaken);
+  useEffect(() => {
+    onNameTakenRef.current = onNameTaken;
+  }, [onNameTaken]);
 
   const connection = useMemo<BoardConnection>(
     () => ({
@@ -367,6 +401,13 @@ function Room({
           clearNotices();
         }
         if (event.type === "phase.changed") clearNotices();
+        // The name is someone else's here: back to the join form, which says
+        // so at the field. Closing stops the socket from rejoining with it.
+        if (event.type === "error" && event.code === "NAME_TAKEN") {
+          socket.close();
+          onNameTakenRef.current();
+          return;
+        }
         if (event.type === "error" && event.code === "RATE_LIMIT") {
           notify("reject.RATE_LIMIT", "warning");
         }

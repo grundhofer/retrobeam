@@ -64,3 +64,14 @@ export function nameMonogram(name: string): string {
   const source = words[0] ?? name.trim();
   return firstGrapheme(source).toUpperCase();
 }
+
+/** The form two display names are compared in: one name per board (owner,
+ *  2026-11-08), so „Anna“, „anna“ and „ Anna “ are the same person to the
+ *  room — and to a status line that names who is still open. */
+export function displayNameKey(name: string): string {
+  return name
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/gu, " ")
+    .toLocaleLowerCase();
+}

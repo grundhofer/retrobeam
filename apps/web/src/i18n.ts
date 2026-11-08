@@ -94,6 +94,8 @@ const resources = {
         title: "Join “{{board}}”",
         yourName: "Your name",
         nameMissing: "Your name is missing.",
+        nameTaken:
+          "Someone in this board is already called “{{name}}”. Add to your name, for example “{{name}} B.”",
         submit: "Join",
       },
       lobby: {
@@ -933,6 +935,8 @@ const resources = {
         title: "„{{board}}“ beitreten",
         yourName: "Dein Name",
         nameMissing: "Dein Name fehlt.",
+        nameTaken:
+          "In diesem Board heißt schon jemand „{{name}}“. Ergänze deinen Namen, etwa zu „{{name}} B.“",
         submit: "Beitreten",
       },
       lobby: {

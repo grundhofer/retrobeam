@@ -906,6 +906,8 @@ export const serverEventSchema = z.discriminatedUnion("type", [
       "BOARD_NOT_FOUND",
       "RATE_LIMIT",
       "CURSOR_BUDGET",
+      // the requested name is already someone else's in this board
+      "NAME_TAKEN",
     ]),
     message: z.string(),
   }),
