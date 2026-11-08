@@ -105,9 +105,7 @@ test("write → reveal core loop with two participants", async ({ browser }) => 
     await expect(page.getByTestId("phase-compact")).toContainText(
       /5\s(min left|Min\.)/,
     );
-    await expect(page.getByTestId(where)).toContainText(
-      /5\s(min left|Min\.)/,
-    );
+    await expect(page.getByTestId(where)).toContainText(/5\s(min left|Min\.)/);
     await expect(page.getByTestId(where)).not.toContainText(/\d:\d\d/);
   }
   await expect(anna.getByTestId("zone-status")).not.toContainText(/Min/);
