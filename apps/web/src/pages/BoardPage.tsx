@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useMatch, useParams } from "react-router";
 import {
@@ -45,7 +45,7 @@ import { Icon } from "../components/Icon.js";
 import { MAIN_ID } from "../components/SkipLink.js";
 import { SiteHeader } from "../components/SiteHeader.js";
 import { StateView } from "../components/StateView.js";
-import { TimeLeft, TimerPanel } from "../components/TimerPanel.js";
+import { TimeLeft, TimerPanel, TimeState } from "../components/TimerPanel.js";
 import { VoteBar } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
 import { adoptAdminLink } from "../lib/adminLink.js";
@@ -431,9 +431,12 @@ function Room({
   // The action zone's state sentence: the phase's guide and the time box.
   const timerActive =
     state.timer.endsAt !== null || state.timer.pausedRemainingMs !== null;
+  // The facilitator reads the time in the „Moderation“ group, beside its
+  // keys; the action zone keeps the time for everyone else.
   const hasStatus =
     phaseGuideKey({ phase: state.phase, isAdmin, anonymous }) !== null ||
-    timerActive;
+    (timerActive && !isAdmin);
+  const moderationId = useId();
   const surface = boardSurface(
     layout,
     state.phase,
@@ -682,18 +685,45 @@ function Room({
           <>
             {!inLobby && state.phase !== "done" ? (
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-6 py-2 empty:hidden">
-                <TimerPanel timer={state.timer} isAdmin={isAdmin} />
-                {/* Top-centre, in the phase strip rather than the header: every
-                other phase-scoped control lives here, and the header already
-                has one primary element (the phase stepper). Only where it
-                bites — presenting a person's cards, and walking the crowned
-                ones in the discussion. */}
-                {/* Not while presenting on an anonymous board: nobody is on stage
-                there, so the switch would have nothing to act on. */}
-                {(state.phase === "present" && !anonymous) ||
-                state.phase === "discuss" ? (
+                {/* The facilitator's session controls as one named group,
+                „Moderation“ (owner, 2026-11-07; sebaro's named tool row, like
+                the reader's „Leser“): the time box keys with the time's state
+                beside them, and the focus switch. Navigation (← Lobby) stays
+                with the steps; content and structure actions stay with the
+                board. Focus mode only where it bites — presenting a person's
+                cards, and walking the crowned ones in the discussion; not
+                while presenting on an anonymous board, where nobody is on
+                stage. */}
+                {isAdmin ? (
+                  <div
+                    role="group"
+                    aria-labelledby={moderationId}
+                    data-testid="moderation"
+                    className="flex flex-wrap items-center gap-x-3 gap-y-2"
+                  >
+                    <span
+                      id={moderationId}
+                      className="text-caption [font-weight:var(--sb-type-title-weight)] text-text-muted"
+                    >
+                      {t("timer.moderation")}
+                    </span>
+                    <TimerPanel timer={state.timer} isAdmin />
+                    <TimeState timer={state.timer} />
+                    {(state.phase === "present" && !anonymous) ||
+                    state.phase === "discuss" ? (
+                      <>
+                        <span
+                          aria-hidden="true"
+                          className="self-stretch border-s border-border"
+                        />
+                        <FocusToggle focusMode={focusMode} isAdmin />
+                      </>
+                    ) : null}
+                  </div>
+                ) : (state.phase === "present" && !anonymous) ||
+                  state.phase === "discuss" ? (
                   <div className="mx-auto">
-                    <FocusToggle focusMode={focusMode} isAdmin={isAdmin} />
+                    <FocusToggle focusMode={focusMode} isAdmin={false} />
                   </div>
                 ) : null}
                 {/* Ready lives in the presence rail for the board phases; check-in
@@ -938,7 +968,9 @@ function Room({
                       isAdmin={isAdmin}
                       anonymous={anonymous}
                     />{" "}
-                    <TimeLeft timer={state.timer} form="sentence" />
+                    {isAdmin ? null : (
+                      <TimeLeft timer={state.timer} form="sentence" />
+                    )}
                     {pointerCount > 0 ? (
                       <>
                         {" "}

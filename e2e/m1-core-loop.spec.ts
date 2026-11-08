@@ -96,15 +96,19 @@ test("write → reveal core loop with two participants", async ({ browser }) => 
   // name and in the action zone's state sentence — no seconds, no clock. Ben
   // has no keys.
   await anna.getByRole("button", { name: /^5\s(min|Min\.)$/ }).click();
-  for (const page of [anna, ben]) {
+  // The facilitator reads it beside the keys, in the „Moderation“ group;
+  // everyone else in the action zone (owner, 2026-11-07).
+  for (const [page, where] of [
+    [anna, "time-state"],
+    [ben, "zone-status"],
+  ] as const) {
     await expect(page.getByTestId("phase-compact")).toContainText(
       /5\s(min left|Min\.)/,
     );
-    await expect(page.getByTestId("zone-status")).toContainText(
-      /5\s(min left|Min\.)/,
-    );
-    await expect(page.getByTestId("zone-status")).not.toContainText(/\d:\d\d/);
+    await expect(page.getByTestId(where)).toContainText(/5\s(min left|Min\.)/);
+    await expect(page.getByTestId(where)).not.toContainText(/\d:\d\d/);
   }
+  await expect(anna.getByTestId("zone-status")).not.toContainText(/Min/);
   await expect(ben.getByRole("button", { name: /pause/i })).toHaveCount(0);
 
   await annaContext.close();

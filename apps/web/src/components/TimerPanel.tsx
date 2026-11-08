@@ -39,6 +39,31 @@ export function TimeLeft({
   }
 }
 
+// The time box's state where the facilitator's keys are (owner, 2026-11-07):
+// sebaro's state voice, sb-status — the words in the text colour with their
+// glyph, so it stands apart from the grey guidance around it. A status region
+// that speaks at most once a minute, like TimeLeft itself.
+export function TimeState({ timer }: { timer: Timer }) {
+  const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
+  const now = useNow();
+  const box = timeBox(timer, now + clockOffsetMs);
+  if (box.kind === "idle") return null;
+  const icon =
+    box.kind === "paused" ? "pause" : box.kind === "up" ? "warning" : "timer";
+  return (
+    <p
+      role="status"
+      data-testid="time-state"
+      className={`sb-status ${box.kind === "up" ? "sb-status--warning" : "sb-status--info"}`}
+    >
+      <Icon name={icon} size={16} />
+      <span>
+        <TimeLeft timer={timer} form="sentence" />
+      </span>
+    </p>
+  );
+}
+
 // The facilitator's time box keys (RB-1): a length to start with, then
 // „Pause“ / „Weiter“, „+1 Min.“ and „Stopp“, all secondary. Members have no
 // keys here; they read the time in the head and the action zone. The chime

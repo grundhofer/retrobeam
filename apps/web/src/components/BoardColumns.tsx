@@ -302,7 +302,9 @@ export function BoardColumns(props: BoardColumnsProps) {
             <button
               type="button"
               onClick={() => setAddingColumn(true)}
-              className="sb-secondary-action sb-secondary-action--compact"
+              // A rare change to the board's structure: a text action, so it
+              // does not weigh like the session's controls (owner, 2026-11-07)
+              className="sb-text-action sb-text-action--compact"
             >
               <Icon name="plus" size={20} />
               {t("column.addColumn")}

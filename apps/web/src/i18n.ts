@@ -204,6 +204,7 @@ const resources = {
         count: "{{ready}} of {{total}} done",
       },
       timer: {
+        moderation: "Facilitation",
         label: "Time box",
         pause: "Pause",
         resume: "Resume",
@@ -222,7 +223,7 @@ const resources = {
         },
       },
       note: {
-        placeholder: "Write a note … (Enter to add)",
+        placeholder: "Write a note …",
         add: "Add",
         edit: "Edit note",
         more: "More for this note",
@@ -1036,9 +1037,10 @@ const resources = {
         count: "{{ready}} von {{total}} fertig",
       },
       timer: {
+        moderation: "Moderation",
         label: "Zeitbox",
         pause: "Pause",
-        resume: "Weiter",
+        resume: "Fortsetzen",
         stop: "Stopp",
         extend: "+1\u00a0Min.",
         minutes: "{{count}}\u00a0Min.",
@@ -1054,7 +1056,7 @@ const resources = {
         },
       },
       note: {
-        placeholder: "Notiz schreiben … (Enter zum Hinzufügen)",
+        placeholder: "Notiz schreiben …",
         add: "Hinzufügen",
         edit: "Notiz bearbeiten",
         more: "Mehr zu dieser Notiz",
