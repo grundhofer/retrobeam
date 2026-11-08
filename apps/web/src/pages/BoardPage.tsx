@@ -38,7 +38,7 @@ import { LegalFooter } from "../components/LegalFooter.js";
 import { PhaseStepper } from "../components/PhaseStepper.js";
 import { PhasePlanPanel } from "../components/PhasePlanPanel.js";
 import { PresenceRail } from "../components/PresenceRail.js";
-import { ReadyBar } from "../components/ReadyBar.js";
+import { RoundStatus } from "../components/RoundStatus.js";
 import { Roster } from "../components/Roster.js";
 import { ShareLink } from "../components/ShareLink.js";
 import { Icon } from "../components/Icon.js";
@@ -416,6 +416,9 @@ function Room({
     state.phase === "close" ||
     state.phase === "done";
   const showActions = talliesShown;
+  // The phases that wait for everyone to finish: the round's status stands
+  // above the board instead of the side rail.
+  const roundPhase = state.phase === "write" || state.phase === "vote";
 
   // Which surface the board area renders: classic columns, the freeform canvas,
   // or the presenter reader. Canvas is confined to write + the between-presenters
@@ -726,16 +729,6 @@ function Room({
                     <FocusToggle focusMode={focusMode} isAdmin={false} />
                   </div>
                 ) : null}
-                {/* Ready lives in the presence rail for the board phases; check-in
-                has no rail, so keep the inline toggle there. */}
-                {state.phase === "checkin" ? (
-                  <ReadyBar
-                    readyIds={state.readyIds}
-                    roster={state.roster}
-                    youId={you.id}
-                    actionSlot={isAdmin ? null : actionSlot}
-                  />
-                ) : null}
                 {state.phase === "vote" && config ? (
                   <VoteBar config={config} isAdmin={isAdmin} />
                 ) : null}
@@ -818,10 +811,19 @@ function Room({
                   </div>
                 </div>
               ) : state.phase === "checkin" ? (
-                <CheckinPanel
-                  icebreakerId={state.icebreakerId}
-                  workingAgreements={state.workingAgreements}
-                />
+                <>
+                  <RoundStatus
+                    roster={state.roster}
+                    readyIds={state.readyIds}
+                    you={you}
+                    isAdmin={isAdmin}
+                    actionSlot={isAdmin ? null : actionSlot}
+                  />
+                  <CheckinPanel
+                    icebreakerId={state.icebreakerId}
+                    workingAgreements={state.workingAgreements}
+                  />
+                </>
               ) : state.phase === "close" ? (
                 <div className="flex flex-col gap-8">
                   <KudosWall
@@ -854,104 +856,115 @@ function Room({
                   gifsEnabled={gifsEnabled}
                 />
               ) : (
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-                  <div className="min-w-0 flex-1">
-                    {/* On a phone a canvas board shows its zones as the
+                <>
+                  {/* The round's status above the board while everyone is
+                    asked to finish (sketch B2a), instead of the side rail. */}
+                  {roundPhase ? (
+                    <RoundStatus
+                      roster={state.roster}
+                      readyIds={state.readyIds}
+                      you={you}
+                      isAdmin={isAdmin}
+                      actionSlot={isAdmin ? null : actionSlot}
+                    />
+                  ) : null}
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+                    <div className="min-w-0 flex-1">
+                      {/* On a phone a canvas board shows its zones as the
                         board's swiping columns (owner, 2026-11-05): at the
                         zoom that fits a phone a card is some 35 px wide and
                         its keys cannot keep their size. The places stay
                         stored; a card written here is placed on the canvas. */}
-                    {surface === "canvas" && !narrow ? (
-                      <BoardCanvas
-                        columns={state.columns}
-                        notes={state.notes}
-                        columnCounts={state.columnCounts}
-                        canvasOccupancy={state.canvasOccupancy}
-                        roster={state.roster}
-                        you={you}
-                        phase={state.phase}
-                        editing={state.editing}
-                        isAdmin={isAdmin}
-                        presenterId={presenterId}
-                        unpresentedAuthorIds={unpresentedAuthorIds}
-                        gifsEnabled={gifsEnabled}
-                        cursors={state.cursors}
-                        cursorsEnabled={cursorsShown}
-                      />
-                    ) : surface === "focus" && presenter ? (
-                      <PresenterFocus
-                        notes={state.notes}
-                        columns={state.columns}
-                        roster={state.roster}
-                        you={you}
-                        phase={state.phase}
-                        isAdmin={isAdmin}
-                        presenter={presenter}
-                        spotlightId={state.spotlightId}
-                        focusMode={focusMode}
-                        picker={state.picker}
-                        pickerStyle={pickerStyle}
-                      />
-                    ) : (
-                      <BoardColumns
-                        columns={state.columns}
-                        notes={state.notes}
-                        columnCounts={state.columnCounts}
-                        roster={state.roster}
-                        you={you}
-                        phase={state.phase}
-                        editing={state.editing}
-                        isAdmin={isAdmin}
-                        presenterId={presenterId}
-                        unpresentedAuthorIds={unpresentedAuthorIds}
-                        deciding={{
-                          voteActive: state.phase === "vote",
-                          mine: state.votes.mine,
-                          remaining: Math.max(
-                            0,
-                            (config?.votesPerPerson ?? 0) - usedVotes,
-                          ),
-                          maxPerTarget: config?.maxPerTarget ?? null,
-                          talliesShown,
-                          tallies: state.votes.tallies,
-                          topTargetIds: state.votes.topTargetIds,
-                          voters: state.votes.voters,
-                          focusId: state.discussFocusId,
-                        }}
-                        focusMode={focusMode}
-                        gifsEnabled={gifsEnabled}
-                      />
-                    )}
-                  </div>
-                  {/* One right-hand column, never two. In the discussion phase the
+                      {surface === "canvas" && !narrow ? (
+                        <BoardCanvas
+                          columns={state.columns}
+                          notes={state.notes}
+                          columnCounts={state.columnCounts}
+                          canvasOccupancy={state.canvasOccupancy}
+                          roster={state.roster}
+                          you={you}
+                          phase={state.phase}
+                          editing={state.editing}
+                          isAdmin={isAdmin}
+                          presenterId={presenterId}
+                          unpresentedAuthorIds={unpresentedAuthorIds}
+                          gifsEnabled={gifsEnabled}
+                          cursors={state.cursors}
+                          cursorsEnabled={cursorsShown}
+                        />
+                      ) : surface === "focus" && presenter ? (
+                        <PresenterFocus
+                          notes={state.notes}
+                          columns={state.columns}
+                          roster={state.roster}
+                          you={you}
+                          phase={state.phase}
+                          isAdmin={isAdmin}
+                          presenter={presenter}
+                          spotlightId={state.spotlightId}
+                          focusMode={focusMode}
+                          picker={state.picker}
+                          pickerStyle={pickerStyle}
+                        />
+                      ) : (
+                        <BoardColumns
+                          columns={state.columns}
+                          notes={state.notes}
+                          columnCounts={state.columnCounts}
+                          roster={state.roster}
+                          you={you}
+                          phase={state.phase}
+                          editing={state.editing}
+                          isAdmin={isAdmin}
+                          presenterId={presenterId}
+                          unpresentedAuthorIds={unpresentedAuthorIds}
+                          deciding={{
+                            voteActive: state.phase === "vote",
+                            mine: state.votes.mine,
+                            remaining: Math.max(
+                              0,
+                              (config?.votesPerPerson ?? 0) - usedVotes,
+                            ),
+                            maxPerTarget: config?.maxPerTarget ?? null,
+                            talliesShown,
+                            tallies: state.votes.tallies,
+                            topTargetIds: state.votes.topTargetIds,
+                            voters: state.votes.voters,
+                            focusId: state.discussFocusId,
+                          }}
+                          focusMode={focusMode}
+                          gifsEnabled={gifsEnabled}
+                        />
+                      )}
+                    </div>
+                    {/* One right-hand column, never two. In the discussion phase the
                   rail is a heading and a roster list and nothing else (its
                   ready toggle and picker cockpit are write/vote/present only),
                   and that roster is already in the header — so 288px of
                   duplicate was pushing board columns out of view in exactly
                   the phase that also pays 320px for the action list. */}
-                  {showActions ? (
-                    <ActionsPanel
-                      actions={state.actions}
-                      roster={state.roster}
-                      you={you}
-                      readOnly={false}
-                    />
-                  ) : (
-                    <PresenceRail
-                      phase={state.phase}
-                      roster={state.roster}
-                      readyIds={state.readyIds}
-                      picker={state.picker}
-                      you={you}
-                      isAdmin={isAdmin}
-                      scopedRound={scopedRound}
-                      anonymous={anonymous}
-                      pickerStyle={pickerStyle}
-                      onOpenCards={() => setCardsOpen(true)}
-                      actionSlot={isAdmin ? null : actionSlot}
-                    />
-                  )}
-                </div>
+                    {showActions ? (
+                      <ActionsPanel
+                        actions={state.actions}
+                        roster={state.roster}
+                        you={you}
+                        readOnly={false}
+                      />
+                    ) : roundPhase ? null : (
+                      <PresenceRail
+                        phase={state.phase}
+                        roster={state.roster}
+                        picker={state.picker}
+                        you={you}
+                        isAdmin={isAdmin}
+                        scopedRound={scopedRound}
+                        anonymous={anonymous}
+                        pickerStyle={pickerStyle}
+                        onOpenCards={() => setCardsOpen(true)}
+                      />
+                    )}
+                  </div>
+                </>
               )}
             </main>
             {/* The bottom block (sebaro spec/03 §2): a child of the view

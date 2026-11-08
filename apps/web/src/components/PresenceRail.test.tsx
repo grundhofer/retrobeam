@@ -41,7 +41,6 @@ test("the initial action follows the selected slots tool", async () => {
       <PresenceRail
         phase="present"
         roster={[anna]}
-        readyIds={[]}
         picker={picker}
         you={anna}
         isAdmin
@@ -66,7 +65,6 @@ test("an anonymous board calls nobody up, and says why the wheel is missing", as
       <PresenceRail
         phase="present"
         roster={[anna, ben]}
-        readyIds={[]}
         picker={{ ...picker, remaining: [anna.id, ben.id] }}
         you={anna}
         isAdmin
@@ -93,7 +91,6 @@ test("cards open the full-screen selection instead of rendering in the rail", as
       <PresenceRail
         phase="present"
         roster={[anna, ben]}
-        readyIds={[]}
         picker={{ ...picker, remaining: [anna.id, ben.id] }}
         you={anna}
         isAdmin

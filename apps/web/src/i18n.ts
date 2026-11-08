@@ -199,6 +199,13 @@ const resources = {
           },
         },
       },
+      round: {
+        title: "Round",
+        open: "Still open:",
+        stillOpen: "still open",
+        allDone: "Everyone is done.",
+        all: "All {{count}}",
+      },
       ready: {
         imDone: "I'm done",
         count: "{{ready}} of {{total}} done",
@@ -1031,6 +1038,13 @@ const resources = {
             description: "Mit Wertschätzung und kurzer Bewertung abschließen.",
           },
         },
+      },
+      round: {
+        title: "Runde",
+        open: "Noch offen:",
+        stillOpen: "noch offen",
+        allDone: "Alle sind fertig.",
+        all: "Alle {{count}}",
       },
       ready: {
         imDone: "Ich bin fertig",
