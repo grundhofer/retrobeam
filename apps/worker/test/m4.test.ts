@@ -883,3 +883,51 @@ describe("retention", () => {
     expect(await stub.info()).not.toBeNull();
   });
 });
+
+// One name per board (owner, 2026-11-08): a status that names who is still
+// open needs the name to say who. Only a new person or a new name is checked.
+describe("unique names", () => {
+  it("refuses a name someone in the board already has, in any spelling", async () => {
+    const { boardId, adminToken } = await createBoard();
+    await joined(boardId, "Anna", adminToken);
+    for (const name of ["Anna", "anna", "  ANNA "]) {
+      const socket = await connect(boardId);
+      socket.send({ type: "join", name });
+      const refused = await socket.waitFor(
+        (e) => e.type === "error" || e.type === "sync",
+      );
+      expect(refused.type).toBe("error");
+      if (refused.type === "error") expect(refused.code).toBe("NAME_TAKEN");
+    }
+    const other = await joined(boardId, "Anna B.");
+    expect(other.you.name).toBe("Anna B.");
+  });
+
+  it("lets the same person back in under the same name", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const first = await joined(boardId, "Anna", adminToken);
+    const sessionKey = first.sync.you.sessionKey;
+    const again = await connect(boardId);
+    again.send({ type: "join", name: "Anna", sessionKey });
+    const sync = await again.waitFor(
+      (e) => e.type === "sync" || e.type === "error",
+    );
+    expect(sync.type).toBe("sync");
+  });
+
+  it("refuses renaming yourself to someone else's name", async () => {
+    const { boardId, adminToken } = await createBoard();
+    await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    const again = await connect(boardId);
+    again.send({
+      type: "join",
+      name: "anna",
+      sessionKey: ben.sync.you.sessionKey,
+    });
+    const refused = await again.waitFor(
+      (e) => e.type === "error" || e.type === "sync",
+    );
+    expect(refused.type).toBe("error");
+  });
+});

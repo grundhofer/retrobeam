@@ -23,6 +23,7 @@ import {
   pickerKnows,
   pickerStateSchema,
   planJoin,
+  displayNameKey,
   publicReveal,
   revealFor,
   rotationExhausted,
@@ -984,6 +985,22 @@ export class BoardRoom extends DurableObject<Env> {
       newId: generateSecret(),
     });
     const participant = plan.participant;
+
+    // One name per board (owner, 2026-11-08): a status that names who is
+    // still open, the voters, the presenter — all need the name to say who.
+    // Only a new person or a new name is checked, so a returning participant
+    // (and a board that already holds a duplicate) is never locked out.
+    if (
+      (existingRow === null || existingRow.name !== participant.name) &&
+      this.nameTaken(participant.name, participant.id)
+    ) {
+      this.send(ws, {
+        type: "error",
+        code: "NAME_TAKEN",
+        message: "That name is already someone else's in this board",
+      });
+      return;
+    }
     // Adopt the client-minted key (shape-checked by the protocol schema) so a
     // retried first join reclaims the same identity; mint only for keyless
     // clients (e.g. storage-less browsers).
@@ -1043,6 +1060,17 @@ export class BoardRoom extends DurableObject<Env> {
       ws,
     );
     this.broadcastMeter();
+  }
+
+  private nameTaken(name: string, ownId: string): boolean {
+    const key = displayNameKey(name);
+    return this.sql
+      .exec("SELECT id, name FROM participants")
+      .toArray()
+      .some(
+        (row) =>
+          String(row.id) !== ownId && displayNameKey(String(row.name)) === key,
+      );
   }
 
   private handleDisconnect(closingSocket: WebSocket): void {

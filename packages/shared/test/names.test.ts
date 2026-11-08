@@ -65,3 +65,12 @@ describe("nameGraphemes", () => {
     expect(nameGraphemes("🇩🇪")).toHaveLength(1);
   });
 });
+
+describe("displayNameKey", () => {
+  it("compares names the way the room reads them", async () => {
+    const { displayNameKey } = await import("../src/domain/names.js");
+    expect(displayNameKey("  Anna ")).toBe(displayNameKey("anna"));
+    expect(displayNameKey("Anna  B.")).toBe(displayNameKey("anna b."));
+    expect(displayNameKey("Anna")).not.toBe(displayNameKey("Anna B."));
+  });
+});
