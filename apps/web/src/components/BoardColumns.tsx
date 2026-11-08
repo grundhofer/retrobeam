@@ -188,54 +188,81 @@ export function BoardColumns(props: BoardColumnsProps) {
     return () => script.teardown?.(board);
   }, []);
 
+  // Focus mode in the discussion: like presenting, the room sees a stage
+  // instead of the columns (owner, 2026-11-07) — the card being discussed,
+  // large and centred, or, before one is picked, the top topics to pick
+  // from. With nothing voted the columns stay.
+  const stageIds =
+    props.focusMode && phase === "discuss"
+      ? deciding.focusId !== null
+        ? [deciding.focusId]
+        : deciding.topTargetIds
+      : [];
+
   return (
     <div className="sb-stack pb-4">
-      <div
-        ref={boardRef}
-        id={boardId}
-        data-testid="column-strip"
-        className="sb-board"
-      >
-        <div className="sb-board__nav" hidden>
-          <button
-            type="button"
-            className="sb-icon-button"
-            data-sb-board-step="-1"
-            aria-label={t("column.previous")}
-          >
-            <Icon name="chevron-left" />
-          </button>
-          <p className="sb-board__position" />
-          <button
-            type="button"
-            className="sb-icon-button"
-            data-sb-board-step="1"
-            aria-label={t("column.next")}
-          >
-            <Icon name="chevron-right" />
-          </button>
-        </div>
-        {/* Room for a focus ring in the first and last column: sebaro gives
+      {stageIds.length > 0 ? (
+        <DiscussStage
+          targetIds={stageIds}
+          notes={notes}
+          columns={columns}
+          deciding={deciding}
+          roster={props.roster}
+          you={props.you}
+          isAdmin={isAdmin}
+          onVote={castVote}
+        />
+      ) : null}
+      {/* Kept mounted while the stage stands, so sb-board.js stays set up;
+          the wrapper hides it (sebaro's .sb-board would outrank [hidden]). */}
+      <div hidden={stageIds.length > 0}>
+        <div
+          ref={boardRef}
+          id={boardId}
+          data-testid="column-strip"
+          className="sb-board"
+        >
+          <div className="sb-board__nav" hidden>
+            <button
+              type="button"
+              className="sb-icon-button"
+              data-sb-board-step="-1"
+              aria-label={t("column.previous")}
+            >
+              <Icon name="chevron-left" />
+            </button>
+            <p className="sb-board__position" />
+            <button
+              type="button"
+              className="sb-icon-button"
+              data-sb-board-step="1"
+              aria-label={t("column.next")}
+            >
+              <Icon name="chevron-right" />
+            </button>
+          </div>
+          {/* Room for a focus ring in the first and last column: sebaro gives
             them a 1 px inner edge, a ring reaches 4 px past its field, and the
             columns' scroll box cut it off (owner, 2026-11-07). The negative
             margin keeps the columns where they were. Only in the column
             layout: the swipe layout under 640 px has its own room. Reported
             to sebaroDesign. */}
-        <div className="sb-board__columns @min-[640px]/sb-board:-mx-1 @min-[640px]/sb-board:px-1">
-          {columns.map((column) => (
-            <BoardColumn
-              key={column.id}
-              column={column}
-              {...props}
-              onDropNote={groupNotes}
-              onUngroup={ungroupNote}
-              onMoveToColumn={allowColumnDrop ? moveNote : null}
-              onVote={castVote}
-            />
-          ))}
+          <div className="sb-board__columns @min-[640px]/sb-board:-mx-1 @min-[640px]/sb-board:px-1">
+            {columns.map((column) => (
+              <BoardColumn
+                key={column.id}
+                column={column}
+                {...props}
+                onDropNote={groupNotes}
+                onUngroup={ungroupNote}
+                onMoveToColumn={allowColumnDrop ? moveNote : null}
+                onVote={castVote}
+              />
+            ))}
+          </div>
         </div>
       </div>
-      {manageColumns ? (
+      {manageColumns && stageIds.length === 0 ? (
         // Outside the board: a facilitator-only affordance must not take a
         // column's place and narrow the facilitator's board.
         addingColumn ? (
@@ -300,7 +327,6 @@ function BoardColumn({
   presenterId,
   unpresentedAuthorIds,
   deciding,
-  focusMode = false,
   gifsEnabled,
   onDropNote,
   onUngroup,
@@ -452,21 +478,6 @@ function BoardColumn({
       { type: "column.updated", seq: 0, column: { ...column, hidden } },
     );
   }
-
-  // Focus mode in the DISCUSSION phase: show the room only what it is talking
-  // about. With a card focused that is the focused votable; otherwise it is the
-  // crowned top-N — which is the "only show the top cards" half of the ask.
-  // Deliberately NOT applied while voting: the whole point of that phase is
-  // that every card is votable, and there are no top cards yet (voting is
-  // blind, so topTargetIds is empty until the reveal).
-  const focusVisible: ((targetId: string) => boolean) | null =
-    focusMode && phase === "discuss"
-      ? deciding.focusId !== null
-        ? (targetId) => targetId === deciding.focusId
-        : deciding.topTargetIds.length > 0
-          ? (targetId) => deciding.topTargetIds.includes(targetId)
-          : null
-      : null;
 
   const cardProps = {
     roster,
@@ -658,7 +669,6 @@ function BoardColumn({
         ))}
         {items.map((item, index) => {
           const targetId = item.kind === "note" ? item.note.id : item.groupId;
-          if (focusVisible !== null && !focusVisible(targetId)) return null;
           return (
             <TargetFrame
               key={targetId}
@@ -727,6 +737,113 @@ export function readingOrder(byOrder: boolean) {
 
 // A stack's frame: its cards, bundled and counted. Shared with the results
 // page, whose crowned stacks must look like the ones the room voted on.
+// The discussion's stage (focus mode): one card, or the top topics, out of
+// their columns and centred, as the presenting stage does it. A change of
+// card comes from the facilitator's screen, so the stage says what it now
+// holds.
+function DiscussStage({
+  targetIds,
+  notes,
+  columns,
+  deciding,
+  roster,
+  you,
+  isAdmin,
+  onVote,
+}: {
+  targetIds: string[];
+  notes: Note[];
+  columns: Column[];
+  deciding: DecidingState;
+  roster: Participant[];
+  you: Participant;
+  isAdmin: boolean;
+  onVote: (targetId: string, delta: 1 | -1) => void;
+}) {
+  const { t } = useTranslation();
+  const { send } = useConnection();
+  const anonymous = useBoardStore(
+    (store) => store.state.config?.anonymous ?? false,
+  );
+  const single = deciding.focusId !== null;
+  const order = readingOrder(!anonymous);
+  return (
+    <div
+      data-testid="discuss-stage"
+      aria-live="polite"
+      aria-atomic={single}
+      className={`mx-auto w-full ${single ? "max-w-3xl" : "max-w-5xl"}`}
+    >
+      <ol
+        className={
+          single
+            ? "sb-stack"
+            : "grid grid-cols-[repeat(auto-fill,minmax(min(15rem,100%),1fr))] items-start gap-4"
+        }
+      >
+        {targetIds.map((targetId, index) => {
+          const members = notes
+            .filter((n) => n.id === targetId || n.groupId === targetId)
+            .sort(order);
+          const first = members[0];
+          if (first === undefined) return null;
+          const columnName =
+            columns.find((c) => c.id === first.columnId)?.name ?? "";
+          const card = (note: Note) => (
+            <NoteCard
+              key={note.id}
+              note={note}
+              revealIndex={index}
+              roster={roster}
+              you={you}
+              phase="discuss"
+              isAdmin={isAdmin}
+              presenterId={null}
+              unpresentedAuthorIds={null}
+              interactive={false}
+              gifsEnabled={false}
+              onDropNote={() => {}}
+              onUngroup={() => {}}
+            />
+          );
+          return (
+            <li key={targetId} className="sb-stack">
+              <h3 className="sb-field__label m-0">{columnName}</h3>
+              <TargetFrame
+                targetId={targetId}
+                deciding={deciding}
+                roster={roster}
+                onVote={onVote}
+                onFocus={
+                  isAdmin
+                    ? () =>
+                        send({
+                          type: "admin.discuss.focus",
+                          targetId:
+                            deciding.focusId === targetId ? null : targetId,
+                        })
+                    : null
+                }
+                // on the stage, taking the focus off goes back to the top
+                // topics, not to every card
+                clearLabel={t("discuss.backToTop")}
+              >
+                {members.length > 1 ? (
+                  <NoteStack count={members.length}>
+                    {members.map(card)}
+                  </NoteStack>
+                ) : (
+                  card(first)
+                )}
+              </TargetFrame>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 export function NoteStack({
   count,
   children,
@@ -754,6 +871,7 @@ export function TargetFrame({
   roster,
   onVote,
   onFocus,
+  clearLabel,
   children,
 }: {
   targetId: string;
@@ -761,6 +879,8 @@ export function TargetFrame({
   roster: Participant[];
   onVote: (targetId: string, delta: 1 | -1) => void;
   onFocus: (() => void) | null;
+  /** what taking the focus off leads back to, when not all cards */
+  clearLabel?: string;
   children: React.ReactNode;
 }) {
   const { t } = useTranslation();
@@ -812,7 +932,9 @@ export function TargetFrame({
             className="sb-chip"
           >
             <Icon name="check" size={16} />
-            {focused ? t("discuss.clearFocus") : t("discuss.focusCard")}
+            {focused
+              ? (clearLabel ?? t("discuss.clearFocus"))
+              : t("discuss.focusCard")}
           </button>
         </div>
       ) : null}

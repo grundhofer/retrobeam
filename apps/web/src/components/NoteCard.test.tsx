@@ -12,6 +12,7 @@ import {
   type ServerEvent,
 } from "@retrobeam/shared";
 import "../i18n.js";
+import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { NoteCard } from "./NoteCard.js";
@@ -98,6 +99,57 @@ test("the speaker's card is marked, the rest of the board is not", async () => {
       .at(-1)
       ?.getAttribute("data-presenting"),
   ).toBe(null);
+});
+
+// The card is sebaro's two-column board card (title and the handles' auto
+// column). A picture or the reactions left in that auto column squeezed the
+// title to a letter per line and stacked the reactions (owner, 2026-11-07).
+test("a GIF and the reactions take the card's whole width", async () => {
+  const connection = {
+    boardId: "a".repeat(32),
+    send: (_command: ClientCommand) => {},
+    mutate: (
+      _command: ClientCommand,
+      _optimistic: ServerEvent | ServerEvent[],
+    ) => {},
+  };
+  const screen = await render(
+    <div className="sb-board" style={{ width: 280 }}>
+      <ConnectionProvider value={connection}>
+        <NoteCard
+          note={{
+            ...note(anna.id),
+            text: "asdfsadfs",
+            gifUrl:
+              "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+          }}
+          roster={[anna, ben]}
+          you={ben}
+          phase="discuss"
+          isAdmin={false}
+          revealIndex={0}
+          presenterId={null}
+          unpresentedAuthorIds={null}
+          gifsEnabled={false}
+          onDropNote={() => {}}
+          onUngroup={() => {}}
+        />
+      </ConnectionProvider>
+    </div>,
+  );
+  const card = screen.getByTestId("note-card").element();
+  const width = card
+    .querySelector(".sb-card__title")!
+    .getBoundingClientRect().width;
+  const img = card.querySelector("img")!;
+  const reactions = card.querySelector(
+    '[data-testid^="react-"]',
+  )!.parentElement!;
+  // the title keeps its width, and the picture and the reactions span the
+  // whole card (both columns), so neither is narrower than the title
+  expect(width).toBeGreaterThan(200);
+  expect(img.getBoundingClientRect().width).toBeGreaterThanOrEqual(width);
+  expect(reactions.getBoundingClientRect().width).toBeGreaterThanOrEqual(width);
 });
 
 test("a card the room has not been shown is marked as pending", async () => {

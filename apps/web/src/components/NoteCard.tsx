@@ -484,7 +484,10 @@ export function NoteCard({
               alt=""
               loading="lazy"
               referrerPolicy="no-referrer"
-              className="max-h-40 w-full object-contain"
+              // The whole width, like the meta line below: in the card's
+              // auto column the picture took the width and squeezed the title
+              // to a letter per line (owner, 2026-11-07).
+              className="col-span-full max-h-40 w-full object-contain"
             />
           ) : null}
           {/* The meta line spans the card (sebaro's board card puts it under
@@ -606,7 +609,7 @@ export function NoteCard({
                 setArranging(false);
                 arrangeTrigger.current?.focus();
               }}
-              className={`${ARRANGE_PANEL} ${
+              className={`col-span-full ${ARRANGE_PANEL} ${
                 arrangeScale === null
                   ? "border-t border-border pt-2"
                   : `mt-1 ${CARD_SURFACE}`
@@ -715,7 +718,7 @@ export function NoteCard({
           {/* The reactions are the room's own content (plan §2.4 F24): they
               keep their emoji, in sebaro's colour roles. */}
           {revealed ? (
-            <div className="flex flex-wrap gap-1">
+            <div className="col-span-full flex flex-wrap gap-1">
               {REACTION_EMOJI.map((emoji) => {
                 const reactors = note.reactions[emoji] ?? [];
                 const reacted = reactors.includes(you.id);
