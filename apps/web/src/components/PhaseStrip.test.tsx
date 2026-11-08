@@ -16,10 +16,11 @@ import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { FocusToggle } from "./FocusToggle.js";
-import { ReadyBar } from "./ReadyBar.js";
+import { RoundStatus } from "./RoundStatus.js";
 import { VoteBar } from "./VoteBar.js";
 
-// The phase strip's parts in sebaro (plan stage 5c): the ready key, the vote's
+// The phase strip's parts in sebaro (plan stage 5c): the round's ready key and
+// status (RoundStatus), the vote's
 // sentence and set-up, and the focus switch. Checked by role, state and the
 // words' numbers, not by the UI language.
 
@@ -63,7 +64,15 @@ test("ready: one key with a fixed label, its state pressed, the count in words",
   const sent: ClientCommand[] = [];
   const roster = [person("a"), person("b"), person("c", false)];
   const screen = await render(
-    connected(sent, <ReadyBar readyIds={["a"]} roster={roster} youId="a" />),
+    connected(
+      sent,
+      <RoundStatus
+        readyIds={["a"]}
+        roster={roster}
+        you={roster[0] as Participant}
+        isAdmin
+      />,
+    ),
   );
   const key = screen.getByTestId("ready-toggle");
   await expect.element(key).toHaveAttribute("aria-pressed", "true");
@@ -74,6 +83,56 @@ test("ready: one key with a fixed label, its state pressed, the count in words",
     .toHaveTextContent(/1 \S+ 2/);
   await key.click();
   expect(sent).toEqual([{ type: "ready.set", ready: false }]);
+});
+
+// The round names who is still open, in full (owner, 2026-11-08, B2a): the
+// thing initials could not say. The finished are counted; the whole list is
+// one key away; offline people are not waited for.
+test("the round names the people still open, and lists everyone on request", async () => {
+  const roster = [
+    person("Anna"),
+    person("Ben"),
+    person("Cara"),
+    person("Dirk", false),
+  ];
+  const screen = await render(
+    connected(
+      [],
+      <RoundStatus
+        readyIds={["Ben"]}
+        roster={roster}
+        you={roster[0] as Participant}
+        isAdmin={false}
+      />,
+    ),
+  );
+  const open = screen.getByTestId("round-open");
+  await expect.element(open).toHaveTextContent(/Anna/);
+  await expect.element(open).toHaveTextContent(/Cara/);
+  await expect.element(open).not.toHaveTextContent(/Ben/);
+  await expect.element(open).not.toHaveTextContent(/Dirk/);
+  const all = screen.getByTestId("round-all");
+  await expect.element(all).toHaveAttribute("aria-expanded", "false");
+  await all.click();
+  await expect.element(all).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByTestId("round-person").elements()).toHaveLength(3);
+});
+
+test("the round says so when everyone is done", async () => {
+  const roster = [person("Anna"), person("Ben")];
+  const screen = await render(
+    connected(
+      [],
+      <RoundStatus
+        readyIds={["Anna", "Ben"]}
+        roster={roster}
+        you={roster[0] as Participant}
+        isAdmin
+      />,
+    ),
+  );
+  await expect.element(screen.getByTestId("round-all-done")).toBeVisible();
+  expect(screen.getByTestId("round-open").elements()).toHaveLength(0);
 });
 
 test("votes: what is left is a sentence, the privacy line stands for everyone", async () => {

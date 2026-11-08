@@ -250,7 +250,9 @@ test("axe: canvas arrange panel", async ({ browser }) => {
         await toggle.focus();
         await page.keyboard.press("Enter");
         // axe skips what is off screen; the panel has to be there to count.
-        await expect(panel).toBeInViewport({ ratio: 1 });
+        // 0.99, not 1: the panel can end on the viewport's edge, and a
+        // sub-pixel rounding (0.9999998) is still the whole panel on screen.
+        await expect(panel).toBeInViewport({ ratio: 0.99 });
       },
       wide,
     ),

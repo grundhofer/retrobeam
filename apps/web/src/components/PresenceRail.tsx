@@ -16,13 +16,11 @@ import { useConnection } from "../lib/connection.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { Icon } from "./Icon.js";
-import { ReadyToggle } from "./ReadyToggle.js";
 import { PersonAvatar } from "./PersonAvatar.js";
 
 export interface PresenceRailProps {
   phase: Phase;
   roster: Participant[];
-  readyIds: string[];
   picker: PickerState | null;
   you: Participant;
   isAdmin: boolean;
@@ -36,22 +34,17 @@ export interface PresenceRailProps {
   pickerStyle?: PickerStyle;
   /** opens the full-screen face-down deck; the rail only launches it */
   onOpenCards?: () => void;
-  /** the action zone's slot, for a member only: their „Ich bin fertig“ goes
-   *  there as the one primary action (ReadyToggle) */
-  actionSlot?: HTMLElement | null;
 }
 
-// The rail wears three hats depending on the phase, but always as ONE list:
-//  - "ready"    (write/vote): each row carries a done glyph; your own toggle
-//                sits in a separate bottom bay so it can't read as a label.
+// The rail wears two hats depending on the phase, but always as ONE list:
 //  - "present"  the rotation board + facilitator cockpit + presenter self-advance.
-//  - "presence" (discuss): just who is here.
-type RailMode = "ready" | "present" | "presence";
+//  - "presence" just who is here.
+// The phases that wait for everyone (write, vote) show the round's status
+// above the board instead (RoundStatus, owner 2026-11-08).
+type RailMode = "present" | "presence";
 
 function modeForPhase(phase: Phase): RailMode {
-  if (phase === "present") return "present";
-  if (phase === "write" || phase === "vote") return "ready";
-  return "presence";
+  return phase === "present" ? "present" : "presence";
 }
 
 // Flightdeck: one docked right-side rail that is a live crew board for everyone
@@ -59,7 +52,6 @@ function modeForPhase(phase: Phase): RailMode {
 export function PresenceRail({
   phase,
   roster,
-  readyIds,
   picker,
   you,
   isAdmin,
@@ -67,7 +59,6 @@ export function PresenceRail({
   anonymous = false,
   pickerStyle = "wheel",
   onOpenCards,
-  actionSlot = null,
 }: PresenceRailProps) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -87,7 +78,6 @@ export function PresenceRail({
       lastSpin.startAt - clockOffsetMs + lastSpin.durationMs + WHEEL_HOLD_MS;
 
   const onlineCount = roster.filter((p) => p.online).length;
-  const youReady = readyIds.includes(you.id);
   const finished = picker !== null && pickerFinished(picker);
   const onlineRemaining =
     picker?.remaining.filter((id) =>
@@ -128,13 +118,8 @@ export function PresenceRail({
     >
       <h2 id="rail-title" className="sb-list-header lg:shrink-0">
         {t("board.participants")}{" "}
-        <span
-          className="sb-list-header__count tabular-nums"
-          {...(mode === "ready" ? { "data-testid": "ready-count" } : {})}
-        >
-          {mode === "ready"
-            ? t("ready.count", { ready: readyIds.length, total: onlineCount })
-            : t("rail.online", { count: onlineCount })}
+        <span className="sb-list-header__count tabular-nums">
+          {t("rail.online", { count: onlineCount })}
         </span>
       </h2>
 
@@ -213,24 +198,12 @@ export function PresenceRail({
             participant={p}
             youId={you.id}
             mode={mode}
-            ready={readyIds.includes(p.id)}
             picker={picker}
             isAdmin={isAdmin}
             spinning={spinning}
           />
         ))}
       </ul>
-
-      {mode === "ready" && actionSlot !== null ? (
-        <ReadyToggle youReady={youReady} primarySlot={actionSlot} />
-      ) : mode === "ready" ? (
-        <p className="lg:shrink-0">
-          <ReadyToggle
-            youReady={youReady}
-            className="sb-secondary-action w-full"
-          />
-        </p>
-      ) : null}
 
       {youArePresenting ? (
         <div className="sb-stack lg:shrink-0">
@@ -336,7 +309,6 @@ function PresenceRow({
   participant,
   youId,
   mode,
-  ready,
   picker,
   isAdmin,
   spinning,
@@ -344,7 +316,6 @@ function PresenceRow({
   participant: Participant;
   youId: string;
   mode: RailMode;
-  ready: boolean;
   picker: PickerState | null;
   isAdmin: boolean;
   spinning: boolean;
@@ -366,11 +337,9 @@ function PresenceRow({
         ? t("rail.presented")
         : status === "excluded"
           ? t("rail.excluded")
-          : mode === "ready" && ready
-            ? t("rail.ready")
-            : !participant.online
-              ? t("board.offline")
-              : null;
+          : !participant.online
+            ? t("board.offline")
+            : null;
   return (
     <li
       data-testid={isCurrent ? "presenter-banner" : "rail-row"}
@@ -387,25 +356,8 @@ function PresenceRow({
           {participant.name}
           {isYou ? ` ${t("roster.you")}` : null}
         </p>
-        {meta !== null ? (
-          <p className="sb-list-row__meta">
-            {/* „fertig“ in the success green, word and check together
-                (owner, 2026-11-07); a span, as sebaro's unlayered row rule
-                would win over a utility on the p. */}
-            {meta === t("rail.ready") ? (
-              <span className="text-success">{meta}</span>
-            ) : (
-              meta
-            )}
-          </p>
-        ) : null}
+        {meta !== null ? <p className="sb-list-row__meta">{meta}</p> : null}
       </div>
-
-      {mode === "ready" && ready ? (
-        <span className="sb-list-row__trail">
-          <Icon name="check" size={20} className="text-success" />
-        </span>
-      ) : null}
 
       {mode === "present" && isAdmin && status === "remaining" ? (
         <span className="sb-list-row__trail">
