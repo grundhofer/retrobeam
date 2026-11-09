@@ -46,12 +46,11 @@ export default defineConfig({
       use: { browserName: "webkit" },
       testIgnore: /visual\.spec\.ts/,
     },
-    // The before/after picture report (.github/workflows/visual.yml), not a
-    // test of behaviour: one engine, a fixed language and time zone, and the
-    // pictures written outside the repo's history. A baseline is drawn fresh
-    // from each PR's base commit and never committed, so the folder is
-    // git-ignored and CI points VISUAL_BASELINE_DIR somewhere a checkout
-    // cannot wipe.
+    // The picture gate (.github/workflows/visual.yml, owner D79): one engine,
+    // a fixed language and time zone, compared against the references
+    // committed in e2e/visual-references. They are drawn on the CI's Linux
+    // runner; a Mac renders text differently, so local runs set
+    // VISUAL_BASELINE_DIR to a folder of their own.
     {
       name: "visual",
       testMatch: /visual\.spec\.ts/,
@@ -60,7 +59,7 @@ export default defineConfig({
         locale: "de-DE",
         timezoneId: "Europe/Berlin",
       },
-      snapshotPathTemplate: `${process.env.VISUAL_BASELINE_DIR ?? "{testDir}/.visual-baseline"}/{arg}{ext}`,
+      snapshotPathTemplate: `${process.env.VISUAL_BASELINE_DIR ?? "{testDir}/visual-references"}/{arg}{ext}`,
     },
   ],
   // vite dev runs the SPA, the Worker and the BoardRoom DO in real workerd —
