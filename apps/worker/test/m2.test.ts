@@ -231,6 +231,51 @@ describe("picker rotation", () => {
     expect(changed.picker.presented).toHaveLength(0);
   });
 
+  // Back into the rotation (owner, 2026-11-09): one person, or the round.
+  it("reset puts one presenter, or everyone who presented, back in the pool", async () => {
+    const { boardId, admin, ben } = await presentingBoard();
+    await admin.socket.waitFor((e) => e.type === "picker.changed");
+    admin.socket.send({ type: "admin.picker.spin" });
+    const first = await admin.socket.waitFor((e) => e.type === "picker.spun");
+    if (first.type !== "picker.spun") throw new Error("unreachable");
+    await finishSpinAnimation(boardId);
+    admin.socket.send({ type: "admin.picker.spin" });
+    const second = await admin.socket.waitForNext(
+      (e) => e.type === "picker.spun",
+    );
+    if (second.type !== "picker.spun") throw new Error("unreachable");
+    expect(second.picker.presented).toEqual([first.winnerId]);
+
+    // members may not
+    ben.socket.send({ type: "admin.picker.reset" });
+    const refused = await ben.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("NOT_ADMIN");
+
+    // one person: the one who already presented
+    admin.socket.send({
+      type: "admin.picker.reset",
+      participantId: first.winnerId,
+    });
+    const one = await ben.socket.waitForNext(
+      (e) => e.type === "picker.changed" && e.picker.presented.length === 0,
+    );
+    if (one.type !== "picker.changed") throw new Error("unreachable");
+    expect(one.picker.remaining).toEqual([first.winnerId]);
+    expect(one.picker.current).toBe(second.winnerId);
+
+    // the round: the one on stage goes back too, nobody holds the mic
+    admin.socket.send({ type: "admin.picker.reset" });
+    const all = await ben.socket.waitForNext(
+      (e) => e.type === "picker.changed" && e.picker.current === null,
+    );
+    if (all.type !== "picker.changed") throw new Error("unreachable");
+    expect([...all.picker.remaining].sort()).toEqual(
+      [first.winnerId, second.winnerId].sort(),
+    );
+    expect(all.picker.presented).toHaveLength(0);
+  });
+
   it("members cannot spin; exclude/include adjust the pool", async () => {
     const { admin, ben } = await presentingBoard();
     await admin.socket.waitFor((e) => e.type === "picker.changed");

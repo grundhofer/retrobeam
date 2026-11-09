@@ -463,6 +463,13 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     cardIndex: z.number().int().nonnegative().optional(),
   }),
   z.object({ type: z.literal("admin.picker.skip") }),
+  // The facilitator puts presenters back into the rotation (owner,
+  // 2026-11-09): one person who has presented (or is presenting), or, without
+  // an id, the whole round. Cards already shown stay shown.
+  z.object({
+    type: z.literal("admin.picker.reset"),
+    participantId: z.string().optional(),
+  }),
   // Facilitator hand-picks the next presenter directly (no wheel) — same
   // rotation bookkeeping as a spin, just a targeted draw.
   z.object({

@@ -140,3 +140,32 @@ test("the presenting round names who is on and who is still open", async () => {
     .toHaveTextContent(/Anna/);
   expect(member.getByTestId("pick-Anna").elements()).toHaveLength(0);
 });
+
+// Skip beside the person on stage; put back one person, or the whole round
+// (owner, 2026-11-09).
+test("the facilitator skips the presenter and puts people back", async () => {
+  const send = vi.fn();
+  const round: PickerState = {
+    ...picker,
+    remaining: [],
+    presented: [anna.id],
+    current: ben.id,
+  };
+  const screen = await render(
+    <ConnectionProvider
+      value={{ boardId: "b".repeat(32), send, mutate: vi.fn() }}
+    >
+      <PresentStatus roster={[anna, ben]} picker={round} you={anna} isAdmin />
+    </ConnectionProvider>,
+  );
+  await screen.getByTestId("picker-skip").click();
+  expect(send).toHaveBeenLastCalledWith({ type: "admin.picker.skip" });
+  await screen.getByTestId("present-all").click();
+  await screen.getByTestId("picker-reset-Anna").click();
+  expect(send).toHaveBeenLastCalledWith({
+    type: "admin.picker.reset",
+    participantId: anna.id,
+  });
+  await screen.getByTestId("picker-reset-round").click();
+  expect(send).toHaveBeenLastCalledWith({ type: "admin.picker.reset" });
+});

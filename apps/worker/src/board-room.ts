@@ -785,6 +785,9 @@ export class BoardRoom extends DurableObject<Env> {
       case "admin.picker.skip":
         this.handlePickerSkip(ws, participant);
         return;
+      case "admin.picker.reset":
+        this.handlePickerReset(ws, participant, command.participantId);
+        return;
       case "admin.picker.pick":
         this.handlePickerPick(ws, participant, command);
         return;
@@ -2588,6 +2591,67 @@ export class BoardRoom extends DurableObject<Env> {
       picker: updated,
     });
     this.setSpotlight(null); // nobody holds the mic any more
+  }
+
+  // Back into the rotation (owner, 2026-11-09): one person who has presented
+  // or is presenting, or, without an id, everyone who has. They join the end
+  // of the queue in the order they had; excluded people stay excluded. The
+  // reveal is never narrowed — cards the room has seen stay on its screens.
+  private handlePickerReset(
+    ws: WebSocket,
+    participant: ParticipantRow,
+    participantId: string | undefined,
+  ): void {
+    if (participant.role !== "facilitator") {
+      this.reject(
+        ws,
+        undefined,
+        "NOT_ADMIN",
+        "Only the facilitator manages the wheel",
+      );
+      return;
+    }
+    if (this.phase() !== "present") {
+      this.reject(ws, undefined, "PHASE_LOCKED", "Only while presenting");
+      return;
+    }
+    const picker = this.picker();
+    if (picker === null) {
+      this.reject(ws, undefined, "INVALID", "There is no rotation");
+      return;
+    }
+    const back =
+      participantId === undefined
+        ? [
+            ...picker.presented,
+            ...(picker.current === null ? [] : [picker.current]),
+          ]
+        : picker.presented.includes(participantId) ||
+            picker.current === participantId
+          ? [participantId]
+          : [];
+    if (back.length === 0) {
+      this.reject(ws, undefined, "INVALID", "Nobody to put back");
+      return;
+    }
+    const currentBack =
+      picker.current !== null && back.includes(picker.current);
+    const updated: PickerState = {
+      ...picker,
+      presented: picker.presented.filter((id) => !back.includes(id)),
+      current: currentBack ? null : picker.current,
+      remaining: [
+        ...picker.remaining.filter((id) => !back.includes(id)),
+        ...back,
+      ],
+    };
+    this.savePicker(updated);
+    this.broadcastAll({
+      type: "picker.changed",
+      seq: this.nextSeq(),
+      picker: updated,
+    });
+    if (currentBack) this.setSpotlight(null);
   }
 
   // Facilitator hand-picks the next presenter directly (no wheel). Same

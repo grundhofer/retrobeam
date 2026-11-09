@@ -59,6 +59,7 @@ function sampleFor(type: string, columnId: string, participantId: string) {
     case "admin.timer.stop":
     case "admin.picker.spin":
     case "admin.picker.skip":
+    case "admin.picker.reset":
     case "admin.checkin.shuffle":
     case "admin.board.keep":
     case "admin.board.autoDelete":
