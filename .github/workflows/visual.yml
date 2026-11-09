@@ -80,7 +80,7 @@ jobs:
           else
             pnpm exec playwright install chromium --with-deps
           fi
-      - name: Install Playwright browsers (head, retry)
+      - name: Install Playwright browsers (retry)
         id: pw-retry
         if: steps.pw-install.outcome == 'failure'
         timeout-minutes: 5
@@ -128,7 +128,9 @@ jobs:
           retention-days: 7
       - uses: actions/upload-artifact@v7
         id: references
-        if: always() && steps.draw.outcome == 'success'
+        # What could be drawn, even if a view failed to draw: the summary and
+        # the report say which, and only complete sets belong in a commit.
+        if: always() && steps.draw.outcome != 'skipped'
         continue-on-error: true
         with:
           name: visual-references
