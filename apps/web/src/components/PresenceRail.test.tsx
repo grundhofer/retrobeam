@@ -6,7 +6,7 @@ import { render } from "vitest-browser-react";
 import type { Participant, PickerState } from "@retrobeam/shared";
 import i18n from "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
-import { PickerControls, PresenceRail } from "./PresenceRail.js";
+import { PickerControls, PresenceRail, PresentStatus } from "./PresenceRail.js";
 
 const anna: Participant = {
   id: "a".repeat(32),
@@ -58,7 +58,6 @@ test("an anonymous board calls nobody up, and says why the wheel is missing", as
       <PresenceRail
         phase="present"
         roster={[anna, ben]}
-        picker={{ ...picker, remaining: [anna.id, ben.id] }}
         you={anna}
         isAdmin
         anonymous
@@ -95,4 +94,49 @@ test("cards open the full-screen selection instead of rendering in the group", a
   await screen.getByTestId("open-card-picker").click();
   expect(openCards).toHaveBeenCalledOnce();
   expect(send).not.toHaveBeenCalled();
+});
+
+// The presenting round above the board (owner, 2026-11-08, „Vorstellrunde“):
+// who is on, who is still open by name — for the facilitator the open names
+// are the keys that pick.
+test("the presenting round names who is on and who is still open", async () => {
+  const send = vi.fn();
+  const round: PickerState = {
+    ...picker,
+    remaining: [anna.id],
+    current: ben.id,
+  };
+  const admin = await render(
+    <ConnectionProvider
+      value={{ boardId: "b".repeat(32), send, mutate: vi.fn() }}
+    >
+      <PresentStatus roster={[anna, ben]} picker={round} you={anna} isAdmin />
+    </ConnectionProvider>,
+  );
+  await expect
+    .element(admin.getByTestId("presenter-banner"))
+    .toHaveTextContent(/Ben/);
+  await admin.getByTestId("pick-Anna").click();
+  expect(send).toHaveBeenCalledWith({
+    type: "admin.picker.pick",
+    participantId: anna.id,
+  });
+  await admin.unmount();
+
+  const member = await render(
+    <ConnectionProvider
+      value={{ boardId: "b".repeat(32), send: vi.fn(), mutate: vi.fn() }}
+    >
+      <PresentStatus
+        roster={[anna, ben]}
+        picker={round}
+        you={ben}
+        isAdmin={false}
+      />
+    </ConnectionProvider>,
+  );
+  await expect
+    .element(member.getByTestId("present-open"))
+    .toHaveTextContent(/Anna/);
+  expect(member.getByTestId("pick-Anna").elements()).toHaveLength(0);
 });

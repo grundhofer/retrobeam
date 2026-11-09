@@ -37,7 +37,11 @@ import { RotiPoll } from "../components/RotiPoll.js";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { PhaseStepper } from "../components/PhaseStepper.js";
 import { PhasePlanPanel } from "../components/PhasePlanPanel.js";
-import { PickerControls, PresenceRail } from "../components/PresenceRail.js";
+import {
+  PickerControls,
+  PresenceRail,
+  PresentStatus,
+} from "../components/PresenceRail.js";
 import { RoundStatus } from "../components/RoundStatus.js";
 import { Roster } from "../components/Roster.js";
 import { ShareLink } from "../components/ShareLink.js";
@@ -472,6 +476,9 @@ function Room({
   // either way, so flipping it back restores the board instantly.
   const focusMode = config?.focusMode ?? false;
   const anonymous = config?.anonymous ?? false;
+  // Presenting with a rotation (not on an anonymous board): the presenting
+  // round's status row stands above the board instead of the rail.
+  const presentRound = state.phase === "present" && !anonymous;
   // The action zone's state sentence: the phase's guide and the time box.
   const timerActive =
     state.timer.endsAt !== null || state.timer.pausedRemainingMs !== null;
@@ -938,6 +945,16 @@ function Room({
                 <>
                   {/* The round's status above the board while everyone is
                     asked to finish (sketch B2a), instead of the side rail. */}
+                  {presentRound ? (
+                    <PresentStatus
+                      roster={state.roster}
+                      picker={state.picker}
+                      you={you}
+                      isAdmin={isAdmin}
+                      scopedRound={scopedRound}
+                      actionSlot={isAdmin ? null : actionSlot}
+                    />
+                  ) : null}
                   {roundPhase ? (
                     <RoundStatus
                       roster={state.roster}
@@ -1029,14 +1046,12 @@ function Room({
                         you={you}
                         readOnly={false}
                       />
-                    ) : roundPhase ? null : (
+                    ) : roundPhase || presentRound ? null : (
                       <PresenceRail
                         phase={state.phase}
                         roster={state.roster}
-                        picker={state.picker}
                         you={you}
                         isAdmin={isAdmin}
-                        scopedRound={scopedRound}
                         anonymous={anonymous}
                       />
                     )}

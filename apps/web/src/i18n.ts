@@ -301,9 +301,7 @@ const resources = {
         online: "{{count}} online",
         teamCards_one: "{{count}}\u00a0card from the team",
         teamCards_other: "{{count}}\u00a0cards from the team",
-        youPresenting: "You're up",
         donePresenting: "Done presenting",
-        waiting: "The facilitator is leading the round",
         presented: "presented",
         excluded: "not in the draw",
         ready: "done",
@@ -330,6 +328,11 @@ const resources = {
         wider: "Wider",
       },
       present: {
+        round: {
+          title: "Presenting round",
+          count: "{{done}} of {{total}} have presented",
+          now: "Now: {{name}}",
+        },
         focus: {
           heading: "{{name}} is presenting",
           count_one: "{{count}}\u00a0card",
@@ -359,7 +362,6 @@ const resources = {
       vote: {
         left: "{{count}} of {{total}}\u00a0votes left.",
         allGiven: "All {{total}}\u00a0votes given.",
-        meter: "{{done}} of {{total}} finished voting",
         settings: "Voting",
         settingsTitle: "Set up the vote",
         votesPerPerson: "Votes per person",
@@ -1144,9 +1146,7 @@ const resources = {
         online: "{{count}} online",
         teamCards_one: "{{count}}\u00a0Karte vom Team",
         teamCards_other: "{{count}}\u00a0Karten vom Team",
-        youPresenting: "Du bist dran",
         donePresenting: "Fertig mit Vorstellen",
-        waiting: "Die Moderation führt durch die Runde",
         presented: "hat vorgestellt",
         excluded: "nicht im Rad",
         ready: "fertig",
@@ -1173,6 +1173,11 @@ const resources = {
         wider: "Breiter",
       },
       present: {
+        round: {
+          title: "Vorstellrunde",
+          count: "{{done}} von {{total}} waren dran",
+          now: "Gerade: {{name}}",
+        },
         focus: {
           heading: "{{name}} stellt vor",
           count_one: "{{count}}\u00a0Karte",
@@ -1203,7 +1208,6 @@ const resources = {
       vote: {
         left: "Noch {{count}} von {{total}}\u00a0Stimmen.",
         allGiven: "Alle {{total}}\u00a0Stimmen vergeben.",
-        meter: "{{done}} von {{total}} fertig abgestimmt",
         settings: "Abstimmung",
         settingsTitle: "Abstimmung einstellen",
         votesPerPerson: "Stimmen pro Person",

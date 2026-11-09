@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useId } from "react";
+import { useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   pickerFinished,
@@ -21,51 +22,31 @@ import { PersonAvatar } from "./PersonAvatar.js";
 export interface PresenceRailProps {
   phase: Phase;
   roster: Participant[];
-  picker: PickerState | null;
   you: Participant;
   isAdmin: boolean;
-  /** the presenting round is actually pacing the reveal — false on an anonymous
-   *  board (never scoped) and once the board has been handed over */
-  scopedRound?: boolean;
   /** anonymous board: nobody is called up, so the presenting phase gets no
-   *  rotation board and no cockpit — the server refuses a spin there anyway */
+   *  rotation — the rail says why */
   anonymous?: boolean;
 }
 
-// The rail wears two hats depending on the phase, but always as ONE list:
-//  - "present"  the rotation board + facilitator cockpit + presenter self-advance.
-//  - "presence" just who is here.
-// The phases that wait for everyone (write, vote) show the round's status
-// above the board instead (RoundStatus, owner 2026-11-08).
+// A row's mode: "present" in the presenting round's list (PresentStatus),
+// "presence" in the rail — just who is here.
 type RailMode = "present" | "presence";
 
-function modeForPhase(phase: Phase): RailMode {
-  return phase === "present" ? "present" : "presence";
-}
-
-// Flightdeck: one docked right-side rail that is a live crew board for everyone
-// and, in the presenting phase, the facilitator's cockpit for driving the round.
+// The rail beside the board where no round status stands above it: who is
+// here, and on an anonymous board while presenting, why there is no rotation.
+// Writing, voting and check-in show the round's status instead (RoundStatus),
+// presenting with a rotation the presenting round's (PresentStatus; owner,
+// 2026-11-08).
 export function PresenceRail({
   phase,
   roster,
-  picker,
   you,
   isAdmin,
-  scopedRound = false,
   anonymous = false,
 }: PresenceRailProps) {
   const { t } = useTranslation();
-  const { send } = useConnection();
-  // An anonymous board reads its cards together, with no speaker: during the
-  // presenting phase the rail is just who is here.
-  const mode =
-    anonymous && phase === "present" ? "presence" : modeForPhase(phase);
-
-  const spinning = useSpinning();
-
   const onlineCount = roster.filter((p) => p.online).length;
-  const finished = picker !== null && pickerFinished(picker);
-  const youArePresenting = mode === "present" && picker?.current === you.id;
 
   // sebaro (plan stage 5f): a column of the page beside the board, its
   // parts as sections, the people as a list. The draw keys are secondary —
@@ -88,16 +69,6 @@ export function PresenceRail({
         </span>
       </h2>
 
-      {mode === "present" && finished ? (
-        <p
-          data-testid="picker-finished"
-          className="flex items-center gap-1 lg:shrink-0"
-        >
-          <Icon name="success" size={20} />
-          {t("picker.everyone")}
-        </p>
-      ) : null}
-
       <ul
         data-testid="rail-list"
         className="sb-list lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain"
@@ -108,30 +79,13 @@ export function PresenceRail({
             key={p.id}
             participant={p}
             youId={you.id}
-            mode={mode}
-            picker={picker}
+            mode="presence"
+            picker={null}
             isAdmin={isAdmin}
-            spinning={spinning}
+            spinning={false}
           />
         ))}
       </ul>
-
-      {youArePresenting ? (
-        <div className="sb-stack lg:shrink-0">
-          <p className="sb-field__help">{t("rail.youPresenting")}</p>
-          <button
-            type="button"
-            data-testid="present-done"
-            onClick={() => send({ type: "picker.done" })}
-            className="sb-secondary-action w-full"
-          >
-            {t("rail.donePresenting")}
-            <Icon name="arrow-right" size={20} />
-          </button>
-        </div>
-      ) : mode === "present" && !isAdmin && !finished ? (
-        <p className="sb-field__help lg:shrink-0">{t("rail.waiting")}</p>
-      ) : null}
 
       {/* The rotation is missing on purpose here, and a missing wheel with no
           word about it reads as a broken one. */}
@@ -143,24 +97,10 @@ export function PresenceRail({
           {t("present.anonymous")}
         </p>
       ) : null}
-
-      {/* Without a word about it, a scoped board reads as "where did the cards
-          go?" — the room sees each person's cards as the round reaches them. */}
-      {mode === "present" && scopedRound ? (
-        <p
-          data-testid="present-scope-hint"
-          className="sb-field__help lg:shrink-0"
-        >
-          {isAdmin ? t("present.scoped.facilitator") : t("present.scoped.hint")}
-        </p>
-      ) : null}
     </aside>
   );
 }
 
-// The draw skin picker. Sends the same admin.picker.style command the board
-// menu used to own; the menu no longer carries a second copy of it, because two
-// controls for one setting is how they drift.
 // Same in-flight guard as the old picker panel: no spinning (or hand-picking)
 // while the wheel is still animating.
 function useSpinning(): boolean {
@@ -263,6 +203,9 @@ export function PickerControls({
   );
 }
 
+// The draw skin picker. Sends the same admin.picker.style command the board
+// menu used to own; the menu no longer carries a second copy of it, because two
+// controls for one setting is how they drift.
 function PickerStyleSelect({
   style,
   disabled,
@@ -303,6 +246,182 @@ function PickerStyleSelect({
   );
 }
 
+// The presenting round's status above the board (owner, 2026-11-08,
+// „Vorstellrunde“), replacing the side rail as „Runde“ did for writing: how
+// many have been on, who is on now, and who is still open BY NAME. For the
+// facilitator an open name is itself the key that picks that person; the full
+// list, with excluding and taking back, is one key away. The presenter's own
+// „Fertig mit Vorstellen“ is a member's primary action at the bottom.
+export function PresentStatus({
+  roster,
+  picker,
+  you,
+  isAdmin,
+  scopedRound = false,
+  actionSlot = null,
+}: {
+  roster: Participant[];
+  picker: PickerState | null;
+  you: Participant;
+  isAdmin: boolean;
+  scopedRound?: boolean;
+  /** the action zone's slot, for a member only */
+  actionSlot?: HTMLElement | null;
+}) {
+  const { t } = useTranslation();
+  const { send } = useConnection();
+  const spinning = useSpinning();
+  const [showAll, setShowAll] = useState(false);
+  const titleId = useId();
+  const listId = useId();
+  const byId = (id: string) => roster.find((p) => p.id === id);
+  const nameOf = (p: Participant) =>
+    p.id === you.id ? `${p.name} ${t("roster.you")}` : p.name;
+  const presented = picker?.presented ?? [];
+  const remaining = (picker?.remaining ?? [])
+    .map(byId)
+    .filter((p): p is Participant => p !== undefined);
+  const current = picker?.current != null ? byId(picker.current) : undefined;
+  const total = presented.length + remaining.length + (current ? 1 : 0);
+  const finished = picker !== null && pickerFinished(picker);
+  const youArePresenting = current?.id === you.id;
+
+  const done = (
+    <button
+      type="button"
+      data-testid="present-done"
+      onClick={() => send({ type: "picker.done" })}
+      className={
+        isAdmin
+          ? "sb-secondary-action sb-secondary-action--compact"
+          : "sb-primary-action"
+      }
+    >
+      {t("rail.donePresenting")}
+      <Icon name="arrow-right" size={20} />
+    </button>
+  );
+
+  return (
+    <section
+      aria-labelledby={titleId}
+      data-testid="present-status"
+      className="mb-4 flex flex-col gap-3 border-b border-border pb-4"
+    >
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p
+          id={titleId}
+          className="text-caption [font-weight:var(--sb-type-title-weight)] text-text-muted"
+        >
+          {t("present.round.title")}
+        </p>
+        <div className="sb-progress w-40">
+          <p role="status" className="sb-status tabular-nums">
+            <span>
+              {t("present.round.count", { done: presented.length, total })}
+            </span>
+          </p>
+          <progress
+            max={Math.max(total, 1)}
+            value={presented.length}
+            aria-hidden="true"
+          />
+        </div>
+        {current ? (
+          <p
+            data-testid="presenter-banner"
+            className="sb-status sb-status--info"
+          >
+            <Icon name="microphone" size={16} />
+            <span>{t("present.round.now", { name: nameOf(current) })}</span>
+          </p>
+        ) : null}
+        {finished ? (
+          <p
+            data-testid="picker-finished"
+            className="sb-status sb-status--success"
+          >
+            <Icon name="success" size={16} />
+            <span>{t("picker.everyone")}</span>
+          </p>
+        ) : remaining.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-caption text-text-muted">
+              {t("round.open")}
+            </span>
+            <ul className="sb-tags" data-testid="present-open">
+              {remaining.map((p) =>
+                isAdmin ? (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      data-testid={`pick-${p.name}`}
+                      disabled={spinning}
+                      aria-label={t("picker.pickAria", { name: p.name })}
+                      onClick={() =>
+                        send({ type: "admin.picker.pick", participantId: p.id })
+                      }
+                      className="sb-secondary-action sb-secondary-action--compact"
+                    >
+                      <Icon name="pending" size={16} />
+                      {nameOf(p)}
+                    </button>
+                  </li>
+                ) : (
+                  <li key={p.id} className="sb-tag">
+                    <Icon name="pending" size={16} />
+                    {nameOf(p)}
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+        ) : null}
+        <button
+          type="button"
+          data-testid="present-all"
+          aria-expanded={showAll}
+          aria-controls={listId}
+          onClick={() => setShowAll((value) => !value)}
+          className="sb-text-action sb-text-action--compact"
+        >
+          {t("round.all", { count: roster.length })}
+        </button>
+        {youArePresenting && isAdmin ? (
+          <span className="ms-auto">{done}</span>
+        ) : null}
+      </div>
+      {youArePresenting && !isAdmin && actionSlot !== null
+        ? createPortal(done, actionSlot)
+        : null}
+      {/* Without a word about it, a scoped board reads as "where did the
+          cards go?" — the room sees each person's cards as the round reaches
+          them. */}
+      {scopedRound ? (
+        <p data-testid="present-scope-hint" className="sb-field__help">
+          {isAdmin ? t("present.scoped.facilitator") : t("present.scoped.hint")}
+        </p>
+      ) : null}
+      {showAll ? (
+        <ul id={listId} className="sb-list">
+          {roster.map((p) => (
+            <PresenceRow
+              key={p.id}
+              participant={p}
+              youId={you.id}
+              mode="present"
+              picker={picker}
+              isAdmin={isAdmin}
+              spinning={spinning}
+              inList
+            />
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
 type RotationStatus =
   "current" | "presented" | "remaining" | "excluded" | "other";
 
@@ -325,6 +444,7 @@ function PresenceRow({
   picker,
   isAdmin,
   spinning,
+  inList = false,
 }: {
   participant: Participant;
   youId: string;
@@ -332,6 +452,8 @@ function PresenceRow({
   picker: PickerState | null;
   isAdmin: boolean;
   spinning: boolean;
+  /** in PresentStatus's full list: the open names above are the pick keys */
+  inList?: boolean;
 }) {
   const { t } = useTranslation();
   const { send } = useConnection();
@@ -355,7 +477,9 @@ function PresenceRow({
             : null;
   return (
     <li
-      data-testid={isCurrent ? "presenter-banner" : "rail-row"}
+      data-testid={
+        inList ? "present-person" : isCurrent ? "presenter-banner" : "rail-row"
+      }
       aria-current={isCurrent ? "true" : undefined}
       className={
         status === "presented" ? "sb-list-row sb-list-row--done" : "sb-list-row"
@@ -376,7 +500,11 @@ function PresenceRow({
         <span className="sb-list-row__trail">
           <button
             type="button"
-            data-testid={`pick-${participant.name}`}
+            data-testid={
+              inList
+                ? `list-pick-${participant.name}`
+                : `pick-${participant.name}`
+            }
             disabled={spinning}
             aria-label={t("picker.pickAria", { name: participant.name })}
             onClick={() =>
