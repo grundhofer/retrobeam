@@ -1,14 +1,17 @@
-# A before/after picture report for every PR: the base commit draws the
-# baseline, the head commit is compared against it (e2e/visual.spec.ts). It is
-# a report, not a gate — every step that runs the code under test may fail
-# without failing the job, and what changed is in the summary and the artifact.
+# The picture gate (owner D79 and F9): every view at a phone and a desktop
+# width, light and dark (e2e/visual.spec.ts), compared against the references
+# committed in e2e/visual-references. A changed picture fails the job. The job
+# then draws the new references and uploads them as the artifact
+# „visual-references“: when the change is intended, put them into the PR
+# (unzip into e2e/visual-references and commit). The report with expected,
+# actual and diff pictures is the artifact „visual-report“.
 name: Visual diff
 
 on:
   pull_request:
     branches: [main]
 
-# Reads the repo and uploads an artifact; no secrets, no writable token.
+# Reads the repo and uploads artifacts; no secrets, no writable token.
 permissions:
   contents: read
 
@@ -17,49 +20,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  report:
+  visual:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-      # The browser install is split out of the test steps as in ci.yml: the
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # The browser install is split out of the test step as in ci.yml: the
       # binaries are cached per lockfile, each attempt has its own timeout and
-      # there is exactly one retry. Like everything else here it may fail
-      # without failing the job — a missing browser fails the test step after
-      # it, and that outcome is what the summary reports. The base and the
-      # head may pin different Playwright releases, so each computes its key
-      # from its own lockfile.
-      - name: Install the base commit's dependencies
-        continue-on-error: true
-        run: pnpm install --frozen-lockfile
-      - name: Playwright cache key (base)
-        id: base-pw-key
+      # there is exactly one retry.
+      - name: Playwright cache key
+        id: pw-key
         continue-on-error: true
         shell: bash
         run: |
           versions=$(grep -oE '^  playwright-core@[^:]+' pnpm-lock.yaml | sed 's/.*@//' | sort -u | paste -sd+ -)
           test -n "$versions"
           echo "key=playwright-${RUNNER_OS}-${RUNNER_ARCH}-${ImageOS}-${versions}-chromium" >> "$GITHUB_OUTPUT"
-      - name: Restore Playwright browsers (base)
-        id: base-pw-cache
-        if: steps.base-pw-key.outputs.key != ''
+      - name: Restore Playwright browsers
+        id: pw-cache
+        if: steps.pw-key.outputs.key != ''
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ steps.base-pw-key.outputs.key }}
-      # Stalled apt mirror connections time out after 20 s and are retried,
-      # as in ci.yml, which also explains the file name. The file is outside the workspace, so the head checkout
-      # below keeps it, but the head installs get their own step so each
-      # install's log shows the settings apt loaded.
-      - name: Configure apt retries and timeouts (base)
+          key: ${{ steps.pw-key.outputs.key }}
+      - name: Configure apt retries and timeouts
         timeout-minutes: 1
         continue-on-error: true
         shell: bash
@@ -75,113 +67,27 @@ jobs:
           grep -qx 'Acquire::Retries "3";' <<< "$dump"
           grep -qx 'Acquire::http::Timeout "20";' <<< "$dump"
           grep -qx 'Acquire::https::Timeout "20";' <<< "$dump"
-      - name: Install Playwright browsers (base)
-        id: base-pw-install
+      - name: Install Playwright browsers
+        id: pw-install
         timeout-minutes: 5
         continue-on-error: true
         shell: bash
         env:
-          CACHE_HIT: ${{ steps.base-pw-cache.outputs.cache-hit }}
+          CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
         run: |
           if [ "$CACHE_HIT" = "true" ]; then
             pnpm exec playwright install-deps chromium
           else
             pnpm exec playwright install chromium --with-deps
           fi
-      - name: Install Playwright browsers (base, retry)
-        id: base-pw-retry
-        if: steps.base-pw-install.outcome == 'failure'
+      - name: Install Playwright browsers (retry)
+        id: pw-retry
+        if: steps.pw-install.outcome == 'failure'
         timeout-minutes: 5
         continue-on-error: true
         shell: bash
         env:
-          CACHE_HIT: ${{ steps.base-pw-cache.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            pnpm exec playwright install-deps chromium
-          else
-            rm -rf ~/.cache/ms-playwright
-            pnpm exec playwright install chromium --with-deps
-          fi
-      - name: Save Playwright browsers (base)
-        if: >-
-          steps.base-pw-key.outputs.key != '' &&
-          steps.base-pw-cache.outputs.cache-hit != 'true' &&
-          (steps.base-pw-install.outcome == 'success' || steps.base-pw-retry.outcome == 'success')
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.base-pw-key.outputs.key }}
-      # The baseline goes to the runner's temp directory, outside the
-      # workspace: the head checkout below cleans the workspace, ignored files
-      # included, and would take an in-repo baseline with it.
-      - name: Baseline from the base commit
-        id: base
-        continue-on-error: true
-        shell: bash
-        env:
-          VISUAL_BASELINE_DIR: ${{ runner.temp }}/visual-baseline
-        run: pnpm exec playwright test --project=visual --update-snapshots=all --reporter=list
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Install the head commit's dependencies
-        continue-on-error: true
-        run: pnpm install --frozen-lockfile
-      - name: Playwright cache key (head)
-        id: head-pw-key
-        continue-on-error: true
-        shell: bash
-        run: |
-          versions=$(grep -oE '^  playwright-core@[^:]+' pnpm-lock.yaml | sed 's/.*@//' | sort -u | paste -sd+ -)
-          test -n "$versions"
-          echo "key=playwright-${RUNNER_OS}-${RUNNER_ARCH}-${ImageOS}-${versions}-chromium" >> "$GITHUB_OUTPUT"
-      - name: Restore Playwright browsers (head)
-        id: head-pw-cache
-        if: steps.head-pw-key.outputs.key != ''
-        continue-on-error: true
-        uses: actions/cache/restore@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.head-pw-key.outputs.key }}
-      - name: Configure apt retries and timeouts (head)
-        timeout-minutes: 1
-        continue-on-error: true
-        shell: bash
-        run: |
-          printf '%s\n' \
-            'Acquire::Retries "3";' \
-            'Acquire::http::Timeout "20";' \
-            'Acquire::https::Timeout "20";' \
-            | sudo tee /etc/apt/apt.conf.d/zz-retries > /dev/null
-          grep -il -E 'retries|timeout' /etc/apt/apt.conf.d/* || true
-          apt-config dump | grep -i acquire
-          dump=$(apt-config dump)
-          grep -qx 'Acquire::Retries "3";' <<< "$dump"
-          grep -qx 'Acquire::http::Timeout "20";' <<< "$dump"
-          grep -qx 'Acquire::https::Timeout "20";' <<< "$dump"
-      - name: Install Playwright browsers (head)
-        id: head-pw-install
-        timeout-minutes: 5
-        continue-on-error: true
-        shell: bash
-        env:
-          CACHE_HIT: ${{ steps.head-pw-cache.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            pnpm exec playwright install-deps chromium
-          else
-            pnpm exec playwright install chromium --with-deps
-          fi
-      - name: Install Playwright browsers (head, retry)
-        id: head-pw-retry
-        if: steps.head-pw-install.outcome == 'failure'
-        timeout-minutes: 5
-        continue-on-error: true
-        shell: bash
-        env:
-          CACHE_HIT: ${{ steps.head-pw-cache.outputs.cache-hit }}
+          CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
         run: |
           if [ "$CACHE_HIT" = "true" ]; then
             pnpm exec playwright install-deps chromium
@@ -189,24 +95,28 @@ jobs:
             rm -rf ~/.cache/ms-playwright
             pnpm exec playwright install chromium --with-deps
           fi
-      - name: Save Playwright browsers (head)
+      - name: Save Playwright browsers
         if: >-
-          steps.head-pw-key.outputs.key != '' &&
-          steps.head-pw-cache.outputs.cache-hit != 'true' &&
-          (steps.head-pw-install.outcome == 'success' || steps.head-pw-retry.outcome == 'success')
+          steps.pw-key.outputs.key != '' &&
+          steps.pw-cache.outputs.cache-hit != 'true' &&
+          (steps.pw-install.outcome == 'success' || steps.pw-retry.outcome == 'success')
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ steps.head-pw-key.outputs.key }}
-      - name: Compare the head commit
-        id: head
-        continue-on-error: true
+          key: ${{ steps.pw-key.outputs.key }}
+      - name: Compare against the references
+        id: compare
         shell: bash
         env:
-          VISUAL_BASELINE_DIR: ${{ runner.temp }}/visual-baseline
           PLAYWRIGHT_HTML_OPEN: never
         run: pnpm exec playwright test --project=visual --reporter=list,html
+      - name: Draw the new references
+        id: draw
+        if: failure() && steps.compare.outcome == 'failure'
+        continue-on-error: true
+        shell: bash
+        run: pnpm exec playwright test --project=visual --update-snapshots=all --reporter=list
       - uses: actions/upload-artifact@v7
         id: upload
         if: always()
@@ -216,17 +126,28 @@ jobs:
           path: playwright-report/
           if-no-files-found: ignore
           retention-days: 7
+      - uses: actions/upload-artifact@v7
+        id: references
+        # What could be drawn, even if a view failed to draw: the summary and
+        # the report say which, and only complete sets belong in a commit.
+        if: always() && steps.draw.outcome != 'skipped'
+        continue-on-error: true
+        with:
+          name: visual-references
+          path: e2e/visual-references/
+          if-no-files-found: ignore
+          retention-days: 7
       # Playwright leaves <name>-diff.png next to every picture that changed,
-      # and only <name>-actual.png where there was nothing to compare against.
-      # A retry writes the same names again, hence the sort -u.
+      # and only <name>-actual.png where there was no reference yet. A retry
+      # writes the same names again, hence the sort -u.
       - name: Summary
         if: always()
         continue-on-error: true
         shell: bash
         env:
-          BASE_OUTCOME: ${{ steps.base.outcome }}
-          HEAD_OUTCOME: ${{ steps.head.outcome }}
+          COMPARE_OUTCOME: ${{ steps.compare.outcome }}
           REPORT_URL: ${{ steps.upload.outputs.artifact-url }}
+          REFERENCES_URL: ${{ steps.references.outputs.artifact-url }}
         run: |
           changed=""
           missing=""
@@ -239,27 +160,27 @@ jobs:
           {
             echo "## Visual diff"
             echo
-            if [ "$BASE_OUTCOME" != "success" ]; then
-              echo "The base commit did not finish its baseline (outcome: $BASE_OUTCOME), so some views had nothing to compare against."
-              echo
-            fi
             if [ -n "$changed" ]; then
-              echo "Views with a diff:"
+              echo "Views that differ from the references:"
               echo
               echo "$changed" | sed 's/^/- /'
-            elif [ "$HEAD_OUTCOME" = "success" ]; then
-              echo "No view changed."
+            elif [ "$COMPARE_OUTCOME" = "success" ]; then
+              echo "Every view matches its reference."
             else
-              echo "No picture differs, but the head run did not pass (outcome: $HEAD_OUTCOME); see the report."
+              echo "No picture differs, but the run did not pass (outcome: $COMPARE_OUTCOME); see the report."
             fi
             if [ -n "$missing" ]; then
               echo
-              echo "Views without a baseline:"
+              echo "Views without a reference:"
               echo
               echo "$missing" | sed 's/^/- /'
             fi
             if [ -n "$REPORT_URL" ]; then
               echo
               echo "Expected, actual and diff pictures: [visual-report]($REPORT_URL)"
+            fi
+            if [ -n "$REFERENCES_URL" ]; then
+              echo
+              echo "If the change is intended, unzip [visual-references]($REFERENCES_URL) into e2e/visual-references and commit it."
             fi
           } >> "$GITHUB_STEP_SUMMARY"

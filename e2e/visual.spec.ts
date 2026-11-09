@@ -148,7 +148,11 @@ test("board through every phase", async ({ browser }) => {
     }
     await expect(target.getByTestId("vote-count")).toHaveText(String(dots));
   }
-  await expect(anna.getByTestId("vote-meter")).toContainText(/2 (of|von) 2/);
+  // Anna's budget is spent; the picture waits for her own state line (the
+  // anonymous „x of y done voting“ meter left the strip on 2026-11-08).
+  await expect(anna.getByTestId("votes-remaining")).toContainText(
+    /all 3|alle 3/i,
+  );
   await shoot(anna, "board-vote");
 
   await step(anna, ben, /discuss|diskutieren/i);
