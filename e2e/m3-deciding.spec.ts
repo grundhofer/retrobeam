@@ -62,7 +62,9 @@ test("blind voting, crowns, discussion queue and action items", async ({
 
   // Blindness: Ben sees no counts from Anna — his own counts are all 0 and
   // no tallies/crowns exist anywhere.
-  await expect(ben.getByTestId("vote-meter")).toContainText(/1 (of|von) 2/);
+  // (the anonymous „x of y done voting“ count left the strip on 2026-11-08:
+  // the round's status row above the board says who is done)
+  await expect(ben.getByTestId("votes-remaining")).toContainText(/3\D+3/);
   await expect(ben.getByTestId("crown")).toHaveCount(0);
   await expect(ben.getByTestId("tally")).toHaveCount(0);
   // The names go with them: last round's attribution must not sit on the cards
@@ -71,7 +73,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
   const bensCounts = await ben.getByTestId("vote-count").allInnerTexts();
   expect(bensCounts.every((count) => count.trim() === "0")).toBe(true);
 
-  // Ben votes 2 on teamwork, 1 on deploys → meter completes.
+  // Ben votes 2 on teamwork, 1 on deploys → his budget is spent.
   const benTeamworkPlus = ben
     .getByTestId("vote-target")
     .filter({ hasText: "Great teamwork" })
@@ -83,7 +85,9 @@ test("blind voting, crowns, discussion queue and action items", async ({
     .filter({ hasText: "Slow deploys" })
     .getByTestId("vote-plus");
   await benDeploysPlus.click();
-  await expect(anna.getByTestId("vote-meter")).toContainText(/2 (of|von) 2/);
+  await expect(ben.getByTestId("votes-remaining")).toContainText(
+    /all 3|alle 3/i,
+  );
 
   // Voting is blind, and the bar says so BEFORE anyone spends a dot — that
   // disclosure is what makes naming the voters afterwards a consented setting

@@ -16,28 +16,32 @@ import { Icon } from "./Icon.js";
 // how many have finished, and, for everyone and before the first vote, whether
 // names go with the result (§6.1 b). The facilitator sets the vote up in a
 // dialog.
-export function VoteBar({
-  config,
-  isAdmin,
-}: {
-  config: BoardConfig;
-  isAdmin: boolean;
-}) {
+export function VoteBar({ config }: { config: BoardConfig }) {
   const { t } = useTranslation();
   const votes = useBoardStore((store) => store.state.votes);
   const used = Object.values(votes.mine).reduce((sum, count) => sum + count, 0);
   const remaining = Math.max(0, config.votesPerPerson - used);
 
+  // Your budget is your state (sebaro's state voice, sb-status); how many
+  // are done is the round's status row above the board (owner, 2026-11-08),
+  // so it is not counted here a second time.
   return (
     <div className="sb-cluster">
-      <span data-testid="votes-remaining" className="tabular-nums">
-        {remaining === 0
-          ? t("vote.allGiven", { total: config.votesPerPerson })
-          : t("vote.left", { count: remaining, total: config.votesPerPerson })}
-      </span>
-      <span data-testid="vote-meter" className="sb-field__help tabular-nums">
-        {t("vote.meter", { done: votes.votersDone, total: votes.votersTotal })}
-      </span>
+      <p
+        role="status"
+        data-testid="votes-remaining"
+        className="sb-status sb-status--info tabular-nums"
+      >
+        <Icon name="thumbs-up" size={16} />
+        <span>
+          {remaining === 0
+            ? t("vote.allGiven", { total: config.votesPerPerson })
+            : t("vote.left", {
+                count: remaining,
+                total: config.votesPerPerson,
+              })}
+        </span>
+      </p>
       {/* The consent surface. People must know BEFORE they spend a dot whether
           their name will be attached to it — which is also why the setting is
           frozen from the discussion phase on. Shown to everyone, not just the
@@ -49,12 +53,13 @@ export function VoteBar({
             : "vote.namesBlind",
         )}
       </span>
-      {isAdmin ? <VoteSettings config={config} /> : null}
     </div>
   );
 }
 
-function VoteSettings({ config }: { config: BoardConfig }) {
+// The vote's set-up: a session control, so it stands in the facilitator's
+// „Moderation“ group (owner, 2026-11-08).
+export function VoteSettings({ config }: { config: BoardConfig }) {
   const { t } = useTranslation();
   const { send } = useConnection();
   const id = useId();

@@ -37,7 +37,7 @@ import { RotiPoll } from "../components/RotiPoll.js";
 import { LegalFooter } from "../components/LegalFooter.js";
 import { PhaseStepper } from "../components/PhaseStepper.js";
 import { PhasePlanPanel } from "../components/PhasePlanPanel.js";
-import { PresenceRail } from "../components/PresenceRail.js";
+import { PickerControls, PresenceRail } from "../components/PresenceRail.js";
 import { RoundStatus } from "../components/RoundStatus.js";
 import { Roster } from "../components/Roster.js";
 import { ShareLink } from "../components/ShareLink.js";
@@ -46,7 +46,7 @@ import { MAIN_ID } from "../components/SkipLink.js";
 import { SiteHeader } from "../components/SiteHeader.js";
 import { StateView } from "../components/StateView.js";
 import { TimeLeft, TimerPanel, TimeState } from "../components/TimerPanel.js";
-import { VoteBar } from "../components/VoteBar.js";
+import { VoteBar, VoteSettings } from "../components/VoteBar.js";
 import { WheelOverlay } from "../components/WheelOverlay.js";
 import { adoptAdminLink } from "../lib/adminLink.js";
 import { fetchBoardInfo } from "../lib/api.js";
@@ -753,6 +753,32 @@ function Room({
                     </span>
                     <TimerPanel timer={state.timer} isAdmin />
                     <TimeState timer={state.timer} />
+                    {/* The phase's own session controls, after a hairline:
+                        the draw while presenting, the vote's set-up, the
+                        topic in discussion (owner, 2026-11-08). */}
+                    {state.phase === "present" && !anonymous ? (
+                      <>
+                        <span
+                          aria-hidden="true"
+                          className="self-stretch border-s border-border"
+                        />
+                        <PickerControls
+                          picker={state.picker}
+                          roster={state.roster}
+                          pickerStyle={pickerStyle}
+                          onOpenCards={() => setCardsOpen(true)}
+                        />
+                      </>
+                    ) : null}
+                    {state.phase === "vote" && config ? (
+                      <>
+                        <span
+                          aria-hidden="true"
+                          className="self-stretch border-s border-border"
+                        />
+                        <VoteSettings config={config} />
+                      </>
+                    ) : null}
                     {(state.phase === "present" && !anonymous) ||
                     state.phase === "discuss" ? (
                       <>
@@ -763,17 +789,29 @@ function Room({
                         <FocusToggle focusMode={focusMode} isAdmin />
                       </>
                     ) : null}
+                    {state.phase === "discuss" ? (
+                      <DiscussBar
+                        topTargetIds={state.votes.topTargetIds}
+                        tallies={state.votes.tallies}
+                        focusId={state.discussFocusId}
+                        notes={state.notes}
+                        isAdmin
+                      />
+                    ) : null}
                   </div>
-                ) : (state.phase === "present" && !anonymous) ||
-                  state.phase === "discuss" ? (
+                ) : ((state.phase === "present" && !anonymous) ||
+                    state.phase === "discuss") &&
+                  focusMode ? (
+                  // Only when it says something: an empty block here kept
+                  // the strip from hiding itself for members.
                   <div className="mx-auto">
                     <FocusToggle focusMode={focusMode} isAdmin={false} />
                   </div>
                 ) : null}
                 {state.phase === "vote" && config ? (
-                  <VoteBar config={config} isAdmin={isAdmin} />
+                  <VoteBar config={config} />
                 ) : null}
-                {state.phase === "discuss" ? (
+                {state.phase === "discuss" && !isAdmin ? (
                   <DiscussBar
                     topTargetIds={state.votes.topTargetIds}
                     tallies={state.votes.tallies}
@@ -1000,8 +1038,6 @@ function Room({
                         isAdmin={isAdmin}
                         scopedRound={scopedRound}
                         anonymous={anonymous}
-                        pickerStyle={pickerStyle}
-                        onOpenCards={() => setCardsOpen(true)}
                       />
                     )}
                   </div>
