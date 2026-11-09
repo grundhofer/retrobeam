@@ -16,6 +16,13 @@ import {
 } from "@retrobeam/shared";
 import { useConnection } from "../lib/connection.js";
 import { motionReduced } from "../lib/motion.js";
+import {
+  cardStage,
+  riffleApart,
+  slotOffset,
+  slotReelEnd,
+  wheelAngle,
+} from "../lib/pickerMotion.js";
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { Icon } from "./Icon.js";
@@ -24,10 +31,14 @@ import { Icon } from "./Icon.js";
 // same name. Reduced motion (the system's or sebaro's data-sb-motion) and late
 // joiners skip straight to the result.
 //
-// sebaro (plan §2.4 F7, D114): the choosing moment is the app's one moment of
+// sebaro (plan §2.4 F7): the choosing moment is the app's one moment of
 // delight, drawn flat in ink — no participant colours, no gradients, no
-// confetti — in sebaro's modal dialog over the scrim; the wheel keeps its
-// 4.5 s and stands still under reduced motion.
+// confetti — in sebaro's modal dialog over the scrim. Its motion (owner,
+// 2026-11-09, replacing D114's plain 4.5 s turn): the wheel winds up, ticks,
+// crawls and settles; the reels blur, catch and the last one lingers; the
+// cards are shuffled, fanned and one is turned. All of it is computed from the
+// time since the server's start (lib/pickerMotion), and none of it runs under
+// reduced motion.
 export function WheelOverlay({
   cardSelectionOpen = false,
   isAdmin = false,
@@ -262,6 +273,24 @@ function SpinScene({
   );
 }
 
+// Milliseconds since the spin's start on the server's clock, one value per
+// frame until the spin is over — then it stops asking for frames.
+function useSpinElapsed(spin: WheelSpin, clockOffsetMs: number): number {
+  const start = spin.startAt - clockOffsetMs;
+  const [elapsed, setElapsed] = useState(() => Date.now() - start);
+  useEffect(() => {
+    let raf = 0;
+    const frame = () => {
+      const value = Date.now() - start;
+      setElapsed(value);
+      if (value < spin.durationMs) raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [start, spin.durationMs]);
+  return elapsed;
+}
+
 // An exhaustive switch with NO default clause, so adding a style to
 // `pickerStyles` fails the build here instead of silently rendering the wheel.
 // That is what makes "we can add more later" true rather than aspirational.
@@ -312,32 +341,53 @@ function CardReveal({
   roster: Participant[];
   clockOffsetMs: number;
 }) {
-  const [revealed, setRevealed] = useState(false);
+  const elapsed = useSpinElapsed(spin, clockOffsetMs);
+  const stage = elapsed <= 0 ? "gather" : cardStage(elapsed, spin.durationMs);
+  const apart = stage === "riffle" && riffleApart(elapsed, spin.durationMs);
   const winner = roster.find((participant) => participant.id === spin.winnerId);
+  const count = spin.pool.length;
   const selectedIndex = Math.min(
-    spin.cardIndex ?? spin.seed % Math.max(1, spin.pool.length),
-    Math.max(0, spin.pool.length - 1),
+    spin.cardIndex ?? spin.seed % Math.max(1, count),
+    Math.max(0, count - 1),
   );
+  const mid = (count - 1) / 2;
+  const spread = Math.min(64, 440 / Math.max(1, count - 1));
+  const tilt = Math.min(8, 60 / Math.max(1, count));
 
-  useEffect(() => {
-    const delay = Math.max(0, spin.startAt - clockOffsetMs - Date.now());
-    let raf = 0;
-    const timeout = setTimeout(() => {
-      raf = requestAnimationFrame(() => {
-        raf = requestAnimationFrame(() => setRevealed(true));
-      });
-    }, delay);
-    return () => {
-      clearTimeout(timeout);
-      cancelAnimationFrame(raf);
-    };
-  }, [spin.startAt, clockOffsetMs]);
+  // Where card i stands in each stage: a pile, two halves apart and back
+  // (the riffle), a fan, the chosen card lifted, and turned in the middle.
+  function placement(index: number): string {
+    const fanX = (index - mid) * spread;
+    const fanY = Math.abs(index - mid) * 10;
+    const fanRot = (index - mid) * tilt;
+    const selected = index === selectedIndex;
+    switch (stage) {
+      case "gather":
+        return `translate(${index * 1.5}px, ${-index * 1.5}px) rotate(${(index - mid) * 2}deg)`;
+      case "riffle":
+        return apart
+          ? `translate(${index < count / 2 ? -64 : 64}px, 0) rotate(${index < count / 2 ? -5 : 5}deg)`
+          : `translate(0, ${-index * 1.5}px) rotate(${index % 2 ? 3 : -3}deg)`;
+      case "fan":
+        return `translate(${fanX}px, ${fanY}px) rotate(${fanRot}deg)`;
+      case "lift":
+        return selected
+          ? `translate(${fanX}px, ${fanY - 40}px) scale(1.1)`
+          : `translate(${fanX}px, ${fanY}px) rotate(${fanRot}deg)`;
+      case "reveal":
+        return selected
+          ? "translate(0, -10px) scale(1.25) rotateY(180deg)"
+          : `translate(${fanX}px, ${fanY}px) rotate(${fanRot}deg)`;
+    }
+  }
 
   return (
     <div
       data-testid="card-reveal"
+      data-stage={stage}
       aria-hidden="true"
-      className="flex flex-wrap justify-center gap-3"
+      className="relative mx-auto"
+      style={{ width: "min(520px, 100%)", height: 240, perspective: 900 }}
     >
       {spin.pool.map((participantId, index) => {
         const selected = index === selectedIndex;
@@ -346,46 +396,42 @@ function CardReveal({
             key={participantId}
             data-testid="reveal-card"
             data-selected={selected ? "true" : "false"}
-            className={`h-32 w-22 shrink-0 transition-opacity duration-(--sb-motion-duration-long) ${
-              revealed && !selected ? "opacity-30" : "opacity-100"
+            className={`absolute h-32 w-22 transition-opacity duration-(--sb-motion-duration-long) ${
+              stage === "reveal" && !selected ? "opacity-30" : "opacity-100"
             }`}
-            style={{ perspective: 900 }}
+            style={{
+              left: "calc(50% - 2.75rem)",
+              top: "calc(50% - 4rem)",
+              zIndex:
+                selected && (stage === "lift" || stage === "reveal") ? 2 : 1,
+              transformStyle: "preserve-3d",
+              transform: placement(index),
+              transition: `transform ${stage === "reveal" ? 600 : 400}ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms`,
+            }}
           >
             <div
-              className="relative size-full"
-              style={{
-                transformStyle: "preserve-3d",
-                transform:
-                  revealed && selected ? "rotateY(180deg)" : "rotateY(0deg)",
-                transition:
-                  revealed && selected
-                    ? `transform ${spin.durationMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`
-                    : undefined,
-              }}
+              className={`absolute inset-0 ${CARD_FACE}`}
+              style={{ backfaceVisibility: "hidden" }}
             >
-              <div
-                className={`absolute inset-0 ${CARD_FACE}`}
-                style={{ backfaceVisibility: "hidden" }}
-              >
-                <Icon name="help" size={32} />
-              </div>
-              {selected ? (
-                <div
-                  className={`absolute inset-0 ${CARD_FACE} flex-col gap-2 px-2 text-center`}
-                  style={{
-                    backfaceVisibility: "hidden",
-                    transform: "rotateY(180deg)",
-                  }}
-                >
-                  <span className="sb-avatar sb-avatar--32">
-                    {nameMonogram(winner?.name ?? "?")}
-                  </span>
-                  <span className="max-w-full truncate font-semibold">
-                    {winner?.name ?? "?"}
-                  </span>
-                </div>
-              ) : null}
+              <Icon name="help" size={32} />
             </div>
+            {selected ? (
+              <div
+                className={`absolute inset-0 ${CARD_FACE} flex-col gap-2 px-2 text-center`}
+                style={{
+                  backfaceVisibility: "hidden",
+                  transform: "rotateY(180deg)",
+                  borderColor: "var(--sb-color-accent)",
+                }}
+              >
+                <span className="sb-avatar sb-avatar--32">
+                  {nameMonogram(winner?.name ?? "?")}
+                </span>
+                <span className="max-w-full truncate font-semibold">
+                  {winner?.name ?? "?"}
+                </span>
+              </div>
+            ) : null}
           </div>
         );
       })}
@@ -431,8 +477,10 @@ function labelSize(widthEm: number, count: number): number {
 
 // sebaro's wheel (spec/02 §3.29, §4.6, RB-7): svg.sb-wheel, a 2 px ink
 // circle, 1.5 px spokes and the names inside g.sb-wheel__disc, the pointer at
-// the top; its colours and strokes come from sebaro's CSS. It turns over the
-// spin's 4.5 s (owner, D114: an approved deviation from sebaro's 200 ms).
+// the top; its colours and strokes come from sebaro's CSS. It winds up,
+// spins, crawls and settles over the spin's time, the pointer ticking at
+// every name (owner, 2026-11-09: a deviation from sebaro's 200 ms, as D114
+// was), and the chosen name's wedge lights up when it stands.
 function Wheel({
   spin,
   roster,
@@ -445,26 +493,24 @@ function Wheel({
   landedOn: string | null;
 }) {
   const { t } = useTranslation();
-  const [rotation, setRotation] = useState(0);
   const target = wheelTargetRotation(spin.pool, spin.winnerId, spin.seed);
-
-  useEffect(() => {
-    const delay = Math.max(0, spin.startAt - clockOffsetMs - Date.now());
-    // double rAF: the browser must paint rotation 0 before the transition runs
-    let raf = 0;
-    const timeout = setTimeout(() => {
-      raf = requestAnimationFrame(() => {
-        raf = requestAnimationFrame(() => setRotation(target));
-      });
-    }, delay);
-    return () => {
-      clearTimeout(timeout);
-      cancelAnimationFrame(raf);
-    };
-  }, [spin.startAt, clockOffsetMs, target]);
-
+  const elapsed = useSpinElapsed(spin, clockOffsetMs);
+  const rotation = wheelAngle(elapsed, spin.durationMs, target);
   const count = spin.pool.length;
   const segment = 360 / count;
+  // The pointer flicks back as a spoke passes under it and returns as the
+  // disc turns on — a function of the angle, like a pointer caught by a peg,
+  // so every screen draws the same flick.
+  const kick = pointerKick(rotation, segment);
+  const standing = elapsed >= spin.durationMs;
+  const winnerIndex = spin.pool.indexOf(spin.winnerId);
+  const wedge = (() => {
+    if (winnerIndex < 0 || count < 2) return null;
+    const a0 = ((winnerIndex * segment - 90) * Math.PI) / 180;
+    const a1 = (((winnerIndex + 1) * segment - 90) * Math.PI) / 180;
+    const large = segment > 180 ? 1 : 0;
+    return `M0 0 L${FACE * Math.cos(a0)} ${FACE * Math.sin(a0)} A${FACE} ${FACE} 0 ${large} 1 ${FACE * Math.cos(a1)} ${FACE * Math.sin(a1)} Z`;
+  })();
   const label =
     landedOn === null
       ? t("picker.wheelLabel", { count })
@@ -482,15 +528,20 @@ function Wheel({
     >
       <g
         className="sb-wheel__disc"
-        style={{
-          ["--sb-wheel-turn" as string]: `${rotation}deg`,
-          transition:
-            rotation !== 0
-              ? `transform ${spin.durationMs}ms cubic-bezier(0.12, 0.85, 0.16, 1)`
-              : undefined,
-        }}
+        style={{ ["--sb-wheel-turn" as string]: `${rotation}deg` }}
       >
         <g transform="translate(150 150)">
+          {standing && wedge !== null ? (
+            <path
+              data-testid="wheel-winner-wedge"
+              d={wedge}
+              style={{
+                fill: "var(--sb-color-accent)",
+                fillOpacity: 0.22,
+                stroke: "none",
+              }}
+            />
+          ) : null}
           <circle r={FACE} />
           {count > 1
             ? spin.pool.map((participantId, index) => {
@@ -542,7 +593,13 @@ function Wheel({
                   dominantBaseline="central"
                   // The size is fitted to the name and the wedge; sebaro's
                   // 11 px is a floor for a few names, not a fit for fifteen.
-                  style={{ fontSize }}
+                  // Once it stands, the other names step back.
+                  style={{
+                    fontSize,
+                    opacity:
+                      standing && participantId !== spin.winnerId ? 0.35 : 1,
+                    transition: "opacity 300ms",
+                  }}
                   {...(estimated > LABEL_SPAN
                     ? {
                         textLength: LABEL_SPAN,
@@ -557,18 +614,34 @@ function Wheel({
           })}
         </g>
       </g>
-      <path className="sb-wheel__pointer" d="M 141 4 H 159 L 150 28 Z" />
+      <path
+        className="sb-wheel__pointer"
+        d="M 141 4 H 159 L 150 28 Z"
+        style={{
+          transformBox: "view-box",
+          transformOrigin: "150px 4px",
+          transform: `rotate(${kick}deg)`,
+        }}
+      />
     </svg>
   );
 }
 
-const SLOT_CELL_PX = 72;
-// Reels stop left→right; the last reel lands exactly at durationMs so the
-// winner card (SpinScene's `landed`) appears as the final reel settles.
-const SLOT_REEL_STAGGER_MS = 450;
+// Degrees the pointer is pushed back, by how far the disc has turned past the
+// last spoke.
+function pointerKick(rotation: number, segment: number): number {
+  const past = (((rotation + segment / 2) % segment) + segment) % segment;
+  const reach = Math.min(segment * 0.4, 18);
+  return rotation === 0 ? 0 : -16 * Math.max(0, 1 - past / reach);
+}
 
-// The slot-machine skin: SLOT_REELS vertical reels of participant avatars that
-// all land on the winner (jackpot). Every reel's strip + stop is derived from
+const SLOT_CELL_PX = 72;
+const SLOT_REEL_PX = 112;
+
+// The slot-machine skin: SLOT_REELS vertical reels of participant names (full
+// names, not initials: two people may share a letter) that all land on the
+// winner (jackpot). They blur while fast, stop one after the other, catch with
+// a small bounce, the last one lingers; then the win line lights up. Every reel's strip + stop is derived from
 // the broadcast seed (slotReel), so all clients — and a mid-spin reconnect —
 // show the identical result. Purely visual; the winner is the server's draw.
 function SlotMachine({
@@ -580,17 +653,36 @@ function SlotMachine({
   roster: Participant[];
   clockOffsetMs: number;
 }) {
+  const elapsed = useSpinElapsed(spin, clockOffsetMs);
+  const standing = elapsed >= spin.durationMs;
   return (
-    <div data-testid="slot-machine" aria-hidden="true" className="flex gap-3">
+    <div
+      data-testid="slot-machine"
+      data-standing={standing ? "true" : "false"}
+      aria-hidden="true"
+      className="relative mx-auto flex w-fit gap-3 rounded-container border-2 border-text p-3"
+    >
       {Array.from({ length: SLOT_REELS }, (_, reelIndex) => (
         <Reel
           key={reelIndex}
           spin={spin}
           roster={roster}
-          clockOffsetMs={clockOffsetMs}
+          elapsed={elapsed}
           reelIndex={reelIndex}
         />
       ))}
+      {/* the win line across all reels, lit once the last reel stands */}
+      <div
+        className={`pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 rounded-control border-2 transition-[border-color,box-shadow] duration-(--sb-motion-duration-long) ${
+          standing ? "border-(--sb-color-accent)" : "border-border"
+        }`}
+        style={{
+          height: SLOT_CELL_PX,
+          boxShadow: standing
+            ? "0 0 0 6px color-mix(in srgb, var(--sb-color-accent) 18%, transparent)"
+            : "none",
+        }}
+      />
     </div>
   );
 }
@@ -598,51 +690,35 @@ function SlotMachine({
 function Reel({
   spin,
   roster,
-  clockOffsetMs,
+  elapsed,
   reelIndex,
 }: {
   spin: WheelSpin;
   roster: Participant[];
-  clockOffsetMs: number;
+  elapsed: number;
   reelIndex: number;
 }) {
   const { strip, stopIndex } = useMemo(
     () => slotReel(spin.pool, spin.winnerId, spin.seed, reelIndex),
     [spin.pool, spin.winnerId, spin.seed, reelIndex],
   );
-  const [offset, setOffset] = useState(0);
   // Park stopIndex in the middle row of the 3-cell window.
   const finalOffset = -(stopIndex - 1) * SLOT_CELL_PX;
-  const durationMs =
-    spin.durationMs - (SLOT_REELS - 1 - reelIndex) * SLOT_REEL_STAGGER_MS;
-
-  useEffect(() => {
-    const delay = Math.max(0, spin.startAt - clockOffsetMs - Date.now());
-    // double rAF: the browser must paint offset 0 before the transition runs
-    let raf = 0;
-    const timeout = setTimeout(() => {
-      raf = requestAnimationFrame(() => {
-        raf = requestAnimationFrame(() => setOffset(finalOffset));
-      });
-    }, delay);
-    return () => {
-      clearTimeout(timeout);
-      cancelAnimationFrame(raf);
-    };
-  }, [spin.startAt, clockOffsetMs, finalOffset]);
+  const { offset, blur } = slotOffset(
+    elapsed,
+    slotReelEnd(spin.durationMs, reelIndex),
+    finalOffset,
+  );
 
   return (
     <div
-      className="relative w-16 overflow-hidden rounded-container border-2 border-text"
-      style={{ height: SLOT_CELL_PX * 3 }}
+      className="relative overflow-hidden rounded-control border border-border"
+      style={{ height: SLOT_CELL_PX * 3, width: SLOT_REEL_PX }}
     >
       <div
         style={{
           transform: `translateY(${offset}px)`,
-          transition:
-            offset !== 0
-              ? `transform ${durationMs}ms cubic-bezier(0.12, 0.85, 0.16, 1)`
-              : undefined,
+          filter: blur ? "blur(1.4px)" : "none",
         }}
       >
         {strip.map((participantId, index) => {
@@ -654,18 +730,13 @@ function Reel({
               className="flex items-center justify-center"
               style={{ height: SLOT_CELL_PX }}
             >
-              <span className="sb-avatar sb-avatar--32">
-                {nameMonogram(name)}
+              <span className="max-w-full truncate px-2 font-semibold">
+                {name}
               </span>
             </div>
           );
         })}
       </div>
-      {/* center window highlight */}
-      <div
-        className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 rounded-control border-2 border-(--sb-color-accent)"
-        style={{ height: SLOT_CELL_PX }}
-      />
     </div>
   );
 }
