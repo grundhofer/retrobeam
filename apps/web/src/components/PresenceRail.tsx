@@ -186,15 +186,6 @@ export function PickerControls({
               {spinLabel}
             </button>
           )}
-          {picker?.current != null ? (
-            <button
-              type="button"
-              onClick={() => send({ type: "admin.picker.skip" })}
-              className="sb-secondary-action sb-secondary-action--compact"
-            >
-              {t("picker.skip")}
-            </button>
-          ) : null}
         </div>
       ) : null}
 
@@ -336,6 +327,19 @@ export function PresentStatus({
             <span>{t("present.round.now", { name: nameOf(current) })}</span>
           </p>
         ) : null}
+        {/* Skipping is about the person on stage, so it stands beside them
+            (owner, 2026-11-09): back to the end of the queue. */}
+        {current && isAdmin ? (
+          <button
+            type="button"
+            data-testid="picker-skip"
+            disabled={spinning}
+            onClick={() => send({ type: "admin.picker.skip" })}
+            className="sb-secondary-action sb-secondary-action--compact"
+          >
+            {t("picker.skip")}
+          </button>
+        ) : null}
         {finished ? (
           <p
             data-testid="picker-finished"
@@ -417,6 +421,20 @@ export function PresentStatus({
             />
           ))}
         </ul>
+      ) : null}
+      {showAll && isAdmin && (presented.length > 0 || current) ? (
+        <p>
+          <button
+            type="button"
+            data-testid="picker-reset-round"
+            disabled={spinning}
+            onClick={() => send({ type: "admin.picker.reset" })}
+            className="sb-text-action sb-text-action--compact"
+          >
+            <Icon name="undo" size={20} />
+            {t("picker.resetRound")}
+          </button>
+        </p>
       ) : null}
     </section>
   );
@@ -529,6 +547,28 @@ function PresenceRow({
             className="sb-icon-button"
           >
             <Icon name="close" />
+          </button>
+        </span>
+      ) : mode === "present" &&
+        isAdmin &&
+        inList &&
+        (status === "presented" || status === "current") ? (
+        <span className="sb-list-row__trail">
+          <button
+            type="button"
+            data-testid={`picker-reset-${participant.name}`}
+            disabled={spinning}
+            aria-label={t("picker.resetAria", { name: participant.name })}
+            onClick={() =>
+              send({
+                type: "admin.picker.reset",
+                participantId: participant.id,
+              })
+            }
+            className="sb-secondary-action sb-secondary-action--compact"
+          >
+            <Icon name="undo" size={20} />
+            {t("picker.reset")}
           </button>
         </span>
       ) : mode === "present" && isAdmin && status === "excluded" ? (

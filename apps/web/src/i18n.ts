@@ -296,6 +296,9 @@ const resources = {
         current: "presenting",
         pick: "Choose",
         pickAria: "Choose {{name}} to present",
+        reset: "Put back",
+        resetAria: "Put {{name}} back into the round",
+        resetRound: "Restart the round",
       },
       rail: {
         online: "{{count}} online",
@@ -1141,6 +1144,9 @@ const resources = {
         current: "dran",
         pick: "Auswählen",
         pickAria: "{{name}} auswählen",
+        reset: "Zurücksetzen",
+        resetAria: "{{name}} zurück in die Runde",
+        resetRound: "Runde zurücksetzen",
       },
       rail: {
         online: "{{count}} online",
