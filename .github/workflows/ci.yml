@@ -18,7 +18,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -80,10 +80,11 @@ jobs:
       # files alone. The step lists every file there that mentions retries or
       # timeouts, in whatever syntax, prints what apt actually loaded, and
       # fails if any of the values did not win.
-      # The runner image sometimes still runs its own apt-get when the job
-      # starts; apt-get then gave up at once on the dpkg lock and both install
-      # attempts failed within a second. With the lock timeout apt waits up to
-      # 120 s for that process instead of failing.
+      # When the first install attempt runs out of time, its apt-get keeps
+      # running in the background and holds the dpkg lock (2026-11-10: the
+      # mirror was ten times slower than the usual 25 s). The retry then gave
+      # up at once on that lock. With the lock timeout it waits up to 6 min
+      # for that apt-get to finish instead, and then has little left to do.
       - name: Configure apt retries and timeouts
         timeout-minutes: 1
         run: |
@@ -91,7 +92,7 @@ jobs:
             'Acquire::Retries "3";' \
             'Acquire::http::Timeout "20";' \
             'Acquire::https::Timeout "20";' \
-            'DPkg::Lock::Timeout "120";' \
+            'DPkg::Lock::Timeout "360";' \
             | sudo tee /etc/apt/apt.conf.d/zz-retries > /dev/null
           grep -il -E 'retries|timeout' /etc/apt/apt.conf.d/* || true
           apt-config dump | grep -iE 'acquire|dpkg::lock'
@@ -99,14 +100,14 @@ jobs:
           grep -qx 'Acquire::Retries "3";' <<< "$dump"
           grep -qx 'Acquire::http::Timeout "20";' <<< "$dump"
           grep -qx 'Acquire::https::Timeout "20";' <<< "$dump"
-          grep -qx 'DPkg::Lock::Timeout "120";' <<< "$dump"
+          grep -qx 'DPkg::Lock::Timeout "360";' <<< "$dump"
       # The install used to hang until the 20-minute job timeout. Each attempt
       # now has its own budget and there is exactly one retry, so a hang costs
       # this step and not the run. On a cache hit only the system packages are
       # installed; the binaries are already in place.
       - name: Install Playwright browsers
         id: pw-install
-        timeout-minutes: 5
+        timeout-minutes: 10
         continue-on-error: true
         env:
           CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
@@ -120,7 +121,7 @@ jobs:
       # retry from an empty browser directory.
       - name: Install Playwright browsers (retry)
         if: steps.pw-install.outcome == 'failure'
-        timeout-minutes: 5
+        timeout-minutes: 8
         env:
           CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
         run: |
