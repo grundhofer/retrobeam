@@ -98,7 +98,9 @@ test("sending: labelled fields, the primary action, and anonymous means no sende
     .getByRole("checkbox", { name: i18n.t("kudos.anonymousSend") })
     .click();
   const send = screen.getByTestId("kudo-send");
-  await expect.element(send).toHaveClass("sb-primary-action");
+  // a secondary action: the view's one primary is the step at the bottom
+  // (sebaro D39)
+  await expect.element(send).toHaveClass("sb-secondary-action");
   await send.click();
   const created = sent.find((command) => command.type === "kudo.create");
   expect(created && "anonymous" in created ? created.anonymous : null).toBe(
