@@ -114,9 +114,13 @@ export function withAllRevealed(picker: PickerState): PickerState {
   return picker.revealedAll ? picker : { ...picker, revealedAll: true };
 }
 
-export const WHEEL_SPIN_MS = 4500;
-/** A card only needs one deliberate flip, not a full wheel-length animation. */
-export const CARD_REVEAL_MS = 1400;
+/** The wheel's turn: wind up, spin, crawl, settle (owner, 2026-11-09,
+ *  „Spannung“; was 4.5 s, D114). */
+export const WHEEL_SPIN_MS = 5900;
+/** The reels: the last one stops at the end, after the others. */
+export const SLOT_SPIN_MS = 4500;
+/** The cards: gathered, riffled twice, fanned, one lifted and turned. */
+export const CARD_REVEAL_MS = 3600;
 /** lead time between the server timestamp and the animation start */
 export const WHEEL_START_DELAY_MS = 300;
 /** how long the winner card stays up after the wheel stops */

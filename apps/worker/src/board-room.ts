@@ -52,6 +52,7 @@ import {
   type WheelSpin,
   WHEEL_HOLD_MS,
   WHEEL_SPIN_MS,
+  SLOT_SPIN_MS,
   WHEEL_START_DELAY_MS,
   wheelSpinSchema,
   type BoardExport,
@@ -2541,7 +2542,12 @@ export class BoardRoom extends DurableObject<Env> {
       winnerId,
       seed: seedBuf[0] as number,
       startAt: Date.now() + WHEEL_START_DELAY_MS,
-      durationMs: pickerStyle === "cards" ? CARD_REVEAL_MS : WHEEL_SPIN_MS,
+      durationMs:
+        pickerStyle === "cards"
+          ? CARD_REVEAL_MS
+          : pickerStyle === "slots"
+            ? SLOT_SPIN_MS
+            : WHEEL_SPIN_MS,
       ...(pickerStyle === "cards"
         ? { cardIndex: command.cardIndex ?? randomIndex(pool.length) }
         : {}),
