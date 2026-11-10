@@ -60,13 +60,15 @@ jobs:
             'Acquire::Retries "3";' \
             'Acquire::http::Timeout "20";' \
             'Acquire::https::Timeout "20";' \
+            'DPkg::Lock::Timeout "120";' \
             | sudo tee /etc/apt/apt.conf.d/zz-retries > /dev/null
           grep -il -E 'retries|timeout' /etc/apt/apt.conf.d/* || true
-          apt-config dump | grep -i acquire
+          apt-config dump | grep -iE 'acquire|dpkg::lock'
           dump=$(apt-config dump)
           grep -qx 'Acquire::Retries "3";' <<< "$dump"
           grep -qx 'Acquire::http::Timeout "20";' <<< "$dump"
           grep -qx 'Acquire::https::Timeout "20";' <<< "$dump"
+          grep -qx 'DPkg::Lock::Timeout "120";' <<< "$dump"
       - name: Install Playwright browsers
         id: pw-install
         timeout-minutes: 5
