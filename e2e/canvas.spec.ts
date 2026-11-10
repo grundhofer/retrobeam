@@ -320,6 +320,93 @@ test("canvas layout: the others' pointers, and the sentence that counts them", a
   await benContext.close();
 });
 
+// Owner, 2026-11-10: the space a card holds must match the card, and a full
+// zone must grow instead of dropping or stacking the next card. Fifteen cards
+// from two people in one zone, long and short: none covers another, while
+// writing (the others' hidden cards as placeholders) or once revealed.
+test("canvas layout: a full zone grows the canvas and no card covers another", async ({
+  browser,
+}) => {
+  test.setTimeout(90_000);
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
+  const anna = await annaContext.newPage();
+  await anna.setViewportSize({ width: 1400, height: 900 });
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Full canvas");
+  await anna.getByTestId("home-layout-canvas").click();
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(anna, "Anna");
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(anna.url());
+  await join(ben, "Ben");
+  await anna.getByTestId("phase-next").click();
+
+  const zone = anna.getByTestId(/^zone-/).first();
+  await expect(zone).toBeVisible();
+  const columnId = (await zone.getAttribute("data-testid"))!.slice(5);
+  const add = async (page: Page, text: string) => {
+    await page.getByTestId("canvas-add-note").click();
+    await page.getByTestId(`canvas-add-note-${columnId}`).click();
+    const composer = page.getByTestId("canvas-composer");
+    await composer.fill(text);
+    await composer.press("Enter");
+    await expect(composer).toHaveCount(0);
+  };
+  const texts = [
+    "Short",
+    "A somewhat longer thought about the deploy on Friday",
+    "Tests were red",
+    "Pairing helped and was great",
+    "Meetings too long",
+    "Coffee",
+    "Another card",
+    "And another",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+  ];
+  for (const text of texts) await add(anna, text);
+  for (const text of ["Ben one", "Ben two", "Ben three"]) await add(ben, text);
+  await expect(anna.getByTestId("canvas-occupancy")).toHaveCount(3);
+
+  // The canvas grew: a default zone is about twice as tall as wide (1.9),
+  // one step taller is 2.4. The view refits, so the shape tells, not the size.
+  const zoneBox = (await zone.boundingBox())!;
+  expect(zoneBox.height / zoneBox.width).toBeGreaterThan(2.2);
+
+  await expectNoOverlap(anna, "[data-testid=canvas-card]");
+  await annaContext.close();
+  await benContext.close();
+});
+
+async function expectNoOverlap(page: Page, selector: string) {
+  const overlaps = await page.evaluate((selector) => {
+    const boxes = [...document.querySelectorAll(selector)].map((element) =>
+      element.getBoundingClientRect(),
+    );
+    const hits: string[] = [];
+    boxes.forEach((a, i) =>
+      boxes.slice(i + 1).forEach((b, j) => {
+        if (
+          a.left < b.right - 1 &&
+          b.left < a.right - 1 &&
+          a.top < b.bottom - 1 &&
+          b.top < a.bottom - 1
+        ) {
+          hits.push(`${i}×${i + 1 + j}`);
+        }
+      }),
+    );
+    return hits;
+  }, selector);
+  expect(overlaps).toEqual([]);
+}
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
