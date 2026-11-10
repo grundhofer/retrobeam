@@ -614,7 +614,7 @@ const resources = {
         edit: "Edit",
       },
       roti: {
-        title: "Return on time invested",
+        title: "How was the retro?",
         question: "Was this retro a good use of your time?",
         rating: "Rating:",
         value: "{{average}} of 5",
@@ -1478,7 +1478,7 @@ const resources = {
         edit: "Bearbeiten",
       },
       roti: {
-        title: "Return on Time Invested",
+        title: "Wie war die Retro?",
         question: "War diese Retro deine Zeit wert?",
         rating: "Bewertung:",
         value: "{{average}} von 5",
