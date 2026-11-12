@@ -17,7 +17,7 @@
       "properties": {
         "product": { "$ref": "#/$defs/product", "description": "The site's product id (its tile and name in the head); a page may name another." },
         "name": { "$ref": "#/$defs/text", "description": "og:site_name: the site's name as it writes it." },
-        "origin": { "type": "string", "pattern": "^https?://[^/\\s?#]+$", "description": "Scheme and host without a trailing slash, e.g. https://example.org; og:url, og:image and canonical are absolute from it, and its host ends the meta line." },
+        "origin": { "type": "string", "pattern": "^https?://[^/\\s?#]+$", "description": "Scheme and host without a trailing slash, e.g. https://example.org; og:url, og:image and canonical are absolute from it, and its host appears in the bottom sender bar." },
         "lang": { "type": "string", "enum": ["de", "en"], "description": "Language of the words the script adds (reading time, date) and of og:locale (de_DE, en_GB). Default de. Right to left is not supported." },
         "imageBase": { "type": "string", "pattern": "^/([^\\s?#]*/)?$", "description": "Path under origin where the site serves the PNGs, with slashes at both ends. Default /og/." }
       }
