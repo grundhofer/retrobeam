@@ -23,8 +23,8 @@ import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 const RESERVED_MARKS = [
-  "apps/web/src/sebaro/brand/site-root/icon.svg",
-  "apps/web/src/sebaro/brand/inline/tile-retrobeam.svg",
+  "sebaro-product/web/icon.svg",
+  "sebaro-product/sign/tile.svg",
   "apps/web/public/og.png",
 ];
 

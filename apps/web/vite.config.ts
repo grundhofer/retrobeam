@@ -12,24 +12,25 @@ import sebaroFiles from "./sebaro-files.json";
 // spec/09 §1): theme-init.js ahead of every stylesheet, sb-start.js right
 // after it, sb-fit.js deferred. Vite bundles only module scripts and leaves
 // these tags alone, so each file has to reach /sebaro/js/<name> by itself:
-// served from the export in `vite dev`, written into the build byte for byte
+// served from the copy in `vite dev`, written into the build byte for byte
 // (plan §2.4 F39, as novalis does). The fonts' licence texts travel the same
 // way to /fonts/, because Vite ships no src/ file that nothing imports and the
-// OFL wants its text beside the fonts. The start tile in index.html is the
-// export's own SVG, put where its <!-- sb:inline src="…" --> comment stands
-// (sebaro spec/03 §4.6). The site root (favicon, icons, the manifest; stage
-// 6c) is served the same way, from brand/site-root, instead of copies in
-// public/ that could drift from the export. The export folder is never
-// edited here (G6).
-const SEBARO_DIR = new URL("./src/sebaro/", import.meta.url);
-// The served path → the export file; also read by scripts/check-site-root.mjs
-// (gate G13), so what is served and what is checked are one list.
+// OFL wants its text beside the fonts. The sign of the start in index.html
+// is the product kit's own SVG, put where its <!-- sb:inline src="…" -->
+// comment stands (sebaro spec/03 §4.6). The site root (favicon, icons, the
+// manifest; stage 6c) is served the same way, from sebaro-product/web,
+// instead of copies in public/ that could drift from what the kit wrote.
+// Neither the copy (src/sebaro) nor sebaro-product/ is edited here (G6).
+const WEB_DIR = new URL("./", import.meta.url);
+// The served path → the file, relative to this folder; also read by
+// scripts/check-site-root.mjs (gate G13), so what is served and what is
+// checked are one list.
 const SEBARO_FILES: Record<string, string> = sebaroFiles;
-const INLINED = ["brand/inline/tile-retrobeam.svg"];
+const INLINED = ["../../sebaro-product/sign/sign.svg"];
 const SB_INLINE = /<!-- sb:inline src="([\w./-]+)" -->/g;
 
 const sebaroPath = (path: string) =>
-  decodeURIComponent(new URL(path, SEBARO_DIR).pathname);
+  decodeURIComponent(new URL(path, WEB_DIR).pathname);
 const TYPES: Record<string, string> = {
   js: "text/javascript; charset=utf-8",
   ico: "image/x-icon",
@@ -41,7 +42,7 @@ const contentType = (path: string) =>
   TYPES[path.slice(path.lastIndexOf(".") + 1)] ?? "text/plain; charset=utf-8";
 
 // Read once when the build or the dev server starts (no node types in this
-// tsconfig, so through the plugin context's fs); a new export means a
+// tsconfig, so through the plugin context's fs); a new copy means a
 // restart anyway.
 const files = new Map<string, Uint8Array>();
 const sebaro: Plugin = {
