@@ -1,7 +1,8 @@
 <!doctype html>
 <!-- sebaro's load order (spec/09 §1): theme-init.js first, as a classic
      script before any stylesheet, so a stored choice holds at first paint;
-     sb-start.js right after it, which shows the start tile below until the
+     sb-start.js right after it, which shows the start below (the screen in
+     the product's tile colour with its bare sign, sebaro round 7) until the
      page has loaded. With data-sb-start="nostore" it reads and writes no
      storage and shows on every load (plan §2.4 F15, F40). sb-fit.js gives
      the parts their forms for large text (F38); sb-board.js the board's swipe
@@ -11,7 +12,7 @@
      Dunkel“ in the header and sb-tone.js „Farbton“ in the settings view
      (stage 6b). The stylesheets come from
      main.tsx. The retrobeam:sebaro plugin in vite.config.ts serves these
-     files from the export and inlines the export's tile at its sb:inline
+     files from the copy and inlines the product's sign at its sb:inline
      comment. No theme attribute on <html> here: the page follows the system
      until someone chooses (sebaro WEB-02; CI gate G20). -->
 <html lang="de" data-sb-start="nostore">
@@ -32,8 +33,9 @@
          URL in a Referer header. Browsers default to origin-only cross-origin
          today; this states the guarantee rather than relying on that default. -->
     <meta name="referrer" content="no-referrer" />
-    <!-- sebaro's head snippet (brand/site-root/head.snippet.html), the files
-         served from the export by the retrobeam:sebaro plugin. No
+    <!-- The head snippet of the product kit
+         (sebaro-product/web/head.snippet.html), the files served from that
+         folder by the retrobeam:sebaro plugin. No
          theme-color: the manifest names the ground (plan §2.4 F29). -->
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -90,9 +92,9 @@
     </style>
   </head>
   <body class="sb-page">
-    <div class="sb-start" aria-hidden="true">
+    <div class="sb-start" data-sb-product="retrobeam" aria-hidden="true">
       <span class="sb-start__tile"
-        ><!-- sb:inline src="brand/inline/tile-retrobeam.svg" --></span
+        ><!-- sb:inline src="../../sebaro-product/sign/sign.svg" --></span
       >
     </div>
     <div id="root">

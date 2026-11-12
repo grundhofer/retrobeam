@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0",
+  "id": "retrobeam",
+  "name": "RetroBeam",
+  "tile": "collaboration",
+  "sign": {
+    "glyph": [
+      {
+        "d": "M1.4 17 A3.6 3.6 0 1 1 8.6 17 A3.6 3.6 0 1 1 1.4 17 Z",
+        "paint": "fill"
+      },
+      {
+        "d": "M8.4 6.5 A3.6 3.6 0 1 1 15.6 6.5 A3.6 3.6 0 1 1 8.4 6.5 Z",
+        "paint": "fill"
+      },
+      {
+        "d": "M15.4 17 A3.6 3.6 0 1 1 22.6 17 A3.6 3.6 0 1 1 15.4 17 Z",
+        "paint": "fill"
+      }
+    ]
+  },
+  "outputs": ["web"],
+  "web": {
+    "manifest": {
+      "id": "/",
+      "lang": "de",
+      "dir": "ltr",
+      "start_url": "/",
+      "scope": "/",
+      "display": "standalone"
+    },
+    "headThemeColor": false
+  }
+}

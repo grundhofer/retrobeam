@@ -2,6 +2,12 @@
 
 **Stand 2026-10-24.** Plan; was davon umgesetzt ist, steht in §2.4. Angelegt in der Planungs-Session vom 2026-10-24; am selben Tag auf Wunsch des Owners als `docs/sebaro-umbau.md` (Plan) und `docs/sebaro-luecken.md` (was sebaro fehlt) abgelegt; committet mit PR 1b. Vor S1 und S2 (§1.6) läuft nur der freigegebene Vorlauf. Owner-Stand 2026-10-24: Vorlauf (Stufe 1 und 2a) freigegeben, alles ab 2b wartet auf S1, S2 und den gefilterten Export (§2.4).
 
+**Nachtrag 2026-11-12.** sebaro kommt nicht mehr als Export aus der Werkstatt, sondern als Profil-Kopie `webapp` aus dem öffentlichen Release (v1.14.0), und RetroBeam erklärt sich in `sebaro.product.json` (`docs/sebaro-luecken.md` §2 Nr. 54). Die Export-Befehle dieses Plans (`export_system.py --target web --product retrobeam`, `--verify`, `--from-commit`; §2.4, Anhang B) gelten damit nicht mehr. An ihre Stelle treten:
+
+- die Kopie holen oder erneuern: `node apps/web/src/sebaro/checks/update-copy.mjs` (dieselben Pakete, das neueste Release);
+- die Kopie prüfen (G6): `node apps/web/src/sebaro/checks/verify-export.mjs --strict`;
+- RetroBeams eigene Dateien bauen und prüfen: `python3 apps/web/src/sebaro/product/product_kit.py build sebaro.product.json --copy apps/web/src/sebaro --out sebaro-product --render`, in der CI `… check …`.
+
 Heute geprüft:
 
 - novalis steht auf `sebaro-umbau`, 0 Commits über `main` (`git -C novalis rev-parse --abbrev-ref HEAD` → `sebaro-umbau`; `git log main..sebaro-umbau` → 0 Zeilen).
