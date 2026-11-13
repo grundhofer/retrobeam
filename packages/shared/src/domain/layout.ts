@@ -103,6 +103,22 @@ export const zoneRectSchema = z.object({
 });
 export type ZoneRect = z.infer<typeof zoneRectSchema>;
 
+// The canvas grows downward when a new card fits nowhere (owner, 2026-11-10):
+// its height is a multiple of the base world's, in steps, just enough for the
+// card that needed room, up to twice the base. Zone rects are fractions of
+// the world, so every zone grows with it; the cards keep their distance from
+// their zone's top (grownCardY), so the new room is one free band at the
+// bottom of each zone rather than slivers between the cards.
+export const CANVAS_HEIGHT_MAX = 2;
+export const CANVAS_HEIGHT_STEP = 0.25;
+
+/** A card's y on its zone once the canvas grows from `from` to `to` times
+ *  the base height: the same distance from the zone's top (the zone's
+ *  header, a few pixels, is left out of the sum). */
+export function grownCardY(y: number, from: number, to: number): number {
+  return (y * from) / to;
+}
+
 // Default placement for a zone with no stored rect: an even row across the
 // world, so a board that never customized still reads like tidy columns.
 export function defaultZoneRect(index: number, count: number): ZoneRect {

@@ -20,6 +20,7 @@ import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
 import {
   BoardCanvas,
+  estimatedCardHeight,
   nearestOpenCanvasPosition,
   zoneStep,
 } from "./BoardCanvas.js";
@@ -155,14 +156,69 @@ test("foreign canvas positions render as anonymous occupied cards", async () => 
 test("an occupied drop snaps to the nearest free card position", () => {
   const open = nearestOpenCanvasPosition(
     { x: 0.5, y: 0.5 },
-    [{ x: 0.5, y: 0.5 }],
-    0.25,
-    0.2,
+    [{ x: 0.5, y: 0.5, w: 0.25, h: 0.2 }],
+    { w: 0.25, h: 0.2 },
   );
   expect(open).not.toBeNull();
   expect(
     Math.abs(open!.x - 0.5) >= 0.25 || Math.abs(open!.y - 0.5) >= 0.2,
   ).toBe(true);
+});
+
+test("a tall card keeps its whole height free, a short one only its own", () => {
+  // a tall neighbour (a GIF card) above the drop point: the new card must
+  // clear its whole height, not a fixed one
+  const tall = { x: 0.25, y: 0.3, w: 0.5, h: 0.5 };
+  const open = nearestOpenCanvasPosition({ x: 0.25, y: 0.4 }, [tall], {
+    w: 0.5,
+    h: 0.2,
+  });
+  expect(open).not.toBeNull();
+  const clearsVertically = Math.abs(open!.y - tall.y) >= (tall.h + 0.2) / 2;
+  const clearsHorizontally = Math.abs(open!.x - tall.x) >= (tall.w + 0.5) / 2;
+  expect(clearsVertically || clearsHorizontally).toBe(true);
+  // and the card stays inside its zone
+  expect(open!.y + 0.1).toBeLessThanOrEqual(1 + 1e-9);
+});
+
+test("a new card's height is read from its text, as the canvas wraps it", () => {
+  const oneLine = estimatedCardHeight("Kaffee", false);
+  // the lines the canvas card draws for these (measured, 2026-11-10)
+  expect(estimatedCardHeight("Tests waren rot", false)).toBe(oneLine + 28);
+  expect(
+    estimatedCardHeight(
+      "Ein etwas längerer Gedanke über das Deployment am Freitag",
+      false,
+    ),
+  ).toBe(oneLine + 5 * 28);
+  // an unbroken word wraps over several lines; a GIF adds its picture
+  expect(estimatedCardHeight("x".repeat(30), false)).toBe(oneLine + 2 * 28);
+  expect(estimatedCardHeight("Kaffee", true)).toBeGreaterThan(oneLine + 100);
+});
+
+test("without a chosen point the zone fills in reading order", () => {
+  const first = nearestOpenCanvasPosition(null, [], { w: 0.4, h: 0.2 });
+  expect(first).toEqual({ x: 0.2, y: 0.1 });
+  const second = nearestOpenCanvasPosition(
+    null,
+    [{ ...first!, w: 0.4, h: 0.2 }],
+    { w: 0.4, h: 0.2 },
+  );
+  // beside the first, not under it
+  expect(second!.y).toBeCloseTo(0.1);
+  expect(second!.x).toBeGreaterThanOrEqual(0.6 - 1e-9);
+});
+
+test("a full zone says so", () => {
+  const filled = [
+    { x: 0.25, y: 0.25, w: 0.5, h: 0.5 },
+    { x: 0.75, y: 0.25, w: 0.5, h: 0.5 },
+    { x: 0.25, y: 0.75, w: 0.5, h: 0.5 },
+    { x: 0.75, y: 0.75, w: 0.5, h: 0.5 },
+  ];
+  expect(
+    nearestOpenCanvasPosition({ x: 0.5, y: 0.5 }, filled, { w: 0.5, h: 0.5 }),
+  ).toBeNull();
 });
 
 // Cursors OFF must produce ZERO traffic on pointer move (the free-tier gate);
@@ -659,7 +715,9 @@ test("focus stays with the canvas card through a keyboard move and step", async 
   await expect.poll(() => document.activeElement).toBe(toggle());
 
   await userEvent.keyboard("{Enter}");
-  const left = screen.getByTestId("note-nudge-left");
+  // "Move to …" lands on the zone's first free place, top left: the step
+  // goes right, where there is room.
+  const left = screen.getByTestId("note-nudge-right");
   // The card's position lives on its drag wrapper.
   const placed = () =>
     (left.element().closest("[data-testid='canvas-card']") as HTMLElement).style
@@ -668,13 +726,14 @@ test("focus stays with the canvas card through a keyboard move and step", async 
   // By key, not click: WebKit does not focus a clicked button, and this is
   // about the mount surviving, not about what a click focuses.
   (left.element() as HTMLElement).focus();
-  await userEvent.keyboard("{ArrowLeft}");
+  await userEvent.keyboard("{ArrowRight}");
   await expect.poll(placed).not.toBe(before);
   await expect.element(left).toHaveFocus();
 });
 
-// The columns' twin test (BoardColumns.test.tsx): a drop on the other zone's
-// centre and "Move to …" that zone are the same command and the same echo.
+// The columns' twin test (BoardColumns.test.tsx): a drop on the other zone
+// and "Move to …" that zone are the same command and the same echo. "Move
+// to …" lands where „+ Note“ opens: the zone's first free place, top left.
 test("a canvas drop and Move to … send the same note.move", async () => {
   const mutate = vi.fn();
   const stacked = { ...note, groupId: "e".repeat(32) };
@@ -693,8 +752,10 @@ test("a canvas drop and Move to … send the same note.move", async () => {
       bubbles: true,
     });
   const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
-  const dropX = target.left + target.width / 2;
-  const dropY = target.top + target.height / 2;
+  // into the zone's top left corner: the drop is kept a card's half inside,
+  // which is where "Move to …" lands, the first free place
+  const dropX = target.left + 2;
+  const dropY = target.top + 2;
   wrapper.dispatchEvent(ev("pointerdown", start.left + 8, start.top + 8));
   await tick();
   wrapper.dispatchEvent(ev("pointermove", dropX, dropY));

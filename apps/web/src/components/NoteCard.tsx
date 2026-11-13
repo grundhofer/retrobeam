@@ -503,9 +503,24 @@ export function NoteCard({
               <span className="flex-1" />
             )}
             {pending ? (
-              <span data-testid="note-pending" className="sb-tag shrink-0">
+              // On the canvas's narrow card the tag is its sign alone (the
+              // words stay for screen readers and as its tooltip): with its
+              // words it pushed the card's keys out of the card.
+              <span
+                data-testid="note-pending"
+                className="sb-tag shrink-0"
+                title={
+                  arrangeScale === null ? undefined : t("note.notPresented")
+                }
+              >
                 <Icon name="eye-off" size={16} />
-                {t("note.notPresented")}
+                {arrangeScale === null ? (
+                  t("note.notPresented")
+                ) : (
+                  <span className="sb-visually-hidden">
+                    {t("note.notPresented")}
+                  </span>
+                )}
               </span>
             ) : null}
             {/* The card's keys. On the canvas they are drawn against the
