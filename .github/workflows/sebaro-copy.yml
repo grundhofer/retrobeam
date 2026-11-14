@@ -1,0 +1,33 @@
+# Once a week: is there a newer release of sebaro's profile copy in
+# apps/web/src/sebaro? The copy's own question exits 1 when there is (its
+# README, „In the product's CI“; CHANGES.md v2.0.0). It is not a step of
+# ci.yml: there it would turn every pull request red on the day of a sebaro
+# release, whatever the pull request changed (docs/sebaro-luecken.md Nr. 58),
+# and a scheduled run of ci.yml would also run the whole verify job and share
+# its concurrency group with the pushes to main. A red run here means: update
+# the copy with `node apps/web/src/sebaro/checks/update-copy.mjs`, as a commit
+# of its own, and do what it prints from the copy's CHANGES.md.
+name: sebaro copy
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  # The same question by hand, from the Actions tab.
+  workflow_dispatch:
+
+# Reads the repo and asks GitHub for the release index; no secrets.
+permissions:
+  contents: read
+
+jobs:
+  newer-release:
+    # Node and the network only, no apt packages: ubuntu-latest like cla.yml
+    # and deploy.yml, not the pinned image of ci.yml and visual.yml.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node apps/web/src/sebaro/checks/update-copy.mjs --check
