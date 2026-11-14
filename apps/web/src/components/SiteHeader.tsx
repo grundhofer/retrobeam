@@ -3,7 +3,7 @@
 
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
-import tile from "../sebaro/brand/inline/tile-retrobeam-small.svg?raw";
+import tile from "../../../../sebaro-product/sign/tile.svg?raw";
 import { LanguageSwitch } from "./LanguageSwitch.js";
 
 // The header of every page, the board's too, as sebaro builds it for a web

@@ -19,6 +19,8 @@ export default tseslint.config(
       // design system's tool and must stay byte-identical (docs/sebaro-umbau.md).
       "apps/web/src/sebaro/**",
       "apps/web/public/theme-init.js",
+      // RetroBeam's own files from the copy's product kit, checked by hash.
+      "sebaro-product/**",
     ],
   },
   js.configs.recommended,
