@@ -196,9 +196,9 @@ test("a de-branded fork that keeps the marks is warned, not blocked", () => {
   const { status, stderr } = run({
     edit: debranded(),
     origin: "git@github.com:jane/retrobeam.git",
-    extra: ["apps/web/src/sebaro/brand/site-root/icon.svg"],
+    extra: ["sebaro-product/web/icon.svg"],
   });
   assert.equal(status, 0);
   assert.match(stderr, /reserved marks/);
-  assert.match(stderr, /brand\/site-root\/icon\.svg/);
+  assert.match(stderr, /sebaro-product\/web\/icon\.svg/);
 });

@@ -29,3 +29,27 @@ path = "apps/web/src/sebaro/brand/**"
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Sebastian Grundhöfer"
 SPDX-License-Identifier = "LicenseRef-sebaro-reserved"
+
+# RetroBeam's own files, written by the product kit of the sebaro copy from
+# sebaro.product.json and never edited here (sebaro-product/NOTICE.md): code
+# and data are MIT like the kit; the sign, its tile, the favicons and icons
+# and the drawings they are made from are marks, all rights reserved. The
+# declaration holds the drawing of the sign and stands with the marks.
+[[annotations]]
+path = "sebaro-product/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Sebastian Grundhöfer (sebaro)"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+  "sebaro.product.json",
+  "sebaro-product/sign/*.svg",
+  "sebaro-product/render/**",
+  "sebaro-product/web/icon.svg",
+  "sebaro-product/web/favicon.ico",
+  "sebaro-product/web/*.png",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Sebastian Grundhöfer"
+SPDX-License-Identifier = "LicenseRef-sebaro-reserved"

@@ -1,16 +1,19 @@
 @import "tailwindcss";
-/* sebaro in the order of shared/ADOPTION.md §4 step 2: fonts, tokens, the
-   bridge, the sprite's sizes and sebaro.css, all without a layer, so
-   sebaro's element rules win over Tailwind's preflight. The bridge
+/* sebaro in the order of the copy's README (Tailwind v4): fonts, tokens, the
+   product's scope (product.css of the product kit, after tokens.css: it
+   gives the start its tile colour), the bridge, the sprite's sizes and
+   sebaro.css, all without a layer, so sebaro's element rules win over
+   Tailwind's preflight. The bridge
    (tokens.tailwind.css, stage 6a) clears Tailwind's own palette, radii,
    shadows, type scale and breakpoints and names sebaro's roles instead:
    bg-bg, text-text-muted, rounded-container, gap-2. */
 @import "./sebaro/fonts/fonts.css";
 @import "./sebaro/tokens.css";
+@import "../../../sebaro-product/sign/product.css";
 @import "./sebaro/tokens.tailwind.css";
 @import "./sebaro/icons/sprite.css";
 @import "./sebaro/css/sebaro.css";
-/* The sebaro export is sebaroDesign's CSS, not class names for Tailwind to
+/* The sebaro copy is sebaro's CSS, not class names for Tailwind to
    scan: without this its files would add utilities to the build. */
 @source not "./sebaro";
 
