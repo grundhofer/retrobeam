@@ -7,14 +7,18 @@
 //   node <sebaro>/brand/og/render.mjs --pages pages.json --html-only DIR [--check]     # the filled templates only
 //   node <sebaro>/brand/og/render.mjs --version
 //
-// <sebaro> is the folder of a `export_system.py --target web` export (this file is brand/og/render.mjs in it) or, in
-// sebaroDesign, systems/sebaro. Everything is found relative to this file: tokens.css (dist/tokens.css in the
-// workshop), fonts/fonts.css with fonts/web/*.woff2, icons/sprite.svg + sprite.css (icons/dist/ in the workshop),
-// brand/inline/tile-<id>.svg, brand/og/template.html, brand/og/pages.schema.json.
+// <sebaro> is a copy with the pack share-images (this file is brand/og/render.mjs in it), the site export
+// (`export_system.py --target web`) or, in sebaroDesign, systems/sebaro staged beside the samples' tiles (gate 5d).
+// Everything is found relative to this file: tokens.css (dist/tokens.css in the workshop), fonts/fonts.css with
+// fonts/web/*.woff2, icons/sprite.svg + sprite.css (icons/dist/ in the workshop), brand/inline/tile-<id>.svg,
+// brand/og/template.html, brand/og/pages.schema.json. A copy holds no product's tile: a product runs this file through
+// its kit (`node <copy>/product/render.mjs share <its folder> …`), which adds the tile of the folder the kit wrote
+// from the site's sebaro.product.json.
 //
 // The page list (pages.schema.json, checked against that file by this script): site {product, name, origin, lang?,
-// imageBase?} and pages [{id, url, title, path?, readingMinutes?, date?, dateKind?, product?, output?, description?,
-// type?, alt?, apps?}]. Per page it writes <out>/<output>.png (24-bit RGB, no alpha, sRGB chunk, no other metadata)
+// words?, imageBase?} and pages [{id, url, title, path?, readingMinutes?, date?, dateKind?, product?, output?,
+// description?, type?, alt?, apps?}]. German (de) and English (en) words are built in; any other language takes the
+// words it needs from site.words (1.3.0). Per page it writes <out>/<output>.png (24-bit RGB, no alpha, sRGB chunk, no other metadata)
 // and into --head (default: --out) <output>.head.html, the head tags of spec/09 §18.1 (canonical, description,
 // og:*, twitter:card), plus head.json with the same tags for every page as data. The site still writes <title>, the
 // language alternates (spec/09 §18.2), serves the PNGs under site.origin + site.imageBase and includes the snippet.
@@ -35,6 +39,9 @@
 // export file, no Playwright).
 //
 // Versions (CHANGELOG):
+//   1.3.0  2026-11-13  any language: site.lang is a language tag, site.words gives the words of a language without
+//                      built-in words (page list 1.1); a missing tile says where a product's tile comes from (the kit's
+//                      folder through product/render.mjs share), not an export with --product (sebaro CHECKS.md §124).
 //   1.2.0  2026-11-11  owner look: studio without top lockup, host only in bottom bar; keep useful page metadata.
 //   1.1.0  2026-11-11  neutral opening type and bottom sender key bar (round 7 stage 3).
 //   1.0.0  2026-10-23  first version (D96 (a)): template, page list 1.0, head tags, self-checks; the workshop's
@@ -48,7 +55,7 @@ import path from "node:path";
 import { domainToUnicode, fileURLToPath, pathToFileURL } from "node:url";
 import zlib from "node:zlib";
 
-export const VERSION = "1.2.0";
+export const VERSION = "1.3.0";
 const SIZE = { width: 1200, height: 630 };
 const MAX_TITLE_LINES = 3;
 const UMBRELLA = "studio";        // the umbrella brand's product (export_system.py UMBRELLA_PRODUCT): no top lockup
@@ -60,15 +67,52 @@ const LOCAL = /^(file|data|blob|about):/i;
 const WORDS = {
   de: { minutes: (n) => `${n} Min. Lesezeit`, updated: "aktualisiert am", published: "veröffentlicht am",
         date: (iso) => iso.split("-").reverse().join("."), locale: "de_DE", browser: "de-DE",
-        apps: (names) => `Dazu die Zeichen von ${list(names, "und")}.` },
+        and: "und", apps: (names) => `Dazu die Zeichen von ${list(names, "und")}.` },
   en: { minutes: (n) => `${n} min read`, updated: "updated", published: "published", date: (iso) => iso,
-        locale: "en_GB", browser: "en-GB", apps: (names) => `With the signs of ${list(names, "and")}.` },
+        locale: "en_GB", browser: "en-GB", and: "and", apps: (names) => `With the signs of ${list(names, "and")}.` },
 };
+// 1.3.0: site.words of a page list, for a language without built-in words: each key with the placeholders it needs
+const PLACEHOLDERS = { minutes: ["{n}"], date: ["{dd}", "{mm}", "{yyyy}"], apps: ["{names}"] };
 
 class UsageError extends Error {}
 
 function list(names, and) {
   return names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} ${and} ${names[names.length - 1]}`;
+}
+
+// The words of the page list's language (1.3.0): built in for de and en; for any other tag the keys of site.words,
+// with a built-in word of its first subtag (de-AT: de) where site.words has none; site.words replaces a built-in word.
+// A key the pages need and nobody gives, or a word without its placeholder, is a UsageError (exit 2, nothing written).
+export function wordsOf(doc) {
+  const site = doc.site, lang = site.lang ?? "de", given = site.words ?? {};
+  const own = WORDS[lang] ?? null, base = own ?? WORDS[lang.split("-")[0]] ?? {};
+  const need = new Set(own ? [] : ["locale"]);
+  for (const p of doc.pages) {
+    if (p.readingMinutes) need.add("minutes");
+    if (p.date) need.add("date").add(p.dateKind ?? "updated");
+    if (p.apps && !p.alt) { need.add("apps"); if (p.apps.length > 1) need.add("and"); }
+  }
+  const has = (k) => k in given || (k in base && !(k === "locale" && !own));
+  const missing = [...need].filter((k) => !has(k)).sort();
+  const bad = Object.entries(PLACEHOLDERS).flatMap(([k, marks]) => (k in given ? marks.filter((m) => !given[k].includes(m))
+    .map((m) => `site.words.${k} lacks ${m}`) : []));
+  if (missing.length || bad.length) {
+    throw new UsageError(`the page list's language ${lang}: ` + [
+      ...(missing.length ? [`site.words needs ${missing.join(", ")} (de and en are built in; the pages use them)`] : []),
+      ...bad].join("; "));
+  }
+  const w = { ...base };
+  if ("minutes" in given) w.minutes = (n) => given.minutes.replaceAll("{n}", String(n));
+  for (const k of ["updated", "published"]) if (k in given) w[k] = given[k];
+  if ("date" in given) {
+    w.date = (iso) => { const [yyyy, mm, dd] = iso.split("-"); return given.date.replace("{yyyy}", yyyy).replace("{mm}", mm).replace("{dd}", dd); };
+  }
+  if ("apps" in given || "and" in given) {
+    const and = given.and ?? base.and ?? "";
+    w.apps = (names) => (given.apps ?? base.apps(["{names}"])).replace("{names}", list(names, and));
+  }
+  if ("locale" in given) { w.locale = given.locale; w.browser = given.locale.replace("_", "-"); }
+  return w;
 }
 
 // ------------------------------------------------------------------------- files of the export (or the workshop)
@@ -99,8 +143,10 @@ function cleanSvg(text) {
 function tileOf(L, id, where) {
   const file = path.join(L.inline, `tile-${id}.svg`);
   if (!existsSync(file)) {
-    throw new UsageError(`${where}: no brand/inline/tile-${id}.svg in this export (export with --product ${id}, or ` +
-                         `--product ${UMBRELLA} for every tile)`);
+    throw new UsageError(`${where}: no brand/inline/tile-${id}.svg beside this generator. A product's tile comes from ` +
+                         "its own folder, which product/product_kit.py writes from the site's sebaro.product.json: run " +
+                         "the generator through node <copy>/product/render.mjs share <that folder> --pages …, which " +
+                         "adds the tile");
   }
   const svg = cleanSvg(read(file));
   const name = /aria-label="([^"]+)"/.exec(svg);
@@ -190,6 +236,7 @@ function loadPages(L, file) {
     }
   }
   if (errors.length) throw new UsageError(`${file} does not match pages.schema.json:\n  ` + errors.join("\n  "));
+  Object.defineProperty(doc, "words", { value: wordsOf(doc) });   // 1.3.0: checked here, before anything is written
   return doc;
 }
 
@@ -270,7 +317,7 @@ function href(fromDir, file) {     // both real paths, so a symbolic link (macOS
 }
 
 export function viewOf(L, doc, page, htmlDir, pagesName) {
-  const site = doc.site, lang = site.lang ?? "de", w = WORDS[lang];
+  const site = doc.site, lang = site.lang ?? "de", w = doc.words ?? wordsOf(doc);
   const product = page.product ?? site.product;
   const where = `page ${page.id}`;
   const own = tileOf(L, product, where);
@@ -309,7 +356,7 @@ function uncovered(ranges, view) {
 }
 
 export function headOf(doc, page, productName, appNames) {
-  const site = doc.site, w = WORDS[site.lang ?? "de"];
+  const site = doc.site, w = doc.words ?? wordsOf(doc);
   const base = site.imageBase ?? "/og/";
   // through URL, so a path such as /phase-2/übung/ is percent-encoded (origin and url are checked by the schema)
   const image = new URL(`${site.origin}${base}${page.output ?? page.id}.png`).href;
@@ -523,7 +570,7 @@ async function render(L, doc, o, template) {
   const made = o.keepHtml ? path.resolve(o.keepHtml) : mkdtempSync(path.join(tmpdir(), "sebaro-og-"));
   mkdirSync(out, { recursive: true }); mkdirSync(headDir, { recursive: true }); mkdirSync(made, { recursive: true });
   const work = realpathSync(made);       // the page's URL and its relative links on the same real path as ROOT
-  const ranges = coverage(L), pagesName = path.basename(o.pages), words = WORDS[doc.site.lang ?? "de"];
+  const ranges = coverage(L), pagesName = path.basename(o.pages), words = doc.words ?? wordsOf(doc);
   const fontsDir = pathToFileURL(path.dirname(L.fontsCss)).href + "/";
   const headJson = path.join(headDir, "head.json");
   if (existsSync(headJson)) unlinkSync(headJson);   // a run that stops early leaves none from an earlier run
