@@ -112,7 +112,8 @@ export function AccessibilityEn() {
         switches the language and stores the choice in your browser. On this
         page, the <Link to="/imprint">imprint</Link> and the{" "}
         <Link to="/privacy">privacy notice</Link>, it leads to the same page in
-        the other language instead and stores nothing.
+        the other language instead and stores nothing. On a board you choose the
+        language in the “More” menu or in the settings.
       </p>
 
       <h3>Motion</h3>
@@ -121,13 +122,19 @@ export function AccessibilityEn() {
         If your system is set to reduce motion, the wheel of fortune does not
         spin but shows at once whose turn it is. Fade-in and pulse animations
         are left out, and while presenting the view jumps instead of scrolling.
+        The same holds when you turn on “Always reduce motion” in a board’s
+        settings; RetroBeam stores that choice in your browser.
       </p>
 
       <h3>Light or dark</h3>
 
       <p>
-        RetroBeam has a light appearance only. There is no choice between light
-        and dark yet.
+        On your first visit RetroBeam follows your system’s setting, light or
+        dark. Outside a board the “Light or dark” button at the top switches to
+        the other appearance; a second press returns to the system’s setting. On
+        a board you choose between “Like the system”, “Light” and “Dark” in the
+        “More” menu or in the settings, and there also the tone “Cool” or
+        “Warm”. RetroBeam stores this choice in your browser.
       </p>
 
       <h2>Requirements and checks</h2>
@@ -167,8 +174,9 @@ export function AccessibilityEn() {
       <ul>
         <li>
           The tool axe-core 4.14.0 checks, in the Chromium browser at
-          390&nbsp;pixels and 1440&nbsp;pixels wide, the rules for WCAG 2.0 and
-          2.1 (levels A and AA) and for WCAG 2.2 (level AA). In German and in
+          390&nbsp;pixels and 1440&nbsp;pixels wide, each light and dark, and at
+          1440&nbsp;pixels also in the warm tone, the rules for WCAG 2.0 and 2.1
+          (levels A and AA) and for WCAG 2.2 (level AA). In German and in
           English it checks the page for creating a board, the page for unknown
           addresses, the imprint, the privacy notice and this page; in English
           only, the start page, a board in the lobby and while writing, and the
@@ -229,7 +237,7 @@ export function AccessibilityEn() {
         <li>
           The four fixed tasks with the keyboard only – create something, delete
           it after a confirmation, switch between light and dark, open a note:
-          open. RetroBeam does not have the last two yet.
+          open. RetroBeam does not have the last one yet.
         </li>
         <li>
           axe for the later phases of a board (present, vote, discuss, close,
@@ -260,10 +268,6 @@ export function AccessibilityEn() {
       </p>
 
       <ul>
-        <li>
-          A choice between light and dark is missing. It is planned for the
-          move.
-        </li>
         <li>
           Screen readers, real devices and a walk-through with the keyboard only
           have not been tested. Keyboard-only tests are planned for the move.
