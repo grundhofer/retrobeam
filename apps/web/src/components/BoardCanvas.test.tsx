@@ -7,6 +7,7 @@ import { useState } from "react";
 import { userEvent } from "vitest/browser";
 import {
   defaultZoneRect,
+  type CanvasOccupancy,
   type Column,
   type Note,
   type Participant,
@@ -513,9 +514,95 @@ test("„Note“ opens the composer in the chosen zone at a free spot", async ()
     type: "note.create",
     columnId: column.id,
     text: "from the button",
+    atCanvasHeight: 1,
   });
   // The centre is taken by the fixture's card; the composer moved off it.
   expect(command.x !== note.x || command.y !== note.y).toBe(true);
+});
+
+// A full zone grows the canvas. The growing card waits for the server (its
+// snapshot replaces the board), and a card written meanwhile waits with it:
+// it is placed once the growing card is on the board, measured with it.
+test("a card that fits nowhere grows the canvas, and the next one waits for it", async () => {
+  const mutate = vi.fn();
+  const full: CanvasOccupancy[] = [];
+  for (let x = 0.025; x < 1; x += 0.05) {
+    for (let y = 0.025; y < 1; y += 0.05) {
+      full.push({ columnId: column.id, x, y });
+    }
+  }
+  const canvas = (notes: Note[], canvasHeight: number) => (
+    <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send: vi.fn() }}>
+      <BoardCanvas
+        columns={[column]}
+        notes={notes}
+        columnCounts={{}}
+        canvasOccupancy={full}
+        canvasHeight={canvasHeight}
+        roster={[you]}
+        you={you}
+        phase="write"
+        editing={{}}
+        isAdmin
+        presenterId={null}
+        unpresentedAuthorIds={null}
+        gifsEnabled={false}
+        cursors={{}}
+        cursorsEnabled={false}
+      />
+    </ConnectionProvider>
+  );
+  const screen = await render(canvas([], 1.5));
+  const write = async (text: string) => {
+    await screen.getByTestId("canvas-add-note").click();
+    await screen.getByTestId(`canvas-add-note-${column.id}`).click();
+    const composer = screen.getByTestId("canvas-composer");
+    await expect.element(composer).toHaveFocus();
+    await composer.fill(text);
+    await userEvent.keyboard("{Enter}");
+  };
+
+  await write("needs room");
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const [command, echo] = mutate.mock.calls[0] as [
+    {
+      noteId: string;
+      x: number;
+      y: number;
+      growCanvasTo?: number;
+      atCanvasHeight?: number;
+    },
+    ServerEvent[],
+  ];
+  expect(command.growCanvasTo).toBeGreaterThan(1.5);
+  expect(command.atCanvasHeight).toBe(command.growCanvasTo);
+  expect(echo).toEqual([]);
+
+  await write("written meanwhile");
+  expect(mutate).toHaveBeenCalledTimes(1);
+
+  // the server's snapshot: the canvas grown, the growing card on it
+  const grown = command.growCanvasTo!;
+  await screen.rerender(
+    canvas(
+      [
+        {
+          ...note,
+          id: command.noteId,
+          text: "needs room",
+          x: command.x,
+          y: command.y,
+        },
+      ],
+      grown,
+    ),
+  );
+  await expect.poll(() => mutate.mock.calls.length).toBe(2);
+  expect(mutate.mock.calls[1]?.[0]).toMatchObject({
+    type: "note.create",
+    text: "written meanwhile",
+    atCanvasHeight: expect.any(Number),
+  });
 });
 
 // WCAG 2.5.7 and 2.1.1: a canvas card used to move by dragging only. Its ⋯

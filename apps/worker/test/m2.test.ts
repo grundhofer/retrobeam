@@ -499,6 +499,74 @@ describe("canvas layout & positions", () => {
     expect(later.sync.config.canvasHeight).toBe(2);
   });
 
+  it("a card placed on a canvas that has grown since keeps its distance from the zone's top", async () => {
+    const { boardId, adminToken } = await createBoard("Canvas", {
+      layout: "canvas",
+    });
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    await toPhase(admin.socket, "write");
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId: newId(),
+      columnId,
+      text: "grows",
+      x: 0.5,
+      y: 0.9,
+      atCanvasHeight: 1.25,
+      growCanvasTo: 1.25,
+    });
+    await ben.socket.waitFor(
+      (e) => e.type === "sync" && e.config.canvasHeight === 1.25,
+    );
+    const created = async (
+      y: number,
+      atCanvasHeight?: number,
+    ): Promise<{ id: string; y: number | null }> => {
+      const noteId = newId();
+      ben.socket.send({
+        type: "note.create",
+        opId: opId(),
+        noteId,
+        columnId,
+        text: "card",
+        x: 0.2,
+        y,
+        ...(atCanvasHeight !== undefined ? { atCanvasHeight } : {}),
+      });
+      const event = await ben.socket.waitFor(
+        (e) => e.type === "note.created" && e.note.id === noteId,
+      );
+      if (event.type !== "note.created") throw new Error("unreachable");
+      return { id: noteId, y: event.note.y };
+    };
+    // placed on the canvas before it grew: 0.5 of 1 is 0.4 of 1.25
+    expect((await created(0.5, 1)).y).toBeCloseTo(0.4);
+    // placed on the canvas as it is: taken as is
+    const current = await created(0.5, 1.25);
+    expect(current.y).toBeCloseTo(0.5);
+    // a client without the height (an older tab): taken as is
+    expect((await created(0.5)).y).toBeCloseTo(0.5);
+    // a move measured before the growth moves along too
+    ben.socket.send({
+      type: "note.move",
+      opId: opId(),
+      noteId: current.id,
+      columnId,
+      x: 0.2,
+      y: 0.75,
+      atCanvasHeight: 1,
+    });
+    const moved = await ben.socket.waitFor(
+      (e) => e.type === "note.updated" && e.note.id === current.id,
+    );
+    if (moved.type !== "note.updated") throw new Error("unreachable");
+    expect(moved.note.y).toBeCloseTo(0.6);
+  });
+
   it("growCanvasTo does nothing on a column board", async () => {
     const { boardId, adminToken } = await createBoard();
     const admin = await joined(boardId, "Anna", adminToken);
