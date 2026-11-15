@@ -12,6 +12,7 @@ import {
   type ServerEvent,
 } from "@retrobeam/shared";
 import i18n from "../i18n.js";
+import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
 import { BoardMenu } from "./BoardMenu.js";
 
