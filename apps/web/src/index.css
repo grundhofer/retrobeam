@@ -38,3 +38,19 @@
       var(--sb-motion-easing-emphasized) backwards;
   }
 }
+
+/* The draw's tones (WheelOverlay toneFill, owner 2026-11-15): how much of a
+   category tone goes into the ground under an ink name. Stronger on the
+   light ground, lighter on the dark one, so every name keeps at least 5.7:1
+   in both. */
+:root {
+  --rb-tone-mix: 60%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --rb-tone-mix: 40%;
+  }
+}
+:root[data-theme="dark"] {
+  --rb-tone-mix: 40%;
+}

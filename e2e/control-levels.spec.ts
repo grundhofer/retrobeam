@@ -9,9 +9,11 @@ import { join } from "./visual-helpers.js";
 // outlined action (sb-secondary-action) per task area, everything else beside
 // the one primary action is a text action, and a web app's head has no theme
 // button. Counted by sebaro's own check, checks/sb-colour-count.js, on every
-// view at a phone and a desktop width. Only its control-level part is asserted
-// here: the colour count's other parts are not this gate's job. Chromium only:
-// the count reads the layout, and one engine is enough for that.
+// view at a phone and a desktop width. Asserted here: its control-level part
+// and the number of primary actions (at most one per view; outside the board
+// exactly one, or none where the view says data-sb-primary-expected="0"); the
+// colour count's other parts are not this gate's job. Chromium only: the count reads the layout, and one engine is
+// enough for that.
 //
 // The script is loaded by path (relative to the repo root, where Playwright
 // runs) because e2e/ has no Node types to read files with.
@@ -24,7 +26,8 @@ test.skip(
 );
 
 // Every view on the page that has more than one outlined action in one area,
-// or a theme button in a web app's head, as one line each. After the resize
+// a theme button in a web app's head, or another number of primary actions
+// than it expects, as one line each. After the resize
 // the media queries report at the next frame, and the board's layout follows
 // them synchronously (useNarrow); two frames later the count reads the layout
 // of this width, not the last one. `ready` then waits for what the view must
@@ -34,9 +37,10 @@ async function levels(
   page: Page,
   name: string,
   ready?: (width: number) => Promise<void>,
+  widths: readonly number[] = WIDTHS,
 ): Promise<string[]> {
   const found: string[] = [];
-  for (const width of WIDTHS) {
+  for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     await page.evaluate(
       () =>
@@ -52,6 +56,8 @@ async function levels(
           sbColourCount: (view: Element) => {
             outlinedAreas: { area: string; outlined: number }[];
             headerThemeButtons: number;
+            primary: number;
+            expected: number;
           };
         }
       ).sbColourCount;
@@ -65,6 +71,14 @@ async function levels(
             ...(result.headerThemeButtons
               ? [`${result.headerThemeButtons} theme button(s) in the head`]
               : []),
+            // At most one everywhere. The board does not declare how many
+            // it expects: a member's board has none in most phases, a
+            // facilitator's one, so there only the most is counted.
+            ...(result.primary > 1 ||
+            (view.getAttribute("data-sb-view") !== "board" &&
+              result.primary !== result.expected)
+              ? [`${result.primary} primary, ${result.expected} expected`]
+              : []),
           ];
         },
       );
@@ -75,7 +89,7 @@ async function levels(
 }
 
 test("every view keeps one outlined action per area", async ({ browser }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   const found: string[] = [];
 
   const context = await newContext(browser, { reducedMotion: "reduce" });
@@ -121,6 +135,13 @@ test("every view keeps one outlined action per area", async ({ browser }) => {
   found.push(...(await levels(anna, "settings")));
   await anna.getByTestId("settings-back").click();
 
+  await anna.getByTestId("board-menu").click();
+  await anna.getByTestId("delete-board").click();
+  await expect(anna.getByTestId("delete-board-confirm")).toBeVisible();
+  found.push(...(await levels(anna, "delete board dialog")));
+  await anna.keyboard.press("Escape");
+  await expect(anna.getByTestId("delete-board-confirm")).toBeHidden();
+
   for (const [phase, name] of [
     [/write|schreiben/i, "write"],
     [/present|vorstellen/i, "present"],
@@ -144,6 +165,43 @@ test("every view keeps one outlined action per area", async ({ browser }) => {
     }
     found.push(...(await levels(anna, name)));
     found.push(...(await levels(ben, `${name} (member)`)));
+    if (name === "write") {
+      // A card's own controls: the arrange panel, the ⋯ menu, editing and
+      // the delete dialog.
+      const card = anna
+        .getByTestId("note-card")
+        .filter({ hasText: "Deploys are slow on Fridays" });
+      await card.getByTestId("note-arrange-toggle").click();
+      await expect(card.getByTestId("note-arrange")).toBeVisible();
+      found.push(...(await levels(anna, "card arrange panel")));
+      await card.getByTestId("note-arrange-toggle").click();
+      // A menu closes when the width changes: opened again for each.
+      const menuOpen = async () => {
+        if (!(await anna.getByTestId("note-edit").isVisible()))
+          await card.getByTestId("note-menu").click();
+        await expect(anna.getByTestId("note-edit")).toBeVisible();
+      };
+      found.push(...(await levels(anna, "card menu", menuOpen)));
+      await menuOpen();
+      await anna.getByTestId("note-edit").click();
+      await expect(card.locator("textarea")).toBeVisible();
+      found.push(...(await levels(anna, "card editing")));
+      await card.getByRole("button", { name: /^(cancel|abbrechen)$/i }).click();
+      await expect(card.locator("textarea")).toBeHidden();
+      await card.getByTestId("note-menu").click();
+      await anna.getByTestId("note-delete").click();
+      await expect(anna.getByTestId("note-delete-confirm")).toBeVisible();
+      found.push(...(await levels(anna, "card delete dialog")));
+      await anna.keyboard.press("Escape");
+      await expect(anna.getByTestId("note-delete-confirm")).toBeHidden();
+    }
+    if (name === "present") {
+      await anna.getByTestId("spin-button").click();
+      await expect(anna.getByTestId("wheel-overlay")).toBeVisible();
+      found.push(...(await levels(anna, "wheel")));
+      await anna.getByTestId("wheel-overlay-close").click();
+      await expect(anna.getByTestId("wheel-overlay")).toBeHidden();
+    }
     if (name === "vote") {
       await anna.getByTestId("vote-settings").click();
       found.push(...(await levels(anna, "vote settings dialog")));
@@ -191,6 +249,23 @@ test("the canvas keeps one outlined action per area", async ({ browser }) => {
     if (width >= 640) await expect(canvas).toBeVisible();
     else await expect(canvas).toHaveCount(0);
   });
+
+  // The facilitator's zone panel and a card's arrange panel exist only on
+  // the canvas, so only at the desktop width: under 640 px the zones are
+  // columns, and the panels would be gone when it comes back.
+  const desktop = [1440];
+  await page.getByTestId("zones-toggle").click();
+  await expect(page.getByTestId("zones-panel")).toBeVisible();
+  found.push(...(await levels(page, "zone panel", undefined, desktop)));
+  await page.getByTestId("zones-close").click();
+  await expect(page.getByTestId("zones-panel")).toHaveCount(0);
+  await page.getByTestId("canvas-add-note").click();
+  await page.getByRole("menuitem").first().click();
+  await page.getByTestId("canvas-composer").fill("Deploys are slow");
+  await page.keyboard.press("Enter");
+  await page.getByTestId("note-arrange-toggle").click();
+  await expect(page.getByTestId("note-arrange")).toBeVisible();
+  found.push(...(await levels(page, "canvas card panel", undefined, desktop)));
   await context.close();
   expect(found).toEqual([]);
 });

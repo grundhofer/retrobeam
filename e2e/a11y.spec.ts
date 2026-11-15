@@ -225,9 +225,7 @@ test("axe: canvas arrange panel", async ({ browser }) => {
   await expect(page.getByTestId("note-card")).toHaveCSS("opacity", "1");
   const toggle = page.getByTestId("note-arrange-toggle");
   const panel = page.getByTestId("note-arrange");
-  const fit = page.getByRole("button", {
-    name: /fit to screen|an fenster anpassen/i,
-  });
+  const fit = page.getByTestId("canvas-fit");
 
   // The canvas is drawn from 640 px on; under it a canvas board shows its
   // zones as columns (owner, 2026-11-05), audited at the end.
@@ -270,8 +268,9 @@ test("axe: canvas arrange panel", async ({ browser }) => {
       page,
       "board-canvas-arrange",
       async () => {
-        if (!(await zonePanel.isVisible())) await zones.click();
+        // „Zentrieren“ first: a press outside the panel closes it.
         await fit.click();
+        if (!(await zonePanel.isVisible())) await zones.click();
         await page.mouse.move(0, 0);
         await expect(zonePanel).toBeInViewport({ ratio: 1 });
       },

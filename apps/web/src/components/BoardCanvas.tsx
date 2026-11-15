@@ -30,17 +30,7 @@ import { useConnection } from "../lib/connection.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 import { Menu } from "./Menu.js";
-import {
-  ARRANGE_LABEL,
-  ARRANGE_OPTION,
-  ARRANGE_PANEL,
-  ARRANGE_STEP,
-  CARD_EDGE,
-  CARD_SURFACE,
-  NoteCard,
-  NUDGES,
-  type NudgeDirection,
-} from "./NoteCard.js";
+import { NoteCard, NUDGES, type NudgeDirection } from "./NoteCard.js";
 
 export interface BoardCanvasProps {
   columns: Column[];
@@ -215,13 +205,21 @@ export function nearestOpenCanvasPosition(
   return candidates.find((candidate) => !overlaps(candidate)) ?? null;
 }
 
-// The canvas's own controls, over its top right corner: the zoom and the
-// facilitator's zone panel button.
-// The canvas's own keys lie over the canvas, so their row carries the ground,
-// not the keys: a key's own background is the hover fill, and it fades. The
-// row is one tool row (sebaro D143 (7)): „Notiz“ keeps the outline, „Zonen“
-// and the zoom level are text actions, the two zoom steps icon buttons.
+// The canvas's own controls, in a row above it, so they never cover a zone
+// (owner, 2026-11-15): the facilitator's zone panel button, „Notiz“, the
+// zoom and „Zentrieren“. One tool row (sebaro D143 (7)): „Notiz“ keeps the
+// outline, „Zonen“ and „Zentrieren“ are text actions, the two zoom steps icon
+// buttons.
 const CONTROL_KEY = "sb-text-action sb-text-action--compact";
+
+// The zone panel's crosses of arrows, in reading order: up, left, right,
+// down, each in its cell of a 3 × 3 grid.
+const DPAD = [
+  { direction: "up", place: "col-start-2 row-start-1" },
+  { direction: "left", place: "col-start-1 row-start-2" },
+  { direction: "right", place: "col-start-3 row-start-2" },
+  { direction: "down", place: "col-start-2 row-start-3" },
+] as const;
 
 type ZoneStepKind = "move" | "size";
 
@@ -347,6 +345,7 @@ export function BoardCanvas({
   const [zoneTarget, setZoneTarget] = useState<string | null>(null);
   const zonePanelId = useId();
   const zoneToggle = useRef<HTMLButtonElement>(null);
+  const zonePanelRef = useRef<HTMLDivElement>(null);
 
   const ordered = [...columns].sort((a, b) => a.order - b.order);
   const arrangedZone =
@@ -369,8 +368,19 @@ export function BoardCanvas({
       setZonePanel(false);
       zoneToggle.current?.focus();
     }
+    // A press outside the panel and its button closes it, as a menu does.
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (zonePanelRef.current?.contains(target)) return;
+      if (zoneToggle.current?.contains(target)) return;
+      setZonePanel(false);
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
   }, [zonesOpen]);
   function rectOf(column: Column): ZoneRect {
     if (zoneDrag?.columnId === column.id) return zoneDrag.rect;
@@ -381,19 +391,32 @@ export function BoardCanvas({
     );
   }
 
+  // The zones' outline, not the whole world, in the middle of the canvas and
+  // as large as it fits (owner, 2026-11-15): a zone moved aside or made
+  // smaller is centred too. The cards stay inside their zones.
   function fitView() {
     const vp = viewportRef.current;
     if (!vp) return;
+    let left = 0;
+    let top = 0;
+    let right = WORLD_W;
+    let bottom = worldH;
+    if (ordered.length > 0) {
+      const rects = ordered.map(rectOf);
+      left = Math.min(...rects.map((r) => r.x)) * WORLD_W;
+      top = Math.min(...rects.map((r) => r.y)) * worldH;
+      right = Math.max(...rects.map((r) => r.x + r.w)) * WORLD_W;
+      bottom = Math.max(...rects.map((r) => r.y + r.h)) * worldH;
+    }
+    const width = right - left;
+    const height = bottom - top;
     const zoom = clampZoom(
-      Math.min(
-        (vp.clientWidth - 24) / WORLD_W,
-        (vp.clientHeight - 24) / worldH,
-      ),
+      Math.min((vp.clientWidth - 48) / width, (vp.clientHeight - 48) / height),
     );
     setView({
       zoom,
-      panX: (vp.clientWidth - WORLD_W * zoom) / 2,
-      panY: (vp.clientHeight - worldH * zoom) / 2,
+      panX: (vp.clientWidth - width * zoom) / 2 - left * zoom,
+      panY: (vp.clientHeight - height * zoom) / 2 - top * zoom,
     });
   }
 
@@ -1059,7 +1082,7 @@ export function BoardCanvas({
       <div
         data-canvas-control
         data-sb-action-area="canvas-tools"
-        className="absolute top-2 right-2 z-40 flex flex-wrap items-center justify-end gap-1 rounded-control bg-bg"
+        className="relative mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1"
       >
         {isAdmin && arrangedZone !== null ? (
           <button
@@ -1075,78 +1098,115 @@ export function BoardCanvas({
           </button>
         ) : null}
         {/* Right after its toggle, so Tab goes from one straight into the
-            other; placed by position, not by order. */}
+            other; it hangs below the row, over the canvas's top right
+            corner. A title and „Schließen“ say what it is and how it goes
+            away (owner, 2026-11-15); Escape and a press outside close it
+            too. The zone is a choice from a list, the steps two crosses of
+            arrows: one for the place, one for the size. */}
         {zonesOpen ? (
           <div
+            ref={zonePanelRef}
             id={zonePanelId}
+            role="group"
+            aria-labelledby={`${zonePanelId}-title`}
             data-testid="zones-panel"
-            className={`absolute top-full right-0 mt-1 w-56 max-w-[calc(100vw-2rem)] ${ARRANGE_PANEL} ${CARD_SURFACE} ${CARD_EDGE}`}
+            className="absolute top-full right-0 z-40 mt-1 w-[23rem] max-w-[calc(100vw-2rem)]"
           >
-            <div role="group" aria-label={t("canvas.zone")}>
-              <p className={ARRANGE_LABEL}>{t("canvas.zone")}</p>
-              <div className="flex flex-wrap gap-1">
-                {ordered.map((column) => (
-                  <button
-                    key={column.id}
-                    type="button"
-                    data-testid="zones-option"
-                    aria-pressed={column.id === arrangedZone.id}
-                    onClick={() => setZoneTarget(column.id)}
-                    className={`max-w-full truncate ${ARRANGE_OPTION} aria-pressed:outline-[3px] aria-pressed:outline-offset-2 aria-pressed:outline-(--sb-color-accent) aria-pressed:outline-solid`}
+            <div className="sb-card">
+              <div className="flex items-center justify-between gap-2">
+                <h2 id={`${zonePanelId}-title`} className="sb-card__title">
+                  {t("canvas.zonesTitle")}
+                </h2>
+                <button
+                  type="button"
+                  data-testid="zones-close"
+                  aria-label={t("sheet.close")}
+                  onClick={() => {
+                    setZonePanel(false);
+                    zoneToggle.current?.focus();
+                  }}
+                  className="sb-icon-button"
+                >
+                  <Icon name="close" />
+                </button>
+              </div>
+              <div className="sb-field sb-field--compact">
+                <label
+                  htmlFor={`${zonePanelId}-zone`}
+                  className="sb-field__label"
+                >
+                  {t("canvas.zone")}
+                </label>
+                <div className="sb-field__control sb-select">
+                  <select
+                    id={`${zonePanelId}-zone`}
+                    data-testid="zones-select"
+                    value={arrangedZone.id}
+                    onChange={(event) => setZoneTarget(event.target.value)}
                   >
-                    {column.name}
-                  </button>
-                ))}
+                    {ordered.map((column) => (
+                      <option key={column.id} value={column.id}>
+                        {column.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Icon name="chevron-down" />
+                </div>
+              </div>
+              <div className="flex flex-wrap justify-between gap-4">
+                {(["move", "size"] as const).map((kind) => {
+                  const label =
+                    kind === "move" ? "canvas.zonePosition" : "canvas.zoneSize";
+                  return (
+                    <div
+                      key={kind}
+                      role="group"
+                      aria-label={t(label)}
+                      onKeyDown={(event) => {
+                        const nudge = NUDGES.find((n) => n.key === event.key);
+                        if (nudge === undefined) return;
+                        event.preventDefault();
+                        // One step per press, as for a card: every step is a
+                        // frame on the wire.
+                        if (event.repeat) return;
+                        stepZone(kind, nudge.direction);
+                      }}
+                    >
+                      <p className="sb-field__label">{t(label)}</p>
+                      <div className="grid grid-cols-3 grid-rows-3">
+                        {DPAD.map(({ direction, place }) => {
+                          const nudge = NUDGES.find(
+                            (n) => n.direction === direction,
+                          )!;
+                          const name = t(
+                            kind === "move"
+                              ? nudge.label
+                              : SIZE_LABELS[direction],
+                          );
+                          return (
+                            <button
+                              key={direction}
+                              type="button"
+                              data-testid={`zones-${kind}-${direction}`}
+                              aria-label={name}
+                              title={`${name} (${nudge.glyph})`}
+                              aria-keyshortcuts={nudge.key}
+                              // Not `disabled`, as for a card's steps: the
+                              // button that just reached the edge keeps focus.
+                              aria-disabled={!canStepZone(kind, direction)}
+                              onClick={() => stepZone(kind, direction)}
+                              className={`sb-icon-button ${place}`}
+                            >
+                              <Icon name={`arrow-${direction}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            {(["move", "size"] as const).map((kind) => {
-              const label =
-                kind === "move" ? "canvas.zonePosition" : "canvas.zoneSize";
-              return (
-                <div
-                  key={kind}
-                  role="group"
-                  aria-label={t(label)}
-                  onKeyDown={(event) => {
-                    const nudge = NUDGES.find((n) => n.key === event.key);
-                    if (nudge === undefined) return;
-                    event.preventDefault();
-                    // One step per press, as for a card: every step is a
-                    // frame on the wire.
-                    if (event.repeat) return;
-                    stepZone(kind, nudge.direction);
-                  }}
-                >
-                  <p className={ARRANGE_LABEL}>{t(label)}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {NUDGES.map((nudge) => {
-                      const name = t(
-                        kind === "move"
-                          ? nudge.label
-                          : SIZE_LABELS[nudge.direction],
-                      );
-                      return (
-                        <button
-                          key={nudge.direction}
-                          type="button"
-                          data-testid={`zones-${kind}-${nudge.direction}`}
-                          aria-label={name}
-                          title={`${name} (${nudge.glyph})`}
-                          aria-keyshortcuts={nudge.key}
-                          // Not `disabled`, as for a card's steps: the
-                          // button that just reached the edge keeps focus.
-                          aria-disabled={!canStepZone(kind, nudge.direction)}
-                          onClick={() => stepZone(kind, nudge.direction)}
-                          className={ARRANGE_STEP}
-                        >
-                          <Icon name={`arrow-${nudge.direction}`} size={20} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         ) : null}
         {/* The double-click's visible, keyboard-reachable twin (WCAG 2.1.1):
@@ -1184,17 +1244,13 @@ export function BoardCanvas({
           >
             <Icon name="zoom-out" />
           </button>
-          {/* Named after what it shows first (WCAG 2.5.3): a speech user says
-              the "49%" they see, then the name tells what it does. */}
-          <button
-            type="button"
-            onClick={fitView}
-            className={`${CONTROL_KEY} tabular-nums`}
+          <span
+            data-testid="canvas-zoom-level"
+            className="min-w-12 text-center tabular-nums"
           >
-            <Icon name="zoom-fit" size={20} />
+            <span className="sr-only">{t("canvas.zoomLevel")} </span>
             {Math.round(view.zoom * 100)}%
-            <span className="sr-only"> – {t("canvas.fit")}</span>
-          </button>
+          </span>
           <button
             type="button"
             aria-label={t("canvas.zoomIn")}
@@ -1204,6 +1260,17 @@ export function BoardCanvas({
             <Icon name="zoom-in" />
           </button>
         </div>
+        {/* Its own word, not the zoom level's (owner, 2026-11-15): the zones
+            back in the middle of the canvas, as large as they fit. */}
+        <button
+          type="button"
+          data-testid="canvas-fit"
+          onClick={fitView}
+          className={CONTROL_KEY}
+        >
+          <Icon name="zoom-fit" size={20} />
+          {t("canvas.fit")}
+        </button>
       </div>
 
       <div
