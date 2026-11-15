@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test } from "vitest";
+import { MemoryRouter } from "react-router";
 import { render } from "vitest-browser-react";
 import type { ClientCommand, Phase, ServerEvent } from "@retrobeam/shared";
 import i18n from "../i18n.js";
@@ -26,18 +27,21 @@ function view({
     ) => sent.push(command),
   };
   const element = (
-    <ConnectionProvider value={connection}>
-      <BoardSettings
-        isAdmin={isAdmin}
-        gifsEnabled
-        cursorsEnabled={false}
-        voterNamesEnabled={voterNamesEnabled}
-        anonymous={anonymous}
-        phase={phase}
-        layout="columns"
-        retentionAt={retentionAt}
-      />
-    </ConnectionProvider>
+    <MemoryRouter>
+      <ConnectionProvider value={connection}>
+        <BoardSettings
+          isAdmin={isAdmin}
+          gifsEnabled
+          cursorsEnabled={false}
+          voterNamesEnabled={voterNamesEnabled}
+          anonymous={anonymous}
+          phase={phase}
+          layout="columns"
+          retentionAt={retentionAt}
+          boardPath="/board"
+        />
+      </ConnectionProvider>
+    </MemoryRouter>
   );
   return { sent, element };
 }

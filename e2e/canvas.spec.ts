@@ -81,9 +81,10 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
   // Flip live to columns in the settings view → back on the board the column
   // composer returns and the note is still there (positions are ignored, not
   // lost). The view is a child route: the socket stays, nobody goes offline.
-  await page.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await page.getByTestId("board-menu").click();
+  await page.getByTestId("menu-settings").click();
   await page.getByTestId("layout-columns").click();
-  await page.getByRole("link", { name: /^board$/i }).click();
+  await page.getByTestId("settings-back").click();
   await expect(page.getByTestId(/^composer-/).first()).toBeVisible();
   await expect(page.getByText("Freeform idea")).toBeVisible();
 
@@ -293,13 +294,14 @@ test("canvas layout: the others' pointers, and the sentence that counts them", a
   await ben.goto(boardUrl);
   await join(ben, "Ben");
 
-  await anna.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await anna.getByTestId("board-menu").click();
+  await anna.getByTestId("menu-settings").click();
   await anna.getByTestId("cursors-toggle").click();
   await expect(anna.getByTestId("cursors-toggle")).toHaveAttribute(
     "aria-checked",
     "true",
   );
-  await anna.getByRole("link", { name: /^board$/i }).click();
+  await anna.getByTestId("settings-back").click();
   await anna.getByTestId("phase-next").click();
 
   const viewport = ben.getByTestId("canvas-viewport");

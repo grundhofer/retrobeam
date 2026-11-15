@@ -39,9 +39,9 @@ test("the step names hold through a resize and a theme change", async ({
 
   // a resize at the same side and a theme change run sb-fit.js again
   await page.setViewportSize({ width: 1200, height: 900 });
-  await page
-    .getByRole("button", { name: /light or dark|hell oder dunkel/i })
-    .click();
+  await page.getByTestId("board-menu").click();
+  await page.getByTestId("menu-theme").click();
+  await page.getByTestId("menu-theme-dark").click();
   await page.waitForTimeout(300);
   await expect(word).toBeVisible();
   await expect(steps).not.toHaveAttribute("data-sb-long");

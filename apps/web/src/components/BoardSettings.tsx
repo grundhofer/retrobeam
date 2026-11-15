@@ -3,6 +3,7 @@
 
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import {
   CURSORS_ACTIVATABLE,
   layoutModes,
@@ -10,6 +11,11 @@ import {
   type Phase,
 } from "@retrobeam/shared";
 import { setLanguage } from "../i18n.js";
+import {
+  setThemeChoice,
+  THEME_CHOICES,
+  useThemeChoice,
+} from "../lib/appearance.js";
 import { useConnection } from "../lib/connection.js";
 import { Icon } from "./Icon.js";
 import { SwitchField } from "./SwitchField.js";
@@ -20,7 +26,8 @@ import { SwitchField } from "./SwitchField.js";
 // Every choice applies at once, so there is no action zone and no primary
 // action (D74). The board's own switches are the facilitator's; everyone has
 // the language. „Farbton“ and „Bewegung immer reduzieren“ join in stage 6b,
-// the timer sound in 5c.
+// the timer sound in 5c, „Hell oder Dunkel“ with round 7. The head's „Mehr“
+// leads here; „Zurück zum Board“ above the heading leads back.
 // „Bewegung immer reduzieren“ as sebaro's sb-controls.js sets it: the page
 // attribute that sebaro.css and the app's motion checks read, and the key
 // theme-init.js applies before the next first paint.
@@ -45,6 +52,7 @@ export function BoardSettings({
   phase,
   layout,
   retentionAt,
+  boardPath,
 }: {
   isAdmin: boolean;
   gifsEnabled: boolean;
@@ -54,11 +62,15 @@ export function BoardSettings({
   phase: Phase;
   layout: LayoutMode;
   retentionAt: number | null;
+  /** The board, which „Zurück zum Board“ leads back to. */
+  boardPath: string;
 }) {
   const { t, i18n } = useTranslation();
   const { send } = useConnection();
   const language = i18n.language.startsWith("de") ? "de" : "en";
   const languageName = useId();
+  const themeName = useId();
+  const theme = useThemeChoice();
   const layoutName = useId();
   // §6.1 c: never on an anonymous board, and once voting has started it can
   // only be switched off — the lock is one-way, exactly like the server's.
@@ -76,6 +88,16 @@ export function BoardSettings({
       {/* One column at the reading measure, so a switch stays near its
           label on a wide screen. */}
       <div className="sb-stack sb-stack--group max-w-(--sb-size-measure-prose)">
+        <div>
+          <Link
+            to={boardPath}
+            className="sb-text-action"
+            data-testid="settings-back"
+          >
+            <Icon name="arrow-left" size={20} />
+            {t("settings.back")}
+          </Link>
+        </div>
         <h1>{t("settings.title")}</h1>
         <fieldset className="sb-choice-row">
           <legend>{t("site.language")}</legend>
@@ -101,7 +123,26 @@ export function BoardSettings({
             visible and checked here); „Bewegung immer reduzieren“ as
             sb-controls.js would do it — sb-controls.js itself is not loaded,
             its other parts would act on React's markup. „Hell oder Dunkel“
-            stays the header's button. */}
+            as radio rows, the same stored choice as in the head's „Mehr“
+            (round 7, D143 (7)). */}
+        <fieldset className="sb-choice-row" data-testid="theme-choice">
+          <legend>{t("site.theme")}</legend>
+          <div className="sb-choice-row__options">
+            {THEME_CHOICES.map(({ choice, label }) => (
+              <label key={choice} className="sb-radio">
+                <input
+                  type="radio"
+                  name={themeName}
+                  value={choice}
+                  checked={theme === choice}
+                  onChange={() => setThemeChoice(choice)}
+                  data-testid={`theme-${choice}`}
+                />
+                <span>{t(label)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <fieldset
           className="sb-segmented"
           data-sb-tone-choice

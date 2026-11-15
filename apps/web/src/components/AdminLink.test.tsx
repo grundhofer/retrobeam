@@ -37,6 +37,7 @@ function view(boardId: string, isAdmin: boolean) {
           isAdmin={isAdmin}
           anonymous={false}
           columns={[]}
+          settingsPath="/board/settings"
         />
       </ConnectionProvider>
     </MemoryRouter>

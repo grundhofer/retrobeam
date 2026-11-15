@@ -3,6 +3,7 @@
 
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import {
   EXPORT_DOWNLOADS,
   EXPORT_SCOPES,
@@ -10,6 +11,13 @@ import {
   templateLinkQuery,
   type Column,
 } from "@retrobeam/shared";
+import { setLanguage } from "../i18n.js";
+import {
+  setThemeChoice,
+  THEME_CHOICES,
+  useThemeChoice,
+  useTone,
+} from "../lib/appearance.js";
 import { useConnection } from "../lib/connection.js";
 import { loadAdminToken } from "../lib/session.js";
 import { useBoardCopy } from "../lib/useBoardCopy.js";
@@ -19,10 +27,14 @@ import { Dialog } from "./Dialog.js";
 import { Icon } from "./Icon.js";
 import { Menu, type MenuItem } from "./Menu.js";
 
-// sebaro's menu „Mehr“ (spec/02 §4.10) in the board's head: export for
-// everyone; for the facilitator the facilitator link, follow-up, duplicate,
-// template link, and „Board löschen …“ last after a hairline. The board's
-// switches are in the settings view (BoardSettings). The picker SKIN
+// sebaro's menu „Mehr“ (spec/02 §4.10) in the board's head, the one menu of
+// the app's head (round 7, owner 2026-11-15: one menu, not two): export for
+// everyone; for the facilitator the facilitator link, follow-up, duplicate
+// and template link; then for everyone „Hell oder Dunkel“, „Farbton“ and
+// „Sprache“ with their submenus and „Einstellungen“; and „Board löschen …“
+// last after a hairline. sebaro's recipe has only the four app rows
+// (spec/03 §6.6); the board's rows before them are RetroBeam's (sebaro gap
+// list). The board's switches are in the settings view (BoardSettings). The picker SKIN
 // deliberately is not here — it sits next to the spin button in the
 // presenting cockpit, where it is used; one setting, one control.
 //
@@ -38,14 +50,21 @@ export function BoardMenu({
   isAdmin,
   anonymous,
   columns,
+  settingsPath,
 }: {
   boardId: string;
   boardName: string;
   isAdmin: boolean;
   anonymous: boolean;
   columns: readonly Column[];
+  /** The board's settings view, which „Einstellungen“ opens. */
+  settingsPath: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const theme = useThemeChoice();
+  const tone = useTone();
+  const language = i18n.language.startsWith("de") ? "de" : "en";
   const { send } = useConnection();
   const [open, setOpen] = useState<Open>(null);
   const { copying, failed: copyFailed, copy } = useBoardCopy(boardId);
@@ -101,24 +120,78 @@ export function BoardMenu({
         },
       );
     }
-    items.push(
-      {
-        key: "templateLink",
-        label: t("menu.templateLinkOpen"),
-        icon: "link",
-        testId: "template-link-open",
-        onSelect: () => setOpen("templateLink"),
-      },
-      {
-        key: "delete",
-        label: t("menu.deleteOpen"),
-        icon: "trash",
-        danger: true,
-        separatorBefore: true,
-        testId: "delete-board",
-        onSelect: () => setOpen("delete"),
-      },
-    );
+    items.push({
+      key: "templateLink",
+      label: t("menu.templateLinkOpen"),
+      icon: "link",
+      testId: "template-link-open",
+      onSelect: () => setOpen("templateLink"),
+    });
+  }
+  // The app's own rows (round 7, spec/03 §6.6): „Hell oder Dunkel“,
+  // „Farbton“ and „Sprache“, each a submenu of the same stored choice as the
+  // settings view, then „Einstellungen“.
+  items.push(
+    {
+      key: "theme",
+      label: t("site.theme"),
+      separatorBefore: true,
+      testId: "menu-theme",
+      submenu: THEME_CHOICES.map(({ choice, label }) => ({
+        key: choice,
+        label: t(label),
+        checked: theme === choice,
+        testId: `menu-theme-${choice}`,
+        onSelect: () => setThemeChoice(choice),
+      })),
+    },
+    {
+      key: "tone",
+      label: t("settings.tone"),
+      testId: "menu-tone",
+      // sb-tone.js applies and stores the tone on the click.
+      submenu: (["cool", "warm"] as const).map((choice) => ({
+        key: choice,
+        label: t(`settings.toneName.${choice}`),
+        checked: tone === choice,
+        testId: `menu-tone-${choice}`,
+        data: { "data-sb-tone-item": choice },
+        onSelect: () => undefined,
+      })),
+    },
+    {
+      key: "language",
+      label: t("site.language"),
+      testId: "menu-language",
+      submenu: (["de", "en"] as const).map((lang) => ({
+        key: lang,
+        label: t(`settings.languageName.${lang}`),
+        lang,
+        checked: language === lang,
+        testId: `menu-language-${lang}`,
+        onSelect: () => setLanguage(lang),
+      })),
+    },
+    {
+      key: "settings",
+      label: t("site.settings"),
+      icon: "settings",
+      separatorBefore: true,
+      testId: "menu-settings",
+      onSelect: () => void navigate(settingsPath),
+    },
+  );
+  // Deleting comes last, after a hairline, for the facilitator alone.
+  if (isAdmin) {
+    items.push({
+      key: "delete",
+      label: t("menu.deleteOpen"),
+      icon: "trash",
+      danger: true,
+      separatorBefore: true,
+      testId: "delete-board",
+      onSelect: () => setOpen("delete"),
+    });
   }
 
   const closeKey = (
