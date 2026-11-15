@@ -12,7 +12,10 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   clampUnit,
+  CANVAS_HEIGHT_MAX,
+  CANVAS_HEIGHT_STEP,
   clampZoneRect,
+  grownCardY,
   defaultZoneRect,
   generateHexId,
   scatterPos,
@@ -58,6 +61,8 @@ export interface BoardCanvasProps {
    *  populated while cursorsEnabled */
   cursors: Record<string, { x: number; y: number }>;
   cursorsEnabled: boolean;
+  /** the canvas's height as a multiple of the base (config.canvasHeight) */
+  canvasHeight?: number;
 }
 
 interface DragState {
@@ -94,7 +99,44 @@ const MAX_ZOOM = 2;
 const CURSOR_INTERVAL_MS = 1_000;
 const CURSOR_MIN_DISTANCE_PX = 10;
 const CARD_WIDTH_PX = 176;
-const CARD_HEIGHT_PX = 112;
+// The least height a card is reserved: a one-line card once the presenting
+// phase adds its reactions row. A card drawn taller (a long text, a GIF)
+// reserves what it measures, and while writing what it will measure once
+// that row comes in, so the reveal does not push cards onto each other.
+const CARD_HEIGHT_PX = 174;
+const CARD_REVEAL_GROWTH_PX = 72;
+// A written card before the reveal: one line of title and its author line,
+// and each further line of title. A GIF adds its picture (at most 160 px).
+const CARD_ONE_LINE_PX = 102;
+const CARD_LINE_PX = 28;
+const CARD_GIF_PX = 168;
+const CARD_LINE_CHARS = 12;
+
+// How tall a card not drawn yet will be, from its text: the words wrapped
+// the way the canvas card's title wraps them, about twelve letters a line.
+// The space a new card is given must fit the card it becomes.
+export function estimatedCardHeight(text: string, hasGif: boolean): number {
+  let lines = 0;
+  for (const paragraph of text.split("\n")) {
+    lines += 1;
+    let used = 0;
+    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+      if (used > 0 && used + 1 + word.length <= CARD_LINE_CHARS) {
+        used += 1 + word.length;
+        continue;
+      }
+      if (used > 0) lines += 1;
+      // a word longer than a line breaks over several
+      lines += Math.floor((word.length - 1) / CARD_LINE_CHARS);
+      used = ((word.length - 1) % CARD_LINE_CHARS) + 1;
+    }
+  }
+  return (
+    CARD_ONE_LINE_PX +
+    (Math.max(1, lines) - 1) * CARD_LINE_PX +
+    (hasGif ? CARD_GIF_PX : 0)
+  );
+}
 const CARD_GAP_PX = 12;
 // One step of a card moved without dragging, in world pixels: fine enough to
 // place it, coarse enough that six presses cross a card's own width.
@@ -105,19 +147,29 @@ interface CanvasPoint {
   y: number;
 }
 
+// A card's box on its zone: its centre and its full size (the gap to its
+// neighbours included), all as fractions of the zone.
+export interface CanvasBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 // Keep a freeform drop close to the pointer, but snap it to the nearest open
-// slot when another visible or privacy-safe placeholder already occupies it.
-// null means the zone is genuinely full at the card footprint we reserve.
+// spot when another card or a privacy-safe placeholder already covers it.
+// Every box has its own size: a card is as tall as its text, its reactions
+// and its GIF make it (owner, 2026-11-10: the reserved space did not match
+// the cards). null means the zone is genuinely full for a card of `size`.
+// Without a preferred point the zone fills in reading order, top left first,
+// so the cards pack into rows instead of crowding round the middle.
 export function nearestOpenCanvasPosition(
-  preferred: CanvasPoint,
-  occupied: readonly CanvasPoint[],
-  separationX: number,
-  separationY: number,
+  preferred: CanvasPoint | null,
+  occupied: readonly CanvasBox[],
+  size: { w: number; h: number },
 ): CanvasPoint | null {
-  const dx = Math.min(1, Math.max(0.01, separationX));
-  const dy = Math.min(1, Math.max(0.01, separationY));
-  const halfX = Math.min(0.5, dx / 2);
-  const halfY = Math.min(0.5, dy / 2);
+  const halfX = Math.min(0.5, Math.max(0.005, size.w / 2));
+  const halfY = Math.min(0.5, Math.max(0.005, size.h / 2));
   const clampPoint = (point: CanvasPoint): CanvasPoint => ({
     x: Math.min(1 - halfX, Math.max(halfX, point.x)),
     y: Math.min(1 - halfY, Math.max(halfY, point.y)),
@@ -125,26 +177,31 @@ export function nearestOpenCanvasPosition(
   const overlaps = (point: CanvasPoint) =>
     occupied.some(
       (other) =>
-        Math.abs(point.x - other.x) < dx && Math.abs(point.y - other.y) < dy,
+        Math.abs(point.x - other.x) < halfX + other.w / 2 - 1e-9 &&
+        Math.abs(point.y - other.y) < halfY + other.h / 2 - 1e-9,
     );
 
-  const wanted = clampPoint(preferred);
-  if (!overlaps(wanted)) return wanted;
+  const wanted = preferred === null ? null : clampPoint(preferred);
+  if (wanted !== null && !overlaps(wanted)) return wanted;
 
-  const cols = Math.max(1, Math.floor(1 / dx));
-  const rows = Math.max(1, Math.floor(1 / dy));
+  // Candidates on a fine grid (half a card across, a quarter down), so a card
+  // can sit snugly beside a short neighbour and under a tall one.
+  const stepX = Math.max(0.01, halfX);
+  const stepY = Math.max(0.01, halfY / 2);
   const candidates: CanvasPoint[] = [];
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      candidates.push({ x: (col + 0.5) / cols, y: (row + 0.5) / rows });
+  for (let y = halfY; y <= 1 - halfY + 1e-9; y += stepY) {
+    for (let x = halfX; x <= 1 - halfX + 1e-9; x += stepX) {
+      candidates.push({ x, y });
     }
   }
-  candidates.sort(
-    (a, b) =>
-      (a.x - wanted.x) ** 2 +
-      (a.y - wanted.y) ** 2 -
-      ((b.x - wanted.x) ** 2 + (b.y - wanted.y) ** 2),
-  );
+  if (wanted !== null) {
+    candidates.sort(
+      (a, b) =>
+        (a.x - wanted.x) ** 2 +
+        (a.y - wanted.y) ** 2 -
+        ((b.x - wanted.x) ** 2 + (b.y - wanted.y) ** 2),
+    );
+  }
   return candidates.find((candidate) => !overlaps(candidate)) ?? null;
 }
 
@@ -223,13 +280,18 @@ export function BoardCanvas({
   gifsEnabled,
   cursors,
   cursorsEnabled,
+  canvasHeight = 1,
 }: BoardCanvasProps) {
+  // The world grows downward when a card fits nowhere (owner, 2026-11-10).
+  const worldH = WORLD_H * canvasHeight;
   const { t } = useTranslation();
   const { mutate, send } = useConnection();
   const viewportRef = useRef<HTMLDivElement>(null);
   const lastCursorAt = useRef(0);
   const lastCursorPoint = useRef<{ x: number; y: number } | null>(null);
   const zoneRefs = useRef<Map<string, HTMLElement>>(new Map());
+  // Each card's element, measured for the space it takes on its zone.
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const dragOrigin = useRef({ x: 0, y: 0 });
   const zoneDragRef = useRef<ZoneDrag | null>(null);
   const panning = useRef<{
@@ -247,6 +309,9 @@ export function BoardCanvas({
     columnId: string;
     x: number;
     y: number;
+    /** opened by „+ Note“: the card goes to the zone's first free place,
+     *  not to a point someone chose */
+    packed?: boolean;
   } | null>(null);
   // The cards whose ⋯ panel is open. The panel hangs below its card, so the
   // card and its zone are lifted above their neighbours and the zone stops
@@ -311,22 +376,24 @@ export function BoardCanvas({
     const zoom = clampZoom(
       Math.min(
         (vp.clientWidth - 24) / WORLD_W,
-        (vp.clientHeight - 24) / WORLD_H,
+        (vp.clientHeight - 24) / worldH,
       ),
     );
     setView({
       zoom,
       panX: (vp.clientWidth - WORLD_W * zoom) / 2,
-      panY: (vp.clientHeight - WORLD_H * zoom) / 2,
+      panY: (vp.clientHeight - worldH * zoom) / 2,
     });
   }
 
-  const didFit = useRef(false);
+  // Fitted once, and again when the canvas grows: the new room is below
+  // what was in view.
+  const fittedFor = useRef<number | null>(null);
   useLayoutEffect(() => {
-    if (didFit.current) return;
-    didFit.current = true;
+    if (fittedFor.current === worldH) return;
+    fittedFor.current = worldH;
     fitView();
-  }, []);
+  });
 
   // An open ⋯ panel is panned into view whole: one opened on a card at the
   // canvas's edge — on a phone, at the fitted zoom, most of them — or carried
@@ -483,7 +550,7 @@ export function BoardCanvas({
             (event.clientX - rect.left - view.panX) / (view.zoom * WORLD_W),
           ),
           y: clampUnit(
-            (event.clientY - rect.top - view.panY) / (view.zoom * WORLD_H),
+            (event.clientY - rect.top - view.panY) / (view.zoom * worldH),
           ),
         });
       }
@@ -492,7 +559,7 @@ export function BoardCanvas({
     const zd = zoneDragRef.current;
     if (zd && event.pointerId === zd.pointerId) {
       const dxFrac = (event.clientX - zd.startX) / (WORLD_W * view.zoom);
-      const dyFrac = (event.clientY - zd.startY) / (WORLD_H * view.zoom);
+      const dyFrac = (event.clientY - zd.startY) / (worldH * view.zoom);
       const rect =
         zd.mode === "move"
           ? { ...zd.orig, x: zd.orig.x + dxFrac, y: zd.orig.y + dyFrac }
@@ -618,7 +685,14 @@ export function BoardCanvas({
   // panel asks during render, when a zoom or a teammate's resize is in the
   // props already but not yet in the DOM. The header and borders are the one
   // part that changes with neither.
-  function footprint(columnId: string, excludedNoteId?: string) {
+  function footprint(
+    columnId: string,
+    excludedNoteId?: string,
+    // > 1: the zone as it will be once the canvas has grown by this factor
+    grownBy = 1,
+    // a card not drawn yet: the height it will have (estimatedCardHeight)
+    newCardPx?: number,
+  ) {
     const zone = zoneRefs.current.get(columnId);
     const section = zone?.parentElement;
     const column = columns.find((c) => c.id === columnId);
@@ -626,38 +700,77 @@ export function BoardCanvas({
     const rect = rectOf(column);
     const width = rect.w * WORLD_W - (section.offsetWidth - zone.offsetWidth);
     const height =
-      rect.h * WORLD_H - (section.offsetHeight - zone.offsetHeight);
-    const occupied = [
+      rect.h * worldH * grownBy - (section.offsetHeight - zone.offsetHeight);
+    // A card's box from its measured size (layout pixels are world pixels
+    // inside the zoomed world), never less than a card is reserved.
+    const sizeOf = (noteId: string | null) => {
+      const element =
+        noteId === null ? undefined : cardRefs.current.get(noteId);
+      return {
+        w:
+          (Math.max(CARD_WIDTH_PX, element?.offsetWidth ?? 0) + CARD_GAP_PX) /
+          width,
+        h:
+          (Math.max(
+            CARD_HEIGHT_PX,
+            (element?.offsetHeight ?? 0) +
+              (phase === "write" ? CARD_REVEAL_GROWTH_PX : 0),
+          ) +
+            CARD_GAP_PX) /
+          height,
+      };
+    };
+    const occupied: CanvasBox[] = [
       ...notes
         .filter(
           (note) => note.columnId === columnId && note.id !== excludedNoteId,
         )
-        .map(positionOf),
+        .map((note) => {
+          const at = positionOf(note);
+          return {
+            x: at.x,
+            // where the card will sit once grown: same distance from the top
+            y: grownCardY(at.y, 1, grownBy),
+            ...sizeOf(note.id),
+          };
+        }),
+      // a teammate's hidden card: its real size is private, so it takes
+      // what a card is reserved
       ...canvasOccupancy
         .filter((slot) => slot.columnId === columnId)
-        .map(({ x, y }) => ({ x, y })),
+        .map(({ x, y }) => ({
+          x,
+          y: grownCardY(y, 1, grownBy),
+          ...sizeOf(null),
+        })),
     ];
     return {
       width,
       height,
       occupied,
-      separationX: (CARD_WIDTH_PX + CARD_GAP_PX) / width,
-      separationY: (CARD_HEIGHT_PX + CARD_GAP_PX) / height,
+      size:
+        newCardPx === undefined
+          ? sizeOf(excludedNoteId ?? null)
+          : {
+              w: (CARD_WIDTH_PX + CARD_GAP_PX) / width,
+              h:
+                (Math.max(CARD_HEIGHT_PX, newCardPx + CARD_REVEAL_GROWTH_PX) +
+                  CARD_GAP_PX) /
+                height,
+            },
     };
   }
   function openPosition(
     columnId: string,
-    preferred: CanvasPoint,
+    // null: the first free place in reading order
+    preferred: CanvasPoint | null,
     excludedNoteId?: string,
+    grownBy = 1,
+    newCardPx?: number,
   ): CanvasPoint | null {
-    const fit = footprint(columnId, excludedNoteId);
-    if (!fit) return preferred;
-    return nearestOpenCanvasPosition(
-      preferred,
-      fit.occupied,
-      fit.separationX,
-      fit.separationY,
-    );
+    const fit = footprint(columnId, excludedNoteId, grownBy, newCardPx);
+    if (!fit) return preferred ?? { x: 0.5, y: 0.5 };
+    return nearestOpenCanvasPosition(preferred, fit.occupied, fit.size);
   }
   function canMove(note: Note): boolean {
     return (
@@ -757,14 +870,18 @@ export function BoardCanvas({
   }
 
   // "Move to …" from the card's ⋯ (WCAG 2.5.7): the card lands where "+ Note"
-  // opens the composer — the zone's centre, nudged to the nearest free spot.
-  // null for a full zone, which a drop refuses too; the ⋯ does not offer it.
-  function landingSpot(columnId: string): CanvasPoint | null {
-    return openPosition(columnId, { x: 0.5, y: 0.5 });
+  // opens the composer — the zone's first free place in reading order, for
+  // the moving card's own size, as a drop measures it. null for a full zone,
+  // which a drop refuses too; the ⋯ does not offer it.
+  function landingSpot(
+    columnId: string,
+    movingNoteId: string,
+  ): CanvasPoint | null {
+    return openPosition(columnId, null, movingNoteId);
   }
   function moveToZone(sourceNoteId: string, columnId: string) {
     const note = notes.find((n) => n.id === sourceNoteId);
-    const open = landingSpot(columnId);
+    const open = landingSpot(columnId, sourceNoteId);
     if (note && open) commitMove(note, { columnId, ...open });
   }
 
@@ -790,21 +907,11 @@ export function BoardCanvas({
         : { x: from.x, y: from.y + sign * k * step };
       // Kept inside the zone the way every placement is; nothing occupied,
       // so never null.
-      const spot = nearestOpenCanvasPosition(
-        wanted,
-        [],
-        fit.separationX,
-        fit.separationY,
-      )!;
+      const spot = nearestOpenCanvasPosition(wanted, [], fit.size)!;
       const main = alongX ? spot.x : spot.y;
       if ((main - reached) * sign <= 0) return null;
       reached = main;
-      const open = nearestOpenCanvasPosition(
-        spot,
-        fit.occupied,
-        fit.separationX,
-        fit.separationY,
-      );
+      const open = nearestOpenCanvasPosition(spot, fit.occupied, fit.size);
       if (open !== null && open.x === spot.x && open.y === spot.y) return open;
     }
   }
@@ -824,11 +931,34 @@ export function BoardCanvas({
     y: number,
     text: string,
     gifUrl: string | null,
+    packed = false,
   ) {
     const trimmed = text.trim();
     if (trimmed === "") return;
-    const open = openPosition(columnId, { x, y });
-    if (open === null) return;
+    const preferred = packed ? null : { x, y };
+    const cardPx = estimatedCardHeight(trimmed, gifUrl !== null);
+    // A full zone grows the canvas (owner, 2026-11-10): step by step to the
+    // first height with room for the card, which is placed in the zone as it
+    // will be; the server grows the canvas for everyone before it adds the
+    // card. At the cap the card still lands where it was asked for: never
+    // silently dropped.
+    let open = openPosition(columnId, preferred, undefined, 1, cardPx);
+    let growCanvasTo: number | null = null;
+    for (
+      let height = canvasHeight + CANVAS_HEIGHT_STEP;
+      open === null && height <= CANVAS_HEIGHT_MAX + 1e-9;
+      height += CANVAS_HEIGHT_STEP
+    ) {
+      open = openPosition(
+        columnId,
+        preferred,
+        undefined,
+        height / canvasHeight,
+        cardPx,
+      );
+      if (open !== null) growCanvasTo = height;
+    }
+    const at = open ?? { x, y };
     const noteId = generateHexId();
     const own = notes.filter(
       (n) => n.columnId === columnId && n.authorId === you.id,
@@ -842,8 +972,9 @@ export function BoardCanvas({
         columnId,
         text: trimmed,
         gifUrl,
-        x: open.x,
-        y: open.y,
+        x: at.x,
+        y: at.y,
+        ...(growCanvasTo !== null ? { growCanvasTo } : {}),
       },
       {
         type: "note.created",
@@ -855,8 +986,8 @@ export function BoardCanvas({
           text: trimmed,
           gifUrl,
           order,
-          x: open.x,
-          y: open.y,
+          x: at.x,
+          y: at.y,
           groupId: null,
           reactions: {},
         },
@@ -960,8 +1091,8 @@ export function BoardCanvas({
         ) : null}
         {/* The double-click's visible, keyboard-reachable twin (WCAG 2.1.1):
             „Notiz“ asks which zone and opens the same composer there, at the
-            zone's centre nudged to the nearest free spot, the way a commit
-            is. Out here, not in each zone's head: the head is drawn in the
+            zone's first free place in reading order (owner, 2026-11-10: the
+            cards fill rows instead of crowding round the middle). Out here, not in each zone's head: the head is drawn in the
             zoomed world, where a key cannot keep its size (owner,
             2026-11-05). */}
         <Menu
@@ -974,10 +1105,12 @@ export function BoardCanvas({
             label: t("canvas.addNoteIn", { name: column.name }),
             testId: `canvas-add-note-${column.id}`,
             onSelect: () => {
-              const centre = { x: 0.5, y: 0.5 };
+              // The zone's first free place; in a full zone its bottom,
+              // where the canvas makes room when the card is added.
               setComposing({
                 columnId: column.id,
-                ...(openPosition(column.id, centre) ?? centre),
+                packed: true,
+                ...(openPosition(column.id, null) ?? { x: 0.5, y: 1 }),
               });
             },
           }))}
@@ -1050,7 +1183,7 @@ export function BoardCanvas({
           className="absolute top-0 left-0"
           style={{
             width: WORLD_W,
-            height: WORLD_H,
+            height: worldH,
             transform: `translate(${view.panX}px, ${view.panY}px) scale(${view.zoom})`,
             transformOrigin: "0 0",
           }}
@@ -1077,9 +1210,9 @@ export function BoardCanvas({
                 }`}
                 style={{
                   left: rect.x * WORLD_W,
-                  top: rect.y * WORLD_H,
+                  top: rect.y * worldH,
                   width: rect.w * WORLD_W,
-                  height: rect.h * WORLD_H,
+                  height: rect.h * worldH,
                   // Above the zones after it, which an open panel may reach.
                   zIndex: arrangingHere ? 30 : undefined,
                 }}
@@ -1148,11 +1281,13 @@ export function BoardCanvas({
                             key={`${column.id}-${index}`}
                             data-testid="canvas-occupancy"
                             aria-label={t("canvas.occupied")}
-                            className="sb-card sb-card--item sb-card--hidden pointer-events-none absolute min-h-28 justify-center text-center"
+                            className="sb-card sb-card--item sb-card--hidden pointer-events-none absolute justify-center text-center"
                             style={{
                               left: `${slot.x * 100}%`,
                               top: `${slot.y * 100}%`,
                               width: "11rem",
+                              // what a card is reserved: the place it holds
+                              minHeight: CARD_HEIGHT_PX,
                               transform: "translate(-50%, -50%)",
                               zIndex: 0,
                             }}
@@ -1172,6 +1307,10 @@ export function BoardCanvas({
                       <div
                         key={note.id}
                         data-testid="canvas-card"
+                        ref={(el) => {
+                          if (el) cardRefs.current.set(note.id, el);
+                          else cardRefs.current.delete(note.id);
+                        }}
                         onPointerDown={(event) => beginDrag(event, note)}
                         onPointerMove={moveDrag}
                         onPointerUp={(event) => endDrag(event, note)}
@@ -1206,7 +1345,7 @@ export function BoardCanvas({
                           // Asked as the panel renders: full zones come and
                           // go with every card and placeholder that moves.
                           canMoveTo={(columnId) =>
-                            landingSpot(columnId) !== null
+                            landingSpot(columnId, note.id) !== null
                           }
                           onMoveToColumn={moveToZone}
                           onNudge={nudgeNote}
@@ -1247,6 +1386,7 @@ export function BoardCanvas({
                           composing.y,
                           text,
                           gifUrl,
+                          composing.packed === true,
                         );
                         setComposing(null);
                       }}
@@ -1302,7 +1442,7 @@ export function BoardCanvas({
                     className="sb-pointer absolute z-40"
                     style={{
                       insetInlineStart: c.x * WORLD_W,
-                      insetBlockStart: c.y * WORLD_H,
+                      insetBlockStart: c.y * worldH,
                       // counter the world scale so pointers stay a readable size
                       transform: `scale(${1 / view.zoom})`,
                       transformOrigin: "0 0",

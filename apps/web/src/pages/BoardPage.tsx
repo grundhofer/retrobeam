@@ -995,6 +995,7 @@ function Room({
                           gifsEnabled={gifsEnabled}
                           cursors={state.cursors}
                           cursorsEnabled={cursorsShown}
+                          canvasHeight={state.config?.canvasHeight ?? 1}
                         />
                       ) : surface === "focus" && presenter ? (
                         <PresenterFocus

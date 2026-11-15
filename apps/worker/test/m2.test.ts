@@ -428,6 +428,99 @@ describe("canvas layout & positions", () => {
     expect(rejected.code).toBe("NOT_ADMIN");
   });
 
+  it("a member's card that fits nowhere grows the canvas for everyone, in steps, up to the cap", async () => {
+    const { boardId, adminToken } = await createBoard("Canvas", {
+      layout: "canvas",
+    });
+    const admin = await joined(boardId, "Anna", adminToken);
+    const ben = await joined(boardId, "Ben");
+    expect(admin.sync.config.canvasHeight).toBe(1);
+    await toPhase(admin.socket, "write");
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    // Anna's card low on the zone, to see it keep its place
+    const placed = newId();
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId: placed,
+      columnId,
+      text: "low",
+      x: 0.5,
+      y: 0.8,
+    });
+    await admin.socket.waitFor(
+      (e) => e.type === "note.created" && e.note.id === placed,
+    );
+    const create = (text: string, growCanvasTo: number) => {
+      const noteId = newId();
+      ben.socket.send({
+        type: "note.create",
+        opId: opId(),
+        noteId,
+        columnId,
+        text,
+        x: 0.5,
+        y: 0.9,
+        growCanvasTo,
+      });
+      return noteId;
+    };
+    create("one", 1.25);
+    const grown = await admin.socket.waitFor(
+      (e) => e.type === "sync" && e.config.canvasHeight === 1.25,
+    );
+    if (grown.type !== "sync") throw new Error("unreachable");
+    // the same distance from the zone's top: 0.8 of 1 is 0.64 of 1.25
+    expect(grown.notes.find((n) => n.id === placed)?.y).toBeCloseTo(0.64);
+    // Ben cannot read Anna's card, but its placeholder moved with it
+    const benSync = await ben.socket.waitFor(
+      (e) => e.type === "sync" && e.config.canvasHeight === 1.25,
+    );
+    if (benSync.type !== "sync") throw new Error("unreachable");
+    expect(benSync.canvasOccupancy.map((slot) => slot.y)).toContainEqual(
+      expect.closeTo(0.64),
+    );
+    // a request between steps rounds up to the next whole step
+    create("rounded", 1.6);
+    await admin.socket.waitFor(
+      (e) => e.type === "sync" && e.config.canvasHeight === 1.75,
+    );
+    create("to the cap", 2);
+    await admin.socket.waitFor(
+      (e) => e.type === "sync" && e.config.canvasHeight === 2,
+    );
+    // at the cap the card is still created, the canvas stays at twice
+    const capped = create("capped", 2);
+    await ben.socket.waitFor(
+      (e) => e.type === "note.created" && e.note.id === capped,
+    );
+    const later = await joined(boardId, "Cara");
+    expect(later.sync.config.canvasHeight).toBe(2);
+  });
+
+  it("growCanvasTo does nothing on a column board", async () => {
+    const { boardId, adminToken } = await createBoard();
+    const admin = await joined(boardId, "Anna", adminToken);
+    await toPhase(admin.socket, "write");
+    const columnId = admin.sync.columns[0]?.id;
+    if (!columnId) throw new Error("setup");
+    const noteId = newId();
+    admin.socket.send({
+      type: "note.create",
+      opId: opId(),
+      noteId,
+      columnId,
+      text: "column card",
+      growCanvasTo: 2,
+    });
+    await admin.socket.waitFor(
+      (e) => e.type === "note.created" && e.note.id === noteId,
+    );
+    const later = await joined(boardId, "Ben");
+    expect(later.sync.config.canvasHeight).toBe(1);
+  });
+
   it("a board created with layout:canvas reports it in sync", async () => {
     const { boardId, adminToken } = await createBoard("Canvas", {
       layout: "canvas",
