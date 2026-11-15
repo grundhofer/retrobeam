@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import {
   parseTemplateLinkColumns,
   type ClientCommand,
@@ -40,6 +40,7 @@ function view({
           isAdmin={isAdmin}
           anonymous={false}
           columns={columns}
+          settingsPath="/board/settings"
         />
       </ConnectionProvider>
     </MemoryRouter>
@@ -190,6 +191,7 @@ test("the menu works by keyboard alone, and deleting asks first", async () => {
           isAdmin
           anonymous={false}
           columns={[]}
+          settingsPath="/board/settings"
         />
       </ConnectionProvider>
     </MemoryRouter>,
@@ -225,4 +227,123 @@ test("the menu works by keyboard alone, and deleting asks first", async () => {
   await screen.getByTestId("delete-board").click();
   await screen.getByTestId("delete-board-confirm").click();
   expect(sent).toEqual([{ type: "admin.board.delete" }]);
+});
+
+// Round 7 (sebaro spec/03 §6.6): „Mehr“ is the head's one menu. After the
+// board's rows come „Hell oder Dunkel“, „Farbton“ and „Sprache“, each a
+// submenu of radio items, then „Einstellungen“; deleting stays last.
+test("„Mehr“ opens its submenus by keyboard, and a choice applies and closes the menu", async () => {
+  const screen = await render(view({ isAdmin: true }));
+  const trigger = screen.getByTestId("board-menu");
+  await trigger.click();
+  const top = document.getElementById(
+    trigger.element().getAttribute("popovertarget")!,
+  )!;
+  const order = [...top.children].map((li) =>
+    li.getAttribute("role") === "separator"
+      ? "separator"
+      : li.firstElementChild?.getAttribute("data-testid"),
+  );
+  expect(order.slice(-7)).toEqual([
+    "menu-theme",
+    "menu-tone",
+    "menu-language",
+    "separator",
+    "menu-settings",
+    "separator",
+    "delete-board",
+  ]);
+  const themeRow = screen.getByTestId("menu-theme");
+  await expect.element(themeRow).toHaveAttribute("aria-haspopup", "menu");
+  (themeRow.element() as HTMLElement).focus();
+  await userEvent.keyboard("{ArrowRight}");
+  await expect.element(themeRow).toHaveAttribute("aria-expanded", "true");
+  await expect.element(screen.getByTestId("menu-theme-system")).toHaveFocus();
+  await expect
+    .element(screen.getByTestId("menu-theme-system"))
+    .toHaveAttribute("aria-checked", "true");
+  // ArrowLeft goes back to the row; the menu stays open
+  await userEvent.keyboard("{ArrowLeft}");
+  await expect.element(themeRow).toHaveFocus();
+  await expect.element(themeRow).toHaveAttribute("aria-expanded", "false");
+  await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
+  await userEvent.keyboard("{ArrowRight}{ArrowDown}{ArrowDown}");
+  await expect.element(screen.getByTestId("menu-theme-dark")).toHaveFocus();
+  await userEvent.keyboard("{Enter}");
+  try {
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem("sb-theme")).toBe("dark");
+    await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect.element(trigger).toHaveFocus();
+    // the tone's items carry sebaro's hook, which sb-tone.js acts on
+    await trigger.click();
+    expect(
+      screen
+        .getByTestId("menu-tone-warm")
+        .element()
+        .getAttribute("data-sb-tone-item"),
+    ).toBe("warm");
+    await expect
+      .element(screen.getByTestId("menu-theme-dark"))
+      .toHaveAttribute("aria-checked", "true");
+  } finally {
+    delete document.documentElement.dataset.theme;
+    localStorage.removeItem("sb-theme");
+  }
+});
+
+test("„Einstellungen“ opens the board's settings view", async () => {
+  const screen = await render(
+    <MemoryRouter initialEntries={["/board"]}>
+      <ConnectionProvider
+        value={{ boardId: "a".repeat(32), send: () => {}, mutate: () => {} }}
+      >
+        <Routes>
+          <Route
+            path="/board"
+            element={
+              <BoardMenu
+                boardId={"a".repeat(32)}
+                boardName="Sprint 42"
+                isAdmin={false}
+                anonymous={false}
+                columns={[]}
+                settingsPath="/board/settings"
+              />
+            }
+          />
+          <Route path="/board/settings" element={<p>the settings view</p>} />
+        </Routes>
+      </ConnectionProvider>
+    </MemoryRouter>,
+  );
+  await screen.getByTestId("board-menu").click();
+  await screen.getByTestId("menu-settings").click();
+  await expect
+    .element(screen.getByText("the settings view"))
+    .toBeInTheDocument();
+});
+
+// D95: where a submenu fits beside the menu on neither side, it takes the
+// menu's place with a back row named „Zurück zu Mehr“.
+test("on a phone a submenu takes the menu's place, and its back row goes back", async () => {
+  await page.viewport(390, 844);
+  const screen = await render(view());
+  await screen.getByTestId("board-menu").click();
+  await screen.getByTestId("menu-language").click();
+  const back = screen.getByRole("menuitem", {
+    name: i18n.t("menu.backTo", { name: i18n.t("menu.more") }),
+  });
+  await expect.element(back).toBeInTheDocument();
+  // on its first choice, after the back row
+  await expect.element(screen.getByTestId("menu-language-de")).toHaveFocus();
+  const sub = back.element().closest(".sb-menu") as HTMLElement;
+  const parent = sub.parentElement!.closest(".sb-menu") as HTMLElement;
+  expect(parent.hasAttribute("data-sb-replaced")).toBe(true);
+  expect(Math.round(sub.getBoundingClientRect().left)).toBe(
+    Math.round(parent.getBoundingClientRect().left),
+  );
+  await back.click();
+  await expect.element(screen.getByTestId("menu-language")).toHaveFocus();
+  expect(parent.hasAttribute("data-sb-replaced")).toBe(false);
 });

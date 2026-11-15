@@ -5,7 +5,8 @@ import { expect, test } from "@playwright/test";
 import { newContext } from "./helpers.js";
 
 // The board's settings view (plan stage 5a, sebaro spec/03 §6.6): reached by
-// „Einstellungen“ in the header, a child route of the board, so the room keeps
+// „Einstellungen“ in the head's „Mehr“ (round 7), a child route of the board,
+// left by „Zurück zum Board“, so the room keeps
 // its socket — nobody sees the facilitator go offline while they change a
 // setting — and every switch applies at once, for the whole room.
 test("the settings view keeps the room connected and applies a switch at once", async ({
@@ -30,12 +31,9 @@ test("the settings view keeps the room connected and applies a switch at once", 
   await ben.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(ben.getByTestId("roster-item")).toHaveCount(2);
 
-  const settings = anna.getByRole("link", {
-    name: /^(settings|einstellungen)$/i,
-  });
-  await settings.click();
+  await anna.getByTestId("board-menu").click();
+  await anna.getByTestId("menu-settings").click();
   await expect(anna).toHaveURL(`${boardUrl}/settings`);
-  await expect(settings).toHaveAttribute("aria-current", "page");
   await expect(anna.getByRole("heading", { level: 1 })).toHaveText(
     /^(settings|einstellungen)$/i,
   );
@@ -55,15 +53,16 @@ test("the settings view keeps the room connected and applies a switch at once", 
     /offline/i,
   );
 
-  // Back to the board by the header's own word.
-  await anna.getByRole("link", { name: /^board$/i }).click();
+  // Back to the board by the view's own text action.
+  await anna.getByTestId("settings-back").click();
   await expect(anna).toHaveURL(boardUrl);
   await expect(anna.getByTestId("phase-next")).toBeVisible();
 
   // A participant's settings view has the device's own settings (language,
   // tone, motion), not the board's switches. Waited for: a count of 0 right
   // after the click could still be the board view.
-  await ben.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await ben.getByTestId("board-menu").click();
+  await ben.getByTestId("menu-settings").click();
   await expect(ben.getByRole("heading", { level: 1 })).toHaveText(
     /^(settings|einstellungen)$/i,
   );

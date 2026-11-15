@@ -456,6 +456,7 @@ const resources = {
       },
       menu: {
         more: "More",
+        backTo: "Back to {{name}}",
         close: "Close",
         exportOpen: "Export …",
         exportTitle: "Export the board",
@@ -704,6 +705,10 @@ const resources = {
         title: "Settings",
         tone: "Tone",
         toneName: { cool: "Cool", warm: "Warm" },
+        themeSystem: "Like the system",
+        themeLight: "Light",
+        themeDark: "Dark",
+        back: "Back to the board",
         motion: "Always reduce motion",
         motionHelp:
           "New things then appear without motion; they only fade in. Applies even if the device allows motion.",
@@ -1313,6 +1318,7 @@ const resources = {
       },
       menu: {
         more: "Mehr",
+        backTo: "Zurück zu {{name}}",
         close: "Schließen",
         exportOpen: "Exportieren …",
         exportTitle: "Board exportieren",
@@ -1571,6 +1577,10 @@ const resources = {
         title: "Einstellungen",
         tone: "Farbton",
         toneName: { cool: "Kühl", warm: "Warm" },
+        themeSystem: "Wie das System",
+        themeLight: "Hell",
+        themeDark: "Dunkel",
+        back: "Zurück zum Board",
         motion: "Bewegung immer reduzieren",
         motionHelp:
           "Neues erscheint dann ohne Bewegung, es wird nur eingeblendet. Gilt auch, wenn das Gerät Bewegung zulässt.",
