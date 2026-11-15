@@ -207,10 +207,12 @@ test("canvas layout: the facilitator moves and sizes a zone by keyboard alone", 
 
   await page.getByTestId("zones-toggle").focus();
   await page.keyboard.press("Enter");
-  const option = page.getByTestId("zones-option").nth(1);
-  await option.focus();
-  await page.keyboard.press("Enter");
-  await expect(option).toHaveAttribute("aria-pressed", "true");
+  const choice = page.getByTestId("zones-select");
+  await choice.focus();
+  await choice.selectOption({ index: 1 });
+  await expect(choice).toHaveValue(
+    (await choice.locator("option").nth(1).getAttribute("value"))!,
+  );
 
   // One step right, then one taller, with the arrow keys.
   await page.getByTestId("zones-move-left").focus();

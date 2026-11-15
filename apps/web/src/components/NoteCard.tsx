@@ -42,14 +42,14 @@ export const NUDGES = [
 // sebaro's card (plan stage 5g); the canvas is rebuilt in 5h.
 export const CARD_SURFACE = "sb-card";
 export const CARD_EDGE = "";
-// One look for every single-press option in the arrange panel: the column
-// keys and the canvas's step keys, the zone panel's too — sebaro's compact
-// secondary action; a step that cannot go stays pressable, aria-disabled
-// (sebaro STA-03).
-export const ARRANGE_OPTION =
-  "sb-secondary-action sb-secondary-action--compact";
+// The arrange panel's single-press options: the zones and cards to move or
+// stack onto are compact text actions, the steps compact icon buttons — none
+// of them outlined, as the panel is one area beside the card's own keys
+// (sebaro D143 (7), spec/02 §1.0); a step that cannot go stays pressable,
+// aria-disabled (sebaro STA-03).
+export const ARRANGE_OPTION = "sb-text-action sb-text-action--compact";
 export const ARRANGE_LABEL = "sb-field__label";
-export const ARRANGE_STEP = ARRANGE_OPTION;
+export const ARRANGE_STEP = "sb-icon-button sb-icon-button--compact";
 export const ARRANGE_PANEL = "flex flex-col gap-2";
 
 // Cards that are to take the focus when they mount next (a move or a stack
@@ -458,10 +458,11 @@ export function NoteCard({
             >
               {t("note.save")}
             </button>
+            {/* „Speichern“ keeps the outline, one per area (D143 (7)). */}
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="sb-secondary-action sb-secondary-action--compact"
+              className="sb-text-action sb-text-action--compact"
             >
               {t("note.cancel")}
             </button>

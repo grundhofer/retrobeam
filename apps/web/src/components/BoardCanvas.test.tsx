@@ -1026,14 +1026,15 @@ test("the facilitator moves and sizes a zone without dragging", async () => {
   await toggle.click();
   await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
 
-  // The first zone until another is picked.
-  const options = screen.getByTestId("zones-option");
-  expect(options.elements().map((el) => el.textContent)).toEqual(
+  // The first zone until another is picked from the list.
+  const select = screen.getByTestId("zones-select");
+  const choice = select.element() as HTMLSelectElement;
+  expect([...choice.options].map((option) => option.textContent)).toEqual(
     zones.map((z) => z.name),
   );
-  await expect.element(options.nth(0)).toHaveAttribute("aria-pressed", "true");
-  await options.nth(1).click();
-  await expect.element(options.nth(1)).toHaveAttribute("aria-pressed", "true");
+  expect(choice.value).toBe(zones[0]!.id);
+  await select.selectOptions(zones[1]!.id);
+  expect(choice.value).toBe(zones[1]!.id);
 
   const start = defaultZoneRect(1, zones.length);
   await screen.getByTestId("zones-move-right").click();
@@ -1076,6 +1077,48 @@ test("the facilitator moves and sizes a zone without dragging", async () => {
   await userEvent.keyboard("{Escape}");
   expect(screen.getByTestId("zones-panel").elements()).toHaveLength(0);
   await expect.element(toggle).toHaveFocus();
+});
+
+test("the zone panel says what it is and closes with its own key or a press outside", async () => {
+  const screen = await render(canvas({}));
+  const toggle = screen.getByTestId("zones-toggle");
+  await toggle.click();
+  const panel = screen.getByTestId("zones-panel");
+  await expect
+    .element(panel)
+    .toHaveAccessibleName(/arrange zones|zonen anordnen/i);
+  await screen.getByTestId("zones-close").click();
+  await expect.element(panel).not.toBeInTheDocument();
+  await expect.element(toggle).toHaveFocus();
+
+  await toggle.click();
+  await expect.element(screen.getByTestId("zones-panel")).toBeVisible();
+  document.body.dispatchEvent(
+    new PointerEvent("pointerdown", { bubbles: true }),
+  );
+  await expect
+    .element(screen.getByTestId("zones-panel"))
+    .not.toBeInTheDocument();
+});
+
+test("„Zentrieren“ puts the zones in the middle of the canvas", async () => {
+  // One zone in the world's right half, away from the middle.
+  const aside = { ...column, rect: { x: 0.6, y: 0.5, w: 0.3, h: 0.4 } };
+  const screen = await render(canvas({ columns: [aside] }));
+  const viewport = screen.getByTestId("canvas-viewport").element();
+  const zone = screen.container.querySelector("section")!;
+  await screen.getByTestId("canvas-fit").click();
+  await expect
+    .poll(() => {
+      const v = viewport.getBoundingClientRect();
+      const z = zone.getBoundingClientRect();
+      // Within a pixel: the viewport's border is outside the box it pans.
+      return [
+        Math.abs(z.left + z.width / 2 - (v.left + v.width / 2)) <= 1,
+        Math.abs(z.top + z.height / 2 - (v.top + v.height / 2)) <= 1,
+      ];
+    })
+    .toEqual([true, true]);
 });
 
 test("a zone step that cannot go is marked and sends nothing", async () => {
