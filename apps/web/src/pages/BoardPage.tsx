@@ -911,16 +911,24 @@ function Room({
                   />
                 </>
               ) : state.phase === "close" ? (
-                <div className="flex flex-col gap-8">
-                  <KudosWall
-                    kudos={state.kudos}
-                    roster={state.roster}
-                    you={you}
-                    isAdmin={isAdmin}
-                    gifsEnabled={gifsEnabled}
-                    readOnly={false}
-                  />
-                  <RotiPoll />
+                // Two things happen here: appreciation for colleagues and the
+                // room's rating of the retro. One column, one start edge, two
+                // sebaro sections with the hairline between them (owner,
+                // 2026-11-10).
+                <div className="mx-auto w-full max-w-4xl">
+                  <div className="sb-section" style={{ paddingBlockStart: 0 }}>
+                    <KudosWall
+                      kudos={state.kudos}
+                      roster={state.roster}
+                      you={you}
+                      isAdmin={isAdmin}
+                      gifsEnabled={gifsEnabled}
+                      readOnly={false}
+                    />
+                  </div>
+                  <div className="sb-section">
+                    <RotiPoll />
+                  </div>
                 </div>
               ) : state.phase === "done" ? (
                 <RetroResults

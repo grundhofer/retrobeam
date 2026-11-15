@@ -49,16 +49,10 @@ export function KudosWall({
   const byId = new Map(roster.map((p) => [p.id, p]));
 
   return (
-    // Centred on its own in the closing phase; in the results it is one
-    // section among the others and keeps their start edge (owner,
-    // 2026-11-07), without the invitation to send one.
-    <div
-      className={
-        readOnly
-          ? "sb-stack sb-stack--group"
-          : "sb-stack sb-stack--group mx-auto max-w-4xl"
-      }
-    >
+    // One section among others, in the closing phase as in the results: it
+    // keeps their start edge (owner, 2026-11-07 and 2026-11-10); only the
+    // closing phase invites to send one.
+    <div className="sb-stack sb-stack--group">
       <section aria-labelledby="kudos-title" className="sb-stack">
         <h2 id="kudos-title" className="sb-section__title">
           {t("kudos.title")}
@@ -352,7 +346,9 @@ function KudoComposer({
         <button
           type="submit"
           data-testid="kudo-send"
-          className="sb-primary-action"
+          // A secondary action: the view's one primary action is the next
+          // step at the bottom (sebaro D39, D74; owner, 2026-11-10).
+          className="sb-secondary-action"
         >
           {t("kudos.send")}
         </button>
