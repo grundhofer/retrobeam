@@ -147,6 +147,16 @@ interface CanvasPoint {
   y: number;
 }
 
+// A card written while a growing card is on its way: createNote's arguments.
+type QueuedNote = [
+  columnId: string,
+  x: number,
+  y: number,
+  text: string,
+  gifUrl: string | null,
+  packed: boolean,
+];
+
 // A card's box on its zone: its centre and its full size (the gap to its
 // neighbours included), all as fractions of the zone.
 export interface CanvasBox {
@@ -854,6 +864,7 @@ export function BoardCanvas({
         columnId: target.columnId,
         x: target.x,
         y: target.y,
+        atCanvasHeight: canvasHeight,
       },
       {
         type: "note.updated",
@@ -925,6 +936,18 @@ export function BoardCanvas({
     if (note && open) commitMove(note, { columnId: note.columnId, ...open });
   }
 
+  // A card that grows the canvas waits for the server, and the cards written
+  // after it wait with it. The server answers a growth with a fresh snapshot
+  // that replaces this tab's board: a card placed before it arrives would be
+  // measured on the old canvas, and the echoes of cards written meanwhile
+  // would vanish under it for a moment, so the next card could land on one
+  // of them. The growing card shows once the server has it (it is in
+  // `notes`); the cards queued behind it follow one per render, each
+  // measured with the one before it on the board.
+  const growingNote = useRef<string | null>(null);
+  const queuedNotes = useRef<QueuedNote[]>([]);
+  const [, setGrowthRefused] = useState(0);
+
   function createNote(
     columnId: string,
     x: number,
@@ -935,6 +958,21 @@ export function BoardCanvas({
   ) {
     const trimmed = text.trim();
     if (trimmed === "") return;
+    if (growingNote.current !== null || queuedNotes.current.length > 0) {
+      queuedNotes.current.push([columnId, x, y, trimmed, gifUrl, packed]);
+      return;
+    }
+    placeNote(columnId, x, y, trimmed, gifUrl, packed);
+  }
+
+  function placeNote(
+    columnId: string,
+    x: number,
+    y: number,
+    trimmed: string,
+    gifUrl: string | null,
+    packed: boolean,
+  ) {
     const preferred = packed ? null : { x, y };
     const cardPx = estimatedCardHeight(trimmed, gifUrl !== null);
     // A full zone grows the canvas (owner, 2026-11-10): step by step to the
@@ -964,36 +1002,56 @@ export function BoardCanvas({
       (n) => n.columnId === columnId && n.authorId === you.id,
     );
     const order = Math.max(0, ...own.map((n) => n.order)) + 1;
-    mutate(
-      {
-        type: "note.create",
-        opId: generateHexId(),
-        noteId,
+    const command = {
+      type: "note.create" as const,
+      opId: generateHexId(),
+      noteId,
+      columnId,
+      text: trimmed,
+      gifUrl,
+      x: at.x,
+      y: at.y,
+      atCanvasHeight: growCanvasTo ?? canvasHeight,
+    };
+    if (growCanvasTo !== null) {
+      // No echo: placed on the grown canvas, it would show on the old one.
+      growingNote.current = noteId;
+      mutate({ ...command, growCanvasTo }, [], () => {
+        if (growingNote.current !== noteId) return;
+        growingNote.current = null;
+        setGrowthRefused((n) => n + 1);
+      });
+      return;
+    }
+    mutate(command, {
+      type: "note.created",
+      seq: 0,
+      note: {
+        id: noteId,
         columnId,
+        authorId: you.id,
         text: trimmed,
         gifUrl,
+        order,
         x: at.x,
         y: at.y,
-        ...(growCanvasTo !== null ? { growCanvasTo } : {}),
+        groupId: null,
+        reactions: {},
       },
-      {
-        type: "note.created",
-        seq: 0,
-        note: {
-          id: noteId,
-          columnId,
-          authorId: you.id,
-          text: trimmed,
-          gifUrl,
-          order,
-          x: at.x,
-          y: at.y,
-          groupId: null,
-          reactions: {},
-        },
-      },
-    );
+    });
   }
+
+  useEffect(() => {
+    if (
+      growingNote.current !== null &&
+      notes.some((n) => n.id === growingNote.current)
+    ) {
+      growingNote.current = null;
+    }
+    const next =
+      growingNote.current === null ? queuedNotes.current.shift() : undefined;
+    if (next) placeNote(...next);
+  });
 
   return (
     <div className="relative">

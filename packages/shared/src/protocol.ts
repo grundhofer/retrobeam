@@ -273,6 +273,12 @@ export type ReactionEmoji = z.infer<typeof reactionEmojiSchema>;
 //     replayed — it describes *now*, so a delayed copy is worse than nothing.
 // ---------------------------------------------------------------------------
 
+// The canvas height a canvas position was measured on. The canvas may grow
+// while a command is on its way (a teammate's card, or the sender's own
+// growth whose sync has not arrived), and a y is a fraction of the zone; the
+// server moves a y placed on a lower canvas like it moved every stored card.
+const canvasPlacement = z.number().min(1).max(CANVAS_HEIGHT_MAX).optional();
+
 export const clientCommandSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("join"),
@@ -309,6 +315,9 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     /** canvas only: the card fits nowhere at the canvas's height, so the
      *  canvas grows to this height first (x/y are already placed there) */
     growCanvasTo: z.number().min(1).max(CANVAS_HEIGHT_MAX).optional(),
+    /** canvas only: the canvas height x/y were placed for; the server moves
+     *  y along when the canvas has grown since (canvasPlacement) */
+    atCanvasHeight: canvasPlacement,
   }),
   z.object({
     type: z.literal("note.update"),
@@ -351,6 +360,7 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     // (position is cleared). Same-zone drops with x set keep the stack.
     x: z.number().min(0).max(1).optional(),
     y: z.number().min(0).max(1).optional(),
+    atCanvasHeight: canvasPlacement,
   }),
   // Tidy / arrange-all on the canvas: reposition many cards in ONE message
   // (never a loop of note.move — every inbound frame is billed). Each move is

@@ -1307,7 +1307,7 @@ export class BoardRoom extends DurableObject<Env> {
       Date.now(),
       this.sanitizeGifUrl(cmd.gifUrl) ?? null,
       cmd.x ?? null,
-      cmd.y ?? null,
+      this.placedY(cmd.y, cmd.atCanvasHeight ?? cmd.growCanvasTo),
     );
     const note = this.noteById(cmd.noteId);
     if (note === null) return;
@@ -2327,7 +2327,7 @@ export class BoardRoom extends DurableObject<Env> {
       this.sql.exec(
         "UPDATE notes SET pos_x = ?, pos_y = ? WHERE id = ?",
         cmd.x,
-        cmd.y ?? null,
+        this.placedY(cmd.y, cmd.atCanvasHeight),
         note.id,
       );
       const repositioned = this.noteById(note.id);
@@ -2355,7 +2355,7 @@ export class BoardRoom extends DurableObject<Env> {
       cmd.columnId,
       ord,
       cmd.x ?? null,
-      cmd.y ?? null,
+      this.placedY(cmd.y, cmd.atCanvasHeight),
       note.id,
     );
     const changed = [note.id];
@@ -5181,6 +5181,21 @@ export class BoardRoom extends DurableObject<Env> {
     return Number.isFinite(raw) && raw >= 1
       ? Math.min(CANVAS_HEIGHT_MAX, raw)
       : 1;
+  }
+
+  // A card's y as the client placed it, for the canvas as it is now. The
+  // canvas may have grown since the client measured (its own growth's sync,
+  // or a teammate's, still on the way): a y placed on the lower canvas is
+  // moved like every stored card was, so it keeps its distance from the
+  // zone's top and lands where the client saw room. Without the client's
+  // height (older clients) the y is taken as is.
+  private placedY(
+    y: number | undefined,
+    at: number | undefined,
+  ): number | null {
+    if (y === undefined) return null;
+    const now = this.canvasHeight();
+    return at !== undefined && at < now ? grownCardY(y, at, now) : y;
   }
 
   private headcount(): number | null {

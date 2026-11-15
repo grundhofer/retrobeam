@@ -384,6 +384,64 @@ test("canvas layout: a full zone grows the canvas and no card covers another", a
   await benContext.close();
 });
 
+// The same on a slow line: the server's answers reach Anna late, so she
+// places the next card before the sync of the growth her last card asked for
+// has arrived. What the server stores must still not cover a card.
+test("canvas layout: on a slow line, cards placed while the canvas grows still cover none", async ({
+  browser,
+}) => {
+  test.setTimeout(90_000);
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
+  const anna = await annaContext.newPage();
+  await anna.setViewportSize({ width: 1400, height: 900 });
+  // Every message from the server reaches Anna 400 ms late, in order; her
+  // own commands go out at once.
+  await anna.routeWebSocket(/\/api\/boards\/[0-9a-f]{32}\/ws$/, (socket) => {
+    const server = socket.connectToServer();
+    server.onMessage((message) => setTimeout(() => socket.send(message), 400));
+  });
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Slow canvas");
+  await anna.getByTestId("home-layout-canvas").click();
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(anna, "Anna");
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(anna.url());
+  await join(ben, "Ben");
+  await anna.getByTestId("phase-next").click();
+  const zone = anna.getByTestId(/^zone-/).first();
+  await expect(zone).toBeVisible();
+  const columnId = (await zone.getAttribute("data-testid"))!.slice(5);
+
+  const texts = Array.from({ length: 14 }, (_, i) =>
+    i % 3 === 0
+      ? `A longer thought about the deploy, number ${i}`
+      : `Card ${i}`,
+  );
+  for (const text of texts) {
+    await anna.getByTestId("canvas-add-note").click();
+    await anna.getByTestId(`canvas-add-note-${columnId}`).click();
+    const composer = anna.getByTestId("canvas-composer");
+    await composer.fill(text);
+    await composer.press("Enter");
+    await expect(composer).toHaveCount(0);
+  }
+  // the server has all of them: Ben sees a placeholder for each
+  await expect(ben.getByTestId("canvas-occupancy")).toHaveCount(texts.length);
+
+  // ... and Anna's tab has had the last of its late answers (every one is
+  // 400 ms late): what it shows now is what the server stored.
+  await anna.waitForTimeout(1500);
+  await expect(anna.getByTestId("canvas-card")).toHaveCount(texts.length);
+  await expectNoOverlap(anna, "[data-testid=canvas-card]");
+  await annaContext.close();
+  await benContext.close();
+});
+
 async function expectNoOverlap(page: Page, selector: string) {
   const overlaps = await page.evaluate((selector) => {
     const boxes = [...document.querySelectorAll(selector)].map((element) =>
