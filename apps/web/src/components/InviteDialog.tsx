@@ -65,6 +65,7 @@ export function InviteDialog({
             type="button"
             data-testid="invite-panel-close"
             onClick={onClose}
+            data-sb-dialog-cancel
             className="sb-secondary-action"
           >
             {t("invite.close")}

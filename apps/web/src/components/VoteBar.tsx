@@ -108,6 +108,7 @@ export function VoteSettings({ config }: { config: BoardConfig }) {
             <button
               type="button"
               onClick={() => setOpen(false)}
+              data-sb-dialog-cancel
               className="sb-secondary-action"
             >
               {t("note.cancel")}

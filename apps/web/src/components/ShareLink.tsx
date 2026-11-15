@@ -67,7 +67,7 @@ export function ShareLink({ boardId }: { boardId: string }) {
           data-testid="qr-enlarge"
           aria-haspopup="dialog"
           onClick={() => setLarge(true)}
-          className="sb-secondary-action"
+          className="sb-text-action"
         >
           <Icon name="qr-code" size={20} />
           {t("invite.enlarge")}

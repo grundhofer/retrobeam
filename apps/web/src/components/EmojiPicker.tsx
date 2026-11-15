@@ -66,9 +66,9 @@ export function EmojiPickerButton({
         aria-haspopup="dialog"
         data-testid="emoji-open"
         onClick={() => setOpen(true)}
-        className="sb-secondary-action sb-secondary-action--compact"
+        className="sb-icon-button"
       >
-        <Icon name="emoji" size={20} />
+        <Icon name="emoji" />
       </button>
       <Sheet
         open={open}

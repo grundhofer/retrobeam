@@ -217,10 +217,11 @@ export function nearestOpenCanvasPosition(
 
 // The canvas's own controls, over its top right corner: the zoom and the
 // facilitator's zone panel button.
-// The canvas's own keys (zoom, zones) as sebaro's compact secondary actions.
-// They lie over the canvas, so their row carries the ground — not the keys:
-// a key's own background is the hover fill, and it fades.
-const CONTROL_KEY = "sb-secondary-action sb-secondary-action--compact";
+// The canvas's own keys lie over the canvas, so their row carries the ground,
+// not the keys: a key's own background is the hover fill, and it fades. The
+// row is one tool row (sebaro D143 (7)): „Notiz“ keeps the outline, „Zonen“
+// and the zoom level are text actions, the two zoom steps icon buttons.
+const CONTROL_KEY = "sb-text-action sb-text-action--compact";
 
 type ZoneStepKind = "move" | "size";
 
@@ -1057,6 +1058,7 @@ export function BoardCanvas({
     <div className="relative">
       <div
         data-canvas-control
+        data-sb-action-area="canvas-tools"
         className="absolute top-2 right-2 z-40 flex flex-wrap items-center justify-end gap-1 rounded-control bg-bg"
       >
         {isAdmin && arrangedZone !== null ? (
@@ -1178,9 +1180,9 @@ export function BoardCanvas({
             type="button"
             aria-label={t("canvas.zoomOut")}
             onClick={() => zoomBy(0.8)}
-            className={CONTROL_KEY}
+            className="sb-icon-button"
           >
-            <Icon name="zoom-out" size={20} />
+            <Icon name="zoom-out" />
           </button>
           {/* Named after what it shows first (WCAG 2.5.3): a speech user says
               the "49%" they see, then the name tells what it does. */}
@@ -1197,9 +1199,9 @@ export function BoardCanvas({
             type="button"
             aria-label={t("canvas.zoomIn")}
             onClick={() => zoomBy(1.25)}
-            className={CONTROL_KEY}
+            className="sb-icon-button"
           >
-            <Icon name="zoom-in" size={20} />
+            <Icon name="zoom-in" />
           </button>
         </div>
       </div>
