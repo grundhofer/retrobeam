@@ -82,7 +82,7 @@ export function TimerPanel({
   const running = timer.endsAt !== null;
   const paused = timer.pausedRemainingMs !== null;
   const idle = !running && !paused;
-  const key = "sb-secondary-action sb-secondary-action--compact";
+  const key = "sb-text-action sb-text-action--compact";
 
   return (
     <div

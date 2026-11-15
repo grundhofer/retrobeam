@@ -43,7 +43,7 @@ export function GifPickerButton({
           onOpenChange?.(true);
           setOpen(true);
         }}
-        className="sb-secondary-action sb-secondary-action--compact"
+        className="sb-text-action sb-text-action--compact"
       >
         {t("gif.add")}
       </button>

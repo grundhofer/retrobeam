@@ -581,6 +581,7 @@ export function NoteCard({
                     type="button"
                     autoFocus
                     onClick={() => setConfirmingDelete(false)}
+                    data-sb-dialog-cancel
                     className="sb-secondary-action"
                   >
                     {t("note.cancel")}

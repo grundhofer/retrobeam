@@ -269,6 +269,7 @@ export function BoardMenu({
               <button
                 type="button"
                 autoFocus
+                data-sb-dialog-cancel
                 className="sb-secondary-action"
                 onClick={close}
               >

@@ -365,7 +365,7 @@ export function PresentStatus({
                       onClick={() =>
                         send({ type: "admin.picker.pick", participantId: p.id })
                       }
-                      className="sb-secondary-action sb-secondary-action--compact"
+                      className="sb-text-action sb-text-action--compact"
                     >
                       <Icon name="pending" size={16} />
                       {nameOf(p)}

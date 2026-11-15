@@ -151,6 +151,7 @@ function RemoveButton({ kudoId }: { kudoId: string }) {
               type="button"
               autoFocus
               onClick={() => setAsking(false)}
+              data-sb-dialog-cancel
               className="sb-secondary-action"
             >
               {t("note.cancel")}
