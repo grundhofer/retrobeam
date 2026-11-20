@@ -282,10 +282,10 @@ export function PresentStatus({
       type="button"
       data-testid="present-done"
       onClick={() => send({ type: "picker.done" })}
+      // The facilitator's „Weiter“ beside it keeps the outline; for them
+      // this is a text action (D143 (7)).
       className={
-        isAdmin
-          ? "sb-secondary-action sb-secondary-action--compact"
-          : "sb-primary-action"
+        isAdmin ? "sb-text-action sb-text-action--compact" : "sb-primary-action"
       }
     >
       {t("rail.donePresenting")}
@@ -335,7 +335,7 @@ export function PresentStatus({
             data-testid="picker-skip"
             disabled={spinning}
             onClick={() => send({ type: "admin.picker.skip" })}
-            className="sb-secondary-action sb-secondary-action--compact"
+            className="sb-text-action sb-text-action--compact"
           >
             {t("picker.skip")}
           </button>
@@ -365,7 +365,7 @@ export function PresentStatus({
                       onClick={() =>
                         send({ type: "admin.picker.pick", participantId: p.id })
                       }
-                      className="sb-secondary-action sb-secondary-action--compact"
+                      className="sb-text-action sb-text-action--compact"
                     >
                       <Icon name="pending" size={16} />
                       {nameOf(p)}

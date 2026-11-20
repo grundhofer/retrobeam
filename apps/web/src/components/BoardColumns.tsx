@@ -614,6 +614,7 @@ function BoardColumn({
                 type="button"
                 autoFocus
                 onClick={() => setConfirmingDelete(false)}
+                data-sb-dialog-cancel
                 className="sb-secondary-action"
               >
                 {t("note.cancel")}
@@ -808,9 +809,19 @@ function DiscussStage({
             />
           );
           return (
-            <li key={targetId} className="sb-stack">
+            <li
+              key={targetId}
+              // Side by side, the topics share their rows (subgrid): the
+              // label, the focus key, the chips and the card line up across
+              // the row however many chips each one has.
+              className={single ? "sb-stack" : "grid grid-rows-subgrid gap-y-3"}
+              style={
+                single ? undefined : { gridRow: `span ${isAdmin ? 4 : 3}` }
+              }
+            >
               <h3 className="sb-field__label m-0">{columnName}</h3>
               <TargetFrame
+                layout={single ? "stack" : "rows"}
                 targetId={targetId}
                 deciding={deciding}
                 roster={roster}
@@ -873,8 +884,12 @@ export function TargetFrame({
   onVote,
   onFocus,
   clearLabel,
+  layout = "stack",
   children,
 }: {
+  /** "rows": the frame's parts become rows of the parent's subgrid (the
+   *  discussion stage), so the parts line up across the topics. */
+  layout?: "stack" | "rows";
   targetId: string;
   deciding: DecidingState;
   roster: Participant[];
@@ -917,14 +932,16 @@ export function TargetFrame({
   return (
     <div
       data-testid="vote-target"
-      className={`sb-stack ${
+      className={`${layout === "rows" ? "contents" : "sb-stack"} ${
         focused
           ? "rounded-container outline-[3px] outline-offset-2 outline-(--sb-color-accent) outline-solid"
           : ""
       } ${dim ? "opacity-40" : ""}`}
     >
       {onFocus !== null ? (
-        <div className="flex justify-end">
+        <div
+          className={`flex ${layout === "rows" ? "justify-start" : "justify-end"}`}
+        >
           <button
             type="button"
             data-testid="discuss-focus-card"
@@ -941,7 +958,7 @@ export function TargetFrame({
       ) : null}
       {deciding.talliesShown &&
       (rank >= 0 || tally !== undefined || myCount > 0) ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap content-start items-center gap-2">
           {rank >= 0 ? (
             <span data-testid="crown" className="sb-tag">
               {t("done.rank", {
@@ -993,6 +1010,8 @@ export function TargetFrame({
             </span>
           ))}
         </div>
+      ) : layout === "rows" ? (
+        <div />
       ) : null}
       {children}
       {deciding.voteActive ? (

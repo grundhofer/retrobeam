@@ -7,6 +7,7 @@ import { useState } from "react";
 import { userEvent } from "vitest/browser";
 import {
   defaultZoneRect,
+  type CanvasOccupancy,
   type Column,
   type Note,
   type Participant,
@@ -20,6 +21,7 @@ import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
 import {
   BoardCanvas,
+  estimatedCardHeight,
   nearestOpenCanvasPosition,
   zoneStep,
 } from "./BoardCanvas.js";
@@ -155,14 +157,69 @@ test("foreign canvas positions render as anonymous occupied cards", async () => 
 test("an occupied drop snaps to the nearest free card position", () => {
   const open = nearestOpenCanvasPosition(
     { x: 0.5, y: 0.5 },
-    [{ x: 0.5, y: 0.5 }],
-    0.25,
-    0.2,
+    [{ x: 0.5, y: 0.5, w: 0.25, h: 0.2 }],
+    { w: 0.25, h: 0.2 },
   );
   expect(open).not.toBeNull();
   expect(
     Math.abs(open!.x - 0.5) >= 0.25 || Math.abs(open!.y - 0.5) >= 0.2,
   ).toBe(true);
+});
+
+test("a tall card keeps its whole height free, a short one only its own", () => {
+  // a tall neighbour (a GIF card) above the drop point: the new card must
+  // clear its whole height, not a fixed one
+  const tall = { x: 0.25, y: 0.3, w: 0.5, h: 0.5 };
+  const open = nearestOpenCanvasPosition({ x: 0.25, y: 0.4 }, [tall], {
+    w: 0.5,
+    h: 0.2,
+  });
+  expect(open).not.toBeNull();
+  const clearsVertically = Math.abs(open!.y - tall.y) >= (tall.h + 0.2) / 2;
+  const clearsHorizontally = Math.abs(open!.x - tall.x) >= (tall.w + 0.5) / 2;
+  expect(clearsVertically || clearsHorizontally).toBe(true);
+  // and the card stays inside its zone
+  expect(open!.y + 0.1).toBeLessThanOrEqual(1 + 1e-9);
+});
+
+test("a new card's height is read from its text, as the canvas wraps it", () => {
+  const oneLine = estimatedCardHeight("Kaffee", false);
+  // the lines the canvas card draws for these (measured, 2026-11-10)
+  expect(estimatedCardHeight("Tests waren rot", false)).toBe(oneLine + 28);
+  expect(
+    estimatedCardHeight(
+      "Ein etwas längerer Gedanke über das Deployment am Freitag",
+      false,
+    ),
+  ).toBe(oneLine + 5 * 28);
+  // an unbroken word wraps over several lines; a GIF adds its picture
+  expect(estimatedCardHeight("x".repeat(30), false)).toBe(oneLine + 2 * 28);
+  expect(estimatedCardHeight("Kaffee", true)).toBeGreaterThan(oneLine + 100);
+});
+
+test("without a chosen point the zone fills in reading order", () => {
+  const first = nearestOpenCanvasPosition(null, [], { w: 0.4, h: 0.2 });
+  expect(first).toEqual({ x: 0.2, y: 0.1 });
+  const second = nearestOpenCanvasPosition(
+    null,
+    [{ ...first!, w: 0.4, h: 0.2 }],
+    { w: 0.4, h: 0.2 },
+  );
+  // beside the first, not under it
+  expect(second!.y).toBeCloseTo(0.1);
+  expect(second!.x).toBeGreaterThanOrEqual(0.6 - 1e-9);
+});
+
+test("a full zone says so", () => {
+  const filled = [
+    { x: 0.25, y: 0.25, w: 0.5, h: 0.5 },
+    { x: 0.75, y: 0.25, w: 0.5, h: 0.5 },
+    { x: 0.25, y: 0.75, w: 0.5, h: 0.5 },
+    { x: 0.75, y: 0.75, w: 0.5, h: 0.5 },
+  ];
+  expect(
+    nearestOpenCanvasPosition({ x: 0.5, y: 0.5 }, filled, { w: 0.5, h: 0.5 }),
+  ).toBeNull();
 });
 
 // Cursors OFF must produce ZERO traffic on pointer move (the free-tier gate);
@@ -457,9 +514,95 @@ test("„Note“ opens the composer in the chosen zone at a free spot", async ()
     type: "note.create",
     columnId: column.id,
     text: "from the button",
+    atCanvasHeight: 1,
   });
   // The centre is taken by the fixture's card; the composer moved off it.
   expect(command.x !== note.x || command.y !== note.y).toBe(true);
+});
+
+// A full zone grows the canvas. The growing card waits for the server (its
+// snapshot replaces the board), and a card written meanwhile waits with it:
+// it is placed once the growing card is on the board, measured with it.
+test("a card that fits nowhere grows the canvas, and the next one waits for it", async () => {
+  const mutate = vi.fn();
+  const full: CanvasOccupancy[] = [];
+  for (let x = 0.025; x < 1; x += 0.05) {
+    for (let y = 0.025; y < 1; y += 0.05) {
+      full.push({ columnId: column.id, x, y });
+    }
+  }
+  const canvas = (notes: Note[], canvasHeight: number) => (
+    <ConnectionProvider value={{ boardId: BOARD_ID, mutate, send: vi.fn() }}>
+      <BoardCanvas
+        columns={[column]}
+        notes={notes}
+        columnCounts={{}}
+        canvasOccupancy={full}
+        canvasHeight={canvasHeight}
+        roster={[you]}
+        you={you}
+        phase="write"
+        editing={{}}
+        isAdmin
+        presenterId={null}
+        unpresentedAuthorIds={null}
+        gifsEnabled={false}
+        cursors={{}}
+        cursorsEnabled={false}
+      />
+    </ConnectionProvider>
+  );
+  const screen = await render(canvas([], 1.5));
+  const write = async (text: string) => {
+    await screen.getByTestId("canvas-add-note").click();
+    await screen.getByTestId(`canvas-add-note-${column.id}`).click();
+    const composer = screen.getByTestId("canvas-composer");
+    await expect.element(composer).toHaveFocus();
+    await composer.fill(text);
+    await userEvent.keyboard("{Enter}");
+  };
+
+  await write("needs room");
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const [command, echo] = mutate.mock.calls[0] as [
+    {
+      noteId: string;
+      x: number;
+      y: number;
+      growCanvasTo?: number;
+      atCanvasHeight?: number;
+    },
+    ServerEvent[],
+  ];
+  expect(command.growCanvasTo).toBeGreaterThan(1.5);
+  expect(command.atCanvasHeight).toBe(command.growCanvasTo);
+  expect(echo).toEqual([]);
+
+  await write("written meanwhile");
+  expect(mutate).toHaveBeenCalledTimes(1);
+
+  // the server's snapshot: the canvas grown, the growing card on it
+  const grown = command.growCanvasTo!;
+  await screen.rerender(
+    canvas(
+      [
+        {
+          ...note,
+          id: command.noteId,
+          text: "needs room",
+          x: command.x,
+          y: command.y,
+        },
+      ],
+      grown,
+    ),
+  );
+  await expect.poll(() => mutate.mock.calls.length).toBe(2);
+  expect(mutate.mock.calls[1]?.[0]).toMatchObject({
+    type: "note.create",
+    text: "written meanwhile",
+    atCanvasHeight: expect.any(Number),
+  });
 });
 
 // WCAG 2.5.7 and 2.1.1: a canvas card used to move by dragging only. Its ⋯
@@ -659,7 +802,9 @@ test("focus stays with the canvas card through a keyboard move and step", async 
   await expect.poll(() => document.activeElement).toBe(toggle());
 
   await userEvent.keyboard("{Enter}");
-  const left = screen.getByTestId("note-nudge-left");
+  // "Move to …" lands on the zone's first free place, top left: the step
+  // goes right, where there is room.
+  const left = screen.getByTestId("note-nudge-right");
   // The card's position lives on its drag wrapper.
   const placed = () =>
     (left.element().closest("[data-testid='canvas-card']") as HTMLElement).style
@@ -668,13 +813,14 @@ test("focus stays with the canvas card through a keyboard move and step", async 
   // By key, not click: WebKit does not focus a clicked button, and this is
   // about the mount surviving, not about what a click focuses.
   (left.element() as HTMLElement).focus();
-  await userEvent.keyboard("{ArrowLeft}");
+  await userEvent.keyboard("{ArrowRight}");
   await expect.poll(placed).not.toBe(before);
   await expect.element(left).toHaveFocus();
 });
 
-// The columns' twin test (BoardColumns.test.tsx): a drop on the other zone's
-// centre and "Move to …" that zone are the same command and the same echo.
+// The columns' twin test (BoardColumns.test.tsx): a drop on the other zone
+// and "Move to …" that zone are the same command and the same echo. "Move
+// to …" lands where „+ Note“ opens: the zone's first free place, top left.
 test("a canvas drop and Move to … send the same note.move", async () => {
   const mutate = vi.fn();
   const stacked = { ...note, groupId: "e".repeat(32) };
@@ -693,8 +839,10 @@ test("a canvas drop and Move to … send the same note.move", async () => {
       bubbles: true,
     });
   const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
-  const dropX = target.left + target.width / 2;
-  const dropY = target.top + target.height / 2;
+  // into the zone's top left corner: the drop is kept a card's half inside,
+  // which is where "Move to …" lands, the first free place
+  const dropX = target.left + 2;
+  const dropY = target.top + 2;
   wrapper.dispatchEvent(ev("pointerdown", start.left + 8, start.top + 8));
   await tick();
   wrapper.dispatchEvent(ev("pointermove", dropX, dropY));
@@ -878,14 +1026,15 @@ test("the facilitator moves and sizes a zone without dragging", async () => {
   await toggle.click();
   await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
 
-  // The first zone until another is picked.
-  const options = screen.getByTestId("zones-option");
-  expect(options.elements().map((el) => el.textContent)).toEqual(
+  // The first zone until another is picked from the list.
+  const select = screen.getByTestId("zones-select");
+  const choice = select.element() as HTMLSelectElement;
+  expect([...choice.options].map((option) => option.textContent)).toEqual(
     zones.map((z) => z.name),
   );
-  await expect.element(options.nth(0)).toHaveAttribute("aria-pressed", "true");
-  await options.nth(1).click();
-  await expect.element(options.nth(1)).toHaveAttribute("aria-pressed", "true");
+  expect(choice.value).toBe(zones[0]!.id);
+  await select.selectOptions(zones[1]!.id);
+  expect(choice.value).toBe(zones[1]!.id);
 
   const start = defaultZoneRect(1, zones.length);
   await screen.getByTestId("zones-move-right").click();
@@ -928,6 +1077,48 @@ test("the facilitator moves and sizes a zone without dragging", async () => {
   await userEvent.keyboard("{Escape}");
   expect(screen.getByTestId("zones-panel").elements()).toHaveLength(0);
   await expect.element(toggle).toHaveFocus();
+});
+
+test("the zone panel says what it is and closes with its own key or a press outside", async () => {
+  const screen = await render(canvas({}));
+  const toggle = screen.getByTestId("zones-toggle");
+  await toggle.click();
+  const panel = screen.getByTestId("zones-panel");
+  await expect
+    .element(panel)
+    .toHaveAccessibleName(/arrange zones|zonen anordnen/i);
+  await screen.getByTestId("zones-close").click();
+  await expect.element(panel).not.toBeInTheDocument();
+  await expect.element(toggle).toHaveFocus();
+
+  await toggle.click();
+  await expect.element(screen.getByTestId("zones-panel")).toBeVisible();
+  document.body.dispatchEvent(
+    new PointerEvent("pointerdown", { bubbles: true }),
+  );
+  await expect
+    .element(screen.getByTestId("zones-panel"))
+    .not.toBeInTheDocument();
+});
+
+test("„Zentrieren“ puts the zones in the middle of the canvas", async () => {
+  // One zone in the world's right half, away from the middle.
+  const aside = { ...column, rect: { x: 0.6, y: 0.5, w: 0.3, h: 0.4 } };
+  const screen = await render(canvas({ columns: [aside] }));
+  const viewport = screen.getByTestId("canvas-viewport").element();
+  const zone = screen.container.querySelector("section")!;
+  await screen.getByTestId("canvas-fit").click();
+  await expect
+    .poll(() => {
+      const v = viewport.getBoundingClientRect();
+      const z = zone.getBoundingClientRect();
+      // Within a pixel: the viewport's border is outside the box it pans.
+      return [
+        Math.abs(z.left + z.width / 2 - (v.left + v.width / 2)) <= 1,
+        Math.abs(z.top + z.height / 2 - (v.top + v.height / 2)) <= 1,
+      ];
+    })
+    .toEqual([true, true]);
 });
 
 test("a zone step that cannot go is marked and sends nothing", async () => {
