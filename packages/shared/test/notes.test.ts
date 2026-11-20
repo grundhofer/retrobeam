@@ -10,6 +10,7 @@ import {
   REVEAL_ALL,
   REVEAL_OWN,
   visibleNotesFor,
+  voteCapacity,
 } from "../src/domain/notes.js";
 import { EMPTY_PICKER, type PickerState } from "../src/domain/picker.js";
 import type { Note } from "../src/protocol.js";
@@ -208,5 +209,24 @@ describe("visibleNotesFor", () => {
     // Cara is not on stage, so her id must not ride along on Ben's own card.
     expect(notes).toHaveLength(1);
     expect(notes[0]?.groupId).toBeNull();
+  });
+});
+
+describe("voteCapacity", () => {
+  const card = (id: string, groupId: string | null = null) => ({ id, groupId });
+
+  it("is the budget without a per-card limit", () => {
+    expect(voteCapacity(3, null, [])).toBe(3);
+  });
+
+  it("is smaller when the per-card limit cannot spend the budget", () => {
+    // Three cards at one vote each fill a hand of five.
+    expect(voteCapacity(5, 1, [card("a"), card("b"), card("c")])).toBe(3);
+    expect(voteCapacity(2, 1, [card("a"), card("b"), card("c")])).toBe(2);
+  });
+
+  it("counts a stack once", () => {
+    const stack = [card("a", "a"), card("b", "a"), card("c")];
+    expect(voteCapacity(5, 1, stack)).toBe(2);
   });
 });

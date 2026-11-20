@@ -34,6 +34,7 @@ import {
   redactNoteForViewer,
   scatterPos,
   visibleNotesFor,
+  voteCapacity,
   withAllRevealed,
   withPresenterRevealed,
   type Action,
@@ -3043,6 +3044,36 @@ export class BoardRoom extends DurableObject<Env> {
     // everyone else sees just the anonymous progress meter.
     this.sendProgressTo(participant.id);
     this.broadcastMeter();
+    // Spending your last vote marks you ready; taking one back from a full
+    // hand unmarks you (owner, 2026-11-20). Only the crossing changes it, so
+    // a manual „Ich bin fertig“ with votes left is never undone by a later
+    // cast. After the cast's own frames: the ready flag follows the vote.
+    const capacity = this.voteCapacity(participant, config);
+    const wasFull = total >= capacity;
+    const isFull = total - current + next >= capacity;
+    if (wasFull !== isFull) this.handleReadySet(participant, isFull);
+  }
+
+  // The hand this person can fill (domain voteCapacity), over the notes they
+  // can vote on: a member none in a column hidden from them.
+  private voteCapacity(
+    participant: ParticipantRow,
+    config: BoardConfig,
+  ): number {
+    if (config.maxPerTarget === null) return config.votesPerPerson;
+    const hidden =
+      participant.role === "facilitator"
+        ? new Set<string>()
+        : this.hiddenColumnIds();
+    const notes = this.sql
+      .exec("SELECT id, group_id, column_id FROM notes")
+      .toArray()
+      .filter((row) => !hidden.has(String(row.column_id)))
+      .map((row) => ({
+        id: String(row.id),
+        groupId: row.group_id === null ? null : String(row.group_id),
+      }));
+    return voteCapacity(config.votesPerPerson, config.maxPerTarget, notes);
   }
 
   private handleVoteConfig(

@@ -910,3 +910,81 @@ describe("action items", () => {
     await admin.socket.waitFor((e) => e.type === "action.deleted");
   });
 });
+
+// Spending your last vote marks you ready, taking one back from a full hand
+// unmarks you (owner, 2026-11-20). Only the crossing moves the flag.
+describe("auto-ready from the vote", () => {
+  const readyOf = (socket: TestSocket, id: string) =>
+    socket.events.filter(
+      (e) => e.type === "ready.changed" && e.participantId === id,
+    );
+  // The ready flag follows the cast's own frames, so a negative check needs a
+  // barrier: the room answers a resync after everything sent before it.
+  async function settled(socket: TestSocket): Promise<void> {
+    const sync = socket.waitForNext((e) => e.type === "sync");
+    socket.send({ type: "resync" });
+    await sync;
+  }
+
+  it("the last vote marks you ready, and taking one back unmarks you", async () => {
+    const { admin, ben, noteA, noteB } = await votingBoard();
+    cast(ben.socket, noteA, 1);
+    cast(ben.socket, noteB, 1);
+    await ben.socket.waitFor(
+      (e) => e.type === "vote.progress" && e.yourVotes[noteB] === 1,
+    );
+    await settled(ben.socket);
+    // Two of three: not ready yet.
+    expect(readyOf(ben.socket, ben.you.id)).toHaveLength(0);
+
+    cast(ben.socket, noteA, 1);
+    const ready = await admin.socket.waitFor(
+      (e) => e.type === "ready.changed" && e.participantId === ben.you.id,
+    );
+    expect(ready).toMatchObject({ ready: true });
+
+    cast(ben.socket, noteB, -1);
+    const unready = await admin.socket.waitForNext(
+      (e) => e.type === "ready.changed" && e.participantId === ben.you.id,
+    );
+    expect(unready).toMatchObject({ ready: false });
+  });
+
+  it("a manual „ready“ with votes left is not undone by another cast", async () => {
+    const { ben, noteA } = await votingBoard();
+    ben.socket.send({ type: "ready.set", ready: true });
+    await ben.socket.waitFor(
+      (e) => e.type === "ready.changed" && e.participantId === ben.you.id,
+    );
+    cast(ben.socket, noteA, 1);
+    await ben.socket.waitFor(
+      (e) => e.type === "vote.progress" && e.yourVotes[noteA] === 1,
+    );
+    const removed = ben.socket.waitForNext(
+      (e) => e.type === "vote.progress" && e.yourVotes[noteA] === undefined,
+    );
+    cast(ben.socket, noteA, -1);
+    await removed;
+    await settled(ben.socket);
+    // Only the manual one: neither cast crossed into or out of a full hand.
+    expect(readyOf(ben.socket, ben.you.id)).toHaveLength(1);
+  });
+
+  it("with a per-card limit, a hand is full once no further vote is possible", async () => {
+    const { admin, ben, noteA, noteB } = await votingBoard();
+    // Five votes, one per card, two cards: two votes fill the hand.
+    admin.socket.send({
+      type: "admin.vote.config",
+      votesPerPerson: 5,
+      maxPerTarget: 1,
+      topN: 1,
+    });
+    await ben.socket.waitFor((e) => e.type === "config.changed");
+    cast(ben.socket, noteA, 1);
+    cast(ben.socket, noteB, 1);
+    const ready = await admin.socket.waitFor(
+      (e) => e.type === "ready.changed" && e.participantId === ben.you.id,
+    );
+    expect(ready).toMatchObject({ ready: true });
+  });
+});

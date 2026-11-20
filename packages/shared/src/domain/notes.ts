@@ -162,3 +162,19 @@ export function visibleNotesFor(
     ),
   );
 }
+
+// How many votes a person can actually spend: the budget, or fewer when the
+// per-card limit times the cards they can vote on is smaller — three cards at
+// one vote each fill a hand of five. A votable is an unstacked card or a
+// stack (its group id). Pass the notes as that person sees them: a member
+// cannot vote in a column hidden from them. The server marks a full hand
+// ready (owner, 2026-11-20), and the action zone says the hand is full.
+export function voteCapacity(
+  votesPerPerson: number,
+  maxPerTarget: number | null,
+  notes: readonly Pick<Note, "id" | "groupId">[],
+): number {
+  if (maxPerTarget === null) return votesPerPerson;
+  const votables = new Set(notes.map((note) => note.groupId ?? note.id));
+  return Math.min(votesPerPerson, maxPerTarget * votables.size);
+}
