@@ -264,24 +264,27 @@ export function RetroResults({
                       onVote={() => {}}
                       onFocus={null}
                     >
-                      {topic.stack.length > 1 ? (
-                        <NoteStack count={topic.stack.length}>
-                          {topic.stack.map((note) => (
-                            <NoteCard
-                              key={note.id}
-                              note={note}
-                              revealIndex={index}
-                              {...cardProps}
-                            />
-                          ))}
-                        </NoteStack>
-                      ) : (
-                        <NoteCard
-                          note={topic.stack[0] as Note}
-                          revealIndex={index}
-                          {...cardProps}
-                        />
-                      )}
+                      {(vote) =>
+                        topic.stack.length > 1 ? (
+                          <NoteStack count={topic.stack.length} vote={vote}>
+                            {topic.stack.map((note) => (
+                              <NoteCard
+                                key={note.id}
+                                note={note}
+                                revealIndex={index}
+                                {...cardProps}
+                              />
+                            ))}
+                          </NoteStack>
+                        ) : (
+                          <NoteCard
+                            note={topic.stack[0] as Note}
+                            revealIndex={index}
+                            vote={vote}
+                            {...cardProps}
+                          />
+                        )
+                      }
                     </TargetFrame>
                   </li>
                 ))}

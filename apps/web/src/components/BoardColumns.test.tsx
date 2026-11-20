@@ -462,3 +462,40 @@ test("a card's title keeps the card's width, with a tag in its meta line", async
     article.getBoundingClientRect().width * 0.6,
   );
 });
+
+// The vote sat below the card, as close to the next card as to its own, and
+// read as the next card's (owner, 2026-11-20). Now it is inside: in the card
+// after its grey line (sebaro's board card), in a stack's frame for a stack.
+test("the vote control is inside the card it votes for, and inside a stack's frame", async () => {
+  const columnId = columns[0]!.id;
+  const single = note("1", columnId, 1);
+  const top = note("2", columnId, 2);
+  const stacked = { ...note("3", columnId, 3), groupId: top.id };
+  const screen = await render(
+    view({
+      phase: "vote",
+      notes: [single, { ...top, groupId: top.id }, stacked],
+      deciding: {
+        voteActive: true,
+        mine: {},
+        remaining: 3,
+        maxPerTarget: null,
+        talliesShown: false,
+        tallies: null,
+        topTargetIds: [],
+        voters: null,
+        focusId: null,
+      },
+    }),
+  );
+  const controls = screen.getByTestId("vote-control");
+  await expect.element(controls.first()).toBeVisible();
+  expect(controls.elements()).toHaveLength(2);
+  const [inCard, inStack] = controls.elements();
+  expect(inCard?.closest('[data-testid="note-card"]')?.textContent).toContain(
+    single.text,
+  );
+  // The stack's one vote belongs to the frame, not to one of its cards.
+  expect(inStack?.closest('[data-testid="note-card"]')).toBeNull();
+  expect(inStack?.closest('[data-testid="note-stack"]')).not.toBeNull();
+});

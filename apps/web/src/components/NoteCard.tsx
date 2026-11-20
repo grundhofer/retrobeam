@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   generateHexId,
+  NOTE_TEXT_MAX,
   phaseRevealed,
   REACTION_EMOJI,
   type Note,
@@ -61,6 +62,23 @@ const MOUNTED = new Map<string, number>();
 function askRefocus(noteId: string) {
   REFOCUS.add(noteId);
   setTimeout(() => REFOCUS.delete(noteId), 2000);
+}
+
+// From here on a note's field says how many characters are left (80 % of the
+// limit): early enough to rephrase, late enough not to sit under every card.
+export const NOTE_LENGTH_HINT_FROM = Math.floor(NOTE_TEXT_MAX * 0.8);
+
+// sebaro's help line under the field, for the three places a card is written
+// (column, canvas, edit). The field points at it (aria-describedby) while it
+// shows; it is not a live region, so it does not speak on every keystroke.
+export function NoteLengthHint({ id, length }: { id: string; length: number }) {
+  const { t } = useTranslation();
+  if (length < NOTE_LENGTH_HINT_FROM) return null;
+  return (
+    <p id={id} data-testid="note-length" className="sb-field__help">
+      {t("note.charsLeft", { count: NOTE_TEXT_MAX - length })}
+    </p>
+  );
 }
 
 function focusArrangeKey(card: HTMLElement) {
@@ -120,6 +138,10 @@ export interface NoteCardProps {
   /** Told when the ⋯ panel opens and when it closes or unmounts, so the
    *  canvas can lift the card above its neighbours. Keep it stable. */
   onArrangeChange?: (noteId: string, open: boolean) => void;
+  /** The vote control while voting, drawn inside the card after its grey
+   *  line, as sebaro's board card has it (TargetFrame hands it in). Below
+   *  the card it read as the next card's (owner, 2026-11-20). */
+  vote?: React.ReactNode;
 }
 
 export function NoteCard({
@@ -144,6 +166,7 @@ export function NoteCard({
   canNudge = () => true,
   arrangeScale = null,
   onArrangeChange,
+  vote = null,
 }: NoteCardProps) {
   const { t } = useTranslation();
   const { mutate } = useConnection();
@@ -325,23 +348,17 @@ export function NoteCard({
     if (canNudge(note.id, direction)) onNudge?.(note.id, direction);
   }
 
-  // The card's „Mehr“ (sebaro's menu): edit, take out of its stack, and
-  // delete last, which asks first.
+  function startEdit() {
+    setDraft(note.text);
+    setDraftGif(note.gifUrl);
+    setEditing(true);
+  }
+
+  // The card's „Mehr“ (sebaro's menu): take out of its stack, and delete
+  // last, which asks first. Editing is not in it: the pencil sits on the card
+  // itself, where you look for it (owner, 2026-11-20).
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const cardMenu: MenuItem[] = [];
-  if (canEdit) {
-    cardMenu.push({
-      key: "edit",
-      label: t("note.edit"),
-      icon: "edit",
-      testId: "note-edit",
-      onSelect: () => {
-        setDraft(note.text);
-        setDraftGif(note.gifUrl);
-        setEditing(true);
-      },
-    });
-  }
   if (note.groupId !== null && canCurate) {
     cardMenu.push({
       key: "ungroup",
@@ -416,7 +433,9 @@ export function NoteCard({
       style={{ animationDelay: `${Math.min(revealIndex, 12) * 45}ms` }}
     >
       {editing ? (
-        <form onSubmit={saveEdit}>
+        // A stack: the field's focus ring reaches 4 px past it and sat
+        // right on the buttons (owner, 2026-11-20).
+        <form onSubmit={saveEdit} className="sb-stack col-span-full">
           <div className="sb-field">
             <label htmlFor={`${arrangeId}-edit`} className="sb-visually-hidden">
               {t("note.edit")}
@@ -427,10 +446,16 @@ export function NoteCard({
                 autoFocus
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                maxLength={500}
+                maxLength={NOTE_TEXT_MAX}
+                aria-describedby={
+                  draft.length >= NOTE_LENGTH_HINT_FROM
+                    ? `${arrangeId}-length`
+                    : undefined
+                }
                 rows={3}
               />
             </div>
+            <NoteLengthHint id={`${arrangeId}-length`} length={draft.length} />
           </div>
           {draftGif !== null ? (
             <div className="flex items-start gap-1">
@@ -496,7 +521,9 @@ export function NoteCard({
           <div className="col-span-full flex items-center gap-1">
             {/* §6.1 d: on an anonymous board nobody, not even you. */}
             {author ? (
-              <p className="sb-card__meta min-w-0 flex-1 truncate">
+              // Wraps, never cut (owner, 2026-11-20): a long name is still
+              // the only way to tell whose card it is.
+              <p className="sb-card__meta min-w-0 flex-1 wrap-break-word">
                 {author.name}
               </p>
             ) : (
@@ -524,6 +551,22 @@ export function NoteCard({
                     }
               }
             >
+              {canEdit ? (
+                <button
+                  type="button"
+                  data-testid="note-edit"
+                  aria-label={t("note.edit")}
+                  title={t("note.edit")}
+                  onClick={startEdit}
+                  className={
+                    arrangeScale === null
+                      ? "sb-icon-button"
+                      : "sb-icon-button sb-icon-button--compact"
+                  }
+                >
+                  <Icon name="edit" />
+                </button>
+              ) : null}
               {canArrange ? (
                 <button
                   ref={arrangeTrigger}
@@ -554,6 +597,7 @@ export function NoteCard({
               ) : null}
             </span>
           </div>
+          {vote}
           {canDelete ? (
             <Dialog
               open={confirmingDelete}
