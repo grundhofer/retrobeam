@@ -204,7 +204,7 @@ export function PhaseStepper({
                 data-testid="phase-back"
                 disabled={pending !== null}
                 onClick={() => step(previous)}
-                className="sb-secondary-action sb-secondary-action--compact"
+                className="sb-text-action sb-text-action--compact"
               >
                 <Icon name="arrow-left" size={20} />
                 {t(`phase.${previous}`)}

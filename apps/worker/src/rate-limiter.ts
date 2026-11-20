@@ -72,13 +72,14 @@ export class RateLimiter extends DurableObject<Env> {
    *
    * @param capacity burst size — how many are allowed back to back
    * @param refillPerSec sustained rate once the burst is spent
+   * @param now the clock, as in leaseDaily: tests pass it, callers do not
    */
   async take(
     key: string,
     capacity: number,
     refillPerSec: number,
+    now = Date.now(),
   ): Promise<RateLimitDecision> {
-    const now = Date.now();
     this.sweep(now, capacity, refillPerSec);
 
     const previous = this.buckets.get(key) ?? { tokens: capacity, at: now };

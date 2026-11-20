@@ -13,8 +13,9 @@ import { InviteDialog } from "./InviteDialog.js";
 // bar. Only ever the TEAM link: the facilitator link lives in the ⋯ menu,
 // behind its own mask, for the one person who holds it.
 //
-// sebaro's invite dialog (spec/02 §4.6, RB-6) behind an sb-secondary-action
-// with the qr-code icon, the icon belonging to the trigger, not the dialog.
+// sebaro's invite dialog (spec/02 §4.6, RB-6) behind a text action with the
+// qr-code icon (round 7, spec/03 §6.6: „Einladen“ is a text action in the
+// app's head), the icon belonging to the trigger, not the dialog.
 export function InviteButton({ boardId }: { boardId: string }) {
   const { t } = useTranslation();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -27,7 +28,7 @@ export function InviteButton({ boardId }: { boardId: string }) {
         data-testid="invite-button"
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
-        className="sb-secondary-action sb-secondary-action--compact"
+        className="sb-text-action"
       >
         <Icon name="qr-code" size={20} />
         {t("invite.button")}

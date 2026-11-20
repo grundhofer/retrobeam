@@ -27,13 +27,31 @@ import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { Icon } from "./Icon.js";
 
+// A person's tone in the draw: one of sebaro's six category tones, by their
+// place in the spin's pool, so the wheel and the reels agree and neighbours
+// differ. The last wedge touches the first, so with 7, 13 … names it takes
+// the second tone instead of the first's.
+export function toneIndex(index: number, count: number): number {
+  const tone = index % 6;
+  return count > 1 && index === count - 1 && tone === 0 ? 1 : tone;
+}
+
+// The tone as a fill under ink text, in both schemes: mixed into the page's
+// ground by --rb-tone-mix (index.css), so the name stays readable (the tones
+// themselves are mid-dark in light mode and light in dark mode).
+export function toneFill(tone: number): string {
+  return `color-mix(in srgb, var(--sb-category-${tone + 1}) var(--rb-tone-mix), var(--sb-color-bg))`;
+}
+
 // Every client renders the SAME spin from the broadcast seed and lands on the
 // same name. Reduced motion (the system's or sebaro's data-sb-motion) and late
 // joiners skip straight to the result.
 //
 // sebaro (plan §2.4 F7): the choosing moment is the app's one moment of
-// delight, drawn flat in ink — no participant colours, no gradients, no
-// confetti — in sebaro's modal dialog over the scrim. Its motion (owner,
+// delight, drawn flat — no gradients, no confetti — in sebaro's modal dialog
+// over the scrim. Since 2026-11-15 in colour (owner: „sieht farblos aus“; a
+// deviation from RB-7's ink-only wheel): every person in the draw has one of
+// sebaro's six category tones, light, under ink names (toneFill). Its motion (owner,
 // 2026-11-09, replacing D114's plain 4.5 s turn): the wheel winds up, ticks,
 // crawls and settles; the reels blur, catch and the last one lingers; the
 // cards are shuffled, fanned and one is turned. All of it is computed from the
@@ -546,10 +564,11 @@ function splitNearMiddle(graphemes: readonly string[]): string[][] | null {
 
 // sebaro's wheel (spec/02 §3.29, §4.6, RB-7): svg.sb-wheel, a 2 px ink
 // circle, 1.5 px spokes and the names inside g.sb-wheel__disc, the pointer at
-// the top; its colours and strokes come from sebaro's CSS. It winds up,
-// spins, crawls and settles over the spin's time, the pointer ticking at
-// every name (owner, 2026-11-09: a deviation from sebaro's 200 ms, as D114
-// was), and the chosen name's wedge lights up when it stands.
+// the top; its strokes come from sebaro's CSS, the wedges' tones from
+// toneFill (owner, 2026-11-15). It winds up, spins, crawls and settles over
+// the spin's time, the pointer ticking at every peg on the rim (owner,
+// 2026-11-09: a deviation from sebaro's 200 ms, as D114 was), and the chosen
+// name's wedge is edged in the accent when it stands.
 function Wheel({
   spin,
   roster,
@@ -570,16 +589,22 @@ function Wheel({
   // The pointer flicks back as a spoke passes under it and returns as the
   // disc turns on — a function of the angle, like a pointer caught by a peg,
   // so every screen draws the same flick.
-  const kick = pointerKick(rotation, segment);
+  // Pegs round the rim, at least twelve and one on every spoke: they turn
+  // with the disc, so a wheel of one or two names is seen to spin too (owner,
+  // 2026-11-15), and the pointer ticks at each of them.
+  const pegs = count * Math.max(1, Math.ceil(PEGS_MIN / Math.max(1, count)));
+  const kick = pointerKick(rotation, 360 / pegs);
   const standing = elapsed >= spin.durationMs;
   const winnerIndex = spin.pool.indexOf(spin.winnerId);
-  const wedge = (() => {
-    if (winnerIndex < 0 || count < 2) return null;
-    const a0 = ((winnerIndex * segment - 90) * Math.PI) / 180;
-    const a1 = (((winnerIndex + 1) * segment - 90) * Math.PI) / 180;
+  // One wedge per name; a single name fills the whole disc.
+  function wedgePath(index: number): string | null {
+    if (count < 2) return null;
+    const a0 = ((index * segment - 90) * Math.PI) / 180;
+    const a1 = (((index + 1) * segment - 90) * Math.PI) / 180;
     const large = segment > 180 ? 1 : 0;
     return `M0 0 L${FACE * Math.cos(a0)} ${FACE * Math.sin(a0)} A${FACE} ${FACE} 0 ${large} 1 ${FACE * Math.cos(a1)} ${FACE * Math.sin(a1)} Z`;
-  })();
+  }
+  const wedge = winnerIndex < 0 ? null : wedgePath(winnerIndex);
   const label =
     landedOn === null
       ? t("picker.wheelLabel", { count })
@@ -600,16 +625,45 @@ function Wheel({
         style={{ ["--sb-wheel-turn" as string]: `${rotation}deg` }}
       >
         <g transform="translate(150 150)">
-          {standing && wedge !== null ? (
-            <path
-              data-testid="wheel-winner-wedge"
-              d={wedge}
-              style={{
-                fill: "var(--sb-color-accent)",
-                fillOpacity: 0.22,
-                stroke: "none",
-              }}
-            />
+          {spin.pool.map((participantId, index) => {
+            const style = {
+              fill: toneFill(toneIndex(index, count)),
+              stroke: "none",
+              // Once it stands, the other names step back.
+              opacity: standing && participantId !== spin.winnerId ? 0.6 : 1,
+              transition: "opacity 300ms",
+            };
+            const d = wedgePath(index);
+            return d === null ? (
+              <circle
+                key={participantId}
+                data-testid="wheel-wedge"
+                r={FACE}
+                style={style}
+              />
+            ) : (
+              <path
+                key={participantId}
+                data-testid="wheel-wedge"
+                d={d}
+                style={style}
+              />
+            );
+          })}
+          {standing && winnerIndex >= 0 ? (
+            wedge !== null ? (
+              <path
+                data-testid="wheel-winner-wedge"
+                d={wedge}
+                style={WINNER_EDGE}
+              />
+            ) : (
+              <circle
+                data-testid="wheel-winner-wedge"
+                r={FACE - 2}
+                style={WINNER_EDGE}
+              />
+            )
           ) : null}
           <circle r={FACE} />
           {count > 1
@@ -626,6 +680,19 @@ function Wheel({
                 );
               })
             : null}
+          {/* On the rim, outside the names. */}
+          {Array.from({ length: pegs }, (_, index) => {
+            const angle = ((index * 360) / pegs - 90) * (Math.PI / 180);
+            return (
+              <circle
+                key={`peg-${index}`}
+                cx={FACE * Math.cos(angle)}
+                cy={FACE * Math.sin(angle)}
+                r={3.5}
+                style={{ fill: "currentColor", stroke: "none" }}
+              />
+            );
+          })}
           {spin.pool.map((participantId, index) => {
             const participant = roster.find((p) => p.id === participantId);
             const name = participant?.name ?? "?";
@@ -709,8 +776,18 @@ function Wheel({
   );
 }
 
+const PEGS_MIN = 12;
+// The chosen wedge, once it stands: sebaro's accent as its edge, over its
+// own tone.
+const WINNER_EDGE = {
+  fill: "none",
+  stroke: "var(--sb-color-accent)",
+  strokeWidth: 4,
+  strokeLinejoin: "round" as const,
+};
+
 // Degrees the pointer is pushed back, by how far the disc has turned past the
-// last spoke.
+// last peg.
 function pointerKick(rotation: number, segment: number): number {
   const past = (((rotation + segment / 2) % segment) + segment) % segment;
   const reach = Math.min(segment * 0.4, 18);
@@ -806,21 +883,28 @@ function Reel({
         {strip.map((participantId, index) => {
           const participant = roster.find((p) => p.id === participantId);
           const name = participant?.name ?? "?";
+          // The person's tone, the same as on the wheel.
+          const tone = toneIndex(
+            spin.pool.indexOf(participantId),
+            spin.pool.length,
+          );
           return (
-            <div
-              key={index}
-              className="flex items-center justify-center"
-              style={{ height: SLOT_CELL_PX }}
-            >
-              <span
-                className={`max-w-full px-2 ${PICKED_NAME} ${
-                  nameGraphemes(name).length > LONG_NAME
-                    ? "[font:var(--sb-type-caption)]"
-                    : ""
-                }`}
+            <div key={index} className="p-1" style={{ height: SLOT_CELL_PX }}>
+              <div
+                data-testid="slot-cell"
+                className="flex h-full items-center justify-center rounded-control"
+                style={{ background: toneFill(tone) }}
               >
-                {name}
-              </span>
+                <span
+                  className={`max-w-full px-2 ${PICKED_NAME} ${
+                    nameGraphemes(name).length > LONG_NAME
+                      ? "[font:var(--sb-type-caption)]"
+                      : ""
+                  }`}
+                >
+                  {name}
+                </span>
+              </div>
             </div>
           );
         })}

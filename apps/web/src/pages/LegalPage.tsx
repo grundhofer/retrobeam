@@ -99,7 +99,12 @@ function LegalLayout({
   }, [appName, title]);
 
   return (
-    <div data-sb-view="legal" className="flex min-h-dvh flex-col">
+    // A page to read: no primary action (sebaro's colour count).
+    <div
+      data-sb-view="legal"
+      data-sb-primary-expected="0"
+      className="flex min-h-dvh flex-col"
+    >
       <SiteHeader languageTo={languageTo} />
       <main id={MAIN_ID} className="sb-container sb-section flex-1">
         <h1>{title}</h1>

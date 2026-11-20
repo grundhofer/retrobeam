@@ -14,12 +14,13 @@ import {
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
-import { WheelOverlay, wheelLabel } from "./WheelOverlay.js";
+import { toneIndex, WheelOverlay, wheelLabel } from "./WheelOverlay.js";
 
-// sebaro (plan §2.4 F7): the choosing moment is drawn flat in ink, in a modal
-// dialog, without the participants' colours and without confetti; under
-// reduced motion — the system's or sebaro's data-sb-motion — it stands still
-// and names the person at once.
+// sebaro (plan §2.4 F7): the choosing moment is drawn flat, in a modal
+// dialog, without the participants' own colours and without confetti; since
+// 2026-11-15 (owner) every name in the draw has one of sebaro's six category
+// tones. Under reduced motion — the system's or sebaro's data-sb-motion — it
+// stands still and names the person at once.
 
 const anna: Participant = {
   id: "a".repeat(32),
@@ -95,7 +96,7 @@ const spinning = (): WheelSpin => ({
   durationMs: 4500,
 });
 
-test("the wheel is sebaro's wheel in a modal dialog, without the room's colours", async () => {
+test("the wheel is sebaro's wheel in a modal dialog, in sebaro's tones, not the room's colours", async () => {
   seed(spinning());
   const screen = await render(overlay());
   const dialog = screen.getByTestId("wheel-overlay");
@@ -111,9 +112,15 @@ test("the wheel is sebaro's wheel in a modal dialog, without the room's colours"
     /(Wheel with|Glücksrad mit) 2 /,
   );
 
-  // Its ink comes from sebaro's CSS: no colour of its own anywhere in the
-  // drawing, a participant's least of all.
+  // One wedge per name, each in its own category tone; everything else is
+  // ink (currentColor) or unpainted. A participant's own colour is nowhere.
+  const wedges = [...document.querySelectorAll("[data-testid=wheel-wedge]")];
+  expect(wedges.map((w) => (w as SVGElement).style.fill)).toEqual([
+    expect.stringContaining("var(--sb-category-1)"),
+    expect.stringContaining("var(--sb-category-2)"),
+  ]);
   const painted = [...document.querySelectorAll("[data-testid=wheel] *")]
+    .filter((node) => node.getAttribute("data-testid") !== "wheel-wedge")
     .flatMap((node) => {
       const style = (node as SVGElement).style;
       return [
@@ -124,8 +131,34 @@ test("the wheel is sebaro's wheel in a modal dialog, without the room's colours"
       ];
     })
     .filter((value): value is string => value !== null && value !== "");
-  expect(painted).toEqual([]);
+  expect(new Set(painted)).toEqual(new Set(["currentcolor", "none"]));
+  const markup = document.querySelector("[data-testid=wheel]")!.outerHTML;
+  for (const colour of [anna.color, ben.color])
+    expect(markup.toLowerCase()).not.toContain(colour.toLowerCase());
   expect(document.querySelector("canvas")).toBeNull(); // no confetti layer
+});
+
+test("a wheel of one name has pegs on its turning disc, so it is seen to spin", async () => {
+  seed({ ...spinning(), pool: [ben.id] });
+  await render(overlay());
+  const disc = await expect
+    .poll(() => document.querySelector(".sb-wheel__disc"))
+    .not.toBeNull()
+    .then(() => document.querySelector(".sb-wheel__disc")!);
+  // The single name fills the disc; the pegs turn with it.
+  expect(disc.querySelectorAll("[data-testid=wheel-wedge]")).toHaveLength(1);
+  const pegs = [...disc.querySelectorAll("circle")].filter(
+    (c) => c.getAttribute("r") === "3.5",
+  );
+  expect(pegs.length).toBeGreaterThanOrEqual(12);
+});
+
+test("neighbouring names never share a tone, the last and the first included", () => {
+  for (const count of [2, 3, 6, 7, 12, 13]) {
+    const tones = Array.from({ length: count }, (_, i) => toneIndex(i, count));
+    for (let i = 0; i < count; i++)
+      expect(tones[i]).not.toBe(tones[(i + 1) % count]);
+  }
 });
 
 test("data-sb-motion=reduce stands the wheel still and names the person at once", async () => {

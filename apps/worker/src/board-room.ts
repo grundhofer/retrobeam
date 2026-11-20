@@ -14,6 +14,9 @@ import {
   noteVisibleTo,
   nextPhase,
   parseClientCommand,
+  CANVAS_HEIGHT_MAX,
+  CANVAS_HEIGHT_STEP,
+  grownCardY,
   layoutModeSchema,
   phasePlanSchema,
   phaseRevealed,
@@ -1249,6 +1252,40 @@ export class BoardRoom extends DurableObject<Env> {
       );
       return;
     }
+    // The card fits nowhere on the canvas: the canvas grows first, for
+    // everyone, so the new card's place (already computed in the grown
+    // canvas) is free. Whole steps, never shrinking, capped by the schema.
+    if (cmd.growCanvasTo !== undefined && this.config().layout === "canvas") {
+      const current = this.canvasHeight();
+      const grown = Math.min(
+        CANVAS_HEIGHT_MAX,
+        Math.ceil(cmd.growCanvasTo / CANVAS_HEIGHT_STEP) * CANVAS_HEIGHT_STEP,
+      );
+      if (grown > current) {
+        this.setMeta("canvasHeight", String(grown));
+        // Every placed card keeps its place: the room is a band at the
+        // bottom of each zone. Positions of cards a viewer cannot read move
+        // too (their placeholders), so each viewer gets a fresh snapshot, as
+        // a role change does; the reducer replaces its state wholesale.
+        for (const row of this.sql
+          .exec<{ id: string; pos_y: number }>(
+            "SELECT id, pos_y FROM notes WHERE pos_y IS NOT NULL",
+          )
+          .toArray()) {
+          this.sql.exec(
+            "UPDATE notes SET pos_y = ? WHERE id = ?",
+            grownCardY(row.pos_y, current, grown),
+            row.id,
+          );
+        }
+        for (const socket of this.ctx.getWebSockets()) {
+          const viewer = this.participantForSocket(socket);
+          if (viewer !== null) {
+            this.send(socket, this.buildSync(viewer, viewer.session_key));
+          }
+        }
+      }
+    }
     // Ordering is per author before reveal — a global MAX would leak the
     // count of other participants' hidden notes through the order field.
     const ord = Number(
@@ -1270,7 +1307,7 @@ export class BoardRoom extends DurableObject<Env> {
       Date.now(),
       this.sanitizeGifUrl(cmd.gifUrl) ?? null,
       cmd.x ?? null,
-      cmd.y ?? null,
+      this.placedY(cmd.y, cmd.atCanvasHeight ?? cmd.growCanvasTo),
     );
     const note = this.noteById(cmd.noteId);
     if (note === null) return;
@@ -2290,7 +2327,7 @@ export class BoardRoom extends DurableObject<Env> {
       this.sql.exec(
         "UPDATE notes SET pos_x = ?, pos_y = ? WHERE id = ?",
         cmd.x,
-        cmd.y ?? null,
+        this.placedY(cmd.y, cmd.atCanvasHeight),
         note.id,
       );
       const repositioned = this.noteById(note.id);
@@ -2318,7 +2355,7 @@ export class BoardRoom extends DurableObject<Env> {
       cmd.columnId,
       ord,
       cmd.x ?? null,
-      cmd.y ?? null,
+      this.placedY(cmd.y, cmd.atCanvasHeight),
       note.id,
     );
     const changed = [note.id];
@@ -5133,7 +5170,32 @@ export class BoardRoom extends DurableObject<Env> {
       voterNamesEnabled: this.getMeta("voterNamesEnabled") === "1",
       // Default off for boards created before the field.
       focusMode: this.getMeta("focusMode") === "1",
+      canvasHeight: this.canvasHeight(),
     };
+  }
+
+  // The canvas's height as a multiple of the base; 1 for boards whose canvas
+  // never grew and for anything unreadable.
+  private canvasHeight(): number {
+    const raw = Number(this.getMeta("canvasHeight"));
+    return Number.isFinite(raw) && raw >= 1
+      ? Math.min(CANVAS_HEIGHT_MAX, raw)
+      : 1;
+  }
+
+  // A card's y as the client placed it, for the canvas as it is now. The
+  // canvas may have grown since the client measured (its own growth's sync,
+  // or a teammate's, still on the way): a y placed on the lower canvas is
+  // moved like every stored card was, so it keeps its distance from the
+  // zone's top and lands where the client saw room. Without the client's
+  // height (older clients) the y is taken as is.
+  private placedY(
+    y: number | undefined,
+    at: number | undefined,
+  ): number | null {
+    if (y === undefined) return null;
+    const now = this.canvasHeight();
+    return at !== undefined && at < now ? grownCardY(y, at, now) : y;
   }
 
   private headcount(): number | null {

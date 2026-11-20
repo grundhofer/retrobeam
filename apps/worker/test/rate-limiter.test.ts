@@ -40,11 +40,13 @@ describe("RateLimiter", () => {
   it("refills over time", async () => {
     const limiter = limiterStub(env);
     const key = `refill-${crypto.randomUUID()}`;
-    // A fast refill so the test does not have to wait a minute.
-    for (let i = 0; i < 3; i++) await limiter.take(key, 3, 20);
-    expect((await limiter.take(key, 3, 20)).allowed).toBe(false);
-    await new Promise((resolve) => setTimeout(resolve, 150));
-    expect((await limiter.take(key, 3, 20)).allowed).toBe(true);
+    // The clock is the test's: on a busy machine the four takes below could
+    // span more than the 50 ms one token takes to come back at 20 per second.
+    const start = Date.now();
+    for (let i = 0; i < 3; i++) await limiter.take(key, 3, 20, start);
+    expect((await limiter.take(key, 3, 20, start)).allowed).toBe(false);
+    expect((await limiter.take(key, 3, 20, start + 40)).allowed).toBe(false);
+    expect((await limiter.take(key, 3, 20, start + 150)).allowed).toBe(true);
   });
 
   it("leases a persisted UTC-day budget without exceeding its ceiling", async () => {

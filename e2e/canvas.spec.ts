@@ -81,9 +81,10 @@ test("canvas layout: freeform zones, add-by-double-click, and the live switch", 
   // Flip live to columns in the settings view → back on the board the column
   // composer returns and the note is still there (positions are ignored, not
   // lost). The view is a child route: the socket stays, nobody goes offline.
-  await page.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await page.getByTestId("board-menu").click();
+  await page.getByTestId("menu-settings").click();
   await page.getByTestId("layout-columns").click();
-  await page.getByRole("link", { name: /^board$/i }).click();
+  await page.getByTestId("settings-back").click();
   await expect(page.getByTestId(/^composer-/).first()).toBeVisible();
   await expect(page.getByText("Freeform idea")).toBeVisible();
 
@@ -206,10 +207,12 @@ test("canvas layout: the facilitator moves and sizes a zone by keyboard alone", 
 
   await page.getByTestId("zones-toggle").focus();
   await page.keyboard.press("Enter");
-  const option = page.getByTestId("zones-option").nth(1);
-  await option.focus();
-  await page.keyboard.press("Enter");
-  await expect(option).toHaveAttribute("aria-pressed", "true");
+  const choice = page.getByTestId("zones-select");
+  await choice.focus();
+  await choice.selectOption({ index: 1 });
+  await expect(choice).toHaveValue(
+    (await choice.locator("option").nth(1).getAttribute("value"))!,
+  );
 
   // One step right, then one taller, with the arrow keys.
   await page.getByTestId("zones-move-left").focus();
@@ -293,13 +296,14 @@ test("canvas layout: the others' pointers, and the sentence that counts them", a
   await ben.goto(boardUrl);
   await join(ben, "Ben");
 
-  await anna.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await anna.getByTestId("board-menu").click();
+  await anna.getByTestId("menu-settings").click();
   await anna.getByTestId("cursors-toggle").click();
   await expect(anna.getByTestId("cursors-toggle")).toHaveAttribute(
     "aria-checked",
     "true",
   );
-  await anna.getByRole("link", { name: /^board$/i }).click();
+  await anna.getByTestId("settings-back").click();
   await anna.getByTestId("phase-next").click();
 
   const viewport = ben.getByTestId("canvas-viewport");
@@ -319,6 +323,151 @@ test("canvas layout: the others' pointers, and the sentence that counts them", a
   await annaContext.close();
   await benContext.close();
 });
+
+// Owner, 2026-11-10: the space a card holds must match the card, and a full
+// zone must grow instead of dropping or stacking the next card. Fifteen cards
+// from two people in one zone, long and short: none covers another, while
+// writing (the others' hidden cards as placeholders) or once revealed.
+test("canvas layout: a full zone grows the canvas and no card covers another", async ({
+  browser,
+}) => {
+  test.setTimeout(90_000);
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
+  const anna = await annaContext.newPage();
+  await anna.setViewportSize({ width: 1400, height: 900 });
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Full canvas");
+  await anna.getByTestId("home-layout-canvas").click();
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(anna, "Anna");
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(anna.url());
+  await join(ben, "Ben");
+  await anna.getByTestId("phase-next").click();
+
+  const zone = anna.getByTestId(/^zone-/).first();
+  await expect(zone).toBeVisible();
+  const columnId = (await zone.getAttribute("data-testid"))!.slice(5);
+  const add = async (page: Page, text: string) => {
+    await page.getByTestId("canvas-add-note").click();
+    await page.getByTestId(`canvas-add-note-${columnId}`).click();
+    const composer = page.getByTestId("canvas-composer");
+    await composer.fill(text);
+    await composer.press("Enter");
+    await expect(composer).toHaveCount(0);
+  };
+  const texts = [
+    "Short",
+    "A somewhat longer thought about the deploy on Friday",
+    "Tests were red",
+    "Pairing helped and was great",
+    "Meetings too long",
+    "Coffee",
+    "Another card",
+    "And another",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+  ];
+  for (const text of texts) await add(anna, text);
+  for (const text of ["Ben one", "Ben two", "Ben three"]) await add(ben, text);
+  await expect(anna.getByTestId("canvas-occupancy")).toHaveCount(3);
+
+  // The canvas grew: a default zone is about twice as tall as wide (1.9),
+  // one step taller is 2.4. The view refits, so the shape tells, not the size.
+  const zoneBox = (await zone.boundingBox())!;
+  expect(zoneBox.height / zoneBox.width).toBeGreaterThan(2.2);
+
+  await expectNoOverlap(anna, "[data-testid=canvas-card]");
+  await annaContext.close();
+  await benContext.close();
+});
+
+// The same on a slow line: the server's answers reach Anna late, so she
+// places the next card before the sync of the growth her last card asked for
+// has arrived. What the server stores must still not cover a card.
+test("canvas layout: on a slow line, cards placed while the canvas grows still cover none", async ({
+  browser,
+}) => {
+  test.setTimeout(90_000);
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
+  const anna = await annaContext.newPage();
+  await anna.setViewportSize({ width: 1400, height: 900 });
+  // Every message from the server reaches Anna 400 ms late, in order; her
+  // own commands go out at once.
+  await anna.routeWebSocket(/\/api\/boards\/[0-9a-f]{32}\/ws$/, (socket) => {
+    const server = socket.connectToServer();
+    server.onMessage((message) => setTimeout(() => socket.send(message), 400));
+  });
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Slow canvas");
+  await anna.getByTestId("home-layout-canvas").click();
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  await join(anna, "Anna");
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(anna.url());
+  await join(ben, "Ben");
+  await anna.getByTestId("phase-next").click();
+  const zone = anna.getByTestId(/^zone-/).first();
+  await expect(zone).toBeVisible();
+  const columnId = (await zone.getAttribute("data-testid"))!.slice(5);
+
+  const texts = Array.from({ length: 14 }, (_, i) =>
+    i % 3 === 0
+      ? `A longer thought about the deploy, number ${i}`
+      : `Card ${i}`,
+  );
+  for (const text of texts) {
+    await anna.getByTestId("canvas-add-note").click();
+    await anna.getByTestId(`canvas-add-note-${columnId}`).click();
+    const composer = anna.getByTestId("canvas-composer");
+    await composer.fill(text);
+    await composer.press("Enter");
+    await expect(composer).toHaveCount(0);
+  }
+  // the server has all of them: Ben sees a placeholder for each
+  await expect(ben.getByTestId("canvas-occupancy")).toHaveCount(texts.length);
+
+  // ... and Anna's tab has had the last of its late answers (every one is
+  // 400 ms late): what it shows now is what the server stored.
+  await anna.waitForTimeout(1500);
+  await expect(anna.getByTestId("canvas-card")).toHaveCount(texts.length);
+  await expectNoOverlap(anna, "[data-testid=canvas-card]");
+  await annaContext.close();
+  await benContext.close();
+});
+
+async function expectNoOverlap(page: Page, selector: string) {
+  const overlaps = await page.evaluate((selector) => {
+    const boxes = [...document.querySelectorAll(selector)].map((element) =>
+      element.getBoundingClientRect(),
+    );
+    const hits: string[] = [];
+    boxes.forEach((a, i) =>
+      boxes.slice(i + 1).forEach((b, j) => {
+        if (
+          a.left < b.right - 1 &&
+          b.left < a.right - 1 &&
+          a.top < b.bottom - 1 &&
+          b.top < a.bottom - 1
+        ) {
+          hits.push(`${i}×${i + 1 + j}`);
+        }
+      }),
+    );
+    return hits;
+  }, selector);
+  expect(overlaps).toEqual([]);
+}
 
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);

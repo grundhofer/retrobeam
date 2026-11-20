@@ -574,7 +574,7 @@ function ResultsExport({
             href={exportHref(format)}
             download
             data-testid={`results-export-${format}`}
-            className="sb-secondary-action sb-secondary-action--compact"
+            className="sb-text-action sb-text-action--compact"
           >
             {format === "md" ? "Markdown" : format.toUpperCase()}
           </a>
@@ -586,7 +586,7 @@ function ResultsExport({
           data-testid="results-export-jpeg"
           aria-busy={imaging || undefined}
           onClick={() => void downloadImage()}
-          className="sb-secondary-action sb-secondary-action--compact"
+          className="sb-text-action sb-text-action--compact"
         >
           {imaging ? t("menu.rendering") : "JPEG"}
         </button>

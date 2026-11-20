@@ -12,7 +12,10 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   clampUnit,
+  CANVAS_HEIGHT_MAX,
+  CANVAS_HEIGHT_STEP,
   clampZoneRect,
+  grownCardY,
   defaultZoneRect,
   generateHexId,
   NOTE_TEXT_MAX,
@@ -29,12 +32,6 @@ import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 import { Menu } from "./Menu.js";
 import {
-  ARRANGE_LABEL,
-  ARRANGE_OPTION,
-  ARRANGE_PANEL,
-  ARRANGE_STEP,
-  CARD_EDGE,
-  CARD_SURFACE,
   NOTE_LENGTH_HINT_FROM,
   NoteCard,
   NoteLengthHint,
@@ -61,6 +58,8 @@ export interface BoardCanvasProps {
    *  populated while cursorsEnabled */
   cursors: Record<string, { x: number; y: number }>;
   cursorsEnabled: boolean;
+  /** the canvas's height as a multiple of the base (config.canvasHeight) */
+  canvasHeight?: number;
 }
 
 interface DragState {
@@ -97,7 +96,44 @@ const MAX_ZOOM = 2;
 const CURSOR_INTERVAL_MS = 1_000;
 const CURSOR_MIN_DISTANCE_PX = 10;
 const CARD_WIDTH_PX = 176;
-const CARD_HEIGHT_PX = 112;
+// The least height a card is reserved: a one-line card once the presenting
+// phase adds its reactions row. A card drawn taller (a long text, a GIF)
+// reserves what it measures, and while writing what it will measure once
+// that row comes in, so the reveal does not push cards onto each other.
+const CARD_HEIGHT_PX = 174;
+const CARD_REVEAL_GROWTH_PX = 72;
+// A written card before the reveal: one line of title and its author line,
+// and each further line of title. A GIF adds its picture (at most 160 px).
+const CARD_ONE_LINE_PX = 102;
+const CARD_LINE_PX = 28;
+const CARD_GIF_PX = 168;
+const CARD_LINE_CHARS = 12;
+
+// How tall a card not drawn yet will be, from its text: the words wrapped
+// the way the canvas card's title wraps them, about twelve letters a line.
+// The space a new card is given must fit the card it becomes.
+export function estimatedCardHeight(text: string, hasGif: boolean): number {
+  let lines = 0;
+  for (const paragraph of text.split("\n")) {
+    lines += 1;
+    let used = 0;
+    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+      if (used > 0 && used + 1 + word.length <= CARD_LINE_CHARS) {
+        used += 1 + word.length;
+        continue;
+      }
+      if (used > 0) lines += 1;
+      // a word longer than a line breaks over several
+      lines += Math.floor((word.length - 1) / CARD_LINE_CHARS);
+      used = ((word.length - 1) % CARD_LINE_CHARS) + 1;
+    }
+  }
+  return (
+    CARD_ONE_LINE_PX +
+    (Math.max(1, lines) - 1) * CARD_LINE_PX +
+    (hasGif ? CARD_GIF_PX : 0)
+  );
+}
 const CARD_GAP_PX = 12;
 // One step of a card moved without dragging, in world pixels: fine enough to
 // place it, coarse enough that six presses cross a card's own width.
@@ -108,19 +144,39 @@ interface CanvasPoint {
   y: number;
 }
 
+// A card written while a growing card is on its way: createNote's arguments.
+type QueuedNote = [
+  columnId: string,
+  x: number,
+  y: number,
+  text: string,
+  gifUrl: string | null,
+  packed: boolean,
+];
+
+// A card's box on its zone: its centre and its full size (the gap to its
+// neighbours included), all as fractions of the zone.
+export interface CanvasBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 // Keep a freeform drop close to the pointer, but snap it to the nearest open
-// slot when another visible or privacy-safe placeholder already occupies it.
-// null means the zone is genuinely full at the card footprint we reserve.
+// spot when another card or a privacy-safe placeholder already covers it.
+// Every box has its own size: a card is as tall as its text, its reactions
+// and its GIF make it (owner, 2026-11-10: the reserved space did not match
+// the cards). null means the zone is genuinely full for a card of `size`.
+// Without a preferred point the zone fills in reading order, top left first,
+// so the cards pack into rows instead of crowding round the middle.
 export function nearestOpenCanvasPosition(
-  preferred: CanvasPoint,
-  occupied: readonly CanvasPoint[],
-  separationX: number,
-  separationY: number,
+  preferred: CanvasPoint | null,
+  occupied: readonly CanvasBox[],
+  size: { w: number; h: number },
 ): CanvasPoint | null {
-  const dx = Math.min(1, Math.max(0.01, separationX));
-  const dy = Math.min(1, Math.max(0.01, separationY));
-  const halfX = Math.min(0.5, dx / 2);
-  const halfY = Math.min(0.5, dy / 2);
+  const halfX = Math.min(0.5, Math.max(0.005, size.w / 2));
+  const halfY = Math.min(0.5, Math.max(0.005, size.h / 2));
   const clampPoint = (point: CanvasPoint): CanvasPoint => ({
     x: Math.min(1 - halfX, Math.max(halfX, point.x)),
     y: Math.min(1 - halfY, Math.max(halfY, point.y)),
@@ -128,35 +184,49 @@ export function nearestOpenCanvasPosition(
   const overlaps = (point: CanvasPoint) =>
     occupied.some(
       (other) =>
-        Math.abs(point.x - other.x) < dx && Math.abs(point.y - other.y) < dy,
+        Math.abs(point.x - other.x) < halfX + other.w / 2 - 1e-9 &&
+        Math.abs(point.y - other.y) < halfY + other.h / 2 - 1e-9,
     );
 
-  const wanted = clampPoint(preferred);
-  if (!overlaps(wanted)) return wanted;
+  const wanted = preferred === null ? null : clampPoint(preferred);
+  if (wanted !== null && !overlaps(wanted)) return wanted;
 
-  const cols = Math.max(1, Math.floor(1 / dx));
-  const rows = Math.max(1, Math.floor(1 / dy));
+  // Candidates on a fine grid (half a card across, a quarter down), so a card
+  // can sit snugly beside a short neighbour and under a tall one.
+  const stepX = Math.max(0.01, halfX);
+  const stepY = Math.max(0.01, halfY / 2);
   const candidates: CanvasPoint[] = [];
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      candidates.push({ x: (col + 0.5) / cols, y: (row + 0.5) / rows });
+  for (let y = halfY; y <= 1 - halfY + 1e-9; y += stepY) {
+    for (let x = halfX; x <= 1 - halfX + 1e-9; x += stepX) {
+      candidates.push({ x, y });
     }
   }
-  candidates.sort(
-    (a, b) =>
-      (a.x - wanted.x) ** 2 +
-      (a.y - wanted.y) ** 2 -
-      ((b.x - wanted.x) ** 2 + (b.y - wanted.y) ** 2),
-  );
+  if (wanted !== null) {
+    candidates.sort(
+      (a, b) =>
+        (a.x - wanted.x) ** 2 +
+        (a.y - wanted.y) ** 2 -
+        ((b.x - wanted.x) ** 2 + (b.y - wanted.y) ** 2),
+    );
+  }
   return candidates.find((candidate) => !overlaps(candidate)) ?? null;
 }
 
-// The canvas's own controls, over its top right corner: the zoom and the
-// facilitator's zone panel button.
-// The canvas's own keys (zoom, zones) as sebaro's compact secondary actions.
-// They lie over the canvas, so their row carries the ground — not the keys:
-// a key's own background is the hover fill, and it fades.
-const CONTROL_KEY = "sb-secondary-action sb-secondary-action--compact";
+// The canvas's own controls, in a row above it, so they never cover a zone
+// (owner, 2026-11-15): the facilitator's zone panel button, „Notiz“, the
+// zoom and „Zentrieren“. One tool row (sebaro D143 (7)): „Notiz“ keeps the
+// outline, „Zonen“ and „Zentrieren“ are text actions, the two zoom steps icon
+// buttons.
+const CONTROL_KEY = "sb-text-action sb-text-action--compact";
+
+// The zone panel's crosses of arrows, in reading order: up, left, right,
+// down, each in its cell of a 3 × 3 grid.
+const DPAD = [
+  { direction: "up", place: "col-start-2 row-start-1" },
+  { direction: "left", place: "col-start-1 row-start-2" },
+  { direction: "right", place: "col-start-3 row-start-2" },
+  { direction: "down", place: "col-start-2 row-start-3" },
+] as const;
 
 type ZoneStepKind = "move" | "size";
 
@@ -226,13 +296,18 @@ export function BoardCanvas({
   gifsEnabled,
   cursors,
   cursorsEnabled,
+  canvasHeight = 1,
 }: BoardCanvasProps) {
+  // The world grows downward when a card fits nowhere (owner, 2026-11-10).
+  const worldH = WORLD_H * canvasHeight;
   const { t } = useTranslation();
   const { mutate, send } = useConnection();
   const viewportRef = useRef<HTMLDivElement>(null);
   const lastCursorAt = useRef(0);
   const lastCursorPoint = useRef<{ x: number; y: number } | null>(null);
   const zoneRefs = useRef<Map<string, HTMLElement>>(new Map());
+  // Each card's element, measured for the space it takes on its zone.
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const dragOrigin = useRef({ x: 0, y: 0 });
   const zoneDragRef = useRef<ZoneDrag | null>(null);
   const panning = useRef<{
@@ -250,6 +325,9 @@ export function BoardCanvas({
     columnId: string;
     x: number;
     y: number;
+    /** opened by „+ Note“: the card goes to the zone's first free place,
+     *  not to a point someone chose */
+    packed?: boolean;
   } | null>(null);
   // The cards whose ⋯ panel is open. The panel hangs below its card, so the
   // card and its zone are lifted above their neighbours and the zone stops
@@ -274,6 +352,7 @@ export function BoardCanvas({
   const [zoneTarget, setZoneTarget] = useState<string | null>(null);
   const zonePanelId = useId();
   const zoneToggle = useRef<HTMLButtonElement>(null);
+  const zonePanelRef = useRef<HTMLDivElement>(null);
 
   const ordered = [...columns].sort((a, b) => a.order - b.order);
   const arrangedZone =
@@ -296,8 +375,19 @@ export function BoardCanvas({
       setZonePanel(false);
       zoneToggle.current?.focus();
     }
+    // A press outside the panel and its button closes it, as a menu does.
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (zonePanelRef.current?.contains(target)) return;
+      if (zoneToggle.current?.contains(target)) return;
+      setZonePanel(false);
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
   }, [zonesOpen]);
   function rectOf(column: Column): ZoneRect {
     if (zoneDrag?.columnId === column.id) return zoneDrag.rect;
@@ -308,28 +398,43 @@ export function BoardCanvas({
     );
   }
 
+  // The zones' outline, not the whole world, in the middle of the canvas and
+  // as large as it fits (owner, 2026-11-15): a zone moved aside or made
+  // smaller is centred too. The cards stay inside their zones.
   function fitView() {
     const vp = viewportRef.current;
     if (!vp) return;
+    let left = 0;
+    let top = 0;
+    let right = WORLD_W;
+    let bottom = worldH;
+    if (ordered.length > 0) {
+      const rects = ordered.map(rectOf);
+      left = Math.min(...rects.map((r) => r.x)) * WORLD_W;
+      top = Math.min(...rects.map((r) => r.y)) * worldH;
+      right = Math.max(...rects.map((r) => r.x + r.w)) * WORLD_W;
+      bottom = Math.max(...rects.map((r) => r.y + r.h)) * worldH;
+    }
+    const width = right - left;
+    const height = bottom - top;
     const zoom = clampZoom(
-      Math.min(
-        (vp.clientWidth - 24) / WORLD_W,
-        (vp.clientHeight - 24) / WORLD_H,
-      ),
+      Math.min((vp.clientWidth - 48) / width, (vp.clientHeight - 48) / height),
     );
     setView({
       zoom,
-      panX: (vp.clientWidth - WORLD_W * zoom) / 2,
-      panY: (vp.clientHeight - WORLD_H * zoom) / 2,
+      panX: (vp.clientWidth - width * zoom) / 2 - left * zoom,
+      panY: (vp.clientHeight - height * zoom) / 2 - top * zoom,
     });
   }
 
-  const didFit = useRef(false);
+  // Fitted once, and again when the canvas grows: the new room is below
+  // what was in view.
+  const fittedFor = useRef<number | null>(null);
   useLayoutEffect(() => {
-    if (didFit.current) return;
-    didFit.current = true;
+    if (fittedFor.current === worldH) return;
+    fittedFor.current = worldH;
     fitView();
-  }, []);
+  });
 
   // An open ⋯ panel is panned into view whole: one opened on a card at the
   // canvas's edge — on a phone, at the fitted zoom, most of them — or carried
@@ -486,7 +591,7 @@ export function BoardCanvas({
             (event.clientX - rect.left - view.panX) / (view.zoom * WORLD_W),
           ),
           y: clampUnit(
-            (event.clientY - rect.top - view.panY) / (view.zoom * WORLD_H),
+            (event.clientY - rect.top - view.panY) / (view.zoom * worldH),
           ),
         });
       }
@@ -495,7 +600,7 @@ export function BoardCanvas({
     const zd = zoneDragRef.current;
     if (zd && event.pointerId === zd.pointerId) {
       const dxFrac = (event.clientX - zd.startX) / (WORLD_W * view.zoom);
-      const dyFrac = (event.clientY - zd.startY) / (WORLD_H * view.zoom);
+      const dyFrac = (event.clientY - zd.startY) / (worldH * view.zoom);
       const rect =
         zd.mode === "move"
           ? { ...zd.orig, x: zd.orig.x + dxFrac, y: zd.orig.y + dyFrac }
@@ -621,7 +726,14 @@ export function BoardCanvas({
   // panel asks during render, when a zoom or a teammate's resize is in the
   // props already but not yet in the DOM. The header and borders are the one
   // part that changes with neither.
-  function footprint(columnId: string, excludedNoteId?: string) {
+  function footprint(
+    columnId: string,
+    excludedNoteId?: string,
+    // > 1: the zone as it will be once the canvas has grown by this factor
+    grownBy = 1,
+    // a card not drawn yet: the height it will have (estimatedCardHeight)
+    newCardPx?: number,
+  ) {
     const zone = zoneRefs.current.get(columnId);
     const section = zone?.parentElement;
     const column = columns.find((c) => c.id === columnId);
@@ -629,38 +741,77 @@ export function BoardCanvas({
     const rect = rectOf(column);
     const width = rect.w * WORLD_W - (section.offsetWidth - zone.offsetWidth);
     const height =
-      rect.h * WORLD_H - (section.offsetHeight - zone.offsetHeight);
-    const occupied = [
+      rect.h * worldH * grownBy - (section.offsetHeight - zone.offsetHeight);
+    // A card's box from its measured size (layout pixels are world pixels
+    // inside the zoomed world), never less than a card is reserved.
+    const sizeOf = (noteId: string | null) => {
+      const element =
+        noteId === null ? undefined : cardRefs.current.get(noteId);
+      return {
+        w:
+          (Math.max(CARD_WIDTH_PX, element?.offsetWidth ?? 0) + CARD_GAP_PX) /
+          width,
+        h:
+          (Math.max(
+            CARD_HEIGHT_PX,
+            (element?.offsetHeight ?? 0) +
+              (phase === "write" ? CARD_REVEAL_GROWTH_PX : 0),
+          ) +
+            CARD_GAP_PX) /
+          height,
+      };
+    };
+    const occupied: CanvasBox[] = [
       ...notes
         .filter(
           (note) => note.columnId === columnId && note.id !== excludedNoteId,
         )
-        .map(positionOf),
+        .map((note) => {
+          const at = positionOf(note);
+          return {
+            x: at.x,
+            // where the card will sit once grown: same distance from the top
+            y: grownCardY(at.y, 1, grownBy),
+            ...sizeOf(note.id),
+          };
+        }),
+      // a teammate's hidden card: its real size is private, so it takes
+      // what a card is reserved
       ...canvasOccupancy
         .filter((slot) => slot.columnId === columnId)
-        .map(({ x, y }) => ({ x, y })),
+        .map(({ x, y }) => ({
+          x,
+          y: grownCardY(y, 1, grownBy),
+          ...sizeOf(null),
+        })),
     ];
     return {
       width,
       height,
       occupied,
-      separationX: (CARD_WIDTH_PX + CARD_GAP_PX) / width,
-      separationY: (CARD_HEIGHT_PX + CARD_GAP_PX) / height,
+      size:
+        newCardPx === undefined
+          ? sizeOf(excludedNoteId ?? null)
+          : {
+              w: (CARD_WIDTH_PX + CARD_GAP_PX) / width,
+              h:
+                (Math.max(CARD_HEIGHT_PX, newCardPx + CARD_REVEAL_GROWTH_PX) +
+                  CARD_GAP_PX) /
+                height,
+            },
     };
   }
   function openPosition(
     columnId: string,
-    preferred: CanvasPoint,
+    // null: the first free place in reading order
+    preferred: CanvasPoint | null,
     excludedNoteId?: string,
+    grownBy = 1,
+    newCardPx?: number,
   ): CanvasPoint | null {
-    const fit = footprint(columnId, excludedNoteId);
-    if (!fit) return preferred;
-    return nearestOpenCanvasPosition(
-      preferred,
-      fit.occupied,
-      fit.separationX,
-      fit.separationY,
-    );
+    const fit = footprint(columnId, excludedNoteId, grownBy, newCardPx);
+    if (!fit) return preferred ?? { x: 0.5, y: 0.5 };
+    return nearestOpenCanvasPosition(preferred, fit.occupied, fit.size);
   }
   function canMove(note: Note): boolean {
     return (
@@ -744,6 +895,7 @@ export function BoardCanvas({
         columnId: target.columnId,
         x: target.x,
         y: target.y,
+        atCanvasHeight: canvasHeight,
       },
       {
         type: "note.updated",
@@ -760,14 +912,18 @@ export function BoardCanvas({
   }
 
   // "Move to …" from the card's ⋯ (WCAG 2.5.7): the card lands where "+ Note"
-  // opens the composer — the zone's centre, nudged to the nearest free spot.
-  // null for a full zone, which a drop refuses too; the ⋯ does not offer it.
-  function landingSpot(columnId: string): CanvasPoint | null {
-    return openPosition(columnId, { x: 0.5, y: 0.5 });
+  // opens the composer — the zone's first free place in reading order, for
+  // the moving card's own size, as a drop measures it. null for a full zone,
+  // which a drop refuses too; the ⋯ does not offer it.
+  function landingSpot(
+    columnId: string,
+    movingNoteId: string,
+  ): CanvasPoint | null {
+    return openPosition(columnId, null, movingNoteId);
   }
   function moveToZone(sourceNoteId: string, columnId: string) {
     const note = notes.find((n) => n.id === sourceNoteId);
-    const open = landingSpot(columnId);
+    const open = landingSpot(columnId, sourceNoteId);
     if (note && open) commitMove(note, { columnId, ...open });
   }
 
@@ -793,21 +949,11 @@ export function BoardCanvas({
         : { x: from.x, y: from.y + sign * k * step };
       // Kept inside the zone the way every placement is; nothing occupied,
       // so never null.
-      const spot = nearestOpenCanvasPosition(
-        wanted,
-        [],
-        fit.separationX,
-        fit.separationY,
-      )!;
+      const spot = nearestOpenCanvasPosition(wanted, [], fit.size)!;
       const main = alongX ? spot.x : spot.y;
       if ((main - reached) * sign <= 0) return null;
       reached = main;
-      const open = nearestOpenCanvasPosition(
-        spot,
-        fit.occupied,
-        fit.separationX,
-        fit.separationY,
-      );
+      const open = nearestOpenCanvasPosition(spot, fit.occupied, fit.size);
       if (open !== null && open.x === spot.x && open.y === spot.y) return open;
     }
   }
@@ -821,57 +967,129 @@ export function BoardCanvas({
     if (note && open) commitMove(note, { columnId: note.columnId, ...open });
   }
 
+  // A card that grows the canvas waits for the server, and the cards written
+  // after it wait with it. The server answers a growth with a fresh snapshot
+  // that replaces this tab's board: a card placed before it arrives would be
+  // measured on the old canvas, and the echoes of cards written meanwhile
+  // would vanish under it for a moment, so the next card could land on one
+  // of them. The growing card shows once the server has it (it is in
+  // `notes`); the cards queued behind it follow one per render, each
+  // measured with the one before it on the board.
+  const growingNote = useRef<string | null>(null);
+  const queuedNotes = useRef<QueuedNote[]>([]);
+  const [, setGrowthRefused] = useState(0);
+
   function createNote(
     columnId: string,
     x: number,
     y: number,
     text: string,
     gifUrl: string | null,
+    packed = false,
   ) {
     const trimmed = text.trim();
     if (trimmed === "") return;
-    const open = openPosition(columnId, { x, y });
-    if (open === null) return;
+    if (growingNote.current !== null || queuedNotes.current.length > 0) {
+      queuedNotes.current.push([columnId, x, y, trimmed, gifUrl, packed]);
+      return;
+    }
+    placeNote(columnId, x, y, trimmed, gifUrl, packed);
+  }
+
+  function placeNote(
+    columnId: string,
+    x: number,
+    y: number,
+    trimmed: string,
+    gifUrl: string | null,
+    packed: boolean,
+  ) {
+    const preferred = packed ? null : { x, y };
+    const cardPx = estimatedCardHeight(trimmed, gifUrl !== null);
+    // A full zone grows the canvas (owner, 2026-11-10): step by step to the
+    // first height with room for the card, which is placed in the zone as it
+    // will be; the server grows the canvas for everyone before it adds the
+    // card. At the cap the card still lands where it was asked for: never
+    // silently dropped.
+    let open = openPosition(columnId, preferred, undefined, 1, cardPx);
+    let growCanvasTo: number | null = null;
+    for (
+      let height = canvasHeight + CANVAS_HEIGHT_STEP;
+      open === null && height <= CANVAS_HEIGHT_MAX + 1e-9;
+      height += CANVAS_HEIGHT_STEP
+    ) {
+      open = openPosition(
+        columnId,
+        preferred,
+        undefined,
+        height / canvasHeight,
+        cardPx,
+      );
+      if (open !== null) growCanvasTo = height;
+    }
+    const at = open ?? { x, y };
     const noteId = generateHexId();
     const own = notes.filter(
       (n) => n.columnId === columnId && n.authorId === you.id,
     );
     const order = Math.max(0, ...own.map((n) => n.order)) + 1;
-    mutate(
-      {
-        type: "note.create",
-        opId: generateHexId(),
-        noteId,
+    const command = {
+      type: "note.create" as const,
+      opId: generateHexId(),
+      noteId,
+      columnId,
+      text: trimmed,
+      gifUrl,
+      x: at.x,
+      y: at.y,
+      atCanvasHeight: growCanvasTo ?? canvasHeight,
+    };
+    if (growCanvasTo !== null) {
+      // No echo: placed on the grown canvas, it would show on the old one.
+      growingNote.current = noteId;
+      mutate({ ...command, growCanvasTo }, [], () => {
+        if (growingNote.current !== noteId) return;
+        growingNote.current = null;
+        setGrowthRefused((n) => n + 1);
+      });
+      return;
+    }
+    mutate(command, {
+      type: "note.created",
+      seq: 0,
+      note: {
+        id: noteId,
         columnId,
+        authorId: you.id,
         text: trimmed,
         gifUrl,
-        x: open.x,
-        y: open.y,
+        order,
+        x: at.x,
+        y: at.y,
+        groupId: null,
+        reactions: {},
       },
-      {
-        type: "note.created",
-        seq: 0,
-        note: {
-          id: noteId,
-          columnId,
-          authorId: you.id,
-          text: trimmed,
-          gifUrl,
-          order,
-          x: open.x,
-          y: open.y,
-          groupId: null,
-          reactions: {},
-        },
-      },
-    );
+    });
   }
+
+  useEffect(() => {
+    if (
+      growingNote.current !== null &&
+      notes.some((n) => n.id === growingNote.current)
+    ) {
+      growingNote.current = null;
+    }
+    const next =
+      growingNote.current === null ? queuedNotes.current.shift() : undefined;
+    if (next) placeNote(...next);
+  });
 
   return (
     <div className="relative">
       <div
         data-canvas-control
-        className="absolute top-2 right-2 z-40 flex flex-wrap items-center justify-end gap-1 rounded-control bg-bg"
+        data-sb-action-area="canvas-tools"
+        className="relative mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1"
       >
         {isAdmin && arrangedZone !== null ? (
           <button
@@ -887,84 +1105,121 @@ export function BoardCanvas({
           </button>
         ) : null}
         {/* Right after its toggle, so Tab goes from one straight into the
-            other; placed by position, not by order. */}
+            other; it hangs below the row, over the canvas's top right
+            corner. A title and „Schließen“ say what it is and how it goes
+            away (owner, 2026-11-15); Escape and a press outside close it
+            too. The zone is a choice from a list, the steps two crosses of
+            arrows: one for the place, one for the size. */}
         {zonesOpen ? (
           <div
+            ref={zonePanelRef}
             id={zonePanelId}
+            role="group"
+            aria-labelledby={`${zonePanelId}-title`}
             data-testid="zones-panel"
-            className={`absolute top-full right-0 mt-1 w-56 max-w-[calc(100vw-2rem)] ${ARRANGE_PANEL} ${CARD_SURFACE} ${CARD_EDGE}`}
+            className="absolute top-full right-0 z-40 mt-1 w-[23rem] max-w-[calc(100vw-2rem)]"
           >
-            <div role="group" aria-label={t("canvas.zone")}>
-              <p className={ARRANGE_LABEL}>{t("canvas.zone")}</p>
-              <div className="flex flex-wrap gap-1">
-                {ordered.map((column) => (
-                  <button
-                    key={column.id}
-                    type="button"
-                    data-testid="zones-option"
-                    aria-pressed={column.id === arrangedZone.id}
-                    onClick={() => setZoneTarget(column.id)}
-                    className={`max-w-full truncate ${ARRANGE_OPTION} aria-pressed:outline-[3px] aria-pressed:outline-offset-2 aria-pressed:outline-(--sb-color-accent) aria-pressed:outline-solid`}
+            <div className="sb-card">
+              <div className="flex items-center justify-between gap-2">
+                <h2 id={`${zonePanelId}-title`} className="sb-card__title">
+                  {t("canvas.zonesTitle")}
+                </h2>
+                <button
+                  type="button"
+                  data-testid="zones-close"
+                  aria-label={t("sheet.close")}
+                  onClick={() => {
+                    setZonePanel(false);
+                    zoneToggle.current?.focus();
+                  }}
+                  className="sb-icon-button"
+                >
+                  <Icon name="close" />
+                </button>
+              </div>
+              <div className="sb-field sb-field--compact">
+                <label
+                  htmlFor={`${zonePanelId}-zone`}
+                  className="sb-field__label"
+                >
+                  {t("canvas.zone")}
+                </label>
+                <div className="sb-field__control sb-select">
+                  <select
+                    id={`${zonePanelId}-zone`}
+                    data-testid="zones-select"
+                    value={arrangedZone.id}
+                    onChange={(event) => setZoneTarget(event.target.value)}
                   >
-                    {column.name}
-                  </button>
-                ))}
+                    {ordered.map((column) => (
+                      <option key={column.id} value={column.id}>
+                        {column.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Icon name="chevron-down" />
+                </div>
+              </div>
+              <div className="flex flex-wrap justify-between gap-4">
+                {(["move", "size"] as const).map((kind) => {
+                  const label =
+                    kind === "move" ? "canvas.zonePosition" : "canvas.zoneSize";
+                  return (
+                    <div
+                      key={kind}
+                      role="group"
+                      aria-label={t(label)}
+                      onKeyDown={(event) => {
+                        const nudge = NUDGES.find((n) => n.key === event.key);
+                        if (nudge === undefined) return;
+                        event.preventDefault();
+                        // One step per press, as for a card: every step is a
+                        // frame on the wire.
+                        if (event.repeat) return;
+                        stepZone(kind, nudge.direction);
+                      }}
+                    >
+                      <p className="sb-field__label">{t(label)}</p>
+                      <div className="grid grid-cols-3 grid-rows-3">
+                        {DPAD.map(({ direction, place }) => {
+                          const nudge = NUDGES.find(
+                            (n) => n.direction === direction,
+                          )!;
+                          const name = t(
+                            kind === "move"
+                              ? nudge.label
+                              : SIZE_LABELS[direction],
+                          );
+                          return (
+                            <button
+                              key={direction}
+                              type="button"
+                              data-testid={`zones-${kind}-${direction}`}
+                              aria-label={name}
+                              title={`${name} (${nudge.glyph})`}
+                              aria-keyshortcuts={nudge.key}
+                              // Not `disabled`, as for a card's steps: the
+                              // button that just reached the edge keeps focus.
+                              aria-disabled={!canStepZone(kind, direction)}
+                              onClick={() => stepZone(kind, direction)}
+                              className={`sb-icon-button ${place}`}
+                            >
+                              <Icon name={`arrow-${direction}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            {(["move", "size"] as const).map((kind) => {
-              const label =
-                kind === "move" ? "canvas.zonePosition" : "canvas.zoneSize";
-              return (
-                <div
-                  key={kind}
-                  role="group"
-                  aria-label={t(label)}
-                  onKeyDown={(event) => {
-                    const nudge = NUDGES.find((n) => n.key === event.key);
-                    if (nudge === undefined) return;
-                    event.preventDefault();
-                    // One step per press, as for a card: every step is a
-                    // frame on the wire.
-                    if (event.repeat) return;
-                    stepZone(kind, nudge.direction);
-                  }}
-                >
-                  <p className={ARRANGE_LABEL}>{t(label)}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {NUDGES.map((nudge) => {
-                      const name = t(
-                        kind === "move"
-                          ? nudge.label
-                          : SIZE_LABELS[nudge.direction],
-                      );
-                      return (
-                        <button
-                          key={nudge.direction}
-                          type="button"
-                          data-testid={`zones-${kind}-${nudge.direction}`}
-                          aria-label={name}
-                          title={`${name} (${nudge.glyph})`}
-                          aria-keyshortcuts={nudge.key}
-                          // Not `disabled`, as for a card's steps: the
-                          // button that just reached the edge keeps focus.
-                          aria-disabled={!canStepZone(kind, nudge.direction)}
-                          onClick={() => stepZone(kind, nudge.direction)}
-                          className={ARRANGE_STEP}
-                        >
-                          <Icon name={`arrow-${nudge.direction}`} size={20} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         ) : null}
         {/* The double-click's visible, keyboard-reachable twin (WCAG 2.1.1):
             „Notiz“ asks which zone and opens the same composer there, at the
-            zone's centre nudged to the nearest free spot, the way a commit
-            is. Out here, not in each zone's head: the head is drawn in the
+            zone's first free place in reading order (owner, 2026-11-10: the
+            cards fill rows instead of crowding round the middle). Out here, not in each zone's head: the head is drawn in the
             zoomed world, where a key cannot keep its size (owner,
             2026-11-05). */}
         <Menu
@@ -977,10 +1232,12 @@ export function BoardCanvas({
             label: t("canvas.addNoteIn", { name: column.name }),
             testId: `canvas-add-note-${column.id}`,
             onSelect: () => {
-              const centre = { x: 0.5, y: 0.5 };
+              // The zone's first free place; in a full zone its bottom,
+              // where the canvas makes room when the card is added.
               setComposing({
                 columnId: column.id,
-                ...(openPosition(column.id, centre) ?? centre),
+                packed: true,
+                ...(openPosition(column.id, null) ?? { x: 0.5, y: 1 }),
               });
             },
           }))}
@@ -990,30 +1247,37 @@ export function BoardCanvas({
             type="button"
             aria-label={t("canvas.zoomOut")}
             onClick={() => zoomBy(0.8)}
-            className={CONTROL_KEY}
+            className="sb-icon-button"
           >
-            <Icon name="zoom-out" size={20} />
+            <Icon name="zoom-out" />
           </button>
-          {/* Named after what it shows first (WCAG 2.5.3): a speech user says
-              the "49%" they see, then the name tells what it does. */}
-          <button
-            type="button"
-            onClick={fitView}
-            className={`${CONTROL_KEY} tabular-nums`}
+          <span
+            data-testid="canvas-zoom-level"
+            className="min-w-12 text-center tabular-nums"
           >
-            <Icon name="zoom-fit" size={20} />
+            <span className="sr-only">{t("canvas.zoomLevel")} </span>
             {Math.round(view.zoom * 100)}%
-            <span className="sr-only"> – {t("canvas.fit")}</span>
-          </button>
+          </span>
           <button
             type="button"
             aria-label={t("canvas.zoomIn")}
             onClick={() => zoomBy(1.25)}
-            className={CONTROL_KEY}
+            className="sb-icon-button"
           >
-            <Icon name="zoom-in" size={20} />
+            <Icon name="zoom-in" />
           </button>
         </div>
+        {/* Its own word, not the zoom level's (owner, 2026-11-15): the zones
+            back in the middle of the canvas, as large as they fit. */}
+        <button
+          type="button"
+          data-testid="canvas-fit"
+          onClick={fitView}
+          className={CONTROL_KEY}
+        >
+          <Icon name="zoom-fit" size={20} />
+          {t("canvas.fit")}
+        </button>
       </div>
 
       <div
@@ -1053,7 +1317,7 @@ export function BoardCanvas({
           className="absolute top-0 left-0"
           style={{
             width: WORLD_W,
-            height: WORLD_H,
+            height: worldH,
             transform: `translate(${view.panX}px, ${view.panY}px) scale(${view.zoom})`,
             transformOrigin: "0 0",
           }}
@@ -1080,9 +1344,9 @@ export function BoardCanvas({
                 }`}
                 style={{
                   left: rect.x * WORLD_W,
-                  top: rect.y * WORLD_H,
+                  top: rect.y * worldH,
                   width: rect.w * WORLD_W,
-                  height: rect.h * WORLD_H,
+                  height: rect.h * worldH,
                   // Above the zones after it, which an open panel may reach.
                   zIndex: arrangingHere ? 30 : undefined,
                 }}
@@ -1151,11 +1415,13 @@ export function BoardCanvas({
                             key={`${column.id}-${index}`}
                             data-testid="canvas-occupancy"
                             aria-label={t("canvas.occupied")}
-                            className="sb-card sb-card--item sb-card--hidden pointer-events-none absolute min-h-28 justify-center text-center"
+                            className="sb-card sb-card--item sb-card--hidden pointer-events-none absolute justify-center text-center"
                             style={{
                               left: `${slot.x * 100}%`,
                               top: `${slot.y * 100}%`,
                               width: "11rem",
+                              // what a card is reserved: the place it holds
+                              minHeight: CARD_HEIGHT_PX,
                               transform: "translate(-50%, -50%)",
                               zIndex: 0,
                             }}
@@ -1175,6 +1441,10 @@ export function BoardCanvas({
                       <div
                         key={note.id}
                         data-testid="canvas-card"
+                        ref={(el) => {
+                          if (el) cardRefs.current.set(note.id, el);
+                          else cardRefs.current.delete(note.id);
+                        }}
                         onPointerDown={(event) => beginDrag(event, note)}
                         onPointerMove={moveDrag}
                         onPointerUp={(event) => endDrag(event, note)}
@@ -1209,7 +1479,7 @@ export function BoardCanvas({
                           // Asked as the panel renders: full zones come and
                           // go with every card and placeholder that moves.
                           canMoveTo={(columnId) =>
-                            landingSpot(columnId) !== null
+                            landingSpot(columnId, note.id) !== null
                           }
                           onMoveToColumn={moveToZone}
                           onNudge={nudgeNote}
@@ -1250,6 +1520,7 @@ export function BoardCanvas({
                           composing.y,
                           text,
                           gifUrl,
+                          composing.packed === true,
                         );
                         setComposing(null);
                       }}
@@ -1305,7 +1576,7 @@ export function BoardCanvas({
                     className="sb-pointer absolute z-40"
                     style={{
                       insetInlineStart: c.x * WORLD_W,
-                      insetBlockStart: c.y * WORLD_H,
+                      insetBlockStart: c.y * worldH,
                       // counter the world scale so pointers stay a readable size
                       transform: `scale(${1 / view.zoom})`,
                       transformOrigin: "0 0",

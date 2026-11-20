@@ -80,10 +80,11 @@ test("board fits a phone", async ({ browser }) => {
   // Write, on a canvas board — switched in the phone's own settings view. A
   // phone shows its zones as the swiping columns (owner, 2026-11-05), the
   // cards still there.
-  await anna.getByRole("link", { name: /^(settings|einstellungen)$/i }).click();
+  await anna.getByTestId("board-menu").click();
+  await anna.getByTestId("menu-settings").click();
   await expectOnScreen(anna.getByTestId("layout-canvas"));
   await anna.getByTestId("layout-canvas").click();
-  await anna.getByRole("link", { name: /^board$/i }).click();
+  await anna.getByTestId("settings-back").click();
   for (const page of [anna, ben]) {
     await expect(page.locator(".sb-board")).toBeVisible();
     await expect(page.getByTestId("canvas-viewport")).toHaveCount(0);

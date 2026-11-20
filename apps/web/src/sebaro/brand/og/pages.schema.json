@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:sebaro:og-pages:1.0",
-  "title": "sebaro share-image page list 1.0",
+  "$id": "urn:sebaro:og-pages:1.1",
+  "title": "sebaro share-image page list 1.1",
   "description": "Input of brand/og/render.mjs (spec/09 §18.1, D96): one entry per page that has a title of its own. The script validates a page list against this file itself (the keywords it reads: type, required, properties, additionalProperties, enum, pattern, minLength, maxLength, minimum, maximum, items, minItems, maxItems, uniqueItems, $ref), so the schema is the one definition of the format. Words are the page's own: the image says nothing the page does not say.",
   "type": "object",
   "required": ["site", "pages"],
@@ -18,7 +18,21 @@
         "product": { "$ref": "#/$defs/product", "description": "The site's product id (its tile and name in the head); a page may name another." },
         "name": { "$ref": "#/$defs/text", "description": "og:site_name: the site's name as it writes it." },
         "origin": { "type": "string", "pattern": "^https?://[^/\\s?#]+$", "description": "Scheme and host without a trailing slash, e.g. https://example.org; og:url, og:image and canonical are absolute from it, and its host appears in the bottom sender bar." },
-        "lang": { "type": "string", "enum": ["de", "en"], "description": "Language of the words the script adds (reading time, date) and of og:locale (de_DE, en_GB). Default de. Right to left is not supported." },
+        "lang": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{1,8})*$", "description": "Language tag of the site: <html lang> of the image, the words the script adds (reading time, date, the alt sentence of apps) and og:locale. Default de. German (de: de_DE) and English (en: en_GB) are built in; any other language gives its words in words (1.1), a tag such as de-AT takes the built-in words of its first part and gives at least words.locale. Right to left is not supported." },
+        "words": {
+          "description": "The words the script adds, for a language without built-in words, or to replace a built-in word (1.1). Only the words the pages need are required: locale for every language but de and en, minutes with readingMinutes, date and the word of its dateKind with date, apps (and and with two or more) with apps and no alt. The script refuses a page list that lacks one (exit 2, nothing written).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "locale": { "type": "string", "pattern": "^[a-z]{2,3}_[A-Z]{2}$", "description": "og:locale, e.g. fr_FR; the browser that draws the images takes the same locale (fr-FR)." },
+            "minutes": { "$ref": "#/$defs/text", "description": "The reading time with {n} for the minutes, e.g. „{n} min de lecture“ (a no-break space before the unit, as the page writes it)." },
+            "updated": { "$ref": "#/$defs/text", "description": "The word before the date of dateKind updated, e.g. „mis à jour le“." },
+            "published": { "$ref": "#/$defs/text", "description": "The word before the date of dateKind published, e.g. „publié le“." },
+            "date": { "$ref": "#/$defs/text", "description": "The date with {dd}, {mm} and {yyyy}, e.g. „{dd}/{mm}/{yyyy}“." },
+            "and": { "$ref": "#/$defs/text", "description": "The word before the last of two or more app names, e.g. „et“." },
+            "apps": { "$ref": "#/$defs/text", "description": "The sentence after the title in og:image:alt of a page with apps, with {names}, e.g. „Avec les signes de {names}.“" }
+          }
+        },
         "imageBase": { "type": "string", "pattern": "^/([^\\s?#]*/)?$", "description": "Path under origin where the site serves the PNGs, with slashes at both ends. Default /og/." }
       }
     },
@@ -29,7 +43,7 @@
     }
   },
   "$defs": {
-    "product": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "A product id with brand/inline/tile-<id>.svg in the export (export with --product <id>; the umbrella product studio exports every tile)." },
+    "product": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "A product id with brand/inline/tile-<id>.svg beside the generator. A copy holds no product's tile: node <copy>/product/render.mjs share <folder> adds the tile of the folder the product kit writes from the site's sebaro.product.json, and refuses another product's id. The site export holds the tiles of the demo's samples." },
     "text": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "^[^\\u0000-\\u001F\\u007F]+$" },
     "page": {
       "type": "object",

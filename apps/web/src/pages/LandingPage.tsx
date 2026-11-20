@@ -188,7 +188,9 @@ export function LandingPage() {
 
         {/* The last word before the decision is an invitation, not a caveat.
             The private-project line stays visible right under it: docs/06
-            relies on the landing saying "not a commercial service". */}
+            relies on the landing saying "not a commercial service". The
+            invitation repeats the hero's action outlined, not green: one
+            primary action per view (sebaro spec/02 §1.0). */}
         <section
           data-testid="landing-closing"
           className="sb-container sb-section"
@@ -199,7 +201,7 @@ export function LandingPage() {
             <Link
               to="/new"
               data-testid="landing-bottom-cta"
-              className="sb-primary-action"
+              className="sb-secondary-action"
             >
               {t("landing.cta")}
             </Link>

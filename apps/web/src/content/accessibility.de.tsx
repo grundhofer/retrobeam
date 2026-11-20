@@ -127,7 +127,8 @@ export function AccessibilityDe() {
         <Link to="/impressum">Impressum</Link> und der{" "}
         <Link to="/datenschutz">Datenschutzerklärung</Link> führt sie
         stattdessen zur selben Seite in der anderen Sprache und speichert
-        nichts.
+        nichts. Auf einem Board wählst du die Sprache im Menü „Mehr“ oder in den
+        Einstellungen.
       </p>
 
       <h3>Bewegung</h3>
@@ -136,14 +137,21 @@ export function AccessibilityDe() {
         Hast du in deinem System eingestellt, dass du weniger Bewegung möchtest,
         dreht sich das Glücksrad nicht, sondern zeigt sofort, wer dran ist.
         Einblend- und Puls-Animationen entfallen, und beim Vorstellen springt
-        die Ansicht, statt zu scrollen.
+        die Ansicht, statt zu scrollen. Dasselbe gilt, wenn du in den
+        Einstellungen eines Boards „Bewegung immer reduzieren“ einschaltest;
+        diese Wahl speichert RetroBeam in deinem Browser.
       </p>
 
       <h3>Hell oder Dunkel</h3>
 
       <p>
-        RetroBeam hat nur eine helle Darstellung. Eine Wahl zwischen Hell und
-        Dunkel gibt es noch nicht.
+        Beim ersten Besuch folgt RetroBeam der Einstellung deines Systems, hell
+        oder dunkel. Außerhalb eines Boards wechselt die Taste „Hell oder
+        Dunkel“ oben zur anderen Darstellung; ein zweiter Druck kehrt zur
+        Einstellung des Systems zurück. Auf einem Board wählst du im Menü „Mehr“
+        oder in den Einstellungen zwischen „Wie das System“, „Hell“ und
+        „Dunkel“, dort außerdem den Farbton „Kühl“ oder „Warm“. RetroBeam
+        speichert diese Wahl in deinem Browser.
       </p>
 
       <h2>Anforderungen und Prüfstand</h2>
@@ -184,12 +192,13 @@ export function AccessibilityDe() {
       <ul>
         <li>
           Das Werkzeug axe-core 4.14.0 prüft im Browser Chromium bei
-          390&nbsp;Pixel und 1440&nbsp;Pixel Breite die Regeln für WCAG 2.0 und
-          2.1 (Stufen A und AA) und für WCAG 2.2 (Stufe AA). Auf Deutsch und auf
-          Englisch prüft es die Seite zum Anlegen eines Boards, die Seite für
-          unbekannte Adressen, Impressum, Datenschutzerklärung und diese Seite,
-          nur auf Englisch die Startseite, ein Board in der Lobby und beim
-          Schreiben und den Canvas, einmal mit geöffneter Auswahl zum
+          390&nbsp;Pixel und 1440&nbsp;Pixel Breite, jeweils hell und dunkel,
+          bei 1440&nbsp;Pixel auch im warmen Farbton, die Regeln für WCAG 2.0
+          und 2.1 (Stufen A und AA) und für WCAG 2.2 (Stufe AA). Auf Deutsch und
+          auf Englisch prüft es die Seite zum Anlegen eines Boards, die Seite
+          für unbekannte Adressen, Impressum, Datenschutzerklärung und diese
+          Seite, nur auf Englisch die Startseite, ein Board in der Lobby und
+          beim Schreiben und den Canvas, einmal mit geöffneter Auswahl zum
           Verschieben einer Karte und einmal mit geöffneter Auswahl der Zonen.
           Den Canvas prüft es bei 1440&nbsp;Pixel, bei 390&nbsp;Pixel dasselbe
           Board als Spalten. Ergebnis: bestanden auf allen diesen Seiten, ohne
@@ -252,7 +261,7 @@ export function AccessibilityDe() {
         <li>
           Die vier festen Aufgaben nur mit der Tastatur – etwas anlegen, es nach
           einer Rückfrage löschen, einen Beleg öffnen, zwischen Hell und Dunkel
-          wechseln: offen. Die letzten beiden gibt es in RetroBeam noch nicht.
+          wechseln: offen. Einen Beleg öffnen gibt es in RetroBeam noch nicht.
         </li>
         <li>
           axe für die späteren Phasen eines Boards (Vorstellen, Abstimmen,
@@ -286,10 +295,6 @@ export function AccessibilityDe() {
       </p>
 
       <ul>
-        <li>
-          Eine Wahl zwischen Hell und Dunkel fehlt. Sie ist für die Umstellung
-          geplant.
-        </li>
         <li>
           Screenreader, echte Geräte und ein Durchgang nur mit der Tastatur sind
           nicht getestet. Tests nur mit der Tastatur sind für die Umstellung

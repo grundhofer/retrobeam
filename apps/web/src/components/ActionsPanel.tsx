@@ -109,7 +109,11 @@ export function ActionsPanel({
       </h2>
 
       {!readOnly ? (
-        <form onSubmit={add} className="sb-stack">
+        <form
+          onSubmit={add}
+          data-sb-action-area="action-items"
+          className="sb-stack"
+        >
           <div className="sb-field">
             <label
               className="sb-field__label"
@@ -280,6 +284,7 @@ function DeleteAction({
               type="button"
               autoFocus
               onClick={() => setAsking(false)}
+              data-sb-dialog-cancel
               className="sb-secondary-action"
             >
               {t("note.cancel")}

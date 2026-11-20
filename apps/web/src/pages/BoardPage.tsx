@@ -1,7 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useMatch, useParams } from "react-router";
 import {
@@ -66,6 +73,7 @@ import { BoardSocket } from "../lib/socket.js";
 import { useMissingField } from "../lib/useMissingField.js";
 import { useNarrow } from "../lib/useNarrow.js";
 import { useBoardStore } from "../store/boardStore.js";
+import tile from "../../../../sebaro-product/sign/tile.svg?raw";
 
 type Gate =
   | { step: "loading" }
@@ -177,6 +185,17 @@ export function BoardPage() {
       );
   }
 }
+
+// The board's title in the head, set as sebaro's specimen sets it (body type,
+// spec/03 §6.6). Inline, because sebaro.css is unlayered: its h1 rule would
+// beat a utility class.
+const APP_HEAD_TITLE: CSSProperties = {
+  margin: 0,
+  minInlineSize: 0,
+  font: "var(--sb-type-body)",
+  letterSpacing: "var(--sb-type-body-tracking)",
+  overflowWrap: "anywhere",
+};
 
 function JoinGate({
   board,
@@ -622,84 +641,91 @@ function Room({
         data-sb-view="board"
         className="sb-view sb-view--wide min-h-dvh overflow-x-clip"
       >
-        {/* sebaro's web app without a window (spec/03 §6.6): the site header
-            with the tile, DE / EN as a choice and (from 6b) „Hell oder
-            Dunkel“; the board's own head follows under it. The settings
-            view is a child route, so this same Room — and its socket —
-            renders it. */}
-        <SiteHeader
-          nav={[
-            { to: boardPath, label: t("site.board"), current: !inSettings },
-            {
-              to: `${boardPath}/settings`,
-              label: t("site.settings"),
-              current: inSettings,
-            },
-          ]}
-        />
+        {/* sebaro's web app without a window, round 7 (spec/03 §6.6,
+            D143 (7)): one head with the tile and the name back to the
+            start, the board's title, the people, „Einladen“ as a text
+            action and „Mehr“, which holds the board's actions, „Hell oder
+            Dunkel“, „Farbton“, „Sprache“ and „Einstellungen“. No navigation
+            words and no theme button. The settings view is a child route,
+            so this same Room — and its socket — renders it; there the
+            board's title is no heading, „Einstellungen“ is. */}
+        <header
+          data-sb-web-app-head
+          className="sb-cluster border-b border-border px-gutter py-3"
+        >
+          {/* The title follows the name; the lockup's own margin (a
+              website header's) would push it to the far end. */}
+          <Link to="/" className="sb-lockup" style={{ marginInlineEnd: 0 }}>
+            <span
+              className="sb-sign-tile sb-sign-tile--32 flex-none"
+              aria-hidden="true"
+              dangerouslySetInnerHTML={{ __html: tile }}
+            />
+            <span className="sb-wordmark" translate="no">
+              Retro{"\u00ad"}Beam
+            </span>
+          </Link>
+          {inSettings ? (
+            <p style={APP_HEAD_TITLE}>{state.board?.name ?? board.name}</p>
+          ) : (
+            <h1 style={APP_HEAD_TITLE}>{state.board?.name ?? board.name}</h1>
+          )}
+          {/* People, „Einladen“ and „Mehr“ at the head's end; they wrap as
+              one group. Inline, as sebaro.css's cluster rule beats ms-auto. */}
+          <div className="sb-cluster" style={{ marginInlineStart: "auto" }}>
+            <AvatarRow
+              participants={state.roster}
+              youId={you.id}
+              isAdmin={isAdmin}
+            />
+            {/* Only where there is no rail to carry it — otherwise the same
+                count would render twice on one screen. */}
+            {showActions && !inSettings ? (
+              <span className="sb-top-bar__subtitle tabular-nums">
+                {t("rail.online", { count: onlineCount })}
+              </span>
+            ) : null}
+            {/* Not once the retro is over: "done" is terminal and nobody
+                joins it to take part. */}
+            {state.phase !== "done" ? <InviteButton boardId={boardId} /> : null}
+            <BoardMenu
+              boardId={boardId}
+              boardName={state.board?.name ?? board.name}
+              isAdmin={isAdmin}
+              anonymous={config?.anonymous ?? false}
+              columns={state.columns}
+              settingsPath={`${boardPath}/settings`}
+            />
+          </div>
+        </header>
         {inSettings ? null : (
-          <>
-            <div className="flex flex-col gap-4 border-b border-border px-gutter py-4">
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-                <div className="min-w-0">
-                  <h1 className="sb-top-bar__title [overflow-wrap:anywhere]">
-                    {state.board?.name ?? board.name}
-                  </h1>
-                  {/* On every screen, in every phase: anonymity only earns trust
-                  if the room can see it is on — a latecomer never passes the
-                  lobby that explains it. The tag names it, the sentence
-                  beside it says what it means. */}
-                  {anonymous ? (
-                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                      <span data-testid="anonymous-badge" className="sb-tag">
-                        {t("board.anonymous")}
-                      </span>
-                      <span className="sb-top-bar__subtitle">
-                        {t("board.anonymousHint")}
-                      </span>
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <AvatarRow
-                    participants={state.roster}
-                    youId={you.id}
-                    isAdmin={isAdmin}
-                  />
-                  {/* Only where there is no rail to carry it — otherwise the same
-                  count would render twice on one screen. */}
-                  {showActions ? (
-                    <span className="sb-top-bar__subtitle tabular-nums">
-                      {t("rail.online", { count: onlineCount })}
-                    </span>
-                  ) : null}
-                  {/* Not once the retro is over: "done" is terminal and nobody
-                  joins it to take part. */}
-                  {state.phase !== "done" ? (
-                    <InviteButton boardId={boardId} />
-                  ) : null}
-                  <BoardMenu
-                    boardId={boardId}
-                    boardName={state.board?.name ?? board.name}
-                    isAdmin={isAdmin}
-                    anonymous={config?.anonymous ?? false}
-                    columns={state.columns}
-                  />
-                </div>
-              </div>
-              <PhaseStepper
-                phase={state.phase}
-                phasePlan={phasePlan}
-                isAdmin={isAdmin}
-                actionSlot={actionSlot}
-                timeLeft={
-                  timerActive ? (
-                    <TimeLeft timer={state.timer} form="line" />
-                  ) : null
-                }
-              />
-            </div>
-          </>
+          <div className="flex flex-col gap-4 border-b border-border px-gutter py-4">
+            {/* On every screen, in every phase: anonymity only earns trust
+                if the room can see it is on — a latecomer never passes the
+                lobby that explains it. The tag names it, the sentence
+                beside it says what it means. */}
+            {anonymous ? (
+              <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span data-testid="anonymous-badge" className="sb-tag">
+                  {t("board.anonymous")}
+                </span>
+                <span className="sb-top-bar__subtitle">
+                  {t("board.anonymousHint")}
+                </span>
+              </p>
+            ) : null}
+            <PhaseStepper
+              phase={state.phase}
+              phasePlan={phasePlan}
+              isAdmin={isAdmin}
+              actionSlot={actionSlot}
+              timeLeft={
+                timerActive ? (
+                  <TimeLeft timer={state.timer} form="line" />
+                ) : null
+              }
+            />
+          </div>
         )}
 
         {status !== "online" ? (
@@ -730,6 +756,7 @@ function Room({
               phase={state.phase}
               layout={layout}
               retentionAt={state.retentionAt}
+              boardPath={boardPath}
             />
           </main>
         ) : (
@@ -911,16 +938,24 @@ function Room({
                   />
                 </>
               ) : state.phase === "close" ? (
-                <div className="flex flex-col gap-8">
-                  <KudosWall
-                    kudos={state.kudos}
-                    roster={state.roster}
-                    you={you}
-                    isAdmin={isAdmin}
-                    gifsEnabled={gifsEnabled}
-                    readOnly={false}
-                  />
-                  <RotiPoll />
+                // Two things happen here: appreciation for colleagues and the
+                // room's rating of the retro. One column, one start edge, two
+                // sebaro sections with the hairline between them (owner,
+                // 2026-11-10).
+                <div className="mx-auto w-full max-w-4xl">
+                  <div className="sb-section" style={{ paddingBlockStart: 0 }}>
+                    <KudosWall
+                      kudos={state.kudos}
+                      roster={state.roster}
+                      you={you}
+                      isAdmin={isAdmin}
+                      gifsEnabled={gifsEnabled}
+                      readOnly={false}
+                    />
+                  </div>
+                  <div className="sb-section">
+                    <RotiPoll />
+                  </div>
                 </div>
               ) : state.phase === "done" ? (
                 <RetroResults
@@ -987,6 +1022,7 @@ function Room({
                           gifsEnabled={gifsEnabled}
                           cursors={state.cursors}
                           cursorsEnabled={cursorsShown}
+                          canvasHeight={state.config?.canvasHeight ?? 1}
                         />
                       ) : surface === "focus" && presenter ? (
                         <PresenterFocus

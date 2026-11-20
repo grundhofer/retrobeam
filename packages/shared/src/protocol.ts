@@ -7,7 +7,11 @@ import {
   icebreakerIdSchema,
   workingAgreementsSchema,
 } from "./domain/icebreakers.js";
-import { layoutModeSchema, zoneRectSchema } from "./domain/layout.js";
+import {
+  CANVAS_HEIGHT_MAX,
+  layoutModeSchema,
+  zoneRectSchema,
+} from "./domain/layout.js";
 import { phasePlanSchema, phaseSchema } from "./domain/phases.js";
 import {
   pickerStateSchema,
@@ -108,6 +112,10 @@ export const boardConfigSchema = z.object({
    *  because there is no un-reveal event and nothing the room has already read
    *  may be taken back off its screens. Defaulted so older boards parse as off. */
   focusMode: z.boolean().default(false),
+  /** The canvas world's height as a multiple of the base (1 … 2): it grows
+   *  when a new card fits nowhere. Optional, so a client or server from
+   *  before the field parses the config as the base height. */
+  canvasHeight: z.number().min(1).max(CANVAS_HEIGHT_MAX).optional(),
 });
 export type BoardConfig = z.infer<typeof boardConfigSchema>;
 
@@ -267,6 +275,12 @@ export type ReactionEmoji = z.infer<typeof reactionEmojiSchema>;
 //     replayed — it describes *now*, so a delayed copy is worse than nothing.
 // ---------------------------------------------------------------------------
 
+// The canvas height a canvas position was measured on. The canvas may grow
+// while a command is on its way (a teammate's card, or the sender's own
+// growth whose sync has not arrived), and a y is a fraction of the zone; the
+// server moves a y placed on a lower canvas like it moved every stored card.
+const canvasPlacement = z.number().min(1).max(CANVAS_HEIGHT_MAX).optional();
+
 export const clientCommandSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("join"),
@@ -300,6 +314,12 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     // canvas placement (omitted in column mode)
     x: z.number().min(0).max(1).optional(),
     y: z.number().min(0).max(1).optional(),
+    /** canvas only: the card fits nowhere at the canvas's height, so the
+     *  canvas grows to this height first (x/y are already placed there) */
+    growCanvasTo: z.number().min(1).max(CANVAS_HEIGHT_MAX).optional(),
+    /** canvas only: the canvas height x/y were placed for; the server moves
+     *  y along when the canvas has grown since (canvasPlacement) */
+    atCanvasHeight: canvasPlacement,
   }),
   z.object({
     type: z.literal("note.update"),
@@ -342,6 +362,7 @@ export const clientCommandSchema = z.discriminatedUnion("type", [
     // (position is cleared). Same-zone drops with x set keep the stack.
     x: z.number().min(0).max(1).optional(),
     y: z.number().min(0).max(1).optional(),
+    atCanvasHeight: canvasPlacement,
   }),
   // Tidy / arrange-all on the canvas: reposition many cards in ONE message
   // (never a loop of note.move — every inbound frame is billed). Each move is

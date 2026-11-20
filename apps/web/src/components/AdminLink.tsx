@@ -42,7 +42,11 @@ export function AdminLink({
   // sebaro's callout (the amber card before): the label with its „Privat“
   // tag, the sentence, then the masked field and its two keys (§6.1 a).
   return (
-    <div data-testid="admin-link" className="sb-callout sb-callout--warning">
+    <div
+      data-testid="admin-link"
+      data-sb-action-area="admin-link"
+      className="sb-callout sb-callout--warning"
+    >
       <Icon name="lock" size={20} />
       <div className="sb-callout__text sb-stack">
         <p className="flex flex-wrap items-center gap-2">
@@ -73,7 +77,7 @@ export function AdminLink({
             data-testid="admin-link-reveal"
             aria-pressed={revealed}
             onClick={() => setRevealed(!revealed)}
-            className="sb-secondary-action"
+            className="sb-text-action"
           >
             {/* A fixed label, as FocusToggle's: the button carries
                 aria-pressed, so swapping it to "Hide" once pressed would be
