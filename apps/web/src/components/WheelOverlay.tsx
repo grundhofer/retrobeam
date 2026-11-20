@@ -26,6 +26,7 @@ import {
 import { useNow } from "../lib/useNow.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { Icon } from "./Icon.js";
+import { personRingStyle } from "./PersonAvatar.js";
 
 // A person's tone in the draw: one of sebaro's six category tones, by their
 // place in the spin's pool, so the wheel and the reels agree and neighbours
@@ -448,7 +449,11 @@ function CardReveal({
                   borderColor: "var(--sb-color-accent)",
                 }}
               >
-                <span className="sb-avatar sb-avatar--32">
+                <span
+                  className="sb-avatar sb-avatar--32"
+                  // The winner's ring in their colour, as in the header.
+                  style={winner ? personRingStyle(winner) : undefined}
+                >
                   {nameMonogram(winner?.name ?? "?")}
                 </span>
                 <span
