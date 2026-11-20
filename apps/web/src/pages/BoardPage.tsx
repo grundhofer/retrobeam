@@ -15,8 +15,10 @@ import {
   boardSurface,
   CURSORS_ACTIVATABLE,
   pickerBeforeDraw,
+  pickerFinished,
   PROTOCOL_VERSION,
   rotationExhausted,
+  voteCapacity,
   type BoardInfo,
   type ClientCommand,
   type ServerEvent,
@@ -34,6 +36,7 @@ import {
   PhaseAnnouncer,
   PhaseGuide,
   phaseGuideKey,
+  type GuideSituation,
 } from "../components/PhaseGuide.js";
 import {
   PresentInterlude,
@@ -530,13 +533,47 @@ function Room({
   // Presenting with a rotation (not on an anonymous board): the presenting
   // round's status row stands above the board instead of the rail.
   const presentRound = state.phase === "present" && !anonymous;
+  // Where you stand, for the action zone's line (owner, 2026-11-20). From
+  // the rotation as shown, so a turning draw names nobody here either; the
+  // votes you can still give count a per-card limit that leaves some of the
+  // budget unspendable (voteCapacity, the server's rule for a full hand).
+  const guideSituation: GuideSituation | null =
+    you === null
+      ? null
+      : {
+          ready: state.readyIds.includes(you.id),
+          turn:
+            presenterId === you.id
+              ? "now"
+              : shownPicker !== null && pickerFinished(shownPicker)
+                ? "over"
+                : (shownPicker?.presented.includes(you.id) ?? false)
+                  ? "had"
+                  : "waiting",
+          votesLeft:
+            state.phase === "vote" && config
+              ? Math.max(
+                  0,
+                  voteCapacity(
+                    config.votesPerPerson,
+                    config.maxPerTarget,
+                    state.notes,
+                  ) - usedVotes,
+                )
+              : null,
+        };
   // The action zone's state sentence: the phase's guide and the time box.
   const timerActive =
     state.timer.endsAt !== null || state.timer.pausedRemainingMs !== null;
   // The facilitator reads the time in the „Moderation“ group, beside its
   // keys; the action zone keeps the time for everyone else.
   const hasStatus =
-    phaseGuideKey({ phase: state.phase, isAdmin, anonymous }) !== null ||
+    phaseGuideKey({
+      phase: state.phase,
+      isAdmin,
+      anonymous,
+      situation: guideSituation,
+    }) !== null ||
     (timerActive && !isAdmin);
   const moderationId = useId();
   const surface = boardSurface(
@@ -1149,6 +1186,7 @@ function Room({
                       phase={state.phase}
                       isAdmin={isAdmin}
                       anonymous={anonymous}
+                      situation={guideSituation}
                     />{" "}
                     {isAdmin ? null : (
                       <TimeLeft timer={state.timer} form="sentence" />

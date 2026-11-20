@@ -240,6 +240,73 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await benContext.close();
 });
 
+// The line in the action zone fits where you stand, and a full hand of votes
+// marks you ready on every screen (owner, 2026-11-20).
+test("a full hand of votes marks you ready, and the line says so", async ({
+  browser,
+}) => {
+  const annaContext = await newContext(browser, { reducedMotion: "reduce" });
+  const anna = await annaContext.newPage();
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Sprint 48 retro");
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  const boardUrl = anna.url();
+  await join(anna, "Anna");
+  const benContext = await newContext(browser, { reducedMotion: "reduce" });
+  const ben = await benContext.newPage();
+  await ben.goto(boardUrl);
+  await join(ben, "Ben");
+
+  await anna.getByTestId("phase-next").click(); // write
+  const composer = ben
+    .getByPlaceholder(/write a note|notiz schreiben/i)
+    .first();
+  await composer.fill("Slow deploys");
+  await composer.press("Enter");
+  await anna.getByTestId("phase-next").click(); // present
+
+  // Ben is put on stage: his line says he is presenting, not „when picked“.
+  await anna.getByTestId("pick-Ben").click();
+  await expect(ben.getByTestId("phase-guide")).toHaveText(
+    /you're presenting|du stellst gerade vor/i,
+  );
+
+  await anna.getByTestId("phase-next").click(); // vote
+  const benReady = ben.getByTestId("ready-toggle");
+  await expect(benReady).toHaveAttribute("aria-pressed", "false");
+  const plus = ben
+    .getByTestId("vote-target")
+    .filter({ hasText: "Slow deploys" })
+    .getByTestId("vote-plus");
+  await plus.click();
+  await plus.click();
+  await expect(benReady).toHaveAttribute("aria-pressed", "false");
+  await plus.click();
+  // The third of three: ready, and told the hand is full.
+  await expect(benReady).toHaveAttribute("aria-pressed", "true");
+  await expect(ben.getByTestId("phase-guide")).toHaveText(
+    /all your votes are given|alle stimmen vergeben/i,
+  );
+  await expect(anna.getByTestId("ready-count")).toContainText(/1 (of|von) 2/);
+
+  // Taking one back: not ready any more, and the line asks again.
+  await ben
+    .getByTestId("vote-target")
+    .filter({ hasText: "Slow deploys" })
+    .getByTestId("vote-minus")
+    .click();
+  await expect(benReady).toHaveAttribute("aria-pressed", "false");
+  await expect(ben.getByTestId("phase-guide")).toHaveText(
+    /spend your votes|verteil deine stimmen/i,
+  );
+
+  await annaContext.close();
+  await benContext.close();
+});
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();
