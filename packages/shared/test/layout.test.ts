@@ -119,6 +119,15 @@ describe("boardSurface", () => {
       );
     }
   });
+
+  it("a canvas board sorts on the canvas in the group phase, focus mode or not", () => {
+    expect(boardSurface("canvas", "group", false, false, false, false)).toBe(
+      "canvas",
+    );
+    expect(boardSurface("canvas", "group", false, true, false, true)).toBe(
+      "canvas",
+    );
+  });
 });
 
 describe("clampUnit", () => {
