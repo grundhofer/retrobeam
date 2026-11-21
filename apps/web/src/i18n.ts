@@ -539,17 +539,24 @@ const resources = {
             "Write your cards – only you can see them until the presenting round.",
           memberAnonymous:
             "Write your cards – nobody sees them before the presenting round, and nobody ever sees who wrote them.",
+          memberReady:
+            "You're done. Until everyone is, you can still add cards.",
         },
         present: {
           facilitator:
             "Pick who presents next – stack similar cards once everyone has had a turn.",
           member: "When you're picked, walk the room through your cards.",
           anonymous: "Read all cards together and stack similar ones.",
+          you: "You're presenting. When you're through: “Done presenting”.",
+          had: "You've had your turn – now it's the others'.",
+          over: "Everyone has presented. Stack similar cards.",
         },
         vote: {
           facilitator:
             "Everyone votes blind. Move on to the discussion once everyone is done.",
           member: "Spend your votes on the topics you most want to discuss.",
+          memberDone:
+            "All your votes are given. You can still move them until the vote ends.",
         },
         discuss: {
           facilitator: "Walk the top topics and capture action items.",
@@ -1416,6 +1423,8 @@ const resources = {
             "Schreib deine Karten – bis zur Vorstellrunde siehst nur du sie.",
           memberAnonymous:
             "Schreib deine Karten – vor der Vorstellrunde sieht sie niemand, und wer sie geschrieben hat, sieht nie jemand.",
+          memberReady:
+            "Du bist fertig. Bis alle so weit sind, kannst du noch Karten schreiben.",
         },
         present: {
           facilitator:
@@ -1423,12 +1432,17 @@ const resources = {
           member: "Wenn du gezogen wirst, stellst du deine Karten vor.",
           anonymous:
             "Lest alle Karten gemeinsam und stapelt ähnliche aufeinander.",
+          you: "Du stellst gerade vor. Wenn du durch bist: „Fertig mit Vorstellen“.",
+          had: "Du warst schon dran – jetzt sind die anderen an der Reihe.",
+          over: "Alle waren dran. Stapelt ähnliche Karten aufeinander.",
         },
         vote: {
           facilitator:
             "Alle stimmen verdeckt ab. Weiter zur Diskussion, wenn alle fertig sind.",
           member:
             "Verteil deine Stimmen auf die Themen, die du am dringendsten besprechen willst.",
+          memberDone:
+            "Alle Stimmen vergeben. Bis zum Ende der Abstimmung kannst du sie noch umverteilen.",
         },
         discuss: {
           facilitator:
