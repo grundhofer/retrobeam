@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   generateHexId,
+  NOTE_TEXT_MAX,
   phaseRevealed,
   type Column,
   type Note,
@@ -18,7 +19,13 @@ import { Dialog } from "./Dialog.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 import { Menu, type MenuItem } from "./Menu.js";
-import { NOTE_DRAG_MIME, NoteCard } from "./NoteCard.js";
+import { PersonRing } from "./PersonAvatar.js";
+import {
+  NOTE_DRAG_MIME,
+  NOTE_LENGTH_HINT_FROM,
+  NoteCard,
+  NoteLengthHint,
+} from "./NoteCard.js";
 
 export interface DecidingState {
   voteActive: boolean;
@@ -641,7 +648,10 @@ function BoardColumn({
         </Dialog>
       ) : null}
 
-      <div className="sb-board__cards">
+      {/* 12 px between cards instead of sebaro's 8 (owner, 2026-11-20: the
+          cards stood too close). Inline, because sebaro's CSS has no layer
+          and wins over a utility class. Gap list 62. */}
+      <div className="sb-board__cards" style={{ gap: "var(--sb-space-3)" }}>
         {/* The composer is PINNED ABOVE the cards: the card you are writing has
             to stay in view while the column fills up around you, and a
             teammate finishing one in the same column must not shove your input
@@ -688,20 +698,27 @@ function BoardColumn({
                   : null
               }
             >
-              {item.kind === "note" ? (
-                <NoteCard note={item.note} revealIndex={index} {...cardProps} />
-              ) : (
-                <NoteStack count={item.notes.length}>
-                  {item.notes.map((note) => (
-                    <NoteCard
-                      key={note.id}
-                      note={note}
-                      revealIndex={index}
-                      {...cardProps}
-                    />
-                  ))}
-                </NoteStack>
-              )}
+              {(vote) =>
+                item.kind === "note" ? (
+                  <NoteCard
+                    note={item.note}
+                    revealIndex={index}
+                    vote={vote}
+                    {...cardProps}
+                  />
+                ) : (
+                  <NoteStack count={item.notes.length} vote={vote}>
+                    {item.notes.map((note) => (
+                      <NoteCard
+                        key={note.id}
+                        note={note}
+                        revealIndex={index}
+                        {...cardProps}
+                      />
+                    ))}
+                  </NoteStack>
+                )
+              }
             </TargetFrame>
           );
         })}
@@ -792,10 +809,11 @@ function DiscussStage({
           if (first === undefined) return null;
           const columnName =
             columns.find((c) => c.id === first.columnId)?.name ?? "";
-          const card = (note: Note) => (
+          const card = (note: Note, vote: React.ReactNode = null) => (
             <NoteCard
               key={note.id}
               note={note}
+              vote={vote}
               revealIndex={index}
               roster={roster}
               you={you}
@@ -841,13 +859,15 @@ function DiscussStage({
                 // topics, not to every card
                 clearLabel={t("discuss.backToTop")}
               >
-                {members.length > 1 ? (
-                  <NoteStack count={members.length}>
-                    {members.map(card)}
-                  </NoteStack>
-                ) : (
-                  card(first)
-                )}
+                {(vote) =>
+                  members.length > 1 ? (
+                    <NoteStack count={members.length} vote={vote}>
+                      {members.map((note) => card(note))}
+                    </NoteStack>
+                  ) : (
+                    card(first, vote)
+                  )
+                }
               </TargetFrame>
             </li>
           );
@@ -859,9 +879,13 @@ function DiscussStage({
 
 export function NoteStack({
   count,
+  vote = null,
   children,
 }: {
   count: number;
+  /** the stack's vote control, at its foot inside the frame: one vote for
+   *  the whole stack, so it belongs to the frame, not to one of its cards */
+  vote?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -871,6 +895,7 @@ export function NoteStack({
     >
       <span className="sb-tag self-start tabular-nums">×{count}</span>
       {children}
+      {vote}
     </div>
   );
 }
@@ -898,7 +923,11 @@ export function TargetFrame({
   onFocus: (() => void) | null;
   /** what taking the focus off leads back to, when not all cards */
   clearLabel?: string;
-  children: React.ReactNode;
+  /** the votable, given the vote control to carry inside it: in the card
+   *  after its grey line, as sebaro's board card has it, or in the stack's
+   *  frame. Below the card it read as the next card's (owner, 2026-11-20).
+   *  null outside the vote. */
+  children: (vote: React.ReactNode) => React.ReactNode;
 }) {
   const { t } = useTranslation();
   const rank = deciding.topTargetIds.indexOf(targetId);
@@ -927,9 +956,9 @@ export function TargetFrame({
     (deciding.maxPerTarget !== null && myCount >= deciding.maxPerTarget);
 
   // sebaro (plan stage 5g, RB-2): the place in words, never a crown; the
-  // tally as thumbs-up and its number; your votes as „− 2 +“ in an sb-vote
-  // group, minus and plus aria-disabled at their ends so the focus stays;
-  // the voters by name only (F6), each labelled.
+  // tally as thumbs-up and its number; your votes as „− 2 +“ (VoteControl),
+  // handed into the card or the stack's frame; the voters by name only (F6),
+  // each labelled.
   return (
     <div
       data-testid="vote-target"
@@ -1002,6 +1031,7 @@ export function TargetFrame({
               })}
               className="sb-tag"
             >
+              <PersonRing participant={voter.participant} />
               {voter.count > 1
                 ? t("vote.voterMulti", {
                     name: voter.participant.name,
@@ -1014,43 +1044,65 @@ export function TargetFrame({
       ) : layout === "rows" ? (
         <div />
       ) : null}
-      {children}
-      {deciding.voteActive ? (
-        <div
-          data-testid="vote-control"
-          role="group"
-          aria-label={t("vote.group")}
-          className="sb-vote self-end"
-        >
-          <button
-            type="button"
-            data-testid="vote-minus"
-            aria-label={t("vote.minus")}
-            aria-disabled={myCount === 0}
-            onClick={() => {
-              if (myCount > 0) onVote(targetId, -1);
-            }}
-            className="sb-icon-button"
-          >
-            <Icon name="minus" />
-          </button>
-          <span data-testid="vote-count" className="sb-vote__count">
-            {myCount}
-          </span>
-          <button
-            type="button"
-            data-testid="vote-plus"
-            aria-label={t("vote.plus")}
-            aria-disabled={plusDisabled}
-            onClick={() => {
-              if (!plusDisabled) onVote(targetId, 1);
-            }}
-            className="sb-icon-button"
-          >
-            <Icon name="plus" />
-          </button>
-        </div>
-      ) : null}
+      {children(
+        deciding.voteActive ? (
+          <VoteControl
+            myCount={myCount}
+            plusDisabled={plusDisabled}
+            onVote={(delta) => onVote(targetId, delta)}
+          />
+        ) : null,
+      )}
+    </div>
+  );
+}
+
+// „− 2 +“ in sebaro's sb-vote group, minus and plus aria-disabled at their
+// ends so the focus stays.
+function VoteControl({
+  myCount,
+  plusDisabled,
+  onVote,
+}: {
+  myCount: number;
+  plusDisabled: boolean;
+  onVote: (delta: 1 | -1) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      data-testid="vote-control"
+      role="group"
+      aria-label={t("vote.group")}
+      className="sb-vote"
+    >
+      <button
+        type="button"
+        data-testid="vote-minus"
+        aria-label={t("vote.minus")}
+        aria-disabled={myCount === 0}
+        onClick={() => {
+          if (myCount > 0) onVote(-1);
+        }}
+        className="sb-icon-button"
+      >
+        <Icon name="minus" />
+      </button>
+      <span data-testid="vote-count" className="sb-vote__count">
+        {myCount}
+      </span>
+      <button
+        type="button"
+        data-testid="vote-plus"
+        aria-label={t("vote.plus")}
+        aria-disabled={plusDisabled}
+        onClick={() => {
+          if (!plusDisabled) onVote(1);
+        }}
+        className="sb-icon-button"
+      >
+        <Icon name="plus" />
+      </button>
     </div>
   );
 }
@@ -1125,6 +1177,9 @@ function NoteComposer({
         event.preventDefault();
         submit();
       }}
+      // A stack, not a 4 px margin: the field's focus ring reaches 4 px past
+      // it and sat right on the buttons (owner, 2026-11-20).
+      className="sb-stack"
     >
       <div className="sb-field">
         <label htmlFor={fieldId} className="sb-visually-hidden">
@@ -1144,14 +1199,20 @@ function NoteComposer({
                 submit();
               }
             }}
-            maxLength={500}
+            maxLength={NOTE_TEXT_MAX}
+            aria-describedby={
+              text.length >= NOTE_LENGTH_HINT_FROM
+                ? `${fieldId}-length`
+                : undefined
+            }
             rows={2}
             placeholder={t("note.placeholder")}
           />
         </div>
+        <NoteLengthHint id={`${fieldId}-length`} length={text.length} />
       </div>
       {gifUrl !== null ? (
-        <div className="mt-1 flex items-start gap-1">
+        <div className="flex items-start gap-1">
           <img
             src={gifUrl}
             alt=""
@@ -1168,7 +1229,7 @@ function NoteComposer({
           </button>
         </div>
       ) : null}
-      <div className="sb-cluster mt-1">
+      <div className="sb-cluster empty:hidden">
         {text.trim() !== "" ? (
           <button
             type="submit"

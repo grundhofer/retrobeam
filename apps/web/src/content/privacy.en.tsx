@@ -478,6 +478,13 @@ export function PrivacyEn() {
             </tr>
             <tr>
               <td>
+                <code>retrobeam.timerSound</code>
+              </td>
+              <td>The setting “Sound when time is up” (only while it is on)</td>
+              <td>Remember the setting</td>
+            </tr>
+            <tr>
+              <td>
                 <code>{"retrobeam.board.<board id>.sessionKey"}</code>
               </td>
               <td>Random session key for this one board</td>
@@ -516,18 +523,20 @@ export function PrivacyEn() {
 
       <p>
         The three display entries (<code>sb-theme</code>, <code>sb-tone</code>,{" "}
-        <code>sb-motion</code>) are only created when you make that choice, and
-        are never transmitted. If one of these settings is dropped in a later
-        version, its entry stays in your browser until you delete it, but is no
-        longer read.
+        <code>sb-motion</code>) and the sound setting (
+        <code>retrobeam.timerSound</code>) are only created when you make that
+        choice, and are never transmitted; the sound setting is removed again
+        when you switch the sound off. If one of these settings is dropped in a
+        later version, its entry stays in your browser until you delete it, but
+        is no longer read.
       </p>
 
       <p>
         Storing these entries is exempt from the consent requirement under §
         25(2) no. 2 TDDDG (the German implementation of the ePrivacy rule)
         because it is strictly necessary to provide the service you explicitly
-        requested — your board, your session, your language and the display you
-        chose. That is why there is no cookie banner.
+        requested — your board, your session, your language and the display and
+        sound you chose. That is why there is no cookie banner.
       </p>
 
       <h2>5. GIFs (KLIPY)</h2>

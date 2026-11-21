@@ -40,7 +40,7 @@ Default flow (60-min defaults, phases marked _(opt)_ are skippable per board):
 | 6   | **Discuss**                          | 15 min       | Voting closes → cards auto-sort by votes → the **top N** (admin-configured) are visually crowned and walked one at a time. Action items with an owner are captured.                                                                                                                                                                               |
 | 7   | **Close**                            | 5 min        | **Appreciation wall** revealed (see §7) and read aloud. Optional anonymous ROTI poll (v2). Board archives; export offered.                                                                                                                                                                                                                        |
 
-Timer behavior: visible to all, color warning near the end, a chime at zero (on by default, muted per person in one click), pause / +1 min extension. Timeouts are **soft** — a signal, never an input lock (TeamRetro pattern; locking is the top facilitation complaint elsewhere).
+Timer behavior: visible to all as words in whole minutes, a short sound at zero for whoever switched it on in their settings (off by default, per device; since 2026-11-20), pause / +1 min extension. At zero the board says „Zeit um“ until the facilitator moves on, stops or restarts the time box (since 2026-11-21; it used to vanish with the server's alarm). Timeouts are **soft** — a signal, never an input lock (TeamRetro pattern; locking is the top facilitation complaint elsewhere).
 
 ## 4. Boards & templates
 
@@ -109,7 +109,7 @@ German + English from day one. All strings externalized; language auto-detected,
 2. **A phase stepper is always visible** — everyone knows where in the retro they are and what comes next. This is the single biggest complaint-fixer vs. EasyRetro/GoRetro's settings-toggle chaos.
 3. **Clean, minimal surface; playfulness in one moment, not decoration.** The sebaro design system (since 2026-11): calm grounds, ink, one cobalt accent for place and links; participants are told apart by name, never by colour. Delight is reserved for the choosing moment — the wheel, the slots or the face-down cards, drawn flat in ink. No confetti, no mascots, no clutter. (Skip list: whiteboard shapes, drawing tools, 30k icon libraries.)
 4. **Zero-friction entry**: share link or QR code → type a name → you're in. Under 10 seconds.
-5. **Motion respects `prefers-reduced-motion` everywhere**, and the setting „Bewegung immer reduzieren“ does the same on any device. The time box is a calm sentence in whole minutes („Noch 3 Min.“), with no countdown, no colour and no sound: the chime was removed in 2026-11 (plan §2.4).
+5. **Motion respects `prefers-reduced-motion` everywhere**, and the setting „Bewegung immer reduzieren“ does the same on any device. The time box is a calm sentence in whole minutes („Noch 3 Min.“), with no countdown and no colour. The chime that was on by default was removed on 2026-11-05 (plan §2.4); since 2026-11-20 a sound at zero is each person's opt-in setting.
 6. **Explain in place**: template "when to use" one-liners, vote-count heuristic hint, "how picks work" fairness note. No manual.
 7. Responsive web; no native apps (no competitor has them either).
 

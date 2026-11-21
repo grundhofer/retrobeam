@@ -898,11 +898,20 @@ export class BoardRoom extends DurableObject<Env> {
     }
 
     const timerEndsAt = this.getMeta("timerEndsAt");
-    if (timerEndsAt !== null && now >= Number(timerEndsAt) - 250) {
-      // Broadcast BEFORE clearing: if anything throws, the at-least-once retry
-      // still finds the deadline and re-broadcasts (clients dedupe).
+    if (
+      timerEndsAt !== null &&
+      this.getMeta("timerEnded") !== "1" &&
+      now >= Number(timerEndsAt) - 250
+    ) {
+      // Broadcast BEFORE marking it ended: if anything throws, the
+      // at-least-once retry still finds the deadline and re-broadcasts
+      // (clients dedupe).
       this.broadcastAll({ type: "timer.ended", seq: this.nextSeq() });
-      this.clearTimerMeta();
+      // The deadline stays, so the board keeps saying „Zeit um“, also after a
+      // reload, until the facilitator moves on, stops or starts the time box
+      // again (owner, 2026-11-21); it used to be cleared here, and the words
+      // were gone the moment they came. The mark keeps it out of the alarm.
+      this.setMeta("timerEnded", "1");
     }
 
     await this.rescheduleAlarm();
@@ -910,7 +919,9 @@ export class BoardRoom extends DurableObject<Env> {
 
   // Arms the alarm for the nearest pending deadline (timer or retention).
   private async rescheduleAlarm(): Promise<void> {
-    const deadlines = [this.getMeta("timerEndsAt"), this.getMeta("retentionAt")]
+    const timerDue =
+      this.getMeta("timerEnded") === "1" ? null : this.getMeta("timerEndsAt");
+    const deadlines = [timerDue, this.getMeta("retentionAt")]
       .filter((v): v is string => v !== null)
       .map(Number);
     if (deadlines.length === 0) {
@@ -1792,7 +1803,8 @@ export class BoardRoom extends DurableObject<Env> {
         break;
       }
       case "admin.timer.pause": {
-        if (timer.endsAt === null) {
+        // An ended time box has nothing left to hold.
+        if (timer.endsAt === null || this.getMeta("timerEnded") === "1") {
           this.reject(ws, undefined, "INVALID", "No running timer");
           return;
         }
@@ -1809,7 +1821,12 @@ export class BoardRoom extends DurableObject<Env> {
       }
       case "admin.timer.extend": {
         if (timer.endsAt !== null) {
-          this.setTimerMeta(timer.endsAt + cmd.addSec * 1000, null);
+          // After „Zeit um“ the minute counts from now, not from a deadline
+          // that may be long past.
+          this.setTimerMeta(
+            Math.max(timer.endsAt, now) + cmd.addSec * 1000,
+            null,
+          );
         } else if (timer.pausedRemainingMs !== null) {
           this.setTimerMeta(null, timer.pausedRemainingMs + cmd.addSec * 1000);
         } else {
@@ -5297,7 +5314,7 @@ export class BoardRoom extends DurableObject<Env> {
 
   private clearTimerMeta(): void {
     this.sql.exec(
-      "DELETE FROM board_meta WHERE key IN ('timerEndsAt', 'timerPausedMs')",
+      "DELETE FROM board_meta WHERE key IN ('timerEndsAt', 'timerPausedMs', 'timerEnded')",
     );
   }
 

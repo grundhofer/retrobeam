@@ -250,7 +250,9 @@ export const displayNameSchema = z.string().trim().min(1).max(40);
 export const boardNameSchema = z.string().trim().min(1).max(60);
 export const columnNameSchema = z.string().trim().min(1).max(60);
 
-export const NOTE_TEXT_MAX = 500;
+// 800 since 2026-11-20 (owner: a little more room per card; was 500). The
+// web's fields take their limit from here, and say what is left from 80 %.
+export const NOTE_TEXT_MAX = 800;
 export const noteTextSchema = z.string().trim().min(1).max(NOTE_TEXT_MAX);
 
 // The fixed reaction row (product spec §5); the full picker arrives in M4.

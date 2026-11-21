@@ -239,6 +239,8 @@ const resources = {
       },
       note: {
         placeholder: "Write a note …",
+        charsLeft_one: "{{count}}\u00a0character left.",
+        charsLeft_other: "{{count}}\u00a0characters left.",
         add: "Add",
         edit: "Edit note",
         more: "More for this note",
@@ -739,6 +741,9 @@ const resources = {
         motion: "Always reduce motion",
         motionHelp:
           "New things then appear without motion; they only fade in. Applies even if the device allows motion.",
+        timerSound: "Sound when time is up",
+        timerSoundHelp:
+          "A short sound on this device when the time box runs out; you hear it once when switching on. Browsers only play it once you have clicked or typed in the page since it loaded.",
         languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {
@@ -1118,6 +1123,8 @@ const resources = {
       },
       note: {
         placeholder: "Notiz schreiben …",
+        charsLeft_one: "Noch {{count}}\u00a0Zeichen.",
+        charsLeft_other: "Noch {{count}}\u00a0Zeichen.",
         add: "Hinzufügen",
         edit: "Notiz bearbeiten",
         more: "Mehr zu dieser Notiz",
@@ -1638,6 +1645,9 @@ const resources = {
         motion: "Bewegung immer reduzieren",
         motionHelp:
           "Neues erscheint dann ohne Bewegung, es wird nur eingeblendet. Gilt auch, wenn das Gerät Bewegung zulässt.",
+        timerSound: "Ton, wenn die Zeit um ist",
+        timerSoundHelp:
+          "Ein kurzer Ton auf diesem Gerät, wenn die Zeitbox abläuft; beim Einschalten hörst du ihn einmal. Browser spielen ihn erst ab, wenn du seit dem Laden einmal in die Seite geklickt oder getippt hast.",
         languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {
