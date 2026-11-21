@@ -169,3 +169,26 @@ test("a member who is done writing is told so; an anonymous board keeps no promi
     .element(anonymous.getByTestId("phase-guide"))
     .toHaveTextContent(text("guide.present.anonymous"));
 });
+
+// The group phase (owner, 2026-11-20): everyone sorts, the facilitator
+// decides when the topics stand.
+test("the group phase tells everyone to stack, and the facilitator when to move on", async () => {
+  const member = await render(
+    <PhaseGuide
+      phase="group"
+      isAdmin={false}
+      anonymous={false}
+      situation={{ ready: false, turn: "over", votesLeft: null }}
+    />,
+  );
+  await expect
+    .element(member.getByTestId("phase-guide"))
+    .toHaveTextContent(text("guide.group.member"));
+  await member.unmount();
+  const facilitator = await render(
+    <PhaseGuide phase="group" isAdmin anonymous situation={null} />,
+  );
+  await expect
+    .element(facilitator.getByTestId("phase-guide"))
+    .toHaveTextContent(text("guide.group.facilitator"));
+});

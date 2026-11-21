@@ -56,7 +56,13 @@ const sync: ServerEvent = {
   board: { id: "b1", name: "Sprint 12", createdAt: 1 },
   config: {
     anonymous: false,
-    phasePlan: { checkin: false, vote: true, discuss: true, close: false },
+    phasePlan: {
+      checkin: false,
+      group: false,
+      vote: true,
+      discuss: true,
+      close: false,
+    },
     votesPerPerson: 3,
     maxPerTarget: null,
     topN: 3,

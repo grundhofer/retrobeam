@@ -75,6 +75,9 @@ export function boardSurface(
     case "present":
       // Someone on stage → the focused reader; nobody yet → calm canvas overview.
       return reader ? "focus" : "canvas";
+    case "group":
+      // Everyone sorts the cards into topics: the canvas is the surface.
+      return "canvas";
     default:
       // vote / discuss (and any structured phase) read specific cards → columns.
       return "columns";

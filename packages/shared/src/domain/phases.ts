@@ -5,12 +5,14 @@ import { z } from "zod";
 
 // The full session flow (product spec §3). lobby/write/present/done are the
 // core loop and always enabled; the others are per-board options that arrive
-// with later milestones (checkin v1.x, vote/discuss M3, close M4).
+// with later milestones (checkin v1.x, vote/discuss M3, close M4, group
+// 2026-11-21).
 export const PHASES = [
   "lobby",
   "checkin",
   "write",
   "present",
+  "group",
   "vote",
   "discuss",
   "close",
@@ -22,6 +24,11 @@ export type Phase = z.infer<typeof phaseSchema>;
 
 export const phasePlanSchema = z.object({
   checkin: z.boolean(),
+  // Everyone sorts the cards into topics before the vote (owner, 2026-11-20).
+  // A plan stored before the phase existed has no entry and reads as off: a
+  // board already planned does not grow a step (new boards get it from
+  // DEFAULT_PHASE_PLAN).
+  group: z.boolean().default(false),
   vote: z.boolean(),
   discuss: z.boolean(),
   close: z.boolean(),
@@ -35,6 +42,7 @@ export type PhasePlan = z.infer<typeof phasePlanSchema>;
 // Existing boards keep the plan they were created with.
 export const DEFAULT_PHASE_PLAN: PhasePlan = {
   checkin: false,
+  group: true,
   vote: true,
   discuss: true,
   close: true,
@@ -45,6 +53,8 @@ export function enabledPhases(plan: PhasePlan): Phase[] {
     switch (phase) {
       case "checkin":
         return plan.checkin;
+      case "group":
+        return plan.group;
       case "vote":
         return plan.vote;
       case "discuss":
@@ -95,6 +105,7 @@ export function canTransition(
 export function phaseRevealed(phase: Phase): boolean {
   return (
     phase === "present" ||
+    phase === "group" ||
     phase === "vote" ||
     phase === "discuss" ||
     phase === "close" ||

@@ -39,6 +39,7 @@ test("blind voting, crowns, discussion queue and action items", async ({
   await benComposer.fill("Great teamwork");
   await benComposer.press("Enter");
   await anna.getByTestId("phase-next").click(); // present
+  await anna.getByTestId("phase-next").click(); // group
 
   // Into the vote phase: vote controls appear, budget dots show.
   await anna.getByTestId("phase-next").click();
@@ -274,6 +275,7 @@ test("a full hand of votes marks you ready, and the line says so", async ({
     /you're presenting|du stellst gerade vor/i,
   );
 
+  await anna.getByTestId("phase-next").click(); // group
   await anna.getByTestId("phase-next").click(); // vote
   const benReady = ben.getByTestId("ready-toggle");
   await expect(benReady).toHaveAttribute("aria-pressed", "false");

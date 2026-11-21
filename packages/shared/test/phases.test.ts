@@ -7,6 +7,7 @@ import {
   DEFAULT_PHASE_PLAN,
   enabledPhases,
   nextPhase,
+  phasePlanSchema,
   phaseRevealed,
   previousPhase,
   type PhasePlan,
@@ -14,17 +15,19 @@ import {
 
 const FULL_PLAN: PhasePlan = {
   checkin: true,
+  group: true,
   vote: true,
   discuss: true,
   close: true,
 };
 
 describe("enabledPhases", () => {
-  it("default plan skips the check-in warm-up", () => {
+  it("default plan skips the check-in warm-up and sorts before the vote", () => {
     expect(enabledPhases(DEFAULT_PHASE_PLAN)).toEqual([
       "lobby",
       "write",
       "present",
+      "group",
       "vote",
       "discuss",
       "close",
@@ -38,6 +41,7 @@ describe("enabledPhases", () => {
       "checkin",
       "write",
       "present",
+      "group",
       "vote",
       "discuss",
       "close",
@@ -51,7 +55,11 @@ describe("nextPhase / previousPhase", () => {
     expect(nextPhase("lobby", DEFAULT_PHASE_PLAN)).toBe("write");
     expect(nextPhase("checkin", DEFAULT_PHASE_PLAN)).toBeNull(); // not in the plan
     expect(nextPhase("write", DEFAULT_PHASE_PLAN)).toBe("present");
-    expect(nextPhase("present", DEFAULT_PHASE_PLAN)).toBe("vote");
+    expect(nextPhase("present", DEFAULT_PHASE_PLAN)).toBe("group");
+    expect(nextPhase("group", DEFAULT_PHASE_PLAN)).toBe("vote");
+    expect(nextPhase("present", { ...DEFAULT_PHASE_PLAN, group: false })).toBe(
+      "vote",
+    );
     expect(nextPhase("discuss", DEFAULT_PHASE_PLAN)).toBe("close");
     expect(nextPhase("close", DEFAULT_PHASE_PLAN)).toBe("done");
     expect(nextPhase("done", DEFAULT_PHASE_PLAN)).toBeNull();
@@ -61,7 +69,7 @@ describe("nextPhase / previousPhase", () => {
 
   it("respects the full plan", () => {
     expect(nextPhase("lobby", FULL_PLAN)).toBe("checkin");
-    expect(nextPhase("present", FULL_PLAN)).toBe("vote");
+    expect(nextPhase("present", FULL_PLAN)).toBe("group");
   });
 });
 
@@ -92,6 +100,7 @@ describe("canTransition", () => {
   it("disabled phases are unreachable", () => {
     const CORE_ONLY: PhasePlan = {
       checkin: false,
+      group: false,
       vote: false,
       discuss: false,
       close: false,
@@ -107,7 +116,24 @@ describe("phaseRevealed", () => {
     expect(phaseRevealed("checkin")).toBe(false);
     expect(phaseRevealed("write")).toBe(false);
     expect(phaseRevealed("present")).toBe(true);
+    expect(phaseRevealed("group")).toBe(true);
     expect(phaseRevealed("vote")).toBe(true);
     expect(phaseRevealed("done")).toBe(true);
+  });
+});
+
+// Owner, 2026-11-20: new boards sort before the vote; a plan stored before the
+// phase existed has no entry and stays as it was planned.
+describe("the group phase on stored plans", () => {
+  it("a plan without the entry reads as off", () => {
+    const stored = { checkin: false, vote: true, discuss: true, close: true };
+    expect(phasePlanSchema.parse(stored).group).toBe(false);
+    expect(enabledPhases(phasePlanSchema.parse(stored))).not.toContain("group");
+  });
+
+  it("with the phase on, the vote is no longer one step from presenting", () => {
+    expect(canTransition("present", "vote", DEFAULT_PHASE_PLAN)).toBe(false);
+    expect(canTransition("present", "group", DEFAULT_PHASE_PLAN)).toBe(true);
+    expect(canTransition("vote", "group", DEFAULT_PHASE_PLAN)).toBe(true);
   });
 });

@@ -229,6 +229,12 @@ function phaseAllowsWriting(phase: Phase): boolean {
   return phase === "write" || phase === "present";
 }
 
+// Where cards may be stacked and moved by anyone who sees them: the
+// presenting round and the group phase after it, never once voting starts.
+function phaseAllowsGrouping(phase: Phase): boolean {
+  return phase === "present" || phase === "group";
+}
+
 // Command dispatch is synchronous, so the few storage-side effects that are
 // async (arming the alarm, wiping a board) cannot be awaited by their caller.
 // `void promise` would drop a rejection on the floor: a failed setAlarm means
@@ -2091,13 +2097,14 @@ export class BoardRoom extends DurableObject<Env> {
   ): void {
     const phase = this.phase();
     // Stacks are votables — their membership must be stable once voting
-    // starts, so grouping is a presenting-phase activity (rewind to regroup).
-    if (phase !== "present") {
+    // starts, so grouping happens while presenting and in the group phase
+    // that follows it (owner, 2026-11-20); rewind to regroup.
+    if (!phaseAllowsGrouping(phase)) {
       this.reject(
         ws,
         cmd.opId,
         "PHASE_LOCKED",
-        "Grouping happens in the presenting phase",
+        "Grouping happens while presenting or grouping",
       );
       return;
     }
@@ -2213,13 +2220,14 @@ export class BoardRoom extends DurableObject<Env> {
   ): void {
     const phase = this.phase();
     // Stacks are votables — their membership must be stable once voting
-    // starts, so grouping is a presenting-phase activity (rewind to regroup).
-    if (phase !== "present") {
+    // starts, so grouping happens while presenting and in the group phase
+    // that follows it (owner, 2026-11-20); rewind to regroup.
+    if (!phaseAllowsGrouping(phase)) {
       this.reject(
         ws,
         cmd.opId,
         "PHASE_LOCKED",
-        "Grouping happens in the presenting phase",
+        "Grouping happens while presenting or grouping",
       );
       return;
     }
@@ -2286,7 +2294,7 @@ export class BoardRoom extends DurableObject<Env> {
   ): void {
     const phase = this.phase();
     // Like grouping, moving reorganizes votables — frozen once voting starts.
-    if (phase !== "write" && phase !== "present") {
+    if (phase !== "write" && !phaseAllowsGrouping(phase)) {
       this.reject(
         ws,
         cmd.opId,
@@ -2411,7 +2419,7 @@ export class BoardRoom extends DurableObject<Env> {
     cmd: Extract<ClientCommand, { type: "note.moveMany" }>,
   ): void {
     const phase = this.phase();
-    if (phase !== "write" && phase !== "present") {
+    if (phase !== "write" && !phaseAllowsGrouping(phase)) {
       this.reject(
         ws,
         cmd.opId,
@@ -5267,7 +5275,8 @@ export class BoardRoom extends DurableObject<Env> {
 
   private phasePlan() {
     const raw = this.getMeta("phasePlan");
-    if (raw === null) return DEFAULT_PHASE_PLAN;
+    // A board without a stored plan predates the group phase as well.
+    if (raw === null) return { ...DEFAULT_PHASE_PLAN, group: false };
     const parsed = phasePlanSchema.safeParse(JSON.parse(raw));
     return parsed.success ? parsed.data : DEFAULT_PHASE_PLAN;
   }
