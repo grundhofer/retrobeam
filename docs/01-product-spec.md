@@ -39,7 +39,7 @@ Default flow (60-min defaults, phases marked _(opt)_ are skippable per board):
 | 6   | **Discuss**                    | 15 min       | Voting closes → cards auto-sort by votes → the **top N** (admin-configured) are visually crowned and walked one at a time. Action items with an owner are captured.                                                                                                                                                                               |
 | 7   | **Close**                      | 5 min        | **Appreciation wall** revealed (see §7) and read aloud. Optional anonymous ROTI poll (v2). Board archives; export offered.                                                                                                                                                                                                                        |
 
-Timer behavior: visible to all as words in whole minutes, a short sound at zero for whoever switched it on in their settings (off by default, per device; since 2026-11-20), pause / +1 min extension. Timeouts are **soft** — a signal, never an input lock (TeamRetro pattern; locking is the top facilitation complaint elsewhere).
+Timer behavior: visible to all as words in whole minutes, a short sound at zero for whoever switched it on in their settings (off by default, per device; since 2026-11-20), pause / +1 min extension. At zero the board says „Zeit um“ until the facilitator moves on, stops or restarts the time box (since 2026-11-21; it used to vanish with the server's alarm). Timeouts are **soft** — a signal, never an input lock (TeamRetro pattern; locking is the top facilitation complaint elsewhere).
 
 ## 4. Boards & templates
 

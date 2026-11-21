@@ -161,11 +161,12 @@ test("the timer sound plays for whoever chose it, once, when time is up", async 
     ),
   );
   await expect(ben.getByTestId("action-zone")).toContainText(/1\s*min/i);
-  // The server's end of the time box sets the timer idle again, so the line
-  // „Zeit um“ is only a moment; the sound is what is waited for.
   await expect.poll(() => count(ben), { timeout: 20_000 }).toBe(4);
-  await expect(ben.getByTestId("action-zone")).not.toContainText(/min/i);
   expect(await count(anna)).toBe(0);
+  // „Zeit um“ stays until the facilitator moves on (owner, 2026-11-21).
+  await expect(ben.getByTestId("action-zone")).toContainText(
+    /time's up|zeit um/i,
+  );
 
   // A reload after the time ran out stays quiet: the sound comes from the
   // moment itself, not from a board whose time is up. A click unlocks the
@@ -173,6 +174,9 @@ test("the timer sound plays for whoever chose it, once, when time is up", async 
   await ben.reload();
   await ben.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(ben.getByTestId("roster-item")).toHaveCount(2);
+  await expect(ben.getByTestId("action-zone")).toContainText(
+    /time's up|zeit um/i,
+  );
   await ben.getByRole("heading", { level: 1 }).click();
   expect(await count(ben)).toBe(0);
 
