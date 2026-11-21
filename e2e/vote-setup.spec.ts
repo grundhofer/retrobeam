@@ -31,8 +31,8 @@ test("the facilitator sets up the vote in a dialog, and the room follows", async
   await ben.getByRole("button", { name: /^(join|beitreten)$/i }).click();
   await expect(anna.getByTestId("roster-item")).toHaveCount(2);
 
-  // Lobby → write → present → vote.
-  for (let i = 0; i < 3; i++) {
+  // Lobby → write → present → group → vote.
+  for (let i = 0; i < 4; i++) {
     const before = await anna.getByTestId("phase-compact").textContent();
     await anna.getByTestId("phase-next").click();
     await expect(anna.getByTestId("phase-compact")).not.toHaveText(

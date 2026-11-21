@@ -38,6 +38,9 @@ const createBoardRequestSchema = z.object({
   locale: boardLocaleSchema.default("en"),
   // The check-in warm-up is off by default; opt in here to run the full flow.
   checkin: z.boolean().default(false),
+  // The group phase between presenting and voting is on by default; a caller
+  // may plan the board without it (the lobby can still change either).
+  group: z.boolean().default(true),
   // Board layout: classic columns (default) or the freeform canvas.
   layout: layoutModeSchema.default("columns"),
   // Anonymous board: nobody but the author sees who wrote a card, the
@@ -140,9 +143,16 @@ app.post("/api/boards", smallBody, createLimit(), async (c) => {
     workingAgreements: "",
     layout: parsed.data.layout,
     anonymous: parsed.data.anonymous,
-    // Only overrides the default when the caller opts into the check-in phase.
-    ...(parsed.data.checkin
-      ? { phasePlan: { ...DEFAULT_PHASE_PLAN, checkin: true } }
+    // Only overrides the default when the caller opts into the check-in phase
+    // or out of the group phase.
+    ...(parsed.data.checkin || !parsed.data.group
+      ? {
+          phasePlan: {
+            ...DEFAULT_PHASE_PLAN,
+            checkin: parsed.data.checkin,
+            group: parsed.data.group,
+          },
+        }
       : {}),
   });
   return c.json({ boardId, adminToken });

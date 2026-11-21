@@ -125,3 +125,24 @@ test("a participant sees the language, not the board's switches", async () => {
   expect(screen.getByTestId("gifs-toggle").elements()).toHaveLength(0);
   expect(screen.getByTestId("layout-columns").elements()).toHaveLength(0);
 });
+
+// The timer sound (owner, 2026-11-20): everyone's own switch, off unless
+// this browser chose it, stored only while on.
+test("the timer sound is off by default and everyone's own choice", async () => {
+  localStorage.removeItem("retrobeam.timerSound");
+  const screen = await render(view({ isAdmin: false }).element);
+  const sound = screen.getByTestId("timer-sound-toggle");
+  await expect
+    .element(sound)
+    .toHaveAccessibleName(i18n.t("settings.timerSound"));
+  await expect
+    .element(sound)
+    .toHaveAccessibleDescription(i18n.t("settings.timerSoundHelp"));
+  await expect.element(sound).toHaveAttribute("aria-checked", "false");
+  await sound.click();
+  await expect.element(sound).toHaveAttribute("aria-checked", "true");
+  expect(localStorage.getItem("retrobeam.timerSound")).toBe("1");
+  await sound.click();
+  await expect.element(sound).toHaveAttribute("aria-checked", "false");
+  expect(localStorage.getItem("retrobeam.timerSound")).toBeNull();
+});

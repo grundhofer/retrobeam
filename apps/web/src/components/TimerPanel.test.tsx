@@ -75,3 +75,26 @@ test("paused, up, and idle say so — idle says nothing", async () => {
   const idle = await render(view(IDLE_TIMER, false));
   await expect.element(idle.getByTestId("sentence")).toHaveTextContent("");
 });
+
+// „Zeit um“ stays (owner, 2026-11-21): the facilitator can start a new
+// length, add a minute or stop it, but there is nothing left to pause.
+test("after time is up the facilitator restarts, extends or stops", async () => {
+  const sent: ClientCommand[] = [];
+  const screen = await render(
+    view({ ...IDLE_TIMER, endsAt: Date.now() - 1000 }, true, sent),
+  );
+  await expect
+    .element(screen.getByRole("button", { name: /^(5\sMin\.|5\smin)$/ }))
+    .toBeVisible();
+  expect(
+    screen.getByRole("button", { name: /^(Pause)$/ }).elements(),
+  ).toHaveLength(0);
+  await screen.getByRole("button", { name: /^(10\sMin\.|10\smin)$/ }).click();
+  await screen.getByRole("button", { name: /^\+1/ }).click();
+  await screen.getByRole("button", { name: /^(Stopp|Stop)$/ }).click();
+  expect(sent).toEqual([
+    { type: "admin.timer.start", durationSec: 600 },
+    { type: "admin.timer.extend", addSec: 60 },
+    { type: "admin.timer.stop" },
+  ]);
+});

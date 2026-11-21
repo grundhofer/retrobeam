@@ -115,6 +115,10 @@ test("board fits a phone", async ({ browser }) => {
   await anna.getByTestId("wheel-winner").waitFor({ state: "hidden" });
   await ben.getByTestId("wheel-winner").waitFor({ state: "hidden" });
 
+  // Everyone sorts the cards into topics, on the canvas of this board.
+  await step(anna, ben, /group|gruppieren/i);
+  await expectFits(anna, ben, "group");
+
   await step(anna, ben, /vote|abstimmen/i);
   await expectFits(anna, ben, "vote");
   // One dot, so the results page has a crowned topic to lay out.
