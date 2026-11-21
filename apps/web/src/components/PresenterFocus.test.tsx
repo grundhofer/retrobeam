@@ -11,7 +11,7 @@ import type {
 } from "@retrobeam/shared";
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
-import { PresenterFocus } from "./PresenterFocus.js";
+import { PresentInterlude, PresenterFocus } from "./PresenterFocus.js";
 
 // sebaro (plan stage 5h): the card on stage carries the place edge
 // (aria-current); stepping to it scrolls without smoothing where motion is to
@@ -104,4 +104,26 @@ test("data-sb-motion=reduce scrolls to the stage without smoothing", async () =>
   expect(scroll).toHaveBeenCalledWith(
     expect.objectContaining({ behavior: "auto" }),
   );
+});
+
+// Focus mode between two people (owner, 2026-11-20): a stage that says what
+// comes next, no cards and no key of its own — the facilitator calls the next
+// person from the „Moderation“ row.
+test("between two people the stage says who is next, not the board", async () => {
+  const screen = await render(<PresentInterlude isAdmin={false} first />);
+  const stage = screen.getByTestId("present-interlude");
+  await expect
+    .element(stage.getByRole("heading"))
+    .toHaveTextContent(/who goes first|wer fängt an/i);
+  await expect.element(stage).toHaveTextContent(/facilitator|moderation/i);
+  expect(stage.element().querySelector("button, [data-testid=note-card]")).toBe(
+    null,
+  );
+});
+
+test("after the first person the heading asks who presents next", async () => {
+  const screen = await render(<PresentInterlude isAdmin first={false} />);
+  await expect
+    .element(screen.getByTestId("present-interlude").getByRole("heading"))
+    .toHaveTextContent(/who presents next|wer stellt als nächstes vor/i);
 });

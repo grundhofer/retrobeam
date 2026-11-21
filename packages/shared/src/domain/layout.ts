@@ -32,7 +32,11 @@ export function clampUnit(n: number): number {
 // between-presenters overview, and everything that must be read / highlighted /
 // voted / discussed routes to a structured surface — which is what keeps every
 // later-phase feature working and stays readable.
-export type BoardSurface = "columns" | "canvas" | "focus";
+// "between" is focus mode with nobody on stage while the rotation still has
+// people to call: before the first draw, while a draw is turning, and after
+// someone pressed „Fertig mit Vorstellen“. The room keeps looking at a calm
+// stage instead of the whole board flashing up (owner, 2026-11-20).
+export type BoardSurface = "columns" | "canvas" | "focus" | "between";
 
 export function boardSurface(
   layout: LayoutMode,
@@ -40,6 +44,9 @@ export function boardSurface(
   hasPresenter: boolean,
   focusMode: boolean,
   anonymous: boolean,
+  /** the rotation can still put someone on stage — false once everyone
+   *  presented or the facilitator handed the whole board over */
+  roundOpen: boolean,
 ): BoardSurface {
   // The presenter reader picks cards by author, and an ANONYMOUS board strips
   // authorship from every foreign note — so a member routed there would face
@@ -56,6 +63,11 @@ export function boardSurface(
   // call site the change missed, and the compiler can enumerate them (the same
   // reasoning NoteReveal gives in notes.ts).
   if (phase === "present" && reader && focusMode) return "focus";
+  // Between two people the switch still holds: a stage that says who is
+  // next, not the board. Anonymous boards have no rotation to wait for.
+  if (phase === "present" && focusMode && !anonymous && roundOpen) {
+    return "between";
+  }
   if (layout === "columns") return "columns";
   switch (phase) {
     case "write":
