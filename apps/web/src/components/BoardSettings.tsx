@@ -17,6 +17,11 @@ import {
   useThemeChoice,
 } from "../lib/appearance.js";
 import { useConnection } from "../lib/connection.js";
+import {
+  playTimerSound,
+  setTimerSoundEnabled,
+  timerSoundEnabled,
+} from "../lib/timerSound.js";
 import { Icon } from "./Icon.js";
 import { SwitchField } from "./SwitchField.js";
 
@@ -26,8 +31,8 @@ import { SwitchField } from "./SwitchField.js";
 // Every choice applies at once, so there is no action zone and no primary
 // action (D74). The board's own switches are the facilitator's; everyone has
 // the language. „Farbton“ and „Bewegung immer reduzieren“ join in stage 6b,
-// the timer sound in 5c, „Hell oder Dunkel“ with round 7. The head's „Mehr“
-// leads here; „Zurück zum Board“ above the heading leads back.
+// „Hell oder Dunkel“ with round 7, the timer sound on 2026-11-20. The head's
+// „Mehr“ leads here; „Zurück zum Board“ above the heading leads back.
 // „Bewegung immer reduzieren“ as sebaro's sb-controls.js sets it: the page
 // attribute that sebaro.css and the app's motion checks read, and the key
 // theme-init.js applies before the next first paint.
@@ -82,6 +87,7 @@ export function BoardSettings({
   const [motionReduced, setMotionReduced] = useState(
     () => document.documentElement.dataset.sbMotion === "reduce",
   );
+  const [timerSound, setTimerSound] = useState(timerSoundEnabled);
 
   return (
     <div data-testid="board-settings" className="sb-container sb-section">
@@ -176,6 +182,21 @@ export function BoardSettings({
           onChange={(reduce) => {
             setMotionReduced(reduce);
             applyMotion(reduce);
+          }}
+        />
+        {/* The timer sound, for everyone and only on this device (owner,
+            2026-11-20): off unless chosen. Switching it on is a click, the
+            one moment the browser lets audio start, so it plays once there:
+            the person hears what to listen for, and the audio is ready. */}
+        <SwitchField
+          label={t("settings.timerSound")}
+          checked={timerSound}
+          help={t("settings.timerSoundHelp")}
+          testId="timer-sound-toggle"
+          onChange={(enabled) => {
+            setTimerSound(enabled);
+            setTimerSoundEnabled(enabled);
+            if (enabled) playTimerSound();
           }}
         />
 

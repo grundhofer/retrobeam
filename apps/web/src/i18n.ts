@@ -152,6 +152,7 @@ const resources = {
         checkin: "Check-in",
         write: "Write",
         present: "Present",
+        group: "Group",
         vote: "Vote",
         discuss: "Discuss",
         close: "Close",
@@ -186,6 +187,11 @@ const resources = {
           present: {
             title: "Present",
             description: "Share the cards one person at a time.",
+          },
+          group: {
+            title: "Group",
+            description:
+              "Everyone sorts similar cards into topics before the vote.",
           },
           vote: {
             title: "Vote",
@@ -539,17 +545,30 @@ const resources = {
             "Write your cards – only you can see them until the presenting round.",
           memberAnonymous:
             "Write your cards – nobody sees them before the presenting round, and nobody ever sees who wrote them.",
+          memberReady:
+            "You're done. Until everyone is, you can still add cards.",
         },
         present: {
           facilitator:
             "Pick who presents next – stack similar cards once everyone has had a turn.",
           member: "When you're picked, walk the room through your cards.",
           anonymous: "Read all cards together and stack similar ones.",
+          you: "You're presenting. When you're through: “Done presenting”.",
+          had: "You've had your turn – now it's the others'.",
+          over: "Everyone has presented. Stack similar cards.",
+        },
+        group: {
+          facilitator:
+            "Everyone stacks similar cards into topics. Move on to the vote once the topics stand.",
+          member:
+            "Drag similar cards onto each other, so you vote on topics, not single cards.",
         },
         vote: {
           facilitator:
             "Everyone votes blind. Move on to the discussion once everyone is done.",
           member: "Spend your votes on the topics you most want to discuss.",
+          memberDone:
+            "All your votes are given. You can still move them until the vote ends.",
         },
         discuss: {
           facilitator: "Walk the top topics and capture action items.",
@@ -722,6 +741,9 @@ const resources = {
         motion: "Always reduce motion",
         motionHelp:
           "New things then appear without motion; they only fade in. Applies even if the device allows motion.",
+        timerSound: "Sound when time is up",
+        timerSoundHelp:
+          "A short sound on this device when the time box runs out; you hear it once when switching on. Browsers only play it once you have clicked or typed in the page since it loaded.",
         languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {
@@ -1013,6 +1035,7 @@ const resources = {
         checkin: "Check-in",
         write: "Schreiben",
         present: "Vorstellen",
+        group: "Gruppieren",
         vote: "Abstimmen",
         discuss: "Diskutieren",
         close: "Abschluss",
@@ -1048,6 +1071,11 @@ const resources = {
           present: {
             title: "Vorstellen",
             description: "Die Karten nacheinander im Team teilen.",
+          },
+          group: {
+            title: "Gruppieren",
+            description:
+              "Alle sortieren ähnliche Karten vor der Abstimmung zu Themen.",
           },
           vote: {
             title: "Abstimmen",
@@ -1413,6 +1441,8 @@ const resources = {
             "Schreib deine Karten – bis zur Vorstellrunde siehst nur du sie.",
           memberAnonymous:
             "Schreib deine Karten – vor der Vorstellrunde sieht sie niemand, und wer sie geschrieben hat, sieht nie jemand.",
+          memberReady:
+            "Du bist fertig. Bis alle so weit sind, kannst du noch Karten schreiben.",
         },
         present: {
           facilitator:
@@ -1420,12 +1450,23 @@ const resources = {
           member: "Wenn du gezogen wirst, stellst du deine Karten vor.",
           anonymous:
             "Lest alle Karten gemeinsam und stapelt ähnliche aufeinander.",
+          you: "Du stellst gerade vor. Wenn du durch bist: „Fertig mit Vorstellen“.",
+          had: "Du warst schon dran – jetzt sind die anderen an der Reihe.",
+          over: "Alle waren dran. Stapelt ähnliche Karten aufeinander.",
+        },
+        group: {
+          facilitator:
+            "Alle stapeln ähnliche Karten zu Themen. Wenn die Themen stehen, geht es zur Abstimmung.",
+          member:
+            "Zieh ähnliche Karten aufeinander, damit ihr über Themen abstimmt statt über einzelne Karten.",
         },
         vote: {
           facilitator:
             "Alle stimmen verdeckt ab. Weiter zur Diskussion, wenn alle fertig sind.",
           member:
             "Verteil deine Stimmen auf die Themen, die du am dringendsten besprechen willst.",
+          memberDone:
+            "Alle Stimmen vergeben. Bis zum Ende der Abstimmung kannst du sie noch umverteilen.",
         },
         discuss: {
           facilitator:
@@ -1604,6 +1645,9 @@ const resources = {
         motion: "Bewegung immer reduzieren",
         motionHelp:
           "Neues erscheint dann ohne Bewegung, es wird nur eingeblendet. Gilt auch, wenn das Gerät Bewegung zulässt.",
+        timerSound: "Ton, wenn die Zeit um ist",
+        timerSoundHelp:
+          "Ein kurzer Ton auf diesem Gerät, wenn die Zeitbox abläuft; beim Einschalten hörst du ihn einmal. Browser spielen ihn erst ab, wenn du seit dem Laden einmal in die Seite geklickt oder getippt hast.",
         languageName: { de: "Deutsch", en: "English" },
       },
       pageNotFound: {

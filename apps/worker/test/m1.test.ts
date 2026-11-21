@@ -1,7 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Sebastian Grundhöfer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { env, runDurableObjectAlarm, SELF } from "cloudflare:test";
+import {
+  env,
+  runDurableObjectAlarm,
+  runInDurableObject,
+  SELF,
+} from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import type { ServerEvent } from "@retrobeam/shared";
 import { boardStub } from "../src/board-stub.js";
@@ -558,6 +563,64 @@ describe("timer", () => {
         e.timer.endsAt === null &&
         e.timer.pausedRemainingMs === null,
     );
+  });
+
+  // Owner, 2026-11-21: „Zeit um“ stays until the facilitator moves on, stops
+  // or starts the time box again; it used to vanish with the alarm.
+  it("an ended time box keeps its deadline until the room moves on", async () => {
+    const { boardId, admin } = await boardInPhase("write");
+    admin.socket.send({ type: "admin.timer.start", durationSec: 10 });
+    await admin.socket.waitFor(
+      (e) => e.type === "timer.changed" && e.timer.endsAt !== null,
+    );
+    const stub = boardStub(env, boardId);
+    const past = Date.now() - 1000;
+    await runInDurableObject(stub, (_instance, state) => {
+      state.storage.sql.exec(
+        "UPDATE board_meta SET value = ? WHERE key = 'timerEndsAt'",
+        String(past),
+      );
+    });
+    await runDurableObjectAlarm(stub);
+    await admin.socket.waitFor((e) => e.type === "timer.ended");
+
+    // A reload still reads the ended time box, and the alarm is no longer
+    // armed for it (only the retention deadline, days away).
+    const ben = await joined(boardId, "Ben");
+    expect(ben.sync.timer).toEqual({
+      endsAt: past,
+      pausedRemainingMs: null,
+    });
+    const alarm = await runInDurableObject(stub, (_instance, state) =>
+      state.storage.getAlarm(),
+    );
+    expect(alarm).toBeGreaterThan(Date.now() + 24 * 60 * 60 * 1000);
+
+    // Nothing left to pause; one more minute counts from now.
+    admin.socket.send({ type: "admin.timer.pause" });
+    const refused = await admin.socket.waitForNext((e) => e.type === "reject");
+    if (refused.type !== "reject") throw new Error("unreachable");
+    expect(refused.code).toBe("INVALID");
+    admin.socket.send({ type: "admin.timer.extend", addSec: 60 });
+    const extended = await admin.socket.waitForNext(
+      (e) => e.type === "timer.changed",
+    );
+    if (extended.type !== "timer.changed") throw new Error("unreachable");
+    expect(extended.timer.endsAt).toBeGreaterThanOrEqual(
+      extended.serverNow + 60_000,
+    );
+    const armed = await runInDurableObject(stub, (_instance, state) =>
+      state.storage.getAlarm(),
+    );
+    expect(armed).toBe(extended.timer.endsAt);
+
+    // Moving on clears it, as before.
+    await toPhase(admin, "present");
+    const later = await joined(boardId, "Cleo");
+    expect(later.sync.timer).toEqual({
+      endsAt: null,
+      pausedRemainingMs: null,
+    });
   });
 
   it("non-admins cannot touch the timer", async () => {

@@ -24,8 +24,9 @@ test("kudos wall, export and delete-now", async ({ browser }) => {
   await join(ben, "Ben");
   await expect(anna.getByTestId("roster-item")).toHaveCount(2);
 
-  // Walk to the close phase (write → present → vote → discuss → close).
-  for (let i = 0; i < 5; i++) await anna.getByTestId("phase-next").click();
+  // Walk to the close phase (write → present → group → vote → discuss →
+  // close).
+  for (let i = 0; i < 6; i++) await anna.getByTestId("phase-next").click();
   await expect(
     anna.getByRole("heading", { name: /appreciation|wertschätzung/i }),
   ).toBeVisible();

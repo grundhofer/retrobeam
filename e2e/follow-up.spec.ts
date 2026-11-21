@@ -21,8 +21,8 @@ test("a follow-up retro opens on last time's open Action Items", async ({
   const sourceUrl = anna.url();
   await join(anna, "Anna");
 
-  // write → present → vote → discuss
-  for (let step = 0; step < 4; step++) {
+  // write → present → group → vote → discuss
+  for (let step = 0; step < 5; step++) {
     await anna.getByTestId("phase-next").click();
   }
   await expect(anna.getByTestId("action-input")).toBeVisible();

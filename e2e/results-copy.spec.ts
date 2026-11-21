@@ -28,8 +28,8 @@ test("the results copy the summary as HTML and Markdown", async ({
   const composer = page.locator('[data-testid^="composer-"]').first();
   await composer.fill("Deploys are slow");
   await composer.press("Enter");
-  // write → present → vote → discuss → close, then finish
-  for (let i = 0; i < 4; i++) await page.getByTestId("phase-next").click();
+  // write → present → group → vote → discuss → close, then finish
+  for (let i = 0; i < 5; i++) await page.getByTestId("phase-next").click();
   await expect(page.getByTestId("phase-next")).toContainText(/finish|beenden/i);
   await page.getByTestId("phase-next").click();
   await expect(page.getByTestId("results-header")).toBeVisible();

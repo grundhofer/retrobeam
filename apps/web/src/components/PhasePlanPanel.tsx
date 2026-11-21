@@ -19,7 +19,13 @@ export interface PhasePlanPanelProps {
   workingAgreements: string;
 }
 
-const OPTIONAL_PHASES = ["checkin", "vote", "discuss", "close"] as const;
+const OPTIONAL_PHASES = [
+  "checkin",
+  "group",
+  "vote",
+  "discuss",
+  "close",
+] as const;
 const CORE_PHASES = ["write", "present"] as const;
 
 /** The lobby's shared agenda. Core phases stay visible but cannot be removed;
@@ -77,6 +83,7 @@ export function PhasePlanPanel({
     OPTIONAL_PHASES[1],
     OPTIONAL_PHASES[2],
     OPTIONAL_PHASES[3],
+    OPTIONAL_PHASES[4],
   ];
   return (
     <section

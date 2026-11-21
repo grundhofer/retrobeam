@@ -158,6 +158,7 @@ describe("retro phase plan", () => {
     const ben = await joined(boardId, "Ben");
     const phasePlan = {
       checkin: true,
+      group: true,
       vote: false,
       discuss: true,
       close: false,

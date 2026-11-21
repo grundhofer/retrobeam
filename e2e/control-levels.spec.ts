@@ -145,6 +145,7 @@ test("every view keeps one outlined action per area", async ({ browser }) => {
   for (const [phase, name] of [
     [/write|schreiben/i, "write"],
     [/present|vorstellen/i, "present"],
+    [/group|gruppieren/i, "group"],
     [/vote|abstimmen/i, "vote"],
     [/discuss|diskutieren/i, "discuss"],
     [/close|abschluss/i, "close"],

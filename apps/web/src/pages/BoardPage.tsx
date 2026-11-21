@@ -15,8 +15,10 @@ import {
   boardSurface,
   CURSORS_ACTIVATABLE,
   pickerBeforeDraw,
+  pickerFinished,
   PROTOCOL_VERSION,
   rotationExhausted,
+  voteCapacity,
   type BoardInfo,
   type ClientCommand,
   type ServerEvent,
@@ -34,6 +36,7 @@ import {
   PhaseAnnouncer,
   PhaseGuide,
   phaseGuideKey,
+  type GuideSituation,
 } from "../components/PhaseGuide.js";
 import {
   PresentInterlude,
@@ -75,6 +78,11 @@ import {
   saveSessionKey,
 } from "../lib/session.js";
 import { BoardSocket } from "../lib/socket.js";
+import {
+  playTimerSound,
+  timerSoundEnabled,
+  unlockAudio,
+} from "../lib/timerSound.js";
 import { heldDuringDraw, useDrawInFlight } from "../lib/useDrawInFlight.js";
 import { useMissingField } from "../lib/useMissingField.js";
 import { useNarrow } from "../lib/useNarrow.js";
@@ -346,11 +354,29 @@ function Room({
   const rejectHandlers = useRef(new Map<string, () => void>());
   // Whether the first sync after a facilitator link has been checked yet.
   const adminLinkChecked = useRef(false);
+  // When the timer sound last played — see the timer.ended handler.
+  const lastTimerSoundAt = useRef(0);
   // Read through a ref, so a new callback from the gate does not reconnect.
   const onNameTakenRef = useRef(onNameTaken);
   useEffect(() => {
     onNameTakenRef.current = onNameTaken;
   }, [onNameTaken]);
+  // The browser lets audio start only inside a click or key press, so with
+  // the timer sound on, every one of them on the board starts (or, after the
+  // tab was in the background, resumes) the audio the sound will need.
+  // Someone who has not touched the page since loading it hears nothing; the
+  // switch's sentence says so.
+  useEffect(() => {
+    const unlock = () => {
+      if (timerSoundEnabled()) unlockAudio();
+    };
+    document.addEventListener("pointerdown", unlock, true);
+    document.addEventListener("keydown", unlock, true);
+    return () => {
+      document.removeEventListener("pointerdown", unlock, true);
+      document.removeEventListener("keydown", unlock, true);
+    };
+  }, []);
 
   const connection = useMemo<BoardConnection>(
     () => ({
@@ -407,6 +433,17 @@ function Room({
         }
         if (event.type === "timer.changed") {
           setClockOffset(event.serverNow - Date.now());
+        }
+        // The sound comes only from this live event, so a reload after the
+        // time ran out stays quiet. The DO broadcasts timer.ended before it
+        // clears the deadline and leans on an alarm retry that may send it
+        // again; the reducer does not mind, a sound would ring twice.
+        if (event.type === "timer.ended" && timerSoundEnabled()) {
+          const at = Date.now();
+          if (at - lastTimerSoundAt.current > 3000) {
+            lastTimerSoundAt.current = at;
+            playTimerSound();
+          }
         }
         if (event.type === "board.deleted") {
           // The board is gone — stop reconnecting (the DO would 404 anyway).
@@ -530,13 +567,47 @@ function Room({
   // Presenting with a rotation (not on an anonymous board): the presenting
   // round's status row stands above the board instead of the rail.
   const presentRound = state.phase === "present" && !anonymous;
+  // Where you stand, for the action zone's line (owner, 2026-11-20). From
+  // the rotation as shown, so a turning draw names nobody here either; the
+  // votes you can still give count a per-card limit that leaves some of the
+  // budget unspendable (voteCapacity, the server's rule for a full hand).
+  const guideSituation: GuideSituation | null =
+    you === null
+      ? null
+      : {
+          ready: state.readyIds.includes(you.id),
+          turn:
+            presenterId === you.id
+              ? "now"
+              : shownPicker !== null && pickerFinished(shownPicker)
+                ? "over"
+                : (shownPicker?.presented.includes(you.id) ?? false)
+                  ? "had"
+                  : "waiting",
+          votesLeft:
+            state.phase === "vote" && config
+              ? Math.max(
+                  0,
+                  voteCapacity(
+                    config.votesPerPerson,
+                    config.maxPerTarget,
+                    state.notes,
+                  ) - usedVotes,
+                )
+              : null,
+        };
   // The action zone's state sentence: the phase's guide and the time box.
   const timerActive =
     state.timer.endsAt !== null || state.timer.pausedRemainingMs !== null;
   // The facilitator reads the time in the „Moderation“ group, beside its
   // keys; the action zone keeps the time for everyone else.
   const hasStatus =
-    phaseGuideKey({ phase: state.phase, isAdmin, anonymous }) !== null ||
+    phaseGuideKey({
+      phase: state.phase,
+      isAdmin,
+      anonymous,
+      situation: guideSituation,
+    }) !== null ||
     (timerActive && !isAdmin);
   const moderationId = useId();
   const surface = boardSurface(
@@ -1149,6 +1220,7 @@ function Room({
                       phase={state.phase}
                       isAdmin={isAdmin}
                       anonymous={anonymous}
+                      situation={guideSituation}
                     />{" "}
                     {isAdmin ? null : (
                       <TimeLeft timer={state.timer} form="sentence" />

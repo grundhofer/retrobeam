@@ -27,6 +27,10 @@ export async function createBoard(
     columns?: string[];
     locale?: string;
     checkin?: boolean;
+    /** The group phase (owner, 2026-11-20) is on for a new board; the tests
+     *  plan without it unless they ask, so a step from presenting to voting
+     *  stays one step. The group phase has tests of its own. */
+    group?: boolean;
     layout?: "columns" | "canvas";
     anonymous?: boolean;
   } = {},
@@ -37,7 +41,7 @@ export async function createBoard(
   const response = await SELF.fetch("https://example.com/api/boards", {
     method: "POST",
     headers: { "content-type": "application/json", ...ipHeaders() },
-    body: JSON.stringify({ name, ...options }),
+    body: JSON.stringify({ name, group: false, ...options }),
   });
   expect(response.status).toBe(200);
   return (await response.json()) as { boardId: string; adminToken: string };

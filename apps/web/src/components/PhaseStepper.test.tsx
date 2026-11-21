@@ -66,7 +66,7 @@ test("the controls unlock and retarget once the server confirms the phase", asyn
   await next.click();
   expect(sent).toEqual([
     { type: "admin.phase.set", phase: "present" },
-    { type: "admin.phase.set", phase: "vote" },
+    { type: "admin.phase.set", phase: "group" },
   ]);
 });
 
@@ -112,7 +112,7 @@ test("members get no phase controls at all", async () => {
 
 // Below `sm` the old row of phase names was ~560px wide and made every board
 // page on a phone scroll sideways. sebaro's steps share the width instead: the
-// head says "Step 3 of 7 · Present", every phase keeps its bar, and the
+// head says "Step 3 of 8 · Present", every phase keeps its bar, and the
 // current one is marked for screen readers as well.
 test("a phone gets the position and every step within its width", async () => {
   const { view } = harness();
@@ -121,12 +121,12 @@ test("a phone gets the position and every step within its width", async () => {
 
   const head = screen.getByTestId("phase-compact");
   await expect.element(head).toBeVisible();
-  await expect.element(head).toHaveTextContent(/(Step|Schritt) 3 (of|von) 7/);
+  await expect.element(head).toHaveTextContent(/(Step|Schritt) 3 (of|von) 8/);
   const list = screen.getByRole("list");
   await expect.element(list).toBeVisible();
   expect(list.element().getBoundingClientRect().right).toBeLessThanOrEqual(390);
   const steps = list.element().querySelectorAll("li");
-  expect(steps).toHaveLength(7);
+  expect(steps).toHaveLength(8);
   expect(
     list.element().querySelector('[aria-current="step"]')?.textContent,
   ).toMatch(/present|vorstellen/i);

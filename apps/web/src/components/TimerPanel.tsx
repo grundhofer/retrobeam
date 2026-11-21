@@ -66,8 +66,8 @@ export function TimeState({ timer }: { timer: Timer }) {
 
 // The facilitator's time box keys (RB-1): a length to start with, then
 // „Pause“ / „Weiter“, „+1 Min.“ and „Stopp“, all secondary. Members have no
-// keys here; they read the time in the head and the action zone. The chime
-// at the end is gone (owner, 2026-11-05: sebaro's time box has no sound).
+// keys here; they read the time in the head and the action zone. A sound at
+// the end is each person's own choice in the settings (lib/timerSound.ts).
 export function TimerPanel({
   timer,
   isAdmin,
@@ -77,12 +77,31 @@ export function TimerPanel({
 }) {
   const { t } = useTranslation();
   const { send } = useConnection();
+  const clockOffsetMs = useBoardStore((store) => store.clockOffsetMs);
+  const now = useNow();
   if (!isAdmin) return null;
 
-  const running = timer.endsAt !== null;
-  const paused = timer.pausedRemainingMs !== null;
-  const idle = !running && !paused;
+  const box = timeBox(timer, now + clockOffsetMs);
+  const running = box.kind === "running";
+  // „Zeit um“ stays until the facilitator moves on (owner, 2026-11-21), so
+  // its keys are a new length, one more minute from now, and „Stopp“, which
+  // clears the words; nothing is left to pause.
+  const up = box.kind === "up";
+  const idle = box.kind === "idle";
   const key = "sb-text-action sb-text-action--compact";
+  const lengths = [5, 10, 15].map((minutes) => (
+    <button
+      key={minutes}
+      type="button"
+      onClick={() =>
+        send({ type: "admin.timer.start", durationSec: minutes * 60 })
+      }
+      className={key}
+    >
+      {minutes === 5 ? <Icon name="timer" size={20} /> : null}
+      {t("timer.minutes", { count: minutes })}
+    </button>
+  ));
 
   return (
     <div
@@ -92,22 +111,12 @@ export function TimerPanel({
       className="sb-cluster"
     >
       {idle ? (
-        [5, 10, 15].map((minutes) => (
-          <button
-            key={minutes}
-            type="button"
-            onClick={() =>
-              send({ type: "admin.timer.start", durationSec: minutes * 60 })
-            }
-            className={key}
-          >
-            {minutes === 5 ? <Icon name="timer" size={20} /> : null}
-            {t("timer.minutes", { count: minutes })}
-          </button>
-        ))
+        lengths
       ) : (
         <>
-          {running ? (
+          {up ? (
+            lengths
+          ) : running ? (
             <button
               type="button"
               onClick={() => send({ type: "admin.timer.pause" })}

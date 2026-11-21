@@ -27,7 +27,7 @@ export const rotiScoreSchema = z.number().int().min(1).max(5);
  *  running the OLD build — it is told the server's version in `sync` and can
  *  offer a reload rather than quietly misbehaving. Never used to refuse a
  *  connection: locking someone out mid-retro is worse than a stale tab. */
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 7;
 
 /** The published ROTI result, persisted once when the poll closes so every
  *  later read reports the identical pair (see ROTI_MIN_ANONYMOUS). */
