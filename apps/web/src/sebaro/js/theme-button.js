@@ -1,11 +1,11 @@
-// theme-button.js: the labelled button „Hell oder Dunkel“ (D36; behaviour spec/03 §6.2, code spec/09 §6).
+// theme-button.js: the labelled button „Hell oder Dunkel“ (D36; behaviour code).
 // Toggles to the other mode of what is shown. Storing the system's own mode would mean "follow the system", so the
 // choice is removed instead: two presses always return to the system mode. The label never changes; a visually
 // hidden role="status" element ([data-sb-theme-status]) announces the result after a press. Classic script, no
 // modules (pages open from file://), CSP-safe.
 // Messages follow the language of the status element (its closest [lang], else <html lang>): German is the default,
 // English is built in; a page adds a language with window.sbMessages = { "theme-button": { fr: { … } } } before this
-// script (D87, spec/09 §6.1).
+// script (D87).
 (function () {
   var MESSAGES = {
     de: { light: "Hell ist an.", dark: "Dunkel ist an." },
@@ -31,7 +31,7 @@
       else { root.dataset.theme = next; localStorage.setItem("sb-theme", next); }
     } catch (e) { root.dataset.theme = next; }
     var status = document.querySelector("[data-sb-theme-status]");
-    if (status) status.textContent = messages(status)[next];
+    if (status) { var table = messages(status); status.textContent = table[next] != null ? table[next] : MESSAGES.de[next]; }
     document.dispatchEvent(new CustomEvent("sb-theme-change", { detail: { theme: next } }));
   });
 })();

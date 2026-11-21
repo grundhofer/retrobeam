@@ -1,24 +1,25 @@
 # Product declaration contract (sebaroDesign)
 
-Status: v1.3, 2026-11-14 (the Play feature graphic `android/play-feature-1024x500.png` is an output for `android`, the
+Status: v1.4, 2026-11-15 (the tile group `placeholder`, Graphit, the starters' tile until a product picks its own:
+the kit takes it and warns, D150); previous v1.3, 2026-11-14 (the Play feature graphic `android/play-feature-1024x500.png` is an output for `android`, the
 look the owner accepted on 2026-11-14 for five Android apps; `tiles.json` 1.2 brings the font of its name; sebaro
-CHECKS.md §129; previous v1.2, 2026-11-12, stage 6c of the export rework, D147, D148, after the first website and
+previous v1.2, 2026-11-12, stage 6c of the export rework, D147, D148, after the first website and
 desktop app moved: `check` compares the declaration by what it says, the small tile for web and desktop, `NOTICE.md` with the terms of
 the folder, `share` finds Playwright as the raster files do; previous v1.1, 2026-11-12, stage 6a: every profile copy
 brings the kit in `product/`, the kit writes the start of an Android app and one SVG per raster file, a renderer draws
 the raster files; v1.0, 2026-11-11, stage 2: built in the workshop, not shipped in a copy). Machine-readable twin:
-[`product.schema.json`](product.schema.json). Tools: `product_kit.py` 1.3.0 with `sign_geometry.py` (Python 3.10+,
-standard library) and `render.mjs` 1.3.0 (Node 20+, the product's own Playwright, or one a product without a
-Node project names: section 6). In sebaroDesign they are
-`tools/product_kit.py`, `tools/sign_geometry.py` and `tools/product_render.mjs`, and this text is
-`shared/PRODUCT-CONTRACT.md`; a profile copy carries all of them in `product/` (section 1).
+[`product.schema.json`](product.schema.json). Tools: `product_kit.py` 1.4.0 with `sign_geometry.py` (Python 3.10+,
+standard library) and `render.mjs` 1.3.1 (Node 20+, the product's own Playwright, or one a product without a
+Node project names: section 6). A profile copy carries all of them in `product/` (section 1); the maintainers of
+sebaro keep them in their repository, sebaro-foundry, as `tools/product_kit.py`, `tools/sign_geometry.py` and
+`tools/product_render.mjs`, and this text as `shared/PRODUCT-CONTRACT.md`.
 
 A product declares itself in one file of its own repository, `sebaro.product.json`. The kit draws the product's sign
 tile, launcher layers, notification icon, the start of an Android app, favicon SVG, web manifest and head snippet
 from that file and from one data file of the system, and the renderer draws the raster files. The system then no
-longer needs to know the product. Until the product list leaves the system (stage 8), `tools/brand_assets.py` draws
-the same outputs from `brand/signs.json` and `brand.config.json` through the kit's functions, and
-`tools/tests/test_product_kit.py` `Golden` compares the two for every product.
+longer needs to know the product (the product list left the system with stage 8). For the demo's samples
+(`demo/products/`), `tools/brand_assets.py` draws the same outputs from `brand/signs.json` and `brand.config.json`
+through the kit's functions, and `tools/tests/test_product_kit.py` `Golden` compares the two for every sample.
 
 ## 1 Commands
 
@@ -29,8 +30,8 @@ node <copy>/product/render.mjs <folder>                    # the raster files al
 node <copy>/product/render.mjs share <folder> --pages … --out …   # share images of a profile copy (section 6)
 ```
 
-A product needs these four and nothing of the workshop. The kit's third command, `tiles`, is the maintainers'
-(section 9).
+A product needs these four and nothing of the workshop. The kit in the maintainers' repository has a third
+command, `tiles` (section 9); a copy's kit does not offer it (kit 1.3.1).
 
 - `<copy>` is the folder of the system's copy; the kit reads `product/tiles.json` there (section 4) and writes nothing
   into it, no `__pycache__` either. `<folder>` belongs to the product and lies outside the copy; the kit refuses a
@@ -83,13 +84,19 @@ A product needs these four and nothing of the workshop. The kit's third command,
 | `id` | kebab-case. The value of `data-sb-product`, part of the Android resource names (`sb_sign_<id>`, other characters become `_`) and the id in `SebaroProductInfo.kt` |
 | `name` | the product's name as it writes it: the title of the sign and tile SVGs and the manifest's `name` |
 | `shortName` | optional, default `name`: the manifest's `short_name`. Launchers cut labels longer than about 12 characters |
-| `tile` | one of the eight tile groups: `studio`, `collaboration`, `everyday`, `learning`, `tools`, `media`, `money`, `system` (palette `signTiles.groups`, D50, D51). The group gives the tile's ground and the sign's colour, the same in light and dark |
+| `tile` | one of the eight tile groups: `studio`, `collaboration`, `everyday`, `learning`, `tools`, `media`, `money`, `system` (palette `signTiles.groups`, D50, D51), or `placeholder` (below). The group gives the tile's ground and the sign's colour, the same in light and dark |
 | `sign.glyph` | the sign: a non-empty list of paths on the 24-unit grid, the format of `products[].glyph` in a `signs.json` (SIGNS-GUIDE section 2): `d` (SVG path data, arcs allowed), `paint` `"stroke"` or `"fill"`; strokes may set `width`, `cap`, `join`, fills `fillRule`. A stroke without `width` has the system's base stroke |
 | `sign.glyphSmall` | optional simpler drawing for 24 px and below (favicon, notification icon, the small tile). Drawn at the base stroke like `glyph`: the kit applies the heavier stroke of the small sizes |
 | `web` | optional, only with `"web"` in `outputs`: `name` (the manifest's `name` where it differs from `name`), `themeColor` and `backgroundColor` (`#rrggbb`; default the system's light ground), `headThemeColor` (default `true`: the head snippet carries the two `theme-color` tags) and `manifest` |
 | `web.manifest` | Web App Manifest members written as they are (`lang`, `dir`, `id`, `start_url`, `scope`, `display`, `description`, …). Not `name`, `short_name`, `theme_color`, `background_color` or `icons`. Nothing is added: a site that is not installable says `"display": "browser"` itself |
 | `outputs` | one or more of `android`, `web`, `desktop`, each once (section 5) |
 | `$schema`, `$comment` | optional strings |
+
+**The placeholder group (D150).** `placeholder` (Graphit) is the tile of the guide's starters, a neutral that no
+purpose group and no role uses, so a new product's tile and product area do not look like cobalt, which marks the
+selected place, links and focus (core rule 4). It is no purpose group: a product picks its real group before its
+first release. Until then `build` and `check` draw it like any group and print a `warning:` line that names the fix
+(set `tile` to the product's own group, then run `build` again); the warning does not change the exit code.
 
 **Why the sign is a glyph list and not an SVG file.** The geometry code draws exactly this list
 (`sign_geometry.glyph_from_json`), so nothing is lost on the way in. An SVG would pass through `signs.py glyph`, which
@@ -101,7 +108,7 @@ the list by hand, or asks for it.
 
 ## 3 Rules the schema cannot say (the kit checks them)
 
-- `tile` is a group of the copy's `product/tiles.json`. The schema lists sebaro's eight.
+- `tile` is a group of the copy's `product/tiles.json`. The schema lists sebaro's eight and `placeholder`.
 - A stroke's `width` is greater than 0. `width`, `cap` and `join` belong to strokes, `fillRule` to fills.
 - Every `d` parses and draws something.
 - The ink of `glyph` and of `glyphSmall`, stroke included, stays inside the 24-unit box at the base stroke (tolerance
@@ -111,7 +118,8 @@ the list by hand, or asks for it.
 
 The kit reports every problem of a declaration at once. It does **not** compare the sign with other products' signs
 (the 16-px distance of D33) and does not screen it against `shared/sign-references.json`: both need the registry and
-Pillow and stay with `tools/signs.py check` in the workshop.
+Pillow and stay with `tools/signs.py check` in the workshop. A new product's sign passes that 16-px distance check
+there once before the product's first release (SIGNS-GUIDE §8, D149 (7)); no copy checks it.
 
 ## 4 `product/tiles.json` (generated, shipped with a copy)
 
@@ -168,16 +176,36 @@ All paths are relative to `--out`. Every file below is text and is produced with
 
 - `android/res/` mirrors `res/`: an app adds the folder to its resource directories, and `android/kotlin` to its
   Kotlin sources. **Splash (Android 12+):** an app that shows the sebaro start names `Theme.Sebaro.Start` in its
-  manifest (spec/03 of the system) and gets the bare sign on its group's tile colour; `sebaro_splash.xml` is the
+  manifest and gets the bare sign on its group's tile colour; `sebaro_splash.xml` is the
   ground of an app that keeps the platform's own splash with the adaptive launcher icon (BRAND-ASSETS section 2).
 - **The start files were the target's.** Until export 1.30.0 `tools/export_system.py --target android --product
   <id>` wrote the same five files for a listed product, from `brand/inline/sign-<id>.svg`. The kit's were those
   bytes, except the tool the head of the two drawables names; the three values files had no head in either
-  (`test_product_kit` `Golden`, all 17 products, compared a last time before the system stopped listing products:
-  sebaro CHECKS.md §123). Now the kit is their one writer. The symbol's name is the one `SbStartSymbol.kt` of the
+  (`test_product_kit` `Golden`, all 17 products, compared a last time before the system stopped listing products).
+  Now the kit is their one writer. The symbol's name is the one `SbStartSymbol.kt` of the
   copy looks up (`sb_symbol_` + the id with `_` for `-`) and the copy's `res/raw/sebaro_symbols_keep.xml` keeps
-  under resource shrinking (`@drawable/sb_symbol_*`);
+  under resource shrinking (`@drawable/sb_symbol_*`, and since export 1.35.0 `@drawable/sb_sign_*` for the tile);
   the splash symbol is named by the theme.
+- **Android lint**. Three warnings come from this folder in an app's lint run, and the
+  kit keeps the files as they are: **ObsoleteSdkInt** on `mipmap-anydpi-v26/` in an app with `minSdk` 26 or more (the
+  copy's README gives its module `minSdk` 26 and lets an app go lower, and there the qualifier is needed: the
+  adaptive icon is API 26);
+  **VectorRaster** on `sb_splash_symbol_<id>.xml`, larger than lint's 200 dp (the platform's splash icon is 288 dp);
+  **UnusedResources** on the start files (`sb_symbol_<id>`, `sb_splash_symbol_<id>`, `sebaro_start*.xml`,
+  `sebaro_splash.xml`) while the manifest names no `Theme.Sebaro.Start` (`SbStartSymbol` finds `sb_symbol_<id>` by
+  name, which lint does not follow). An app that wants a quiet lint scopes the three to this folder in its own
+  `lint.xml`, never to the whole app:
+
+  ```xml
+  <lint>
+      <issue id="ObsoleteSdkInt"><ignore path="**/sebaro-product/android/res/mipmap-anydpi-v26" /></issue>
+      <issue id="VectorRaster"><ignore path="**/sebaro-product/android/res/drawable/sb_splash_symbol_*.xml" /></issue>
+      <issue id="UnusedResources"><ignore path="**/sebaro-product/android/res/**" /></issue>
+  </lint>
+  ```
+
+  `sebaro-product` is the folder's name in the copy's README; use the app's own. Not run against Android lint in the
+  workshop (no app there).
 - `web/` goes to the site root as it is. The README of a web copy has a table of every file with where a static
   site and an app built by a bundler serve or import it, and the icon step of a desktop app.
 - **Which tile at which size.** The rule is the system's (the same on every platform): the base form at 32 px and
@@ -200,7 +228,8 @@ All paths are relative to `--out`. Every file below is text and is produced with
   the workshop's `generated by tools/brand_assets.py`, and a launcher layer names the file its drawing comes from.
 - `SebaroProductInfo.kt` calls the constructor of the class `SebaroProduct(id, tile)` that `dist/SebaroTheme.kt`
   declares from token contract 1.14 on (stage 3; TOKEN-CONTRACT section 10.2). `test_product_kit` compares the call
-  with the generated constructor, and `test_extract_compose.Compile` compiles the two together. With a theme of
+  with the generated constructor, and the CI build of the Android starter compiles the two together
+  (`.github/workflows/template-android.yml`: `templates/android-compose` with its copy and the kit's files). With a theme of
   contract 1.13 or older, where `SebaroProduct` is an enum of the system's product list, the file does not compile.
 - `product.css` maps the product's id. Markup can also name the group itself, `data-sb-tile="<group>"`, which
   `dist/tokens.css` scopes from token contract 1.14 on (TOKEN-CONTRACT section 10.1); `dist/tokens.css` still carries
@@ -257,7 +286,7 @@ the renderer for two files, the Play icon and the Play feature graphic. Its CI r
 - **The record of the renderer** is `sebaro-product-raster.json` (section 7). A raster file of an earlier run that
   the kit's record no longer lists is removed.
 - **Share images.** A copy of the profile `website` or `webapp` with the pack `share-images` holds the generator
-  `brand/og/render.mjs` (spec/09 §18.1), which reads the sign tile of the page list's product from
+  `brand/og/render.mjs`, which reads the sign tile of the page list's product from
   `brand/inline/tile-<id>.svg` beside itself; a profile copy has no product's tile, so the generator alone exits 2.
   `node <copy>/product/render.mjs share <folder> --pages og-pages.json --out public/og …` copies what the generator
   reads into a temporary folder, adds `sign/tile.svg` of `<folder>` there under the id of its record, runs the
@@ -305,7 +334,8 @@ has the members of `web.manifest` in the order the declaration gives them, so so
 `meaning`: `check` reads it as before, by the sha256 of the bytes, and says in the finding that a build by this kit
 compares what the declaration says. One `build` writes the record of this kit.
 
-Any finding gives exit 1. A build by another kit version whose outputs are still the same is a note, not a finding.
+Any finding gives exit 1. A build by another kit version whose outputs are still the same is a note, not a finding;
+the placeholder tile group is a warning (section 2), not a finding.
 Files in the folder that the kit did not write are not looked at. **Raster files are compared by sha256 only**, of the
 file and of its sources: `check` draws nothing and compares no pixel, so it needs no browser, and a raster drawn by
 another Chromium is up to date as long as its sources are. With `--no-raster` they are not compared at all.
@@ -313,11 +343,19 @@ another Chromium is up to date as long as its sources are. With `--no-raster` th
 ## 8 Versions
 
 `schemaVersion` `"1.0"` · `product/tiles.json` `format` `"1.2"` · record `format` `"1.2"` · raster record `format`
-`"1.0"` · kit 1.3.0 · renderer 1.3.0 (1.3.0: text in a source, the feature graphic's name; 1.2.0: `share` finds
+`"1.0"` · kit 1.4.0 · renderer 1.3.1 (1.4.0: the warning for the tile group `placeholder`; 1.3.1: a copy's kit offers `build` and `check` alone, and the heads name no path of the
+maintainers' repository as the place of this text; 1.3.0: text in a source, the feature graphic's name; 1.2.0: `share` finds
 Playwright as the raster files do; 1.1.0: `$SEBARO_PLAYWRIGHT`, section 6). A change that makes a valid declaration fail is a major version (D16); new
 optional keys and outputs are minor. A changed output changes the kit's version, and `check` then reports the
 product's files as stale until `build` runs again.
 
+- **1.4, text of 2026-11-21:** section 5 names the CI build of the Android starter as what compiles
+  `SebaroProductInfo.kt` with the theme (the test it named left with the Compose extraction). No rule, no output and
+  no version changed.
+- **1.4 (2026-11-15, kit 1.4.0):** the tile group `placeholder` (Graphit, D150) in the schema's `tile` and in
+  `tiles.json`, the starters' tile until a product picks its own; `build` and `check` take it and print a warning
+  that names the fix, the exit code stays. A declaration is valid unchanged and the kit's outputs are the same; every
+  folder is stale against a copy with the new `tiles.json` (a ninth group) until `build` runs again.
 - **1.3 (2026-11-14, kit 1.3.0, renderer 1.3.0):** the Play feature graphic `android/play-feature-1024x500.png` for
   `android` (section 6), its source `render/android/play-feature-1024x500.svg`; `tiles.json` 1.2 with `font`, the name
   font; the renderer sets a text of a source in its own font and room (`data-sb-fit`). A declaration is valid
@@ -339,4 +377,5 @@ product's files as stale until `build` runs again.
 A product needs nothing of this section. `python3 tools/product_kit.py tiles sebaro --out <copy>` writes
 `<copy>/product/tiles.json` (section 4) from the sources of a system: `dist/tokens.json`, `brand/brand.config.json`
 and `brand/signs.json`. No copy holds those sources; the export writes the file into every profile copy, and a
-product never runs the command (in a copy it ends with exit 2 and says so).
+product never runs the command: since kit 1.3.1 it is offered only where the kit stands in `tools/` beside
+`systems/`, and in a copy `tiles` is no command (`--help` shows `build` and `check`; `tiles` is exit 2).
