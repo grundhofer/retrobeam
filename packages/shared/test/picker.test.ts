@@ -3,8 +3,10 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  drawInFlight,
   EMPTY_PICKER,
   mulberry32,
+  pickerBeforeDraw,
   pickerFinished,
   pickerKnows,
   pickerStateSchema,
@@ -16,6 +18,7 @@ import {
   withAllRevealed,
   withPresenterRevealed,
   type PickerState,
+  type WheelSpin,
 } from "../src/domain/picker.js";
 
 describe("mulberry32", () => {
@@ -223,5 +226,46 @@ describe("presenter reveal bookkeeping", () => {
     });
     expect(legacy.revealed).toEqual([]);
     expect(legacy.revealedAll).toBe(false);
+  });
+});
+
+describe("a draw in flight", () => {
+  const spin: WheelSpin = {
+    pool: ["anna", "ben"],
+    winnerId: "ben",
+    seed: 1,
+    startAt: 10_000,
+    durationMs: 5_000,
+  };
+
+  it("turns until the wheel lands, on this device's clock", () => {
+    // This device runs 2 s behind the server: the wheel lands at 13 s local.
+    expect(drawInFlight(spin, 12_999, 2_000, false)).toBe(true);
+    expect(drawInFlight(spin, 13_000, 2_000, false)).toBe(false);
+    expect(drawInFlight(null, 0, 0, false)).toBe(false);
+  });
+
+  it("lands at once in a still scene", () => {
+    // Reduced motion shows the winner straight away, so nothing is held.
+    expect(drawInFlight(spin, 0, 0, true)).toBe(false);
+  });
+
+  it("puts the winner back in line and nobody on stage", () => {
+    const drawn: PickerState = {
+      ...EMPTY_PICKER,
+      remaining: ["cara"],
+      presented: ["anna"],
+      current: "ben",
+      revealed: ["anna", "ben"],
+    };
+    expect(pickerBeforeDraw(drawn, "ben")).toEqual({
+      ...drawn,
+      current: null,
+      remaining: ["cara", "ben"],
+      // still marked „not shown yet“ on the facilitator's screen
+      revealed: ["anna"],
+    });
+    // A picker that moved on since (another draw, a skip) is left alone.
+    expect(pickerBeforeDraw(drawn, "cara")).toBe(drawn);
   });
 });

@@ -221,6 +221,97 @@ test("focus mode walks the presenter's cards on every screen", async ({
   await benContext.close();
 });
 
+// The wheel turns for real here (no reduced motion): the server commits the
+// draw at once and sends the winner's cards with the spin, but the board
+// behind the overlay must not show who it is before the wheel lands, and focus
+// mode must not drop to the whole board between two people (owner,
+// 2026-11-20).
+test("focus mode holds a stage between people and the draw spoils nothing", async ({
+  browser,
+}) => {
+  test.setTimeout(60_000);
+  const annaContext = await newContext(browser);
+  const anna = await annaContext.newPage();
+  await anna.goto("/new");
+  await anna.getByRole("textbox").fill("Sprint 47 retro");
+  await anna
+    .getByRole("button", { name: /create board|board erstellen/i })
+    .click();
+  await expect(anna).toHaveURL(/\/board\/[0-9a-f]{32}$/);
+  const boardUrl = anna.url();
+  await join(anna, "Anna");
+  const benContext = await newContext(browser);
+  const ben = await benContext.newPage();
+  await ben.goto(boardUrl);
+  await join(ben, "Ben");
+  const caraContext = await newContext(browser);
+  const cara = await caraContext.newPage();
+  await cara.goto(boardUrl);
+  await join(cara, "Cara");
+
+  await anna.getByTestId("phase-next").click();
+  const people = [
+    [anna, "Anna's card"],
+    [ben, "Ben's card"],
+    [cara, "Cara's card"],
+  ] as const;
+  for (const [page, text] of people) {
+    const composer = page
+      .getByPlaceholder(/write a note|notiz schreiben/i)
+      .first();
+    await composer.fill(text);
+    await composer.press("Enter");
+  }
+  await anna.getByTestId("phase-next").click(); // present
+  await anna.getByTestId("focus-mode-toggle").click();
+
+  // Before the first draw: the stage, not the board.
+  await expect(ben.getByTestId("present-interlude")).toBeVisible();
+  await expect(ben.getByTestId("column-strip")).toHaveCount(0);
+
+  // While the wheel turns, nobody is on stage on any screen — the
+  // facilitator's, which the room watches, included.
+  await anna.getByTestId("spin-button").click();
+  for (const page of [anna, ben, cara]) {
+    await expect(page.getByTestId("wheel-overlay")).toBeVisible();
+    await expect(page.getByTestId("wheel-winner")).toHaveCount(0);
+    await expect(page.getByTestId("presenter-banner")).toHaveCount(0);
+    await expect(page.getByTestId("present-stage")).toHaveCount(0);
+    await expect(page.getByTestId("present-interlude")).toBeAttached();
+  }
+
+  // Landed: the winner is on stage everywhere, with their first card.
+  await expect(anna.getByTestId("wheel-winner")).toBeVisible({
+    timeout: 15_000,
+  });
+  const winner = /Anna/.test(await anna.getByTestId("wheel-winner").innerText())
+    ? 0
+    : /Ben/.test(await anna.getByTestId("wheel-winner").innerText())
+      ? 1
+      : 2;
+  const [presenter, presenterCard] = people[winner];
+  // Somebody who is neither the facilitator nor the winner.
+  const watcher = winner === 1 ? cara : ben;
+  await expect(watcher.getByTestId("present-stage")).toContainText(
+    presenterCard,
+  );
+  await anna.getByTestId("wheel-overlay").waitFor({ state: "hidden" });
+  await presenter.getByTestId("wheel-overlay").waitFor({ state: "hidden" });
+
+  // „Fertig mit Vorstellen“: still the stage, now asking who is next.
+  await presenter.getByTestId("present-done").click();
+  const interlude = watcher.getByTestId("present-interlude");
+  await expect(interlude).toBeVisible();
+  await expect(interlude.getByRole("heading")).toHaveText(
+    /who presents next|wer stellt als nächstes vor/i,
+  );
+  await expect(watcher.getByTestId("column-strip")).toHaveCount(0);
+
+  await annaContext.close();
+  await benContext.close();
+  await caraContext.close();
+});
+
 async function join(page: Page, name: string): Promise<void> {
   await page.getByRole("textbox").fill(name);
   await page.getByRole("button", { name: /^(join|beitreten)$/i }).click();

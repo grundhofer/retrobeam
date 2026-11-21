@@ -770,20 +770,19 @@ function DiscussStage({
   );
   const single = deciding.focusId !== null;
   const order = readingOrder(!anonymous);
+  // One card beside another never, not even for the top topics before one is
+  // picked: they stand one under the other, in their order, so the shared
+  // screen reads as one card at a time (owner, 2026-11-20; it was a grid).
   return (
     <div
       data-testid="discuss-stage"
       aria-live="polite"
       aria-atomic={single}
-      className={`mx-auto w-full ${single ? "max-w-3xl" : "max-w-5xl"}`}
+      className="mx-auto w-full max-w-3xl"
     >
-      <ol
-        className={
-          single
-            ? "sb-stack"
-            : "grid grid-cols-[repeat(auto-fill,minmax(min(15rem,100%),1fr))] gap-x-4 gap-y-3"
-        }
-      >
+      {/* A group's gap between topics: each is its own column label, card
+          and vote line, and they must not run into each other. */}
+      <ol className="sb-stack sb-stack--group">
         {targetIds.map((targetId, index) => {
           const members = notes
             .filter((n) => n.id === targetId || n.groupId === targetId)
