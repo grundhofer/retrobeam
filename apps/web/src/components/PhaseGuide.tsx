@@ -4,7 +4,15 @@
 import { useTranslation } from "react-i18next";
 import type { Phase } from "@retrobeam/shared";
 
-const GUIDED = ["checkin", "write", "present", "vote", "discuss", "close"];
+const GUIDED = [
+  "checkin",
+  "write",
+  "present",
+  "group",
+  "vote",
+  "discuss",
+  "close",
+];
 
 /** Where you stand right now, for a line that fits it (owner, 2026-11-20:
  *  „Wenn du gezogen wirst …“ told the person presenting, and „Verteil deine

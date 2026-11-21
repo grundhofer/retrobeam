@@ -159,7 +159,8 @@ export function BoardColumns(props: BoardColumnsProps) {
   }
 
   // Reorganizing is frozen once voting starts (stacks are votables).
-  const allowColumnDrop = phase === "write" || phase === "present";
+  const allowColumnDrop =
+    phase === "write" || phase === "present" || phase === "group";
   // The finished board is frozen for the facilitator too — the server refuses
   // every column command in "done", so the controls would only earn a reject
   // and a resync. It is rendered read-only on the results page.

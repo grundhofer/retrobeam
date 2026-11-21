@@ -10,6 +10,7 @@ import { PhasePlanPanel } from "./PhasePlanPanel.js";
 
 const plan = {
   checkin: false,
+  group: true,
   vote: true,
   discuss: true,
   close: true,
@@ -100,4 +101,27 @@ test("a previously started retro keeps the plan locked in the lobby", async () =
 
   await expect.element(screen.getByTestId("phase-plan-checkin")).toBeDisabled();
   await expect.element(screen.getByTestId("phase-plan-hint")).toBeVisible();
+});
+
+// The group phase (owner, 2026-11-20) is optional, between presenting and
+// voting, and on for a new board.
+test("the group phase sits between presenting and voting and can be left out", async () => {
+  const sent: ClientCommand[] = [];
+  const screen = await render(view(sent));
+  const ids = [
+    ...screen.container.querySelectorAll<HTMLInputElement>(
+      '[data-testid^="phase-plan-"][type="checkbox"]',
+    ),
+  ].map((input) => input.dataset.testid);
+  expect(ids.indexOf("phase-plan-group")).toBe(
+    ids.indexOf("phase-plan-present") + 1,
+  );
+  expect(ids.indexOf("phase-plan-vote")).toBe(
+    ids.indexOf("phase-plan-group") + 1,
+  );
+  await expect.element(screen.getByTestId("phase-plan-group")).toBeChecked();
+  await screen.getByTestId("phase-plan-group").click();
+  expect(sent).toEqual([
+    { type: "admin.phasePlan.set", phasePlan: { ...plan, group: false } },
+  ]);
 });

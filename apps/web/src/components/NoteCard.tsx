@@ -179,9 +179,10 @@ export function NoteCard({
   const canEdit =
     interactive && mine && (phase === "write" || phase === "present");
   const canDelete = interactive && (mine || isAdmin) && phase !== "done";
-  // Reorganizing (drag to group/move, unstack) happens in write (own notes)
-  // and present (everyone) — frozen once voting starts, stacks are votables.
-  const canCurate = interactive && phase === "present";
+  // Reorganizing (drag to group/move, unstack) happens in write (own notes),
+  // present and the group phase after it (everyone) — frozen once voting
+  // starts, stacks are votables.
+  const canCurate = interactive && (phase === "present" || phase === "group");
   // Whether this card may be moved at all — the server's note.move gate.
   const canMove = interactive && (canCurate || (phase === "write" && mine));
   // The canvas positions cards via a pointer-drag wrapper, so it turns off the
@@ -190,7 +191,7 @@ export function NoteCard({
   // Same gates as the gestures they stand in for: a card may be moved exactly
   // when it may be dragged — by the card's own drag or the canvas wrapper's,
   // hence canMove, not canDrag — and stacked only where a drop on a card is
-  // taken (the presenting phase — the server refuses note.group anywhere else).
+  // taken (presenting and grouping — the server refuses note.group elsewhere).
   const moveOptions =
     canMove && onMoveToColumn !== null
       ? moveTargets.filter(

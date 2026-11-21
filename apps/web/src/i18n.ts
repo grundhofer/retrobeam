@@ -152,6 +152,7 @@ const resources = {
         checkin: "Check-in",
         write: "Write",
         present: "Present",
+        group: "Group",
         vote: "Vote",
         discuss: "Discuss",
         close: "Close",
@@ -186,6 +187,11 @@ const resources = {
           present: {
             title: "Present",
             description: "Share the cards one person at a time.",
+          },
+          group: {
+            title: "Group",
+            description:
+              "Everyone sorts similar cards into topics before the vote.",
           },
           vote: {
             title: "Vote",
@@ -548,6 +554,12 @@ const resources = {
           you: "You're presenting. When you're through: “Done presenting”.",
           had: "You've had your turn – now it's the others'.",
           over: "Everyone has presented. Stack similar cards.",
+        },
+        group: {
+          facilitator:
+            "Everyone stacks similar cards into topics. Move on to the vote once the topics stand.",
+          member:
+            "Drag similar cards onto each other, so you vote on topics, not single cards.",
         },
         vote: {
           facilitator:
@@ -1018,6 +1030,7 @@ const resources = {
         checkin: "Check-in",
         write: "Schreiben",
         present: "Vorstellen",
+        group: "Gruppieren",
         vote: "Abstimmen",
         discuss: "Diskutieren",
         close: "Abschluss",
@@ -1053,6 +1066,11 @@ const resources = {
           present: {
             title: "Vorstellen",
             description: "Die Karten nacheinander im Team teilen.",
+          },
+          group: {
+            title: "Gruppieren",
+            description:
+              "Alle sortieren ähnliche Karten vor der Abstimmung zu Themen.",
           },
           vote: {
             title: "Abstimmen",
@@ -1428,6 +1446,12 @@ const resources = {
           you: "Du stellst gerade vor. Wenn du durch bist: „Fertig mit Vorstellen“.",
           had: "Du warst schon dran – jetzt sind die anderen an der Reihe.",
           over: "Alle waren dran. Stapelt ähnliche Karten aufeinander.",
+        },
+        group: {
+          facilitator:
+            "Alle stapeln ähnliche Karten zu Themen. Wenn die Themen stehen, geht es zur Abstimmung.",
+          member:
+            "Zieh ähnliche Karten aufeinander, damit ihr über Themen abstimmt statt über einzelne Karten.",
         },
         vote: {
           facilitator:

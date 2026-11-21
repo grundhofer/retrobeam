@@ -806,9 +806,14 @@ export function BoardCanvas({
     if (!fit) return preferred ?? { x: 0.5, y: 0.5 };
     return nearestOpenCanvasPosition(preferred, fit.occupied, fit.size);
   }
+  // New cards are written while writing and presenting, as the server
+  // allows; the group phase only sorts what is there.
+  const canWrite = phase === "write" || phase === "present";
   function canMove(note: Note): boolean {
     return (
-      phase === "present" || (phase === "write" && note.authorId === you.id)
+      phase === "present" ||
+      phase === "group" ||
+      (phase === "write" && note.authorId === you.id)
     );
   }
   function beginDrag(event: React.PointerEvent, note: Note) {
@@ -1215,26 +1220,28 @@ export function BoardCanvas({
             cards fill rows instead of crowding round the middle). Out here, not in each zone's head: the head is drawn in the
             zoomed world, where a key cannot keep its size (owner,
             2026-11-05). */}
-        <Menu
-          label={t("canvas.addNoteMenu")}
-          trigger={{ text: t("canvas.addNote"), icon: "plus" }}
-          triggerTestId="canvas-add-note"
-          menuTestId="canvas-add-note-menu"
-          items={ordered.map((column) => ({
-            key: column.id,
-            label: t("canvas.addNoteIn", { name: column.name }),
-            testId: `canvas-add-note-${column.id}`,
-            onSelect: () => {
-              // The zone's first free place; in a full zone its bottom,
-              // where the canvas makes room when the card is added.
-              setComposing({
-                columnId: column.id,
-                packed: true,
-                ...(openPosition(column.id, null) ?? { x: 0.5, y: 1 }),
-              });
-            },
-          }))}
-        />
+        {canWrite ? (
+          <Menu
+            label={t("canvas.addNoteMenu")}
+            trigger={{ text: t("canvas.addNote"), icon: "plus" }}
+            triggerTestId="canvas-add-note"
+            menuTestId="canvas-add-note-menu"
+            items={ordered.map((column) => ({
+              key: column.id,
+              label: t("canvas.addNoteIn", { name: column.name }),
+              testId: `canvas-add-note-${column.id}`,
+              onSelect: () => {
+                // The zone's first free place; in a full zone its bottom,
+                // where the canvas makes room when the card is added.
+                setComposing({
+                  columnId: column.id,
+                  packed: true,
+                  ...(openPosition(column.id, null) ?? { x: 0.5, y: 1 }),
+                });
+              },
+            }))}
+          />
+        ) : null}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -1384,6 +1391,7 @@ export function BoardCanvas({
                   }}
                   onDoubleClick={(event) => {
                     if (
+                      !canWrite ||
                       (event.target as HTMLElement).closest(
                         "[data-testid='note-card'], [data-canvas-composer]",
                       )
@@ -1521,7 +1529,8 @@ export function BoardCanvas({
                     />
                   ) : null}
 
-                  {zoneNotes.length === 0 &&
+                  {canWrite &&
+                  zoneNotes.length === 0 &&
                   composing?.columnId !== column.id ? (
                     <p className="sb-card__meta pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center">
                       {t("canvas.hint")}

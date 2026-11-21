@@ -362,3 +362,42 @@ test("the speaker's card is the current one", async () => {
     .element(screen.getByTestId("note-card"))
     .toHaveAttribute("aria-current", "true");
 });
+
+// The group phase (owner, 2026-11-20): everyone may stack any card, as in the
+// presenting round; once voting starts the topics hold still.
+test("in the group phase anyone can stack a card; in the vote nobody can", async () => {
+  const other: Note = { ...note(anna.id), id: "e".repeat(32), text: "CI" };
+  const connection = {
+    boardId: "a".repeat(32),
+    send: (_command: ClientCommand) => {},
+    mutate: (
+      _command: ClientCommand,
+      _optimistic: ServerEvent | ServerEvent[],
+    ) => {},
+  };
+  const card = (phase: "group" | "vote") => (
+    <ConnectionProvider value={connection}>
+      <NoteCard
+        note={note(anna.id)}
+        roster={[anna, ben]}
+        you={ben}
+        phase={phase}
+        isAdmin={false}
+        revealIndex={0}
+        presenterId={null}
+        unpresentedAuthorIds={null}
+        gifsEnabled={false}
+        onDropNote={() => {}}
+        onUngroup={() => {}}
+        stackCandidates={[other]}
+      />
+    </ConnectionProvider>
+  );
+  const grouping = await render(card("group"));
+  await grouping.getByTestId("note-arrange-toggle").click();
+  await expect.element(grouping.getByTestId("note-stack-option")).toBeVisible();
+  await grouping.unmount();
+
+  const voting = await render(card("vote"));
+  expect(voting.getByTestId("note-arrange-toggle").elements()).toHaveLength(0);
+});
