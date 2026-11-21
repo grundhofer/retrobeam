@@ -37,6 +37,40 @@ export interface PresenterFocusProps {
   pickerStyle: PickerStyle;
 }
 
+// Focus mode with nobody on stage while the round still has people to call:
+// before the first draw, while a draw turns, after „Fertig mit Vorstellen“.
+// The room keeps a calm stage that says what comes next instead of the whole
+// board flashing up on the shared screen (owner, 2026-11-20). The facilitator
+// calls the next person from the „Moderation“ row above, so the stage carries
+// no key of its own; it only says where to find one.
+export function PresentInterlude({
+  isAdmin,
+  first,
+}: {
+  isAdmin: boolean;
+  /** nobody has presented yet in this round */
+  first: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      data-testid="present-interlude"
+      className="sb-stack mx-auto w-full max-w-2xl"
+    >
+      <h2 className="sb-section__title m-0">
+        {t(first ? "present.interlude.first" : "present.interlude.next")}
+      </h2>
+      <p className="sb-card__meta">
+        {t(
+          isAdmin
+            ? "present.interlude.facilitator"
+            : "present.interlude.member",
+        )}
+      </p>
+    </div>
+  );
+}
+
 // The readable "reader" for the presenting round: instead of hunting a sprawling
 // board, everyone sees ONLY the current presenter's cards, grouped by zone, in
 // one calm centered column. Read-only (reactions kept).
