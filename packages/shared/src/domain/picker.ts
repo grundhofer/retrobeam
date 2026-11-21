@@ -140,6 +140,46 @@ export const wheelSpinSchema = z.object({
 });
 export type WheelSpin = z.infer<typeof wheelSpinSchema>;
 
+// Whether a draw is still turning on this screen: the wheel (or reels, or
+// deck) has not landed yet, so the room does not know the winner. The server
+// commits the draw at once — `picker.current` is the winner and their cards
+// are sent along with the spin frame — so a screen that rendered the board
+// from the raw state would show who it is behind the turning wheel (owner,
+// 2026-11-20). `localNow` is this device's clock; `clockOffsetMs` maps the
+// server's `startAt` onto it, as the overlay does. A still scene (reduced
+// motion) lands at once, so nothing is held there.
+export function drawInFlight(
+  spin: WheelSpin | null,
+  localNow: number,
+  clockOffsetMs: number,
+  reducedMotion: boolean,
+): boolean {
+  if (spin === null || reducedMotion) return false;
+  return localNow < spin.startAt - clockOffsetMs + spin.durationMs;
+}
+
+// The rotation as it stood before an in-flight draw, for what the board shows
+// while the wheel turns: nobody on stage, the winner still waiting and not yet
+// shown — on the facilitator's screen, which the room watches, the winner's
+// cards would otherwise lose their „Nicht vorgestellt“ mark mid-spin. Only
+// what is drawn changes; the server's state stays as it is. A winner who was
+// skipped and drawn again was shown before; they wear the mark again for the
+// length of the turn, which reveals nothing.
+export function pickerBeforeDraw(
+  picker: PickerState,
+  winnerId: string,
+): PickerState {
+  if (picker.current !== winnerId) return picker;
+  return {
+    ...picker,
+    current: null,
+    remaining: picker.remaining.includes(winnerId)
+      ? picker.remaining
+      : [...picker.remaining, winnerId],
+    revealed: picker.revealed.filter((id) => id !== winnerId),
+  };
+}
+
 // Tiny deterministic PRNG — all animation randomness (turn count, in-segment
 // jitter) derives from the broadcast seed, never from local Math.random().
 export function mulberry32(seed: number): () => number {

@@ -14,7 +14,9 @@ import { Link, useMatch, useParams } from "react-router";
 import {
   boardSurface,
   CURSORS_ACTIVATABLE,
+  pickerBeforeDraw,
   PROTOCOL_VERSION,
+  rotationExhausted,
   type BoardInfo,
   type ClientCommand,
   type ServerEvent,
@@ -33,7 +35,10 @@ import {
   PhaseGuide,
   phaseGuideKey,
 } from "../components/PhaseGuide.js";
-import { PresenterFocus } from "../components/PresenterFocus.js";
+import {
+  PresentInterlude,
+  PresenterFocus,
+} from "../components/PresenterFocus.js";
 import { FocusToggle } from "../components/FocusToggle.js";
 import { InviteButton } from "../components/InviteButton.js";
 import { CheckinPanel } from "../components/CheckinPanel.js";
@@ -75,6 +80,7 @@ import {
   timerSoundEnabled,
   unlockAudio,
 } from "../lib/timerSound.js";
+import { heldDuringDraw, useDrawInFlight } from "../lib/useDrawInFlight.js";
 import { useMissingField } from "../lib/useMissingField.js";
 import { useNarrow } from "../lib/useNarrow.js";
 import { useBoardStore } from "../store/boardStore.js";
@@ -518,11 +524,37 @@ function Room({
   // above the board instead of the side rail.
   const roundPhase = state.phase === "write" || state.phase === "vote";
 
+  // While a draw is still turning, the board shows the rotation as it stood
+  // before it: nobody on stage, the winner's cards not there yet. The server
+  // has committed the draw already and sends their cards with the spin, but
+  // the overlay's scrim lets the board show through — „Gerade: Anna“ and her
+  // first card were readable behind the turning wheel (owner, 2026-11-20).
+  // The facilitator's own controls keep the real rotation (PickerControls).
+  const drawing = useDrawInFlight();
+  const shownPicker = useMemo(
+    () =>
+      state.picker !== null && drawing !== null
+        ? pickerBeforeDraw(state.picker, drawing)
+        : state.picker,
+    [state.picker, drawing],
+  );
+  const heldAuthorId = heldDuringDraw(
+    drawing,
+    { id: you?.id, isAdmin },
+    state.picker?.revealedAll ?? false,
+  );
+  const shownNotes = useMemo(
+    () =>
+      heldAuthorId === null
+        ? state.notes
+        : state.notes.filter((note) => note.authorId !== heldAuthorId),
+    [state.notes, heldAuthorId],
+  );
   // Which surface the board area renders: classic columns, the freeform canvas,
   // or the presenter reader. Canvas is confined to write + the between-presenters
   // overview; everything read/voted/discussed routes to the structured columns.
   const presenterId =
-    state.phase === "present" ? (state.picker?.current ?? null) : null;
+    state.phase === "present" ? (shownPicker?.current ?? null) : null;
   const layout = config?.layout ?? "columns";
   // The facilitator's presentation switch: non-active cards are hidden rather
   // than dimmed. Purely a rendering decision — the server sends the same cards
@@ -551,6 +583,9 @@ function Room({
     // switch still bites in the discussion phase, which selects cards by
     // target id and does not care who wrote what.
     config?.anonymous ?? false,
+    // Somebody can still be called up: the stage between two people holds.
+    shownPicker === null ||
+      (!shownPicker.revealedAll && !rotationExhausted(shownPicker)),
   );
   const narrow = useNarrow();
   // sebaro's pointers (RB-5) are aria-hidden; the action zone says how many
@@ -575,15 +610,16 @@ function Room({
   // the round entirely, and on an anonymous board, where nothing is scoped and
   // authorship is stripped anyway.
   const unpresentedAuthorIds = useMemo(() => {
-    if (!isAdmin || state.phase !== "present" || state.picker === null) {
+    // The rotation as shown: during a draw the winner keeps the mark.
+    if (!isAdmin || state.phase !== "present" || shownPicker === null) {
       return null;
     }
-    if (state.picker.revealedAll || (config?.anonymous ?? false)) return null;
-    const shown = new Set(state.picker.revealed);
+    if (shownPicker.revealedAll || (config?.anonymous ?? false)) return null;
+    const shown = new Set(shownPicker.revealed);
     return new Set(
       state.roster.map((p) => p.id).filter((id) => !shown.has(id)),
     );
-  }, [isAdmin, config?.anonymous, state.phase, state.picker, state.roster]);
+  }, [isAdmin, config?.anonymous, state.phase, shownPicker, state.roster]);
   // Whether the presenting round is actually pacing the reveal — false on an
   // anonymous board and once the board has been handed over, so the rail does
   // not promise a staged reveal that is not happening.
@@ -1017,7 +1053,7 @@ function Room({
                   {presentRound ? (
                     <PresentStatus
                       roster={state.roster}
-                      picker={state.picker}
+                      picker={shownPicker}
                       you={you}
                       isAdmin={isAdmin}
                       scopedRound={scopedRound}
@@ -1043,7 +1079,7 @@ function Room({
                       {surface === "canvas" && !narrow ? (
                         <BoardCanvas
                           columns={state.columns}
-                          notes={state.notes}
+                          notes={shownNotes}
                           columnCounts={state.columnCounts}
                           canvasOccupancy={state.canvasOccupancy}
                           roster={state.roster}
@@ -1058,9 +1094,14 @@ function Room({
                           cursorsEnabled={cursorsShown}
                           canvasHeight={state.config?.canvasHeight ?? 1}
                         />
+                      ) : surface === "between" ? (
+                        <PresentInterlude
+                          isAdmin={isAdmin}
+                          first={(shownPicker?.presented.length ?? 0) === 0}
+                        />
                       ) : surface === "focus" && presenter ? (
                         <PresenterFocus
-                          notes={state.notes}
+                          notes={shownNotes}
                           columns={state.columns}
                           roster={state.roster}
                           you={you}
@@ -1069,13 +1110,13 @@ function Room({
                           presenter={presenter}
                           spotlightId={state.spotlightId}
                           focusMode={focusMode}
-                          picker={state.picker}
+                          picker={shownPicker}
                           pickerStyle={pickerStyle}
                         />
                       ) : (
                         <BoardColumns
                           columns={state.columns}
-                          notes={state.notes}
+                          notes={shownNotes}
                           columnCounts={state.columnCounts}
                           roster={state.roster}
                           you={you}

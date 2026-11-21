@@ -14,7 +14,7 @@ import {
 import "../i18n.js";
 import { ConnectionProvider } from "../lib/connection.js";
 import { useBoardStore } from "../store/boardStore.js";
-import { toneIndex, WheelOverlay } from "./WheelOverlay.js";
+import { toneIndex, WheelOverlay, wheelLabel } from "./WheelOverlay.js";
 
 // sebaro (plan §2.4 F7): the choosing moment is drawn flat, in a modal
 // dialog, without the participants' own colours and without confetti; since
@@ -213,4 +213,30 @@ test("„Schließen“ is the dialog's last key and closes it", async () => {
   await expect
     .poll(() => spin.getByTestId("wheel-overlay").elements().length)
     .toBe(0);
+});
+
+// A 36-character name was condensed into its wedge until it was a smear
+// (owner, 2026-11-20). It now stands in two lines where the wedge allows.
+test("a long name with a space stands in two lines, uncondensed", () => {
+  const label = wheelLabel("Maximiliane-Sophie Oberbürgermeister", 3);
+  expect(label.lines).toEqual(["Maximiliane-Sophie", "Oberbürgermeister"]);
+  expect(label.condensed).toEqual([false, false]);
+  expect(label.fontSize).toBeGreaterThanOrEqual(8.5);
+});
+
+test("a short name keeps one line, and a name that fits nowhere is condensed whole", () => {
+  expect(wheelLabel("Anna", 3)).toMatchObject({
+    lines: ["Anna"],
+    condensed: [false],
+  });
+  // No space to split at: one line, condensed, but the whole name.
+  const unbroken = "Maximilianesophieoberbuergermeisterin";
+  expect(wheelLabel(unbroken, 3)).toMatchObject({
+    lines: [unbroken],
+    condensed: [true],
+  });
+  // Fifteen wedges are too narrow for two lines: one condensed line.
+  expect(
+    wheelLabel("Maximiliane-Sophie Oberbürgermeister", 15).lines,
+  ).toHaveLength(1);
 });

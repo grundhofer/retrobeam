@@ -211,6 +211,8 @@ test("an anonymous board names nobody — not even you, on your own card", async
     const card = anonymous.getByTestId("note-card").elements().at(-1);
     expect(card?.textContent).toContain("Deploys are slow");
     expect(card?.textContent).not.toContain("Ben");
+    // Nor by colour: no author, no ring (owner, 2026-11-20).
+    expect(card?.querySelector('[data-testid="person-ring"]')).toBeNull();
   } finally {
     useBoardStore.getState().reset();
   }
@@ -278,7 +280,6 @@ test("editing a card can add a GIF it was written without", async () => {
   const sent: ClientCommand[] = [];
   const screen = await render(editView(null, sent));
 
-  await screen.getByTestId("note-menu").click();
   await screen.getByTestId("note-edit").click();
   await screen.getByTestId("note-edit-gif").click();
   await screen.getByTestId("gif-search").fill("ship it");
@@ -298,7 +299,6 @@ test("editing a card can drop its GIF, and never adds one to an emptied text", a
   const sent: ClientCommand[] = [];
   const screen = await render(editView(GIF_A, sent));
 
-  await screen.getByTestId("note-menu").click();
   await screen.getByTestId("note-edit").click();
   // The existing GIF has to go before another can be picked.
   expect(screen.getByTestId("note-edit-gif").elements()).toHaveLength(0);
@@ -321,7 +321,6 @@ test("a text-only edit leaves the stored GIF alone", async () => {
   const sent: ClientCommand[] = [];
   const screen = await render(editView(GIF_A, sent));
 
-  await screen.getByTestId("note-menu").click();
   await screen.getByTestId("note-edit").click();
   await screen.getByRole("textbox").fill("Deploys are painfully slow");
   await screen.getByRole("button", { name: /^(save|sichern)$/i }).click();
@@ -361,4 +360,71 @@ test("the speaker's card is the current one", async () => {
   await expect
     .element(screen.getByTestId("note-card"))
     .toHaveAttribute("aria-current", "true");
+});
+
+// The pencil sits on the card, not in „Mehr“ (owner, 2026-11-20): only on
+// your own card, and only where it may be edited.
+test("your own card has a pencil, and „Mehr“ no longer lists editing", async () => {
+  const screen = await render(editView(null, []));
+  await expect.element(screen.getByTestId("note-edit")).toBeVisible();
+  await screen.getByTestId("note-menu").click();
+  expect(
+    screen.getByRole("menuitem", { name: /edit|bearbeiten/i }).elements(),
+  ).toHaveLength(0);
+});
+
+test("someone else's card has no pencil", async () => {
+  const screen = await render(view({ authorId: anna.id, presenterId: null }));
+  await expect.element(screen.getByTestId("note-card")).toBeVisible();
+  expect(screen.getByTestId("note-edit").elements()).toHaveLength(0);
+});
+
+// 800 characters since 2026-11-20; from 80 % the field says what is left.
+test("the edit field takes 800 characters and says what is left near the end", async () => {
+  const screen = await render(editView(null, []));
+  await screen.getByTestId("note-edit").click();
+  const field = screen.getByRole("textbox");
+  await expect.element(field).toHaveAttribute("maxlength", "800");
+  await field.fill("x".repeat(639));
+  expect(screen.getByTestId("note-length").elements()).toHaveLength(0);
+  await field.fill("x".repeat(700));
+  const hint = screen.getByTestId("note-length");
+  await expect.element(hint).toHaveTextContent(/100/);
+  await expect
+    .element(field)
+    .toHaveAttribute("aria-describedby", hint.element().id);
+});
+
+// A long name wraps on the card; it used to be cut to „Maximiliane-Sophie
+// Oberbürger…“.
+test("a long author name wraps instead of being cut", async () => {
+  const long = { ...anna, name: "Maximiliane-Sophie Oberbürgermeister" };
+  const connection = {
+    boardId: "a".repeat(32),
+    send: () => {},
+    mutate: () => {},
+  };
+  const screen = await render(
+    <div style={{ width: 200 }}>
+      <ConnectionProvider value={connection}>
+        <NoteCard
+          note={note(long.id)}
+          roster={[long, ben]}
+          you={ben}
+          phase="present"
+          isAdmin={false}
+          revealIndex={0}
+          presenterId={null}
+          gifsEnabled={false}
+          onDropNote={() => {}}
+          onUngroup={() => {}}
+        />
+      </ConnectionProvider>
+    </div>,
+  );
+  const name = screen.getByText(long.name);
+  await expect.element(name).toBeVisible();
+  const element = name.element() as HTMLElement;
+  expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth);
+  expect(getComputedStyle(element).textOverflow).not.toBe("ellipsis");
 });

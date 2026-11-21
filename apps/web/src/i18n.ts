@@ -233,6 +233,8 @@ const resources = {
       },
       note: {
         placeholder: "Write a note …",
+        charsLeft_one: "{{count}}\u00a0character left.",
+        charsLeft_other: "{{count}}\u00a0characters left.",
         add: "Add",
         edit: "Edit note",
         more: "More for this note",
@@ -343,6 +345,13 @@ const resources = {
           count_one: "{{count}}\u00a0card",
           count_other: "{{count}}\u00a0cards",
           empty: "No cards in this zone.",
+        },
+        interlude: {
+          first: "Who goes first?",
+          next: "Who presents next?",
+          member: "The facilitator calls up the next person in a moment.",
+          facilitator:
+            "Call up the next person under Moderation. Their first card then shows here.",
         },
         spotlight: "{{name}} is presenting this card",
         walkthrough: {
@@ -1089,6 +1098,8 @@ const resources = {
       },
       note: {
         placeholder: "Notiz schreiben …",
+        charsLeft_one: "Noch {{count}}\u00a0Zeichen.",
+        charsLeft_other: "Noch {{count}}\u00a0Zeichen.",
         add: "Hinzufügen",
         edit: "Notiz bearbeiten",
         more: "Mehr zu dieser Notiz",
@@ -1200,6 +1211,13 @@ const resources = {
           count_one: "{{count}}\u00a0Karte",
           count_other: "{{count}}\u00a0Karten",
           empty: "Keine Karten in dieser Zone.",
+        },
+        interlude: {
+          first: "Wer fängt an?",
+          next: "Wer stellt als Nächstes vor?",
+          member: "Die Moderation ruft gleich die nächste Person auf.",
+          facilitator:
+            "Ruf unter Moderation die nächste Person auf. Ihre erste Karte steht dann hier.",
         },
         spotlight: "{{name}} stellt diese Karte gerade vor",
         walkthrough: {

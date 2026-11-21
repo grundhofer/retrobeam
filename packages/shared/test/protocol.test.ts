@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, it } from "vitest";
-import { parseClientCommand, parseServerEvent } from "../src/protocol.js";
+import {
+  NOTE_TEXT_MAX,
+  parseClientCommand,
+  parseServerEvent,
+} from "../src/protocol.js";
 
 describe("parseClientCommand", () => {
   it("parses a valid join and trims the name", () => {
@@ -66,7 +70,13 @@ describe("parseClientCommand — M1 commands", () => {
     ],
     [
       "overlong note text",
-      { type: "note.create", opId, noteId, columnId, text: "x".repeat(501) },
+      {
+        type: "note.create",
+        opId,
+        noteId,
+        columnId,
+        text: "x".repeat(NOTE_TEXT_MAX + 1),
+      },
     ],
     [
       "malformed note id",
@@ -81,6 +91,15 @@ describe("parseClientCommand — M1 commands", () => {
     ["timer not integer", { type: "admin.timer.start", durationSec: 12.5 }],
   ])("rejects %s", (_label, cmd) => {
     expect(parseClientCommand(JSON.stringify(cmd))).toBeNull();
+  });
+
+  it("takes a note of exactly 800 characters (owner, 2026-11-20)", () => {
+    expect(NOTE_TEXT_MAX).toBe(800);
+    const text = "x".repeat(NOTE_TEXT_MAX);
+    const cmd = parseClientCommand(
+      JSON.stringify({ type: "note.create", opId, noteId, columnId, text }),
+    );
+    expect(cmd).toMatchObject({ type: "note.create", text });
   });
 
   it("accepts a known reaction and ready toggle", () => {
