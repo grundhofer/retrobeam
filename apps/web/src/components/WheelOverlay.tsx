@@ -231,6 +231,12 @@ function CardSelectionScene({
   );
 }
 
+// A name on a reel or a turned card wraps and is never cut (owner,
+// 2026-11-20); past this many graphemes a reel cell or a card writes it in
+// the caption size, so it fits their height in a few lines.
+const LONG_NAME = 14;
+const PICKED_NAME = "text-center font-semibold wrap-break-word hyphens-auto";
+
 // A face-down card: sebaro's card edge in ink, a size between a phone and a
 // wall (the dialog wraps them).
 const CARD_FACE =
@@ -445,7 +451,13 @@ function CardReveal({
                 <span className="sb-avatar sb-avatar--32">
                   {nameMonogram(winner?.name ?? "?")}
                 </span>
-                <span className="max-w-full truncate font-semibold">
+                <span
+                  className={`max-w-full ${PICKED_NAME} ${
+                    nameGraphemes(winner?.name ?? "?").length > LONG_NAME
+                      ? "[font:var(--sb-type-caption)]"
+                      : ""
+                  }`}
+                >
                   {winner?.name ?? "?"}
                 </span>
               </div>
@@ -491,6 +503,63 @@ function labelSize(widthEm: number, count: number): number {
   // where the wedge is narrowest — otherwise 15 names on one wheel collide.
   const byWedge = ((2 * Math.PI * LABEL_INNER) / count) * 0.78;
   return Math.max(LABEL_MIN_PX, Math.min(LABEL_MAX_PX, byLength, byWedge));
+}
+
+// Two lines leave room for twice the height across the wedge.
+const TWO_LINE_LEADING = 1.15;
+
+export interface WheelLabel {
+  lines: string[];
+  fontSize: number;
+  /** a line that still overruns at the floor size is condensed into the span */
+  condensed: boolean[];
+}
+
+// How a name stands on its wedge. One line where it fits; a long name that
+// would have to be condensed to a smear on one line (owner, 2026-11-20: a
+// 36-character name was unreadable) is split at the space nearest its middle
+// and written in two, when the wedge is wide enough for two lines at the
+// floor size or more. Otherwise one condensed line, as before: the whole name
+// is on the wheel in every case.
+export function wheelLabel(name: string, count: number): WheelLabel {
+  const graphemes = nameGraphemes(name);
+  const widthEm = labelWidthEm(graphemes);
+  const single = labelSize(widthEm, count);
+  if (widthEm * single <= LABEL_SPAN) {
+    return { lines: [name], fontSize: single, condensed: [false] };
+  }
+  const split = splitNearMiddle(graphemes);
+  if (split !== null) {
+    const byWedge =
+      (((2 * Math.PI * LABEL_INNER) / count) * 0.78) / (2 * TWO_LINE_LEADING);
+    const widest = Math.max(...split.map((line) => labelWidthEm(line)));
+    const size = Math.min(LABEL_MAX_PX, LABEL_SPAN / widest, byWedge);
+    if (size >= LABEL_MIN_PX) {
+      return {
+        lines: split.map((line) => line.join("")),
+        fontSize: size,
+        condensed: [false, false],
+      };
+    }
+  }
+  return { lines: [name], fontSize: single, condensed: [true] };
+}
+
+// The name's two halves at the space nearest its middle, or null for a name
+// without one. The space goes; both halves keep their graphemes intact.
+function splitNearMiddle(graphemes: readonly string[]): string[][] | null {
+  let best = -1;
+  for (let i = 1; i < graphemes.length - 1; i++) {
+    if (graphemes[i] !== " ") continue;
+    if (
+      best === -1 ||
+      Math.abs(i - graphemes.length / 2) < Math.abs(best - graphemes.length / 2)
+    ) {
+      best = i;
+    }
+  }
+  if (best === -1) return null;
+  return [graphemes.slice(0, best), graphemes.slice(best + 1)];
 }
 
 // sebaro's wheel (spec/02 §3.29, §4.6, RB-7): svg.sb-wheel, a 2 px ink
@@ -641,13 +710,17 @@ function Wheel({
             const flipped = Math.cos((restAngle * Math.PI) / 180) < 0;
             // Measured in GRAPHEMES, not UTF-16 units: "Christian 🤖".length is
             // 12 for 11 characters, and code units are the unit that produced
-            // the "C?" bug in the first place.
-            const widthEm = labelWidthEm(nameGraphemes(name));
-            const fontSize = labelSize(widthEm, count);
-            // The chosen size normally fits; when a very long name would still
-            // overrun, textLength condenses it into the span rather than
-            // clipping it. Either way the WHOLE name is on the wheel.
-            const estimated = widthEm * fontSize;
+            // the "C?" bug in the first place. One line or two (wheelLabel);
+            // only a name that fits neither is condensed into the span by
+            // textLength rather than clipped. Either way the WHOLE name is on
+            // the wheel.
+            const label = wheelLabel(name, count);
+            // Rotated half a turn, the lines would read bottom to top.
+            const lines = flipped ? [...label.lines].reverse() : label.lines;
+            const condensed = flipped
+              ? [...label.condensed].reverse()
+              : label.condensed;
+            const offset = (lines.length - 1) / 2;
             return (
               <g key={participantId} transform={`rotate(${midAngle})`}>
                 <text
@@ -662,19 +735,28 @@ function Wheel({
                   // 11 px is a floor for a few names, not a fit for fifteen.
                   // Once it stands, the other names step back.
                   style={{
-                    fontSize,
+                    fontSize: label.fontSize,
                     opacity:
                       standing && participantId !== spin.winnerId ? 0.35 : 1,
                     transition: "opacity 300ms",
                   }}
-                  {...(estimated > LABEL_SPAN
-                    ? {
-                        textLength: LABEL_SPAN,
-                        lengthAdjust: "spacingAndGlyphs" as const,
-                      }
-                    : {})}
                 >
-                  {name}
+                  {lines.map((line, lineIndex) => (
+                    <tspan
+                      key={lineIndex}
+                      x={LABEL_OUTER}
+                      y={0}
+                      dy={`${(lineIndex - offset) * TWO_LINE_LEADING}em`}
+                      {...(condensed[lineIndex]
+                        ? {
+                            textLength: LABEL_SPAN,
+                            lengthAdjust: "spacingAndGlyphs" as const,
+                          }
+                        : {})}
+                    >
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
               </g>
             );
@@ -813,7 +895,13 @@ function Reel({
                 className="flex h-full items-center justify-center rounded-control"
                 style={{ background: toneFill(tone) }}
               >
-                <span className="max-w-full truncate px-2 font-semibold">
+                <span
+                  className={`max-w-full px-2 ${PICKED_NAME} ${
+                    nameGraphemes(name).length > LONG_NAME
+                      ? "[font:var(--sb-type-caption)]"
+                      : ""
+                  }`}
+                >
                   {name}
                 </span>
               </div>

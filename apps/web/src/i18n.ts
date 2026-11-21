@@ -233,6 +233,8 @@ const resources = {
       },
       note: {
         placeholder: "Write a note …",
+        charsLeft_one: "{{count}}\u00a0character left.",
+        charsLeft_other: "{{count}}\u00a0characters left.",
         add: "Add",
         edit: "Edit note",
         more: "More for this note",
@@ -1093,6 +1095,8 @@ const resources = {
       },
       note: {
         placeholder: "Notiz schreiben …",
+        charsLeft_one: "Noch {{count}}\u00a0Zeichen.",
+        charsLeft_other: "Noch {{count}}\u00a0Zeichen.",
         add: "Hinzufügen",
         edit: "Notiz bearbeiten",
         more: "Mehr zu dieser Notiz",
