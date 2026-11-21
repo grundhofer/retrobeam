@@ -31,7 +31,7 @@ export const OPERATOR: Operator = {
   email: "info@sebaro-ventures.de",
 };
 
-export const NOTICE_DATE = "2026-09-29";
+export const NOTICE_DATE = "2026-11-21";
 
 // The day of the check runs whose results the accessibility statement reports
 // (content/accessibility.*.tsx); it is the statement's date line and appears
