@@ -66,8 +66,8 @@ export function TimeState({ timer }: { timer: Timer }) {
 
 // The facilitator's time box keys (RB-1): a length to start with, then
 // „Pause“ / „Weiter“, „+1 Min.“ and „Stopp“, all secondary. Members have no
-// keys here; they read the time in the head and the action zone. The chime
-// at the end is gone (owner, 2026-11-05: sebaro's time box has no sound).
+// keys here; they read the time in the head and the action zone. A sound at
+// the end is each person's own choice in the settings (lib/timerSound.ts).
 export function TimerPanel({
   timer,
   isAdmin,

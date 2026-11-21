@@ -70,6 +70,11 @@ import {
   saveSessionKey,
 } from "../lib/session.js";
 import { BoardSocket } from "../lib/socket.js";
+import {
+  playTimerSound,
+  timerSoundEnabled,
+  unlockAudio,
+} from "../lib/timerSound.js";
 import { useMissingField } from "../lib/useMissingField.js";
 import { useNarrow } from "../lib/useNarrow.js";
 import { useBoardStore } from "../store/boardStore.js";
@@ -340,11 +345,29 @@ function Room({
   const rejectHandlers = useRef(new Map<string, () => void>());
   // Whether the first sync after a facilitator link has been checked yet.
   const adminLinkChecked = useRef(false);
+  // When the timer sound last played — see the timer.ended handler.
+  const lastTimerSoundAt = useRef(0);
   // Read through a ref, so a new callback from the gate does not reconnect.
   const onNameTakenRef = useRef(onNameTaken);
   useEffect(() => {
     onNameTakenRef.current = onNameTaken;
   }, [onNameTaken]);
+  // The browser lets audio start only inside a click or key press, so with
+  // the timer sound on, every one of them on the board starts (or, after the
+  // tab was in the background, resumes) the audio the sound will need.
+  // Someone who has not touched the page since loading it hears nothing; the
+  // switch's sentence says so.
+  useEffect(() => {
+    const unlock = () => {
+      if (timerSoundEnabled()) unlockAudio();
+    };
+    document.addEventListener("pointerdown", unlock, true);
+    document.addEventListener("keydown", unlock, true);
+    return () => {
+      document.removeEventListener("pointerdown", unlock, true);
+      document.removeEventListener("keydown", unlock, true);
+    };
+  }, []);
 
   const connection = useMemo<BoardConnection>(
     () => ({
@@ -401,6 +424,17 @@ function Room({
         }
         if (event.type === "timer.changed") {
           setClockOffset(event.serverNow - Date.now());
+        }
+        // The sound comes only from this live event, so a reload after the
+        // time ran out stays quiet. The DO broadcasts timer.ended before it
+        // clears the deadline and leans on an alarm retry that may send it
+        // again; the reducer does not mind, a sound would ring twice.
+        if (event.type === "timer.ended" && timerSoundEnabled()) {
+          const at = Date.now();
+          if (at - lastTimerSoundAt.current > 3000) {
+            lastTimerSoundAt.current = at;
+            playTimerSound();
+          }
         }
         if (event.type === "board.deleted") {
           // The board is gone — stop reconnecting (the DO would 404 anyway).
