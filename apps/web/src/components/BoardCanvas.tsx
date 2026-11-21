@@ -31,6 +31,7 @@ import { useConnection } from "../lib/connection.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 import { Menu } from "./Menu.js";
+import { PersonRing } from "./PersonAvatar.js";
 import {
   NOTE_LENGTH_HINT_FROM,
   NoteCard,
@@ -1567,8 +1568,9 @@ export function BoardCanvas({
                 const c = cursors[p.id];
                 if (!c) return null;
                 return (
-                  // sebaro's pointer (RB-5, F6): an ink arrow with the name in
-                  // a box, no colour per person; the name tells them apart.
+                  // sebaro's pointer (RB-5): an ink arrow with the name in a
+                  // box, and in the box the person's ring (owner, 2026-11-20,
+                  // partly reversing F6); the name still tells them apart.
                   <div
                     key={p.id}
                     data-testid="live-cursor"
@@ -1585,7 +1587,10 @@ export function BoardCanvas({
                     <svg className="sb-pointer__arrow" viewBox="0 0 16 20">
                       <path d="M1 1 L1 16 L5 12 L8 19 L11 18 L8 11 L14 11 Z" />
                     </svg>
-                    <span className="sb-pointer__name">{p.name}</span>
+                    <span className="sb-pointer__name inline-flex items-center gap-1">
+                      <PersonRing participant={p} />
+                      {p.name}
+                    </span>
                   </div>
                 );
               })

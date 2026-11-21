@@ -211,6 +211,8 @@ test("an anonymous board names nobody — not even you, on your own card", async
     const card = anonymous.getByTestId("note-card").elements().at(-1);
     expect(card?.textContent).toContain("Deploys are slow");
     expect(card?.textContent).not.toContain("Ben");
+    // Nor by colour: no author, no ring (owner, 2026-11-20).
+    expect(card?.querySelector('[data-testid="person-ring"]')).toBeNull();
   } finally {
     useBoardStore.getState().reset();
   }

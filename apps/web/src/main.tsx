@@ -19,9 +19,10 @@ import { LandingPage } from "./pages/LandingPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { PrivacyPage } from "./pages/PrivacyPage.js";
 
-// The timer chime is gone (owner, 2026-11-05: sebaro's time box has no sound),
-// and with it the key that stored its mute. A browser that still holds it has
-// it removed once, so the privacy notice, which no longer lists it, stays true.
+// The old timer chime (on by default, removed 2026-11-05) stored its mute
+// under this key. A browser that still holds it has it removed once, so the
+// privacy notice, which no longer lists it, stays true. The sound that came
+// back on 2026-11-20 is opt-in under its own key (lib/timerSound.ts).
 try {
   localStorage.removeItem("retrobeam.sound");
 } catch {

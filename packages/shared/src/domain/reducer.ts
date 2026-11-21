@@ -468,8 +468,10 @@ export function applyServerEvent(
     case "timer.changed":
       return { ...state, timer: event.timer, lastSeq: seq(state, event.seq) };
 
+    // The deadline stays: the board says „Zeit um“ until the facilitator
+    // moves on, stops or restarts the time box (the server keeps it too).
     case "timer.ended":
-      return { ...state, timer: IDLE_TIMER, lastSeq: seq(state, event.seq) };
+      return { ...state, lastSeq: seq(state, event.seq) };
 
     case "column.created":
     case "column.renamed":

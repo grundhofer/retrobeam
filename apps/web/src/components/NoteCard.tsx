@@ -18,6 +18,7 @@ import { Dialog } from "./Dialog.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 import { Menu, type MenuItem } from "./Menu.js";
+import { PersonRing } from "./PersonAvatar.js";
 
 const NOTE_DRAG_MIME = "application/x-retrobeam-note";
 
@@ -524,8 +525,32 @@ export function NoteCard({
             {author ? (
               // Wraps, never cut (owner, 2026-11-20): a long name is still
               // the only way to tell whose card it is.
-              <p className="sb-card__meta min-w-0 flex-1 wrap-break-word">
-                {author.name}
+              // The author's ring, the same tone as their avatar (owner,
+              // 2026-11-20), stays beside the name: sebaro's meta line wraps
+              // its items, which put the ring on a line of its own above a
+              // long name. Inline, since sebaro's rule has no layer.
+              //
+              // On the canvas the name keeps one line, as before: a card
+              // there is some 110 px at the fitted zoom, its keys grow over
+              // the line anyway, and a name wrapped beside them went letter
+              // by letter and made the card taller than the room the canvas
+              // had kept for it (canvas.spec, „slow line“).
+              <p
+                className={`sb-card__meta min-w-0 flex-1 ${
+                  arrangeScale === null ? "" : "overflow-hidden"
+                }`}
+                style={{ flexWrap: "nowrap" }}
+              >
+                <PersonRing participant={author} />
+                <span
+                  className={
+                    arrangeScale === null
+                      ? "min-w-0 wrap-break-word"
+                      : "min-w-0 truncate"
+                  }
+                >
+                  {author.name}
+                </span>
               </p>
             ) : (
               <span className="flex-1" />

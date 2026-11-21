@@ -19,6 +19,7 @@ import { Dialog } from "./Dialog.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 import { Menu, type MenuItem } from "./Menu.js";
+import { PersonRing } from "./PersonAvatar.js";
 import {
   NOTE_DRAG_MIME,
   NOTE_LENGTH_HINT_FROM,
@@ -1029,6 +1030,7 @@ export function TargetFrame({
               })}
               className="sb-tag"
             >
+              <PersonRing participant={voter.participant} />
               {voter.count > 1
                 ? t("vote.voterMulti", {
                     name: voter.participant.name,
