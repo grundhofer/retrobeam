@@ -17,8 +17,13 @@ test("facilitator chooses optional phases before the retro starts", async ({
   await expect(page).toHaveURL(/\/board\/[0-9a-f]{32}$/);
   await join(page, "Anna");
 
+  const group = page.getByTestId("phase-plan-group");
   const vote = page.getByTestId("phase-plan-vote");
   const close = page.getByTestId("phase-plan-close");
+  // A new board sorts before the vote (owner, 2026-11-20); this one doesn't.
+  await expect(group).toBeChecked();
+  await group.click();
+  await expect(group).not.toBeChecked();
   await expect(vote).toBeChecked();
   await vote.click();
   await expect(vote).not.toBeChecked();
@@ -110,8 +115,9 @@ test("check-in icebreaker, agreements, and anonymous ROTI", async ({
   await expect(anna.getByTestId("icebreaker-shuffle")).toHaveCount(0);
   await expect(anna.getByTestId("agreements-edit")).toHaveCount(0);
 
-  // Walk to the close phase (write → present → vote → discuss → close).
-  for (let i = 0; i < 5; i++) await anna.getByTestId("phase-next").click();
+  // Walk to the close phase (write → present → group → vote → discuss →
+  // close).
+  for (let i = 0; i < 6; i++) await anna.getByTestId("phase-next").click();
   await expect(anna.getByTestId("roti-poll")).toBeVisible();
   await expect(ben.getByTestId("roti-poll")).toBeVisible();
 

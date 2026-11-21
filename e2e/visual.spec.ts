@@ -134,6 +134,10 @@ test("board through every phase", async ({ browser }) => {
   await step(anna, ben, /present|vorstellen/i);
   await shoot(anna, "board-present");
 
+  // Everyone sorts the cards into topics (owner, 2026-11-20).
+  await step(anna, ben, /group|gruppieren/i);
+  await shoot(anna, "board-group");
+
   await step(anna, ben, /vote|abstimmen/i);
   // Unequal totals (4 and 2): a tie would be ranked by id, and the crowns
   // would swap from run to run just like the cards.
