@@ -8,7 +8,7 @@
 - die Kopie prüfen (G6): `node apps/web/src/sebaro/checks/verify-export.mjs --strict`;
 - RetroBeams eigene Dateien bauen und prüfen: `python3 apps/web/src/sebaro/product/product_kit.py build sebaro.product.json --copy apps/web/src/sebaro --out sebaro-product --render`, in der CI `… check …`.
 
-**Nachtrag 2026-11-21.** Seit v3.0.0 kommen sebaros Releases aus dem privaten Repository `grundhofer/sebaro-foundry`, nicht mehr aus einem öffentlichen Release; die Kopie steht auf v3.1.0. Die drei Befehle oben gelten weiter, mit diesen Zusätzen:
+**Nachtrag 2026-11-21.** Seit v3.0.0 kommen sebaros Releases aus dem privaten Repository `grundhofer/sebaro-foundry`, nicht mehr aus einem öffentlichen Release; die Kopie steht auf v3.1.1. Die drei Befehle oben gelten weiter, mit diesen Zusätzen:
 
 - Der Updater braucht ein Token, das dieses Repository lesen kann: lokal genügt `gh auth login`, die wöchentliche Frage nach einem neueren Release (`.github/workflows/sebaro-copy.yml`) bekommt das Secret `SEBARO_FOUNDRY_TOKEN`. Ohne Token endet er mit Exit 6. Wer das Repository nicht lesen kann, kann die Kopie nicht erneuern; die beiden Prüfungen (`verify-export.mjs --strict`, `product_kit.py check`) brauchen weiter kein Netz und kein Token.
 - Ein Release mit neuer Hauptversion schreibt der Updater nur mit `--release <Tag>`; vorher den Abschnitt des Releases in `CHANGES.md` der Kopie lesen.
