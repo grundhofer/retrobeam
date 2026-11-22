@@ -1,7 +1,7 @@
 {
   "$comment": "the record of this copy, generated — do not edit. Check that the folder is unchanged: node checks/verify-export.mjs --strict. Update it: node checks/update-copy.mjs (README.md, section Keep in sync)",
   "format": "1.0",
-  "tool": "export_system.py 1.42.1",
+  "tool": "export_system.py 1.43.0",
   "date": "2026-11-22",
   "system": {
     "slug": "sebaro",
@@ -42,14 +42,14 @@
     "share-images"
   ],
   "release": {
-    "tag": "v3.0.2",
+    "tag": "v3.1.0",
     "asset": "sebaro-webapp.tar.gz",
-    "sha256": "fbcad48abebfb05d32df1a6fd0cfa536c9c4971e710fe0aa91a03b77b3f65733",
+    "sha256": "50bef45e0373e8e0b5ca9845864ad7f6ff00b7cf61c00bcf622ad816e6150fbc",
     "updater": "update-copy.mjs 2.0.0",
     "from": "https://github.com/grundhofer/sebaro-foundry/releases"
   },
   "sebaroDesign": {
-    "commit": "12116473cecaa136c98ed05a454ecbfce3eeec1e",
+    "commit": "f7a1fa7886c081670fe242cb12a48dbb75fd748c",
     "uncommittedChanges": false,
     "fromCommit": true
   },
@@ -73,7 +73,7 @@
     "brand/og/render.mjs": "1.3.0"
   },
   "tools": {
-    "export_system.py": "1.42.1",
+    "export_system.py": "1.43.0",
     "check_palette.py": "3.0.0",
     "build_tokens.py": "2.0.0",
     "fonts.py": "1.2.0",
@@ -566,9 +566,9 @@
     {
       "path": "react/Menu.tsx",
       "source": "systems/sebaro/react/Menu.tsx",
-      "sourceSha256": "54b626e58e238d854b5557b749f89e8838184c7228e470d392518a2dd9eda162",
-      "sha256": "54b626e58e238d854b5557b749f89e8838184c7228e470d392518a2dd9eda162",
-      "bytes": 17104,
+      "sourceSha256": "2a957d25d456faee0061036c862ef67bfec0b10d704e7e4d4ea4f1456c5c73fb",
+      "sha256": "2a957d25d456faee0061036c862ef67bfec0b10d704e7e4d4ea4f1456c5c73fb",
+      "bytes": 17142,
       "pack": "menu"
     },
     {
@@ -618,9 +618,9 @@
     {
       "path": "react/Tree.tsx",
       "source": "systems/sebaro/react/Tree.tsx",
-      "sourceSha256": "5aef0e16281a0a1963d7b39e50b0779ff629069616d301955ca48b63328b393e",
-      "sha256": "5aef0e16281a0a1963d7b39e50b0779ff629069616d301955ca48b63328b393e",
-      "bytes": 5350,
+      "sourceSha256": "c69302e9faeec0eb57f5c06d25f70d8d6dc7d2d252c37d755b54dac7372b8046",
+      "sha256": "c69302e9faeec0eb57f5c06d25f70d8d6dc7d2d252c37d755b54dac7372b8046",
+      "bytes": 5362,
       "pack": "window"
     },
     {
@@ -714,9 +714,9 @@
     {
       "path": "CHANGES.md",
       "source": "systems/sebaro/CHANGES.md",
-      "sourceSha256": "ba788450f0c15fc85e3f78051ec3dfe987ba069091a4b90d94bcd7e4d7eccba1",
-      "sha256": "ba788450f0c15fc85e3f78051ec3dfe987ba069091a4b90d94bcd7e4d7eccba1",
-      "bytes": 35999
+      "sourceSha256": "50c104c960be550191bab7ecab1ec5e98901127663b736467cc1efb81c9e8970",
+      "sha256": "50c104c960be550191bab7ecab1ec5e98901127663b736467cc1efb81c9e8970",
+      "bytes": 41796
     },
     {
       "path": "LICENSE.md",
@@ -773,7 +773,7 @@
       "path": "README.md",
       "source": null,
       "sourceSha256": null,
-      "sha256": "e8ef46c3878e15887c4a956cffd4f966291e8cc83330e6e23af7123e87359aa2",
+      "sha256": "6fdd6e86e6333a7c2fb86c42ebce966c446040423813e992a3392c1da01db904",
       "bytes": 71257,
       "transform": "generated"
     }
