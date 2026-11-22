@@ -7,9 +7,10 @@
   },
   "include": ["src", "vite.config.ts", "vitest.config.ts"],
   // sebaro's React parts (in the copy since v3.0.0) are not imported here, and
-  // six places in Dialog, Listbox, Menu and Tree do not pass this repo's
-  // noUncheckedIndexedAccess and exactOptionalPropertyTypes. The copy is never
-  // edited by hand, so the type check leaves the folder out until a release
-  // fixes them (reported to sebaro). A part that gets imported is checked anyway.
+  // four places in Menu and Tree do not pass this repo's
+  // exactOptionalPropertyTypes (v3.0.2 fixed Dialog and Listbox). The copy is
+  // never edited by hand, so the type check leaves the folder out until a
+  // release fixes them (reported to sebaro). A part that gets imported is
+  // checked anyway.
   "exclude": ["src/sebaro/react"]
 }
