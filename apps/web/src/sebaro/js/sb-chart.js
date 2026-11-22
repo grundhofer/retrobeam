@@ -1,4 +1,4 @@
-// sb-chart.js: keyboard and value read-out for the heatmap of spec/02 §3.7 (D91 G6a: colour in the cell, numbers
+// sb-chart.js: keyboard and value read-out for the heatmap (D91 G6a: colour in the cell, numbers
 // in the legend; every cell also gives its value as text on focus and on pointing).
 // Classic script (pages open from file://), CSP-safe: no inline handlers, no eval, no style attribute.
 // Markup carries everything (table.sb-heatmap; each day cell holds its value sentence in .sb-visually-hidden, today

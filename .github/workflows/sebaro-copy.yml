@@ -7,6 +7,10 @@
 # its concurrency group with the pushes to main. A red run here means: update
 # the copy with `node apps/web/src/sebaro/checks/update-copy.mjs`, as a commit
 # of its own, and do what it prints from the copy's CHANGES.md.
+# Since v3.0.0 the releases are private (grundhofer/sebaro-foundry) and the
+# question needs the repository secret SEBARO_FOUNDRY_TOKEN; without it the
+# updater ends with exit 6 (CHANGES.md v3.0.0). That is one more reason to
+# keep it out of pull requests: a fork's pull request gets no secrets.
 name: sebaro copy
 
 on:
@@ -15,7 +19,8 @@ on:
   # The same question by hand, from the Actions tab.
   workflow_dispatch:
 
-# Reads the repo and asks GitHub for the release index; no secrets.
+# Reads the repo and asks GitHub for the release index, with one secret that
+# can read sebaro's releases and nothing else.
 permissions:
   contents: read
 
@@ -31,3 +36,5 @@ jobs:
         with:
           node-version: 22
       - run: node apps/web/src/sebaro/checks/update-copy.mjs --check
+        env:
+          SEBARO_FOUNDRY_TOKEN: ${{ secrets.SEBARO_FOUNDRY_TOKEN }}

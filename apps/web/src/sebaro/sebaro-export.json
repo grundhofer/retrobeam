@@ -1,8 +1,8 @@
 {
   "$comment": "the record of this copy, generated — do not edit. Check that the folder is unchanged: node checks/verify-export.mjs --strict. Update it: node checks/update-copy.mjs (README.md, section Keep in sync)",
   "format": "1.0",
-  "tool": "export_system.py 1.34.0",
-  "date": "2026-11-14",
+  "tool": "export_system.py 1.42.1",
+  "date": "2026-11-22",
   "system": {
     "slug": "sebaro",
     "name": "sebaro",
@@ -42,14 +42,14 @@
     "share-images"
   ],
   "release": {
-    "tag": "v2.0.0",
+    "tag": "v3.0.2",
     "asset": "sebaro-webapp.tar.gz",
-    "sha256": "54650bcbf17e461adf9e99c270b91caced5b64139340b26a13b97529d7cdefcb",
-    "updater": "update-copy.mjs 1.1.0",
-    "from": "https://github.com/grundhofer/sebaro-guide/releases"
+    "sha256": "fbcad48abebfb05d32df1a6fd0cfa536c9c4971e710fe0aa91a03b77b3f65733",
+    "updater": "update-copy.mjs 2.0.0",
+    "from": "https://github.com/grundhofer/sebaro-foundry/releases"
   },
   "sebaroDesign": {
-    "commit": "2b3aa908fc86c2c24ec7e5855358dcc7298b3c18",
+    "commit": "12116473cecaa136c98ed05a454ecbfce3eeec1e",
     "uncommittedChanges": false,
     "fromCommit": true
   },
@@ -58,14 +58,14 @@
     "palette": "3.0",
     "fontsConfig": 1,
     "iconSet": "sebaro-icon-set/1",
-    "brandAssetsTool": "1.11.0"
+    "brandAssetsTool": "1.12.0"
   },
   "generators": {
     "build_tokens.py": "2.0.0",
     "icons.py": "1.1.0",
     "fonts.py": "1.2.0",
     "fontTools": "4.55.3",
-    "brand_assets.py": "1.11.0",
+    "brand_assets.py": "1.12.0",
     "brandRenderer": {
       "playwright": "1.63.0",
       "browser": "153.0.8010.12"
@@ -73,13 +73,13 @@
     "brand/og/render.mjs": "1.3.0"
   },
   "tools": {
-    "export_system.py": "1.34.0",
+    "export_system.py": "1.42.1",
     "check_palette.py": "3.0.0",
     "build_tokens.py": "2.0.0",
     "fonts.py": "1.2.0",
     "icons.py": "1.1.0",
-    "brand_assets.py": "1.11.0",
-    "check_facts.py": "1.3.0"
+    "brand_assets.py": "1.12.0",
+    "check_facts.py": "1.3.1"
   },
   "gates": [
     {
@@ -106,41 +106,36 @@
       "id": "brand",
       "check": "brand/dist/build-manifest.json hashes (drift part of brand_assets.py check)",
       "state": "passed"
-    },
-    {
-      "id": "compose",
-      "check": "python3 tools/extract_compose.py sebaro --check",
-      "state": "passed"
     }
   ],
   "files": [
     {
       "path": "tokens.css",
       "source": "systems/sebaro/dist/tokens.css",
-      "sourceSha256": "78c1fa55e484f22027ab55f4b2cfe9857002d82d8ccd6a7fd124fdc90f0b28ce",
-      "sha256": "78c1fa55e484f22027ab55f4b2cfe9857002d82d8ccd6a7fd124fdc90f0b28ce",
-      "bytes": 45136
+      "sourceSha256": "e8987e6732203ffc666366163088d03fa42c853278f8e5a7b9d0f914c28a43af",
+      "sha256": "e8987e6732203ffc666366163088d03fa42c853278f8e5a7b9d0f914c28a43af",
+      "bytes": 45348
     },
     {
       "path": "tokens.tailwind.css",
       "source": "systems/sebaro/dist/tokens.tailwind.css",
-      "sourceSha256": "59b9448353aa0c18c872e9cde99fc7f4e450c32d233a952f62aff77c977ced3e",
-      "sha256": "59b9448353aa0c18c872e9cde99fc7f4e450c32d233a952f62aff77c977ced3e",
-      "bytes": 9671
+      "sourceSha256": "56fab988b3f4ae075ae43f64a3e8284b0c9aadf376d526de4b67d37eaca8cdd0",
+      "sha256": "56fab988b3f4ae075ae43f64a3e8284b0c9aadf376d526de4b67d37eaca8cdd0",
+      "bytes": 9795
     },
     {
       "path": "css/sebaro.css",
       "source": "systems/sebaro/css/sebaro.css",
-      "sourceSha256": "685322d12592764dbcb9f25aa2b5898117351c0f3690643b1decc07af986abb4",
-      "sha256": "c6d2464d90d0214b1c9ddfb914d0e0fcaff3cf1c55d367091136d233a67ddeb6",
-      "bytes": 336281,
+      "sourceSha256": "b7676992896fdc4844ae035492a8fa914094a6b239fd8f6c9104a8a8dc76f733",
+      "sha256": "2515efaa27187e6f1dd93ade1e2d3dbf6e272bfa75d416ad4b951fc0cbf44867",
+      "bytes": 335751,
       "transform": "the rules of the profile's core and of the copy's packs (the parts and stretches that export/profiles.json gives them) of css/sebaro.css, in their order there, without the marks"
     },
     {
       "path": "fonts/fonts.css",
       "source": "systems/sebaro/fonts/fonts.css",
-      "sourceSha256": "c10d1061c7a7687e73b9030b9660dafa9d81876ac787328c8bc16bbd6d929c7a",
-      "sha256": "c10d1061c7a7687e73b9030b9660dafa9d81876ac787328c8bc16bbd6d929c7a",
+      "sourceSha256": "a484341b981db4df24d631697a7f786c187ab895722b76d85e4f235105bf4b2f",
+      "sha256": "a484341b981db4df24d631697a7f786c187ab895722b76d85e4f235105bf4b2f",
       "bytes": 2130
     },
     {
@@ -181,23 +176,23 @@
     {
       "path": "icons/sprite.svg",
       "source": "systems/sebaro/icons/dist/sprite.svg",
-      "sourceSha256": "a49fd15ce257750fd0f00a4da8d7b4eab2ff0821bc5908c9cd4e7493eb62cf85",
-      "sha256": "a49fd15ce257750fd0f00a4da8d7b4eab2ff0821bc5908c9cd4e7493eb62cf85",
-      "bytes": 56773
+      "sourceSha256": "e8d1e8d72983cda5ba674f92f764c86c598bc7126f904206edc00df0d711cdab",
+      "sha256": "e8d1e8d72983cda5ba674f92f764c86c598bc7126f904206edc00df0d711cdab",
+      "bytes": 59325
     },
     {
       "path": "icons/sprite.css",
       "source": "systems/sebaro/icons/dist/sprite.css",
-      "sourceSha256": "4aa531ac61b82c59365a03caeab287e3b229a5fc3c6a41fe965da7790dc7b139",
-      "sha256": "4aa531ac61b82c59365a03caeab287e3b229a5fc3c6a41fe965da7790dc7b139",
+      "sourceSha256": "1472fb1ad7874c0c4940ce251be0f4569bd0ff3ab8027ce7b6bce0038ef34b88",
+      "sha256": "1472fb1ad7874c0c4940ce251be0f4569bd0ff3ab8027ce7b6bce0038ef34b88",
       "bytes": 1831
     },
     {
       "path": "icons/icons.json",
       "source": "systems/sebaro/icons/dist/icons.json",
-      "sourceSha256": "4544abf385f84a40b88cb39154368e3745fbcece75ce8f72433c0820e5c8533a",
-      "sha256": "0729706d6efe3a5042a426e01ff2aa83aeb71ae7dc80b29961d974215b1335e8",
-      "bytes": 112449,
+      "sourceSha256": "15175790a329f0e62d4b763adc3624d0be5347c1145ca7e89152feaa00567507",
+      "sha256": "f02016434546aaa32c298e6176fd88c17b7ff9f9dd74910dfc8e0518efa0f29d",
+      "bytes": 113878,
       "transform": "product names in icon descriptions, aliases and tags left out: a profile copy knows no product"
     },
     {
@@ -385,17 +380,17 @@
     {
       "path": "brand/og/pages.schema.json",
       "source": "systems/sebaro/brand/og/pages.schema.json",
-      "sourceSha256": "833f287f913d92bf09df69185401ae4a45e4d2cd296693c3517a6c418a0be653",
-      "sha256": "833f287f913d92bf09df69185401ae4a45e4d2cd296693c3517a6c418a0be653",
-      "bytes": 7263,
+      "sourceSha256": "1077397089d8d491b7dab2160b1ae84d0d319cff6d47600acaf6e1725e578ca4",
+      "sha256": "1077397089d8d491b7dab2160b1ae84d0d319cff6d47600acaf6e1725e578ca4",
+      "bytes": 7227,
       "pack": "share-images"
     },
     {
       "path": "brand/og/render.mjs",
       "source": "systems/sebaro/brand/og/render.mjs",
-      "sourceSha256": "1959330b916644e0f4d299f66699b6f55b9918ee03221e5b0e12b46ab5654e27",
-      "sha256": "1959330b916644e0f4d299f66699b6f55b9918ee03221e5b0e12b46ab5654e27",
-      "bytes": 39444,
+      "sourceSha256": "69fa5ebeafb90bd39b365843d48a02f75588d2a9e90afbd10dcdc1eeeb318dec",
+      "sha256": "69fa5ebeafb90bd39b365843d48a02f75588d2a9e90afbd10dcdc1eeeb318dec",
+      "bytes": 39401,
       "pack": "share-images"
     },
     {
@@ -409,154 +404,326 @@
     {
       "path": "js/theme-init.js",
       "source": "systems/sebaro/demo/assets/theme-init.js",
-      "sourceSha256": "6d3ba8a2258cf93ee626e7907cc85d15d03fe506a9e9d26d946530572d7c970b",
-      "sha256": "6d3ba8a2258cf93ee626e7907cc85d15d03fe506a9e9d26d946530572d7c970b",
-      "bytes": 3523
+      "sourceSha256": "a5035a1dcb543425a31e92ae0d71de8c5af6af0de49037c1f3d74b065dcf534b",
+      "sha256": "a5035a1dcb543425a31e92ae0d71de8c5af6af0de49037c1f3d74b065dcf534b",
+      "bytes": 3480
     },
     {
       "path": "js/theme-button.js",
       "source": "systems/sebaro/demo/assets/theme-button.js",
-      "sourceSha256": "f533bafa8835d7ebb8834f1d5e3bffb861a4ee2e24ddb7d52503dbc52f34512f",
-      "sha256": "f533bafa8835d7ebb8834f1d5e3bffb861a4ee2e24ddb7d52503dbc52f34512f",
-      "bytes": 2222
+      "sourceSha256": "782892ed396150f92db07c4d8cfff52afa879c34e4c9014cb486818610140bc2",
+      "sha256": "782892ed396150f92db07c4d8cfff52afa879c34e4c9014cb486818610140bc2",
+      "bytes": 2245
     },
     {
       "path": "js/sb-tone.js",
       "source": "systems/sebaro/demo/assets/sb-tone.js",
-      "sourceSha256": "47f4708384a6c478e7d3f9d2db7cbae9d1495096a6cfa7b8bf92e19cdb4fdeeb",
-      "sha256": "47f4708384a6c478e7d3f9d2db7cbae9d1495096a6cfa7b8bf92e19cdb4fdeeb",
-      "bytes": 3868
+      "sourceSha256": "5c8fe412e965d965a16fa85438470c80be2b62f4d3084fe49a2c4a319f92df34",
+      "sha256": "5c8fe412e965d965a16fa85438470c80be2b62f4d3084fe49a2c4a319f92df34",
+      "bytes": 3903
     },
     {
       "path": "js/sb-start.js",
       "source": "systems/sebaro/demo/assets/sb-start.js",
-      "sourceSha256": "9ea0887aadd857cb24efe140f970196670d2eba87ff9fd81c2c651a38d968c2c",
-      "sha256": "9ea0887aadd857cb24efe140f970196670d2eba87ff9fd81c2c651a38d968c2c",
-      "bytes": 6148
+      "sourceSha256": "eead2f26bc7cd7a147d7d64ace017637eb38e475541354a60a28d31c927ea3bc",
+      "sha256": "eead2f26bc7cd7a147d7d64ace017637eb38e475541354a60a28d31c927ea3bc",
+      "bytes": 6069
     },
     {
       "path": "js/sb-menu.js",
       "source": "systems/sebaro/demo/assets/sb-menu.js",
-      "sourceSha256": "18953779b4ca148a2c8af5e035532e47d60241ad7bc83c32d778d38ba805e0a6",
-      "sha256": "18953779b4ca148a2c8af5e035532e47d60241ad7bc83c32d778d38ba805e0a6",
-      "bytes": 27966,
+      "sourceSha256": "01ab692186bef781a0d1bfc593114d0774adfc257e4be6a0cd29ae51a0cff73c",
+      "sha256": "01ab692186bef781a0d1bfc593114d0774adfc257e4be6a0cd29ae51a0cff73c",
+      "bytes": 28922,
       "pack": "menu"
     },
     {
       "path": "js/sb-sheet.js",
       "source": "systems/sebaro/demo/assets/sb-sheet.js",
-      "sourceSha256": "eb77869b8de89be5e14d495188cc9336e57dbcebf4e281f58b1f4fc47baa7296",
-      "sha256": "eb77869b8de89be5e14d495188cc9336e57dbcebf4e281f58b1f4fc47baa7296",
-      "bytes": 5073
+      "sourceSha256": "7986a049e0d8eb0ffdca453689c1841ac1e2673bf33a7e3f028265b91bc37a13",
+      "sha256": "7986a049e0d8eb0ffdca453689c1841ac1e2673bf33a7e3f028265b91bc37a13",
+      "bytes": 5056
     },
     {
       "path": "js/sb-board.js",
       "source": "systems/sebaro/demo/assets/sb-board.js",
-      "sourceSha256": "6f3399122ade10356a15cb631381613844acedd579c1306e631e9112d0970ad7",
-      "sha256": "6f3399122ade10356a15cb631381613844acedd579c1306e631e9112d0970ad7",
-      "bytes": 17686,
+      "sourceSha256": "38eca9727e6dc764330c9f3eee3b44809c12dec9081b22848959b69fcd62c301",
+      "sha256": "38eca9727e6dc764330c9f3eee3b44809c12dec9081b22848959b69fcd62c301",
+      "bytes": 17512,
       "pack": "board"
     },
     {
       "path": "js/sb-chart.js",
       "source": "systems/sebaro/demo/assets/sb-chart.js",
-      "sourceSha256": "e69962b20ac6e752eab02068800f78b89b065443b7ef4d0838118b0534f69fe3",
-      "sha256": "e69962b20ac6e752eab02068800f78b89b065443b7ef4d0838118b0534f69fe3",
-      "bytes": 6474,
+      "sourceSha256": "8ad5ada825c14e1e042e6da2859b6735c5c0ece277ee01d6afc8afd7741cd6ef",
+      "sha256": "8ad5ada825c14e1e042e6da2859b6735c5c0ece277ee01d6afc8afd7741cd6ef",
+      "bytes": 6457,
       "pack": "charts"
     },
     {
       "path": "js/sb-fit.js",
       "source": "systems/sebaro/demo/assets/sb-fit.js",
-      "sourceSha256": "68ae66e304701721a3e72a476edc2efd9831970fcd206dec8ed9dd75d05d2bdd",
-      "sha256": "68ae66e304701721a3e72a476edc2efd9831970fcd206dec8ed9dd75d05d2bdd",
-      "bytes": 47897
+      "sourceSha256": "aec4b892f6b2caa62061a181e7f0813c80100252caea1a8824644242b5abf5a6",
+      "sha256": "aec4b892f6b2caa62061a181e7f0813c80100252caea1a8824644242b5abf5a6",
+      "bytes": 47315
     },
     {
       "path": "checks/sb-colour-count.js",
       "source": "systems/sebaro/demo/assets/sb-colour-count.js",
-      "sourceSha256": "9be9c617ed5bb48de4af834fe1c2d4aee08a56df45394729b5678ef3b6d811f8",
-      "sha256": "9be9c617ed5bb48de4af834fe1c2d4aee08a56df45394729b5678ef3b6d811f8",
-      "bytes": 15894
+      "sourceSha256": "c54cfe9b3fc47d98a12a66973e05fd391427e8f11f0cb7ce6b237315dc5be50a",
+      "sha256": "c54cfe9b3fc47d98a12a66973e05fd391427e8f11f0cb7ce6b237315dc5be50a",
+      "bytes": 16073
+    },
+    {
+      "path": "react/ActionZone.tsx",
+      "source": "systems/sebaro/react/ActionZone.tsx",
+      "sourceSha256": "589cf66b5f2a373311ea59896fca1359ff7a219030be17bfad6107a8cb9e4840",
+      "sha256": "589cf66b5f2a373311ea59896fca1359ff7a219030be17bfad6107a8cb9e4840",
+      "bytes": 1584
+    },
+    {
+      "path": "react/AppFrame.tsx",
+      "source": "systems/sebaro/react/AppFrame.tsx",
+      "sourceSha256": "37a499cb285e5967746ca08c341010e885e4759655d29edb250698e124833ec2",
+      "sha256": "37a499cb285e5967746ca08c341010e885e4759655d29edb250698e124833ec2",
+      "bytes": 1732
+    },
+    {
+      "path": "react/Chips.tsx",
+      "source": "systems/sebaro/react/Chips.tsx",
+      "sourceSha256": "fa73e36f330496df3cd00853df463d5a5202d97494359ee76abd7f9a6ee0a2d3",
+      "sha256": "fa73e36f330496df3cd00853df463d5a5202d97494359ee76abd7f9a6ee0a2d3",
+      "bytes": 744
+    },
+    {
+      "path": "react/CodeBlock.tsx",
+      "source": "systems/sebaro/react/CodeBlock.tsx",
+      "sourceSha256": "683a9314af8b6ed6f5e9ea026da97e5ab4eddf04a983e525a6534da14c5233c2",
+      "sha256": "683a9314af8b6ed6f5e9ea026da97e5ab4eddf04a983e525a6534da14c5233c2",
+      "bytes": 1608
+    },
+    {
+      "path": "react/Dialog.tsx",
+      "source": "systems/sebaro/react/Dialog.tsx",
+      "sourceSha256": "09f653147d946227afbe4ffc3e467d6560e808be7385d8cdd6b82d52d3716452",
+      "sha256": "09f653147d946227afbe4ffc3e467d6560e808be7385d8cdd6b82d52d3716452",
+      "bytes": 4002
+    },
+    {
+      "path": "react/Divider.tsx",
+      "source": "systems/sebaro/react/Divider.tsx",
+      "sourceSha256": "9a8c78bcf5ad5081b13f27ccacf1c0b5a88d8fda939263433bbeee8567dedf18",
+      "sha256": "9a8c78bcf5ad5081b13f27ccacf1c0b5a88d8fda939263433bbeee8567dedf18",
+      "bytes": 2904,
+      "pack": "window"
+    },
+    {
+      "path": "react/DocTabs.tsx",
+      "source": "systems/sebaro/react/DocTabs.tsx",
+      "sourceSha256": "ecfa16974a8a8aa37ef0e7767d7c1c98bb72ea39517ebe46e9979fa81cacf0c5",
+      "sha256": "ecfa16974a8a8aa37ef0e7767d7c1c98bb72ea39517ebe46e9979fa81cacf0c5",
+      "bytes": 3647,
+      "pack": "window"
+    },
+    {
+      "path": "react/Field.tsx",
+      "source": "systems/sebaro/react/Field.tsx",
+      "sourceSha256": "4f5fc58cb8103c4556a14547ffe11a591e30a75500c5d8c1e5ad6138f0ab8caf",
+      "sha256": "4f5fc58cb8103c4556a14547ffe11a591e30a75500c5d8c1e5ad6138f0ab8caf",
+      "bytes": 1766
+    },
+    {
+      "path": "react/Heatmap.tsx",
+      "source": "systems/sebaro/react/Heatmap.tsx",
+      "sourceSha256": "34f907ed96f9c2d1c8eec6e37747b291d4d8898f0eb6bfbefaeedc744c3283a7",
+      "sha256": "34f907ed96f9c2d1c8eec6e37747b291d4d8898f0eb6bfbefaeedc744c3283a7",
+      "bytes": 3976,
+      "pack": "charts"
+    },
+    {
+      "path": "react/Icon.tsx",
+      "source": "systems/sebaro/react/Icon.tsx",
+      "sourceSha256": "363887696738a011d25c0f5f4d793f656366a9c1c6022d27435b977863edcdc8",
+      "sha256": "363887696738a011d25c0f5f4d793f656366a9c1c6022d27435b977863edcdc8",
+      "bytes": 454
+    },
+    {
+      "path": "react/Keys.tsx",
+      "source": "systems/sebaro/react/Keys.tsx",
+      "sourceSha256": "a28eade56a8a578c3d8c3a36fa34783aa9846be359c72ac810af2640913e8788",
+      "sha256": "a28eade56a8a578c3d8c3a36fa34783aa9846be359c72ac810af2640913e8788",
+      "bytes": 649,
+      "pack": "window"
+    },
+    {
+      "path": "react/Listbox.tsx",
+      "source": "systems/sebaro/react/Listbox.tsx",
+      "sourceSha256": "96d2929e80fe39c4bb40123d884a57e23d713063812a73c7449b0cb5f418089b",
+      "sha256": "96d2929e80fe39c4bb40123d884a57e23d713063812a73c7449b0cb5f418089b",
+      "bytes": 2206,
+      "pack": "window"
+    },
+    {
+      "path": "react/Menu.tsx",
+      "source": "systems/sebaro/react/Menu.tsx",
+      "sourceSha256": "54b626e58e238d854b5557b749f89e8838184c7228e470d392518a2dd9eda162",
+      "sha256": "54b626e58e238d854b5557b749f89e8838184c7228e470d392518a2dd9eda162",
+      "bytes": 17104,
+      "pack": "menu"
+    },
+    {
+      "path": "react/Palette.tsx",
+      "source": "systems/sebaro/react/Palette.tsx",
+      "sourceSha256": "8d5a9d5eebe94ae3568fe3bd5abf91b5278ace496f30569321fb089d1604ea4a",
+      "sha256": "8d5a9d5eebe94ae3568fe3bd5abf91b5278ace496f30569321fb089d1604ea4a",
+      "bytes": 7571,
+      "pack": "window"
+    },
+    {
+      "path": "react/SearchField.tsx",
+      "source": "systems/sebaro/react/SearchField.tsx",
+      "sourceSha256": "7d2684a9ec7a2a9c3ff22351b5828d514a6681ccedeb54fef52212e673fe2b58",
+      "sha256": "7d2684a9ec7a2a9c3ff22351b5828d514a6681ccedeb54fef52212e673fe2b58",
+      "bytes": 1584
+    },
+    {
+      "path": "react/Status.tsx",
+      "source": "systems/sebaro/react/Status.tsx",
+      "sourceSha256": "1a92052fb158e9d5bdae038bb5a0535916154266105fbbca4143a50ab61b967f",
+      "sha256": "1a92052fb158e9d5bdae038bb5a0535916154266105fbbca4143a50ab61b967f",
+      "bytes": 485
+    },
+    {
+      "path": "react/Switch.tsx",
+      "source": "systems/sebaro/react/Switch.tsx",
+      "sourceSha256": "eee7cbce471e26a209537efd231e7c6c4b4a38135b5546b1861f7c370e3ad446",
+      "sha256": "eee7cbce471e26a209537efd231e7c6c4b4a38135b5546b1861f7c370e3ad446",
+      "bytes": 1057
+    },
+    {
+      "path": "react/Toast.tsx",
+      "source": "systems/sebaro/react/Toast.tsx",
+      "sourceSha256": "0f1917d7d7c896fc925e48970dd9213b37643adbbdaa2f9abebb3f6674455e0f",
+      "sha256": "0f1917d7d7c896fc925e48970dd9213b37643adbbdaa2f9abebb3f6674455e0f",
+      "bytes": 3199
+    },
+    {
+      "path": "react/Tool.tsx",
+      "source": "systems/sebaro/react/Tool.tsx",
+      "sourceSha256": "21d974613e1a09724fd4870348890215d018eab138d9c6ddb25707a12d6a858d",
+      "sha256": "21d974613e1a09724fd4870348890215d018eab138d9c6ddb25707a12d6a858d",
+      "bytes": 3284,
+      "pack": "window"
+    },
+    {
+      "path": "react/Tree.tsx",
+      "source": "systems/sebaro/react/Tree.tsx",
+      "sourceSha256": "5aef0e16281a0a1963d7b39e50b0779ff629069616d301955ca48b63328b393e",
+      "sha256": "5aef0e16281a0a1963d7b39e50b0779ff629069616d301955ca48b63328b393e",
+      "bytes": 5350,
+      "pack": "window"
+    },
+    {
+      "path": "react/chords.ts",
+      "source": "systems/sebaro/react/chords.ts",
+      "sourceSha256": "80b59ca13faf6c773bb324ecde1e694d8452ed11d06b865b23633924991356b0",
+      "sha256": "80b59ca13faf6c773bb324ecde1e694d8452ed11d06b865b23633924991356b0",
+      "bytes": 2947,
+      "pack": "window"
+    },
+    {
+      "path": "react/panes.ts",
+      "source": "systems/sebaro/react/panes.ts",
+      "sourceSha256": "19bb7fb30ea3ebc5f6e66450c55214d8501f6ff2e4bee578a0544692574f17d2",
+      "sha256": "19bb7fb30ea3ebc5f6e66450c55214d8501f6ff2e4bee578a0544692574f17d2",
+      "bytes": 1048,
+      "pack": "window"
+    },
+    {
+      "path": "react/reveal.ts",
+      "source": "systems/sebaro/react/reveal.ts",
+      "sourceSha256": "21ea6bc99c9449992891e99bacf94208a51c25b79ec227bd7e359c79bbff1bff",
+      "sha256": "21ea6bc99c9449992891e99bacf94208a51c25b79ec227bd7e359c79bbff1bff",
+      "bytes": 716,
+      "pack": "window"
     },
     {
       "path": "checks/verify-export.mjs",
       "source": "tools/verify-export.mjs",
-      "sourceSha256": "04ac36fcca4491057394606529141d40ee6fe3886a9a1219a180cdacc38d2e03",
-      "sha256": "04ac36fcca4491057394606529141d40ee6fe3886a9a1219a180cdacc38d2e03",
-      "bytes": 7313
+      "sourceSha256": "8ffc6f222c8f52e0f629505912827d1613f086502909278c6502ac8576293429",
+      "sha256": "8ffc6f222c8f52e0f629505912827d1613f086502909278c6502ac8576293429",
+      "bytes": 7316
     },
     {
       "path": "checks/update-copy.mjs",
       "source": "tools/update-copy.mjs",
-      "sourceSha256": "1c49d33ff6baa100ead1b2b42c4ab21762bec0583f06c17894d3323ae6949d25",
-      "sha256": "1c49d33ff6baa100ead1b2b42c4ab21762bec0583f06c17894d3323ae6949d25",
-      "bytes": 37256
+      "sourceSha256": "3a0eb5a8ad4321ac41707e7732c84f427b285b0206c9ffbbf912994aaf6919e6",
+      "sha256": "3a0eb5a8ad4321ac41707e7732c84f427b285b0206c9ffbbf912994aaf6919e6",
+      "bytes": 43438
     },
     {
       "path": "checks/lint-web.sh",
-      "source": "systems/sebaro/spec/03-signature.md",
-      "sourceSha256": "a586a9168b39a850a69e690b4834291b9ac4d3d45856fd857f3d3cf63218155e",
+      "source": "systems/sebaro/checks/lint-web.sh",
+      "sourceSha256": "0e5a5e7a18451ebeba63bd695751698d8cbcf8059dce63a7cb87252729388c01",
       "sha256": "0e5a5e7a18451ebeba63bd695751698d8cbcf8059dce63a7cb87252729388c01",
-      "bytes": 3025,
-      "transform": "the sh block under „### 1.4 Checks“ of spec/03-signature.md, as tools/lint_rules.py sebaro --print colour prints it"
+      "bytes": 3025
     },
     {
       "path": "product/product_kit.py",
       "source": "tools/product_kit.py",
-      "sourceSha256": "844a132a7d62837ba287abef501dadef6497882c8926ce4d503b03d94c52d283",
-      "sha256": "844a132a7d62837ba287abef501dadef6497882c8926ce4d503b03d94c52d283",
-      "bytes": 96698
+      "sourceSha256": "979e0acf1decf97bd397b4c93461fbc066b71f19f2fc8cc68493de142b26f08f",
+      "sha256": "979e0acf1decf97bd397b4c93461fbc066b71f19f2fc8cc68493de142b26f08f",
+      "bytes": 98879
     },
     {
       "path": "product/sign_geometry.py",
       "source": "tools/sign_geometry.py",
-      "sourceSha256": "de3d5e02db6ca4ac78b5a43ceb09cba4a5839e76c2f7fdeee8b0daf716a8971f",
-      "sha256": "de3d5e02db6ca4ac78b5a43ceb09cba4a5839e76c2f7fdeee8b0daf716a8971f",
-      "bytes": 33741
+      "sourceSha256": "2f1922933eb7bd253f404b32ba11ad07b986656f9c9a9bc6637ac1f8539486fd",
+      "sha256": "2f1922933eb7bd253f404b32ba11ad07b986656f9c9a9bc6637ac1f8539486fd",
+      "bytes": 32026
     },
     {
       "path": "product/render.mjs",
       "source": "tools/product_render.mjs",
-      "sourceSha256": "f5919612c0825bbbf1e87c53a4a0c358fc9b47c24253fb9265fd73fb0ce69367",
-      "sha256": "f5919612c0825bbbf1e87c53a4a0c358fc9b47c24253fb9265fd73fb0ce69367",
-      "bytes": 29206
+      "sourceSha256": "8383bf63e6cbae14661da38bf1062e6f357be1831537377b3f9c881b659b7fb8",
+      "sha256": "8383bf63e6cbae14661da38bf1062e6f357be1831537377b3f9c881b659b7fb8",
+      "bytes": 29338
     },
     {
       "path": "product/product.schema.json",
       "source": "shared/product.schema.json",
-      "sourceSha256": "3d435e3d1574865d6c011a70f6e2279b298e916645587e6ff8a9f152e4ec5352",
-      "sha256": "3d435e3d1574865d6c011a70f6e2279b298e916645587e6ff8a9f152e4ec5352",
-      "bytes": 5949
+      "sourceSha256": "fe91a402a989b5a2152f6a4906d4ec3e00a2509c7df52a937779531eb7868d26",
+      "sha256": "fe91a402a989b5a2152f6a4906d4ec3e00a2509c7df52a937779531eb7868d26",
+      "bytes": 6124
     },
     {
       "path": "product/PRODUCT-CONTRACT.md",
       "source": "shared/PRODUCT-CONTRACT.md",
-      "sourceSha256": "9768fed30890ad0f7ee65cbabd642ae7b196f31102ea840c2be58cd19f06d91b",
-      "sha256": "9768fed30890ad0f7ee65cbabd642ae7b196f31102ea840c2be58cd19f06d91b",
-      "bytes": 31459
+      "sourceSha256": "a10378effd17523006e4b378050ed24b554f2f42ef2f25b0489a6971aa1f3a89",
+      "sha256": "a10378effd17523006e4b378050ed24b554f2f42ef2f25b0489a6971aa1f3a89",
+      "bytes": 35012
     },
     {
       "path": "product/tiles.json",
       "source": "systems/sebaro/dist/tokens.json",
-      "sourceSha256": "a759c7b775b9447965ba75f74d9933c0c0578f8787399a63a299d698d1a17335",
-      "sha256": "2dc87d7bbb5f58c7294c93d7fef4e51ddff50609c646f6107cbf9cd53a79e3a7",
-      "bytes": 31908,
+      "sourceSha256": "d1748242595673f3fef2c8fc8b942823504f8da72718132c9da4918ac2d9cd5f",
+      "sha256": "2bca87769097cba6090b7abab7ce9f1189cddcd8d78bda28b6215b7af01aabea",
+      "bytes": 32070,
       "transform": "generated: what the product kit needs of the system (tools/product_kit.py tiles, from dist/tokens.json, brand/brand.config.json, brand/signs.json and fonts/): tile groups, foot colours, grounds, stroke masters, raster measures, the name font; no product"
     },
     {
       "path": "CHANGES.md",
       "source": "systems/sebaro/CHANGES.md",
-      "sourceSha256": "af1495cc74f469ff5f60c0a67cb9c7ae8c69c6a2e29bdfa71334f4f02a725358",
-      "sha256": "af1495cc74f469ff5f60c0a67cb9c7ae8c69c6a2e29bdfa71334f4f02a725358",
-      "bytes": 10863
+      "sourceSha256": "ba788450f0c15fc85e3f78051ec3dfe987ba069091a4b90d94bcd7e4d7eccba1",
+      "sha256": "ba788450f0c15fc85e3f78051ec3dfe987ba069091a4b90d94bcd7e4d7eccba1",
+      "bytes": 35999
     },
     {
       "path": "LICENSE.md",
       "source": "LICENSE.md",
-      "sourceSha256": "e56667ebb06395598140f89d7aa4ccf2c5348f21913b23777c4d40ece9e2bbd9",
-      "sha256": "e56667ebb06395598140f89d7aa4ccf2c5348f21913b23777c4d40ece9e2bbd9",
-      "bytes": 2701
+      "sourceSha256": "46693c38768891ad1979482bbfde047f08207b484faf4faaeb4586522e2f1509",
+      "sha256": "46693c38768891ad1979482bbfde047f08207b484faf4faaeb4586522e2f1509",
+      "bytes": 3645
     },
     {
       "path": "css/runtime-names.json",
@@ -606,28 +773,28 @@
       "path": "README.md",
       "source": null,
       "sourceSha256": null,
-      "sha256": "a6d81e00bb01970c47aa95ce431f7ff684895322c516abd96c4765c94e7011fe",
-      "bytes": 60376,
+      "sha256": "e8ef46c3878e15887c4a956cffd4f966291e8cc83330e6e23af7123e87359aa2",
+      "bytes": 71257,
       "transform": "generated"
     }
   ],
   "cssSizes": {
-    "$comment": "bytes per file for a CSS budget: as shipped and minified (comments and white space removed, nothing rewritten; a bundler's minifier gets a little less), each also gzip'ed; written when the copy is written, not compared by --verify",
+    "$comment": "bytes per file for a CSS budget: as shipped and minified (comments and white space removed, nothing rewritten; a bundler's minifier gets a little less), each also gzip'ed; written when the copy is written; --verify compares the bytes, not the gzip figures (the machine's)",
     "gzip": "gzip level 9, mtime 0, zlib 1.3.1-e00f703",
     "files": [
       {
         "path": "css/sebaro.css",
-        "bytes": 336281,
-        "gzipBytes": 77738,
-        "minifiedBytes": 198041,
-        "minifiedGzipBytes": 28097
+        "bytes": 335751,
+        "gzipBytes": 77476,
+        "minifiedBytes": 200359,
+        "minifiedGzipBytes": 28433
       },
       {
         "path": "tokens.css",
-        "bytes": 45136,
-        "gzipBytes": 6508,
-        "minifiedBytes": 38175,
-        "minifiedGzipBytes": 4112
+        "bytes": 45348,
+        "gzipBytes": 6540,
+        "minifiedBytes": 38367,
+        "minifiedGzipBytes": 4144
       }
     ]
   },
@@ -666,10 +833,10 @@
     },
     {
       "what": "demo-only files in demo/assets/",
-      "reason": "`demo-completion.js`: the keys of one specimen; the app or its editor owns the keys (spec/02 §4.26); `demo.css`: specimen chrome and phone stand-ins; `pages.css`: reference page layout; `views.css`: Ansichten specimen frames and overflow box; `views.js`: Ansichten specimen wiring; app state belongs to the app"
+      "reason": "`demo-completion.js`: the keys of one specimen; the app or its editor owns the keys; `demo.css`: specimen chrome and phone stand-ins; `pages.css`: reference page layout; `views.css`: Ansichten specimen frames and overflow box; `views.js`: Ansichten specimen wiring; app state belongs to the app"
     }
   ],
   "notes": [
-    "`brand/inline/` comes from systems/sebaro/brand/inline/, which no sebaroDesign gate checks for freshness (it is written by a script of the system, not by tools/brand_assets.py)."
+    "`brand/inline/` comes from systems/sebaro/brand/inline/, which no gate of sebaro-foundry checks for freshness (it is written by a script of the system, not by tools/brand_assets.py)."
   ]
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// sebaro share images (W6a, WEB-09; spec/09 §18.1; D96): one 1200 x 630 PNG per page from a page list, rendered in a
-// website's own build from the one template of sebaroDesign (D96 (a)). Node 20+ and Playwright with Chromium (the
+// sebaro share images (W6a, WEB-09; D96): one 1200 x 630 PNG per page from a page list, rendered in a
+// website's own build from the one template of the system (D96 (a)). Node 20+ and Playwright with Chromium (the
 // build's choice; Chromium only, like the CI under D96 (b)); nothing else, no network.
 //
 //   node <sebaro>/brand/og/render.mjs --pages og-pages.json --out public/og [--head build/og-head] [--keep-html DIR]
@@ -8,7 +8,8 @@
 //   node <sebaro>/brand/og/render.mjs --version
 //
 // <sebaro> is a copy with the pack share-images (this file is brand/og/render.mjs in it), the site export
-// (`export_system.py --target web`) or, in sebaroDesign, systems/sebaro staged beside the samples' tiles (gate 5d).
+// (`export_system.py --target web`) or, in the maintainers' repository (sebaro-foundry), systems/sebaro staged beside
+// the samples' tiles (gate 5d).
 // Everything is found relative to this file: tokens.css (dist/tokens.css in the workshop), fonts/fonts.css with
 // fonts/web/*.woff2, icons/sprite.svg + sprite.css (icons/dist/ in the workshop), brand/inline/tile-<id>.svg,
 // brand/og/template.html, brand/og/pages.schema.json. A copy holds no product's tile: a product runs this file through
@@ -19,9 +20,9 @@
 // words?, imageBase?} and pages [{id, url, title, path?, readingMinutes?, date?, dateKind?, product?, output?,
 // description?, type?, alt?, apps?}]. German (de) and English (en) words are built in; any other language takes the
 // words it needs from site.words (1.3.0). Per page it writes <out>/<output>.png (24-bit RGB, no alpha, sRGB chunk, no other metadata)
-// and into --head (default: --out) <output>.head.html, the head tags of spec/09 §18.1 (canonical, description,
+// and into --head (default: --out) <output>.head.html, the head tags (canonical, description,
 // og:*, twitter:card), plus head.json with the same tags for every page as data. The site still writes <title>, the
-// language alternates (spec/09 §18.2), serves the PNGs under site.origin + site.imageBase and includes the snippet.
+// language alternates, serves the PNGs under site.origin + site.imageBase and includes the snippet.
 //
 // Every page is checked before its PNG is written, and the PNG again after it is written; any failure names the page
 // id, writes no image for it (a stale one from an earlier run is removed) and the script exits 1 after the other pages;
@@ -41,7 +42,7 @@
 // Versions (CHANGELOG):
 //   1.3.0  2026-11-13  any language: site.lang is a language tag, site.words gives the words of a language without
 //                      built-in words (page list 1.1); a missing tile says where a product's tile comes from (the kit's
-//                      folder through product/render.mjs share), not an export with --product (sebaro CHECKS.md §124).
+//                      folder through product/render.mjs share), not an export with --product.
 //   1.2.0  2026-11-11  owner look: studio without top lockup, host only in bottom bar; keep useful page metadata.
 //   1.1.0  2026-11-11  neutral opening type and bottom sender key bar (round 7 stage 3).
 //   1.0.0  2026-10-23  first version (D96 (a)): template, page list 1.0, head tags, self-checks; the workshop's
