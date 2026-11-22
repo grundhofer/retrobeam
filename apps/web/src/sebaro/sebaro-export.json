@@ -42,14 +42,14 @@
     "share-images"
   ],
   "release": {
-    "tag": "v3.1.0",
+    "tag": "v3.1.1",
     "asset": "sebaro-webapp.tar.gz",
-    "sha256": "50bef45e0373e8e0b5ca9845864ad7f6ff00b7cf61c00bcf622ad816e6150fbc",
+    "sha256": "a3be98ce0c7c67e75f62753bfda5d63274294309f1ad94e07af873b3cd6fac88",
     "updater": "update-copy.mjs 2.0.0",
     "from": "https://github.com/grundhofer/sebaro-foundry/releases"
   },
   "sebaroDesign": {
-    "commit": "f7a1fa7886c081670fe242cb12a48dbb75fd748c",
+    "commit": "cf2b6b6836a9162485528077365b2d2916a213b5",
     "uncommittedChanges": false,
     "fromCommit": true
   },
@@ -714,9 +714,9 @@
     {
       "path": "CHANGES.md",
       "source": "systems/sebaro/CHANGES.md",
-      "sourceSha256": "50c104c960be550191bab7ecab1ec5e98901127663b736467cc1efb81c9e8970",
-      "sha256": "50c104c960be550191bab7ecab1ec5e98901127663b736467cc1efb81c9e8970",
-      "bytes": 41796
+      "sourceSha256": "6c1e80613e9fb1a08566b1bee9031498552fc1160e757e58023f012af42d167e",
+      "sha256": "6c1e80613e9fb1a08566b1bee9031498552fc1160e757e58023f012af42d167e",
+      "bytes": 43769
     },
     {
       "path": "LICENSE.md",
