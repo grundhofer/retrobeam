@@ -24,14 +24,14 @@ import { NoteCard } from "./NoteCard.js";
 const anna: Participant = {
   id: "a".repeat(32),
   name: "Anna",
-  color: "#0e7c7b",
+  tone: 1,
   role: "facilitator",
   online: true,
 };
 const ben: Participant = {
   id: "b".repeat(32),
   name: "Ben",
-  color: "#1971C2",
+  tone: 2,
   role: "member",
   online: true,
 };
@@ -212,7 +212,7 @@ test("an anonymous board names nobody — not even you, on your own card", async
     expect(card?.textContent).toContain("Deploys are slow");
     expect(card?.textContent).not.toContain("Ben");
     // Nor by colour: no author, no ring (owner, 2026-11-20).
-    expect(card?.querySelector('[data-testid="person-ring"]')).toBeNull();
+    expect(card?.querySelector("[data-sb-person]")).toBeNull();
   } finally {
     useBoardStore.getState().reset();
   }

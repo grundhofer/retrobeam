@@ -38,7 +38,7 @@ const columns: Column[] = ["Went well", "To improve", "Ideas", "Kudos"].map(
 const you: Participant = {
   id: "a".repeat(32),
   name: "Anna",
-  color: "#0e7c7b",
+  tone: 1,
   role: "facilitator",
   online: true,
 };
@@ -46,7 +46,7 @@ const you: Participant = {
 const ben: Participant = {
   id: "b".repeat(32),
   name: "Ben",
-  color: "#1971C2",
+  tone: 2,
   role: "member",
   online: true,
 };

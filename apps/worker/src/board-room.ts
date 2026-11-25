@@ -26,6 +26,8 @@ import {
   pickerKnows,
   pickerStateSchema,
   planJoin,
+  toneFromColour,
+  legacyColourForTone,
   displayNameKey,
   publicReveal,
   revealFor,
@@ -144,6 +146,7 @@ interface ParticipantRow {
   id: string;
   name: string;
   color: string;
+  tone: number;
   role: string;
   session_key: string;
   online: number;
@@ -273,6 +276,7 @@ export class BoardRoom extends DurableObject<Env> {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         color TEXT NOT NULL,
+        tone INTEGER,
         role TEXT NOT NULL,
         session_key TEXT NOT NULL UNIQUE,
         online INTEGER NOT NULL DEFAULT 0,
@@ -357,6 +361,21 @@ export class BoardRoom extends DurableObject<Env> {
     if (!participantColumns.includes("demoted")) {
       this.sql.exec(
         "ALTER TABLE participants ADD COLUMN demoted INTEGER NOT NULL DEFAULT 0",
+      );
+    }
+    // sebaro's person tone (v3.1.2) replaces the stored colour. People who
+    // joined before get the tone at their colour's place in the old palette;
+    // `color` stays written only for the deprecated wire field.
+    if (!participantColumns.includes("tone")) {
+      this.sql.exec("ALTER TABLE participants ADD COLUMN tone INTEGER");
+    }
+    for (const row of this.sql
+      .exec("SELECT id, color FROM participants WHERE tone IS NULL")
+      .toArray()) {
+      this.sql.exec(
+        "UPDATE participants SET tone = ? WHERE id = ?",
+        toneFromColour(String(row.color)),
+        String(row.id),
       );
     }
     const noteColumns = this.sql
@@ -993,10 +1012,10 @@ export class BoardRoom extends DurableObject<Env> {
             )
             .toArray()[0] as unknown as ParticipantRow | undefined) ?? null);
 
-    const takenColors = this.sql
-      .exec("SELECT color FROM participants")
+    const takenTones = this.sql
+      .exec("SELECT tone FROM participants")
       .toArray()
-      .map((row) => String(row.color));
+      .map((row) => Number(row.tone));
 
     // An explicit admin.role.set demotion sticks across reconnects — the
     // stored admin token must not silently re-promote its holder.
@@ -1006,7 +1025,7 @@ export class BoardRoom extends DurableObject<Env> {
       requestedName: name,
       isAdmin,
       existing: existingRow ? rowToParticipant(existingRow) : null,
-      takenColors,
+      takenTones,
       newId: generateSecret(),
     });
     const participant = plan.participant;
@@ -1034,11 +1053,12 @@ export class BoardRoom extends DurableObject<Env> {
 
     if (plan.isNew) {
       this.sql.exec(
-        `INSERT INTO participants (id, name, color, role, session_key, online, ready, demoted, joined_at, last_seen)
-         VALUES (?, ?, ?, ?, ?, 1, 0, 0, ?, ?)`,
+        `INSERT INTO participants (id, name, color, tone, role, session_key, online, ready, demoted, joined_at, last_seen)
+         VALUES (?, ?, ?, ?, ?, ?, 1, 0, 0, ?, ?)`,
         participant.id,
         participant.name,
-        participant.color,
+        legacyColourForTone(participant.tone),
+        participant.tone,
         participant.role,
         participantSessionKey,
         now,
@@ -5353,6 +5373,7 @@ function rowToParticipant(row: ParticipantRow): Participant {
   return {
     id: row.id,
     name: row.name,
+    tone: Number(row.tone),
     color: row.color,
     role: row.role as ParticipantRole,
     online: row.online === 1,

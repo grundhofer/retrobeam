@@ -22,7 +22,7 @@ import { PresentInterlude, PresenterFocus } from "./PresenterFocus.js";
 const anna: Participant = {
   id: "a".repeat(32),
   name: "Anna",
-  color: "#E8590C",
+  tone: 1,
   role: "facilitator",
   online: true,
 };

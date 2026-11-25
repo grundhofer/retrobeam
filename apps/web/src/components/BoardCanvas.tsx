@@ -31,7 +31,6 @@ import { useConnection } from "../lib/connection.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 import { Menu } from "./Menu.js";
-import { PersonRing } from "./PersonAvatar.js";
 import {
   NOTE_LENGTH_HINT_FROM,
   NoteCard,
@@ -1596,8 +1595,10 @@ export function BoardCanvas({
                     <svg className="sb-pointer__arrow" viewBox="0 0 16 20">
                       <path d="M1 1 L1 16 L5 12 L8 19 L11 18 L8 11 L14 11 Z" />
                     </svg>
-                    <span className="sb-pointer__name inline-flex items-center gap-1">
-                      <PersonRing participant={p} />
+                    <span
+                      className="sb-pointer__name sb-person"
+                      data-sb-person={p.tone}
+                    >
                       {p.name}
                     </span>
                   </div>
