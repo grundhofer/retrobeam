@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type { Participant } from "../protocol.js";
-import { assignColor } from "./colors.js";
+import { assignTone, legacyColourForTone } from "./colors.js";
 
 export interface JoinInput {
   /** Sanitized display name (already validated by the protocol schema). */
@@ -11,8 +11,8 @@ export interface JoinInput {
   isAdmin: boolean;
   /** Participant previously registered under the supplied session key, if any. */
   existing: Participant | null;
-  /** Colors already assigned on this board. */
-  takenColors: readonly string[];
+  /** Tones already assigned on this board. */
+  takenTones: readonly number[];
   /** Pre-generated id used only when this join creates a new participant. */
   newId: string;
 }
@@ -22,12 +22,12 @@ export interface JoinPlan {
   isNew: boolean;
 }
 
-// Pure join decision: reclaim identity via session key (keeping id and color
+// Pure join decision: reclaim identity via session key (keeping id and tone
 // stable across reconnects), allow renaming on rejoin, and only ever upgrade
 // the role — a facilitator who rejoins without the admin token stays
 // facilitator, so a dropped admin connection cannot demote anyone.
 export function planJoin(input: JoinInput): JoinPlan {
-  const { requestedName, isAdmin, existing, takenColors, newId } = input;
+  const { requestedName, isAdmin, existing, takenTones, newId } = input;
 
   if (existing) {
     return {
@@ -41,11 +41,13 @@ export function planJoin(input: JoinInput): JoinPlan {
     };
   }
 
+  const tone = assignTone(takenTones);
   return {
     participant: {
       id: newId,
       name: requestedName,
-      color: assignColor(takenColors),
+      tone,
+      color: legacyColourForTone(tone),
       role: isAdmin ? "facilitator" : "member",
       online: true,
     },

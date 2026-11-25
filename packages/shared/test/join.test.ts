@@ -8,7 +8,7 @@ import type { Participant } from "../src/protocol.js";
 const existing: Participant = {
   id: "p1",
   name: "Old Name",
-  color: "#1971C2",
+  tone: 1,
   role: "member",
   online: false,
 };
@@ -19,7 +19,7 @@ describe("planJoin", () => {
       requestedName: "Anna",
       isAdmin: false,
       existing: null,
-      takenColors: ["#E8590C"],
+      takenTones: [1],
       newId: "p9",
     });
     expect(plan.isNew).toBe(true);
@@ -29,7 +29,7 @@ describe("planJoin", () => {
       role: "member",
       online: true,
     });
-    expect(plan.participant.color).not.toBe("#E8590C");
+    expect(plan.participant.tone).toBe(2);
   });
 
   it("grants the facilitator role when the admin token matched", () => {
@@ -37,18 +37,18 @@ describe("planJoin", () => {
       requestedName: "Anna",
       isAdmin: true,
       existing: null,
-      takenColors: [],
+      takenTones: [],
       newId: "p9",
     });
     expect(plan.participant.role).toBe("facilitator");
   });
 
-  it("reclaims identity on rejoin: same id and color, new name, back online", () => {
+  it("reclaims identity on rejoin: same id and tone, new name, back online", () => {
     const plan = planJoin({
       requestedName: "New Name",
       isAdmin: false,
       existing,
-      takenColors: [existing.color],
+      takenTones: [existing.tone],
       newId: "unused",
     });
     expect(plan.isNew).toBe(false);
@@ -65,7 +65,7 @@ describe("planJoin", () => {
       requestedName: "Anna",
       isAdmin: false,
       existing: facilitator,
-      takenColors: [],
+      takenTones: [],
       newId: "unused",
     });
     expect(withoutToken.participant.role).toBe("facilitator");
@@ -74,7 +74,7 @@ describe("planJoin", () => {
       requestedName: "Anna",
       isAdmin: true,
       existing,
-      takenColors: [],
+      takenTones: [],
       newId: "unused",
     });
     expect(upgraded.participant.role).toBe("facilitator");
