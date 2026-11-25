@@ -35,6 +35,8 @@
 //                                 data-sb-votes-status="<id>" says „Noch 3 von 5 Stimmen.“ / „Alle 5 Stimmen
 //                                 vergeben.“ (it sits inside the action zone's state sentence, a status); fires
 //                                 "sb-vote-change" (bubbles, detail { vote, count, left }) on the .sb-vote
+//                                 a stack (.sb-board__stack, .sb-canvas__group) has one .sb-vote and its cards
+//                                 none, so its vote counts once against the budget
 //   svg.sb-wheel                  the wheel: window.sbWheel.turnTo(wheel, index) turns its .sb-wheel__disc so that
 //                                 the pointer stands on the index-th name (text inside the disc, in order), forward and
 //                                 less than one turn (the name already under the pointer: no turn), over

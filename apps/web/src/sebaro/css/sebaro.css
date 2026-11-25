@@ -1940,6 +1940,28 @@ kbd, .sb-kbd {
   color: var(--sb-color-text); font: var(--sb-type-label); letter-spacing: var(--sb-type-label-tracking);
 }
 .sb-avatar--32 { inline-size: 32px; block-size: 32px; font: var(--sb-type-mobile-label-small); letter-spacing: var(--sb-type-mobile-label-small-tracking); font-weight: var(--sb-type-label-weight); }
+/* person tone (FAR-16): data-sb-person="1" to "12" is the fixed tone the app gave a person, in the order it gives them
+   out (after the last it starts again). Only a ring: 2 px around the initials, or where no avatar fits .sb-person
+   around the name (a card's grey line, a vote, .sb-pointer__name), its small ring first; the name always stands there.
+   Never a fill, never text colour; an anonymous card has no ring. Without a tone the avatar keeps its 1 px ring */
+.sb-avatar[data-sb-person] { border-width: var(--sb-x-sebaro-person-ring-width); border-color: var(--sb-person-tone, var(--sb-color-border-strong)); }
+.sb-person { display: inline-flex; align-items: center; gap: var(--sb-space-1); min-inline-size: 0; }
+.sb-person[data-sb-person]::before {
+  content: ""; flex: none; box-sizing: border-box; inline-size: var(--sb-x-sebaro-person-ring-size); block-size: var(--sb-x-sebaro-person-ring-size);
+  border: var(--sb-x-sebaro-person-ring-width) solid var(--sb-person-tone, var(--sb-color-border-strong)); border-radius: var(--sb-radius-pill);
+}
+[data-sb-person="1"] { --sb-person-tone: var(--sb-person-1); }
+[data-sb-person="2"] { --sb-person-tone: var(--sb-person-2); }
+[data-sb-person="3"] { --sb-person-tone: var(--sb-person-3); }
+[data-sb-person="4"] { --sb-person-tone: var(--sb-person-4); }
+[data-sb-person="5"] { --sb-person-tone: var(--sb-person-5); }
+[data-sb-person="6"] { --sb-person-tone: var(--sb-person-6); }
+[data-sb-person="7"] { --sb-person-tone: var(--sb-person-7); }
+[data-sb-person="8"] { --sb-person-tone: var(--sb-person-8); }
+[data-sb-person="9"] { --sb-person-tone: var(--sb-person-9); }
+[data-sb-person="10"] { --sb-person-tone: var(--sb-person-10); }
+[data-sb-person="11"] { --sb-person-tone: var(--sb-person-11); }
+[data-sb-person="12"] { --sb-person-tone: var(--sb-person-12); }
 .sb-avatars { display: flex; align-items: center; gap: var(--sb-space-1); margin: 0; padding: 0; list-style: none; }
 
 /* empty state: start-aligned; optional spot illustration; its primary action goes to the bottom bar */
@@ -2095,10 +2117,10 @@ kbd, .sb-kbd {
 }
 .sb-board__title > .sb-board__name.sb-category::before { position: absolute; inset-inline-start: 0; inset-block-start: calc(0.5lh - 5px); }
 .sb-board__title > .sb-board__name.sb-category > .sb-icon { vertical-align: middle; margin-inline-end: var(--sb-space-2); }
-.sb-board__cards { display: grid; gap: var(--sb-space-2); margin: 0; padding: 0; list-style: none; }
+.sb-board__cards { display: grid; gap: var(--sb-space-3); margin: 0; padding: 0; list-style: none; }   /* 12 px between cards: 8 px stood too close with votes (the owner, 2026-11-23) */
 /* a card list with its own scroll frame (the product's overflow) keeps the drop line inside it: 1 px at the sides,
    half the gap and the line above and below */
-.sb-board__cards--scroll { overflow-y: auto; margin-inline: calc(-1 * var(--sb-border-width-hairline)); padding: calc((var(--sb-space-2) + var(--sb-border-width-strong)) / 2 + var(--sb-border-width-hairline)) var(--sb-border-width-hairline); }
+.sb-board__cards--scroll { overflow-y: auto; margin-inline: calc(-1 * var(--sb-border-width-hairline)); padding: calc((var(--sb-space-3) + var(--sb-border-width-strong)) / 2 + var(--sb-border-width-hairline)) var(--sb-border-width-hairline); }
 .sb-board__empty { margin: 0; padding-block: var(--sb-space-2); font: var(--sb-type-caption); letter-spacing: var(--sb-type-caption-tracking); color: var(--sb-color-text-muted); }
 /* the card on a board: title in label, a grey meta line, „Mehr“ at the end of the first line */
 .sb-board .sb-card--item {
@@ -2144,8 +2166,8 @@ kbd, .sb-kbd {
   content: ""; position: absolute; inset-inline: calc(-1 * var(--sb-border-width-hairline)); block-size: 0; pointer-events: none;
   border-block-start: var(--sb-border-width-strong) solid var(--sb-color-accent);
 }
-.sb-board .sb-card--item[data-sb-state="drop-before"]::after { inset-block-start: calc(-1 * (var(--sb-space-2) + var(--sb-border-width-strong)) / 2 - var(--sb-border-width-hairline)); }
-.sb-board .sb-card--item[data-sb-state="drop-after"]::after { inset-block-end: calc(-1 * (var(--sb-space-2) + var(--sb-border-width-strong)) / 2 - var(--sb-border-width-hairline)); }
+.sb-board .sb-card--item[data-sb-state="drop-before"]::after { inset-block-start: calc(-1 * (var(--sb-space-3) + var(--sb-border-width-strong)) / 2 - var(--sb-border-width-hairline)); }
+.sb-board .sb-card--item[data-sb-state="drop-after"]::after { inset-block-end: calc(-1 * (var(--sb-space-3) + var(--sb-border-width-strong)) / 2 - var(--sb-border-width-hairline)); }
 .sb-board__column[data-sb-state="drop-into"] { outline: var(--sb-border-width-strong) solid var(--sb-color-accent); outline-offset: calc(-1 * var(--sb-border-width-strong)); }
 /* someone else is writing this card (aria-busy): the pending glyph and „Lea schreibt …“, no content, no dashed line */
 .sb-board .sb-card--item[aria-busy="true"] { grid-template-columns: minmax(0, 1fr); padding-block: var(--sb-space-3); border-color: var(--sb-color-border); }
@@ -2309,6 +2331,22 @@ kbd, .sb-kbd {
   font-weight: var(--sb-type-body-strong-weight); font-variant-numeric: var(--sb-type-numeric-variant);
 }
 .sb-board .sb-card--item > .sb-vote { grid-row: auto; margin-block: calc(-1 * var(--sb-space-1)) calc(-1 * var(--sb-space-2)); }   /* after the title and the grey line, also where a narrow board puts the title under „Mehr“ */
+/* a stack takes one vote as a whole, inside its frame; its cards have none (Blueprint, parts/collaboration). On a
+   board the stack is an item of .sb-board__cards: a 1 px ink-grey frame without fill (as .sb-canvas__group), its name
+   and count, its cards in a .sb-board__cards of its own, and its one .sb-vote last, at the foot and at the start. On
+   the free canvas the group's .sb-vote sits at the foot of its frame. sb-board.js counts every .sb-vote once, so the
+   stack's vote counts once against the budget as long as its cards carry none */
+.sb-board__stack {
+  display: grid; gap: var(--sb-space-2); margin: 0; padding: var(--sb-space-2);
+  border: var(--sb-border-width-hairline) solid var(--sb-color-border-strong); border-radius: var(--sb-radius-container);
+}
+.sb-board__stack-name {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--sb-space-2); margin: 0; padding-inline: var(--sb-space-1);
+  font: var(--sb-type-label); letter-spacing: var(--sb-type-label-tracking); overflow-wrap: anywhere;
+}
+.sb-board__stack > .sb-vote { margin-block: calc(-1 * var(--sb-space-1)) calc(-1 * var(--sb-space-2)); }
+.sb-canvas__group:has(> .sb-vote) { display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; }
+.sb-canvas__group > .sb-vote { margin-block-end: calc(-1 * var(--sb-space-2)); }
 /* a hidden card (blind reveal): an empty card with its writer's name; „verdeckt“ is a state, so glyph and word
    (eye-off, text-muted, body weight), never grey alone */
 .sb-card--hidden .sb-card__title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sb-space-1); color: var(--sb-color-text-muted); font-weight: var(--sb-type-body-weight); }
@@ -2327,9 +2365,10 @@ kbd, .sb-kbd {
   padding: var(--sb-space-8) var(--sb-space-2) var(--sb-space-2);
 }
 .sb-canvas__group-name { position: absolute; inset-block-start: var(--sb-space-1); inset-inline-start: var(--sb-space-3); margin: 0; font: var(--sb-type-label); letter-spacing: var(--sb-type-label-tracking); }
-/* pointers of the others: an ink arrow on the ground with the name in a box (1 px text line); no colour per
-   person (D40), the name tells them apart; aria-hidden (the action zone says „2 Personen sind auf der Fläche.“). They
-   glide over motion.duration.short only inside the motion guard (a named exception), else they jump */
+/* pointers of the others: an ink arrow on the ground with the name in a box (1 px text line); a person's tone
+   (FAR-16) is only the small ring before the name (.sb-pointer__name.sb-person), the name tells them apart;
+   aria-hidden (the action zone says „2 Personen sind auf der Fläche.“). They glide over motion.duration.short
+   only inside the motion guard (a named exception), else they jump */
 .sb-pointer { display: flex; align-items: flex-start; gap: var(--sb-space-0-5); pointer-events: none; z-index: 1; transition: none; }
 @media (prefers-reduced-motion: no-preference) {
   .sb-pointer:not([data-sb-motion="reduce"], [data-sb-motion="reduce"] *) {

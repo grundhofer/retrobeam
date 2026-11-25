@@ -31,9 +31,9 @@ describe("assignColor", () => {
 describe("personColour", () => {
   const GROUNDS = [
     ...["#F4F5F8", "#FBFCFE", "#FFFFFF", "#E9EBEE"], // light
-    ...["#13161C", "#1B1E24", "#212429", "#090C11"], // dark
+    ...["#1B1E24", "#1E2126", "#212429", "#101419"], // dark (v3.1.2)
     ...["#FBF4EA", "#FFFBF5", "#FFFFFB", "#F3EADC"], // warm
-    ...["#1B140F", "#241C16", "#29221D", "#100B07"], // warm dark
+    ...["#241C16", "#261F19", "#29221D", "#18130E"], // warm dark (v3.1.2)
   ];
   const channel = (hex: string, at: number) => {
     const c = parseInt(hex.slice(at, at + 2), 16) / 255;

@@ -5,6 +5,78 @@ hand for someone who builds a product; the newest release stands first. Every pr
 release publishes it beside the copies, and `checks/update-copy.mjs` prints the sections between the release a copy
 had and the one it fetched. The headings are the release tags.
 
+## v3.1.2
+
+**Every product**
+
+- The dark theme has a lighter ground (feedback that it read too dark). Cool: `bg` `#13161C` → `#1B1E24`, `surface`
+  `#1B1E24` → `#1E2126`, `surface-sunken` `#090C11` → `#101419`, `border` `#32353C` → `#3B3E45`, `border-strong`
+  `#707379` → `#76797F` (it keeps its 3.81:1 to `bg`). Warm: `bg` `#1B140F` → `#241C16`, `surface` → `#261F19`,
+  `surface-sunken` → `#18130E`, `border` → `#443C36`, `border-strong` → `#80776F`. `surface-raised`, `hover-fill`,
+  `pressed-fill` and every foreground colour stay. A product that names the dark ground anywhere besides the tokens
+  (a `theme-color` meta tag, a manifest's `background_color`, a splash screen, a window colour before the first
+  paint) takes the new value.
+- The placeholder tile Graphit is `#594B46` instead of `#514946`, so it stays visible on the lighter ground. Only a
+  product that still shows the starter's tile is affected; its product files are written anew.
+
+**A product with a board**
+
+- The cards of a board column stand 12 px apart instead of 8 px (`.sb-board__cards` on the web, `SbBoard` in
+  Compose): 8 px stood too close for cards with votes. The drop line and the padding of `.sb-board__cards--scroll`
+  follow the new gap. A product that set its own gap on `.sb-board__cards` removes it: with a gap of its own the drop
+  line no longer sits in the middle between two cards.
+- New: a stack takes one vote as a whole (Blueprint, parts/collaboration). On a board it is
+  `li.sb-board__stack` in `.sb-board__cards`: a frame without fill with `.sb-board__stack-name` (name and
+  `.sb-board__count`), its cards in a `ul.sb-board__cards` of its own, and its one `.sb-vote` as the last child. On
+  the free canvas the `.sb-vote` is the last child of `.sb-canvas__group`. The cards of a stack carry no `.sb-vote`;
+  `sb-board.js` then counts the stack's vote once against the budget. A product that drew its own stack frame (with
+  its vote under the cards) takes these classes.
+
+**A product in which several people work together**
+
+- New: person tones (Blueprint FAR-16). Twelve tones, one value for light, dark, cool and warm, each at least 3:1 on
+  every ground: `--sb-person-1` to `-12` (Tailwind `person-1`…, Compose `SebaroTheme.persons`, `tokens.json`
+  `persons[]`). The app gives each person one fixed tone, in this order, and starts again after the last.
+- The avatar takes it as a 2 px ring: `.sb-avatar[data-sb-person="3"]`, `SbAvatar(tone = 3)`. Where no avatar fits,
+  `.sb-person[data-sb-person="3"]` around the name puts a small ring before it (a card's grey line, a vote, a
+  `.sb-pointer__name`), in Compose `SbPerson(name, tone = 3)`. Without a tone nothing changes: the avatar keeps its
+  1 px ring, and an anonymous card has none.
+- A person tone is never a fill, a text colour or the only cue; the name always stands there. Under normal vision the
+  tones are told apart from each other and from cobalt, lime and the status colours; with a colour vision deficiency
+  some pairs look alike (the first six do not), and some tones come near a category.
+- `sb-colour-count.js` knows the tones: a line in an `.sb-avatar` or `.sb-person` with `data-sb-person` has a role, the
+  same colour as a fill or as text still counts as a colour without a role.
+- A product with a person palette of its own stores the number (1 to 12) instead of a colour, maps its old values to a
+  number and drops its palette and its inline ring styles.
+
+**An Android app**
+
+- `release.yml` no longer fetches every dependency from Maven Central on each run (repeated releases ran into its
+  rate limit, HTTP 429). It starts from a clone of the runner's dependency cache (`caches/modules-2` of
+  `~/.gradle`, which `ci.yml` fills), but only when the app has `gradle/verification-metadata.xml`, and builds with
+  `--dependency-verification=strict`: Gradle checks every jar, aar, pom and module file against its SHA-256 there,
+  so a file that a `ci.yml` run (same user, foreign code such as Dependabot pull requests) slipped into the cache
+  fails the release. The rest of `~/.gradle` (transforms, compiled scripts, init scripts, Gradle distributions)
+  stays out as before. The reasons stand in the head comment of the starter's `release.yml`.
+- New in the starter: `gradle/verification-metadata.xml` and `gradle/verification-metadata.sh`, which writes it anew
+  with the tasks of `ci.yml` and `release.yml`. An app takes the changed `release.yml` and the script, runs
+  `sh gradle/verification-metadata.sh` on its own machine (never on the runner), reads the diff and commits both.
+  From then on `ci.yml` refuses a dependency without its checksum: after a Dependabot pull request or a copy update
+  (which can raise the plugin versions of `sebaro/build-logic`), run the script on that branch and push the file;
+  Dependabot does not write it. When Maven Central answers with HTTP 429 (too many requests), the script waits
+  longer between tries and, if a run still fails, completes the file from the dependency cache; its head comment
+  says what to check then.
+- The copy asks for Compose BOM 2026.11.01 or newer (material3 1.5, `compileSdk` 37.1); with an older BOM it no longer
+  compiles. The app's versions are those of the v3.1.1 notes; take them before the copy.
+- Four deprecated Compose interfaces are gone from the parts: the sheets use `rememberBottomSheetState`, the text
+  fields the state-based `BasicTextField` and `BasicSecureTextField`, the checkbox colours the constructor with
+  `disabledCheckmarkColor`. No public signature changed: `SbTextField`, `SbPasswordField` and `SbSearchField` keep
+  `value` and `onValueChange`; an edit is reported at once, as before, and a caller that filters or refuses it still
+  decides. A field without an IME action of its own runs `onDone` for any action the keyboard sends.
+  A password field hides every character at once, as before, and is now marked as a password for autofill.
+- An app's own `rememberModalBottomSheetState(skipPartiallyExpanded = true)` still works and warns; its successor is
+  `rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))`.
+
 ## v3.1.1
 
 **Every product**

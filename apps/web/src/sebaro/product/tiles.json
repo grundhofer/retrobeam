@@ -52,7 +52,7 @@
       "kotlin": "SebaroSignTile.System"
     },
     "placeholder": {
-      "tile": "#514946",
+      "tile": "#594B46",
       "glyph": "#FFFFFF",
       "css": "--sb-tile-placeholder",
       "kotlin": "SebaroSignTile.Placeholder"
@@ -64,12 +64,12 @@
   },
   "grounds": {
     "light": "#F4F5F8",
-    "dark": "#13161C"
+    "dark": "#1B1E24"
   },
   "tones": {
     "warm": {
       "light": "#FBF4EA",
-      "dark": "#1B140F"
+      "dark": "#241C16"
     }
   },
   "tile": {

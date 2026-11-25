@@ -648,10 +648,7 @@ function BoardColumn({
         </Dialog>
       ) : null}
 
-      {/* 12 px between cards instead of sebaro's 8 (owner, 2026-11-20: the
-          cards stood too close). Inline, because sebaro's CSS has no layer
-          and wins over a utility class. Gap list 62. */}
-      <div className="sb-board__cards" style={{ gap: "var(--sb-space-3)" }}>
+      <div className="sb-board__cards">
         {/* The composer is PINNED ABOVE the cards: the card you are writing has
             to stay in view while the column fills up around you, and a
             teammate finishing one in the same column must not shove your input

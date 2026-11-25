@@ -1,8 +1,8 @@
 /* generated — do not edit.
- * sebaroDesign token contract 2.0 · draft "sebaro" · palette "sebaro"
- * source: systems/sebaro/tokens/tokens.json (sha256 b20394467cd8a934)
- *         palettes/sebaro.json (sha256 49659985fc757a5f)
- * builder: tools/build_tokens.py 2.0.0 · spec: shared/TOKEN-CONTRACT.md
+ * sebaroDesign token contract 2.1 · draft "sebaro" · palette "sebaro"
+ * source: systems/sebaro/tokens/tokens.json (sha256 d5185a125799376b)
+ *         palettes/sebaro.json (sha256 8eff705277592a50)
+ * builder: tools/build_tokens.py 2.1.0 · spec: shared/TOKEN-CONTRACT.md
  *
  * Tailwind CSS v4 bridge. Import order:
  *   @import "tailwindcss";
@@ -111,6 +111,18 @@
   --color-category-4: var(--sb-category-4);
   --color-category-5: var(--sb-category-5);
   --color-category-6: var(--sb-category-6);
+  --color-person-1: var(--sb-person-1);
+  --color-person-2: var(--sb-person-2);
+  --color-person-3: var(--sb-person-3);
+  --color-person-4: var(--sb-person-4);
+  --color-person-5: var(--sb-person-5);
+  --color-person-6: var(--sb-person-6);
+  --color-person-7: var(--sb-person-7);
+  --color-person-8: var(--sb-person-8);
+  --color-person-9: var(--sb-person-9);
+  --color-person-10: var(--sb-person-10);
+  --color-person-11: var(--sb-person-11);
+  --color-person-12: var(--sb-person-12);
   --color-mark: var(--sb-mark);
   --color-mark-edge: var(--sb-mark-edge);
 

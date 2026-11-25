@@ -49,7 +49,8 @@ function sbControlLevels(view) {
 // part (LOCAL below; anywhere else they are colours without a role): the diff fills success-subtle / danger-subtle on a
 // signed diff line (D85), the category tones in .sb-category (D91 C1b), the mark in mark / .sb-mark
 // (C2a), the categorical, sequential and diverging chart colours in charts and scale cells (D91 G6a) and
-// the code colours in code (D67). The line names only the core jobs.
+// the code colours in code (D67). The person tones count only as a line of an .sb-avatar or .sb-person with
+// data-sb-person (FAR-16: a ring, never a fill or text). The line names only the core jobs.
 // Known gaps (as in the sketch): pseudo-element paints (checkbox marks, chip frames, slider handles) and focus outlines
 // are not read.
 function sbColourCount(view) {
@@ -73,7 +74,8 @@ function sbColourCount(view) {
     [["--sb-syntax-keyword", "--sb-syntax-string", "--sb-syntax-constant", "--sb-syntax-comment",
       "--sb-syntax-number", "--sb-syntax-function"], "pre, code, .sb-code, .sb-diff"]
   ];
-  var map = {}, local = {}, probe = document.createElement("span");
+  var PERSONS = series("--sb-person-", 12);
+  var map = {}, local = {}, person = {}, probe = document.createElement("span");
   view.appendChild(probe);                                   // resolves every role in the view's own mode
   Object.keys(ROLES).forEach(function (group) {
     ROLES[group].forEach(function (role) {
@@ -90,6 +92,12 @@ function sbColourCount(view) {
       var c = getComputedStyle(probe).color;
       if (!(c in map)) (local[c] = local[c] || []).push(job[1]);
     });
+  });
+  PERSONS.forEach(function (prop) {
+    if (!defined.getPropertyValue(prop).trim()) return;
+    probe.style.color = "var(" + prop + ")";
+    var c = getComputedStyle(probe).color;
+    if (!(c in map)) person[c] = true;
   });
   // Product area paints have a local job only inside their own component (D143/D144).
   ["studio", "collaboration", "everyday", "learning", "tools", "media", "money", "system", "placeholder"].forEach(function (id) {
@@ -174,6 +182,7 @@ function sbColourCount(view) {
       var group = map[p[1]];
       if (e.closest(".sb-product-area") && local[p[1]] && local[p[1]].includes(".sb-product-area")) return;
       if (!group && local[p[1]] && local[p[1]].some(function (sel) { return e.closest(sel); })) return;
+      if (!group && person[p[1]] && p[0] === "line" && e.closest(".sb-avatar[data-sb-person], .sb-person[data-sb-person]")) return;
       if (!group || group === "unused") { n.unknown[p[1]] = 1; return; }
       if (group === "primary" && p[0] === "fill") n.primary++;
       else if (group === "place") n.place++;
