@@ -12,14 +12,14 @@ import { Roster } from "./Roster.js";
 const anna: Participant = {
   id: "p1",
   name: "Anna",
-  color: "#E8590C",
+  tone: 1,
   role: "facilitator",
   online: true,
 };
 const ben: Participant = {
   id: "p2",
   name: "Ben",
-  color: "#1971C2",
+  tone: 2,
   role: "member",
   online: false,
 };

@@ -47,7 +47,12 @@ export type ParticipantRole = z.infer<typeof participantRoleSchema>;
 export const participantSchema = z.object({
   id: z.string(),
   name: z.string(),
-  color: z.string(),
+  /** sebaro's person tone, 1 to 12 (FAR-16), drawn as `data-sb-person`. */
+  tone: z.number().int().min(1).max(12),
+  /** @deprecated the colour a build before sebaro v3.1.2 drew; still sent so
+   *  a tab open across that deploy keeps its rings. Remove once
+   *  PROTOCOL_VERSION has moved on. */
+  color: z.string().optional(),
   role: participantRoleSchema,
   online: z.boolean(),
 });

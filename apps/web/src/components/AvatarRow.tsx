@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { nameInitials, type Participant } from "@retrobeam/shared";
 import { Icon } from "./Icon.js";
-import { personRingStyle } from "./PersonAvatar.js";
 import { RoleToggleButton } from "./RoleToggleButton.js";
 
 export interface AvatarRowProps {
@@ -64,7 +63,7 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
             }}
             data-sb-presence={participant.online ? undefined : "offline"}
             className={`sb-avatar sb-avatar--32 ${isAdmin ? "cursor-pointer" : ""}`}
-            style={personRingStyle(participant)}
+            data-sb-person={participant.tone}
           >
             <span aria-hidden="true">{nameInitials(participant.name)}</span>
             {participant.role === "facilitator" ? (
