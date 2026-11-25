@@ -891,7 +891,7 @@ export function NoteStack({
   // stacks have no name, so the head is the count alone.
   return (
     <div data-testid="note-stack" className="sb-board__stack">
-      <span className="sb-tag self-start tabular-nums">×{count}</span>
+      <span className="sb-tag justify-self-start tabular-nums">×{count}</span>
       <div className="sb-board__cards">{children}</div>
       {vote}
     </div>
