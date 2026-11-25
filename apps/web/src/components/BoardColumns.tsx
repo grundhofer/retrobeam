@@ -885,13 +885,14 @@ export function NoteStack({
   vote?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  // sebaro's stack (v3.1.2, Blueprint parts/collaboration): a frame without
+  // fill, its cards in a card list of their own (12 px apart, as in the
+  // column), its one vote last, at the foot and at the start. RetroBeam's
+  // stacks have no name, so the head is the count alone.
   return (
-    <div
-      data-testid="note-stack"
-      className="sb-stack rounded-container border border-border p-1"
-    >
+    <div data-testid="note-stack" className="sb-board__stack">
       <span className="sb-tag self-start tabular-nums">×{count}</span>
-      {children}
+      <div className="sb-board__cards">{children}</div>
       {vote}
     </div>
   );
