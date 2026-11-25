@@ -1,8 +1,8 @@
 /* generated — do not edit.
- * sebaroDesign token contract 2.0 · draft "sebaro" · palette "sebaro"
- * source: systems/sebaro/tokens/tokens.json (sha256 b20394467cd8a934)
- *         palettes/sebaro.json (sha256 49659985fc757a5f)
- * builder: tools/build_tokens.py 2.0.0 · spec: shared/TOKEN-CONTRACT.md
+ * sebaroDesign token contract 2.1 · draft "sebaro" · palette "sebaro"
+ * source: systems/sebaro/tokens/tokens.json (sha256 d5185a125799376b)
+ *         palettes/sebaro.json (sha256 8eff705277592a50)
+ * builder: tools/build_tokens.py 2.1.0 · spec: shared/TOKEN-CONTRACT.md
  */
 
 /* 1. Mode-independent tokens. */
@@ -93,6 +93,8 @@
   --sb-x-sebaro-start-tile-size: 96px;
   --sb-x-sebaro-link-underline-width: 2px;
   --sb-x-sebaro-mark-edge-width: 2px;
+  --sb-x-sebaro-person-ring-width: 2px;
+  --sb-x-sebaro-person-ring-size: 12px;
   --sb-x-sebaro-pane-sidebar: 240px;
   --sb-x-sebaro-pane-sidebar-min: 200px;
   --sb-x-sebaro-pane-sidebar-max: 360px;
@@ -178,6 +180,18 @@
   --sb-category-4: #67548E;
   --sb-category-5: #88763F;
   --sb-category-6: #975C78;
+  --sb-person-1: #907E00;
+  --sb-person-2: #0086E1;
+  --sb-person-3: #D2458F;
+  --sb-person-4: #9F5C54;
+  --sb-person-5: #8F75AF;
+  --sb-person-6: #A647BB;
+  --sb-person-7: #4671A2;
+  --sb-person-8: #D73E41;
+  --sb-person-9: #00939E;
+  --sb-person-10: #3D7E58;
+  --sb-person-11: #8966E9;
+  --sb-person-12: #008B09;
   --sb-mark: #FFF198;
   --sb-mark-edge: #8D894E;
   --sb-type-display-family: var(--sb-font-family-display);
@@ -303,15 +317,15 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --sb-color-bg: #13161C;
-    --sb-color-surface: #1B1E24;
+    --sb-color-bg: #1B1E24;
+    --sb-color-surface: #1E2126;
     --sb-color-surface-raised: #212429;
-    --sb-color-surface-sunken: #090C11;
+    --sb-color-surface-sunken: #101419;
     --sb-color-text: #EBEDEF;
     --sb-color-text-muted: #9D9EA1;
     --sb-color-text-subtle: #797A7D;
-    --sb-color-border: #32353C;
-    --sb-color-border-strong: #707379;
+    --sb-color-border: #3B3E45;
+    --sb-color-border-strong: #76797F;
     --sb-color-accent: #89B1FA;
     --sb-color-accent-hover: #95BEFF;
     --sb-color-accent-pressed: #A7CBFF;
@@ -370,6 +384,18 @@
     --sb-category-4: #BD9FDC;
     --sb-category-5: #D2BD77;
     --sb-category-6: #C07D9F;
+    --sb-person-1: #907E00;
+    --sb-person-2: #0086E1;
+    --sb-person-3: #D2458F;
+    --sb-person-4: #9F5C54;
+    --sb-person-5: #8F75AF;
+    --sb-person-6: #A647BB;
+    --sb-person-7: #4671A2;
+    --sb-person-8: #D73E41;
+    --sb-person-9: #00939E;
+    --sb-person-10: #3D7E58;
+    --sb-person-11: #8966E9;
+    --sb-person-12: #008B09;
     --sb-mark: #3E3600;
     --sb-mark-edge: #E3B831;
     --sb-type-display-family: var(--sb-font-family-display);
@@ -495,15 +521,15 @@
 /* 4. Dark mode chosen explicitly, on the root or any subtree. */
 [data-theme="dark"] {
   color-scheme: dark;
-  --sb-color-bg: #13161C;
-  --sb-color-surface: #1B1E24;
+  --sb-color-bg: #1B1E24;
+  --sb-color-surface: #1E2126;
   --sb-color-surface-raised: #212429;
-  --sb-color-surface-sunken: #090C11;
+  --sb-color-surface-sunken: #101419;
   --sb-color-text: #EBEDEF;
   --sb-color-text-muted: #9D9EA1;
   --sb-color-text-subtle: #797A7D;
-  --sb-color-border: #32353C;
-  --sb-color-border-strong: #707379;
+  --sb-color-border: #3B3E45;
+  --sb-color-border-strong: #76797F;
   --sb-color-accent: #89B1FA;
   --sb-color-accent-hover: #95BEFF;
   --sb-color-accent-pressed: #A7CBFF;
@@ -562,6 +588,18 @@
   --sb-category-4: #BD9FDC;
   --sb-category-5: #D2BD77;
   --sb-category-6: #C07D9F;
+  --sb-person-1: #907E00;
+  --sb-person-2: #0086E1;
+  --sb-person-3: #D2458F;
+  --sb-person-4: #9F5C54;
+  --sb-person-5: #8F75AF;
+  --sb-person-6: #A647BB;
+  --sb-person-7: #4671A2;
+  --sb-person-8: #D73E41;
+  --sb-person-9: #00939E;
+  --sb-person-10: #3D7E58;
+  --sb-person-11: #8966E9;
+  --sb-person-12: #008B09;
   --sb-mark: #3E3600;
   --sb-mark-edge: #E3B831;
   --sb-type-display-family: var(--sb-font-family-display);
@@ -705,15 +743,15 @@
 }
 @media (prefers-color-scheme: dark) {
   :root[data-sb-tone="warm"]:not([data-theme="light"]) {
-    --sb-color-bg: #1B140F;
-    --sb-color-surface: #241C16;
+    --sb-color-bg: #241C16;
+    --sb-color-surface: #261F19;
     --sb-color-surface-raised: #29221D;
-    --sb-color-surface-sunken: #100B07;
+    --sb-color-surface-sunken: #18130E;
     --sb-color-text: #F3EBE8;
     --sb-color-text-muted: #A69C96;
     --sb-color-text-subtle: #817873;
-    --sb-color-border: #3B332D;
-    --sb-color-border-strong: #7A716A;
+    --sb-color-border: #443C36;
+    --sb-color-border-strong: #80776F;
     --sb-color-scrim: #00000099;
     --sb-color-hover-fill: #2A221C;
     --sb-color-pressed-fill: #2E2620;
@@ -723,15 +761,15 @@
 }
 :root[data-sb-tone="warm"][data-theme="dark"],
 :root[data-sb-tone="warm"] [data-theme="dark"] {
-  --sb-color-bg: #1B140F;
-  --sb-color-surface: #241C16;
+  --sb-color-bg: #241C16;
+  --sb-color-surface: #261F19;
   --sb-color-surface-raised: #29221D;
-  --sb-color-surface-sunken: #100B07;
+  --sb-color-surface-sunken: #18130E;
   --sb-color-text: #F3EBE8;
   --sb-color-text-muted: #A69C96;
   --sb-color-text-subtle: #817873;
-  --sb-color-border: #3B332D;
-  --sb-color-border-strong: #7A716A;
+  --sb-color-border: #443C36;
+  --sb-color-border-strong: #80776F;
   --sb-color-scrim: #00000099;
   --sb-color-hover-fill: #2A221C;
   --sb-color-pressed-fill: #2E2620;
@@ -788,7 +826,7 @@
   --sb-tile-money-glyph: #FFFFFF;
   --sb-tile-system: #1A89C5;
   --sb-tile-system-glyph: #FFFFFF;
-  --sb-tile-placeholder: #514946;
+  --sb-tile-placeholder: #594B46;
   --sb-tile-placeholder-glyph: #FFFFFF;
 }
 [data-sb-product] {
@@ -933,6 +971,18 @@
     --sb-category-4: #67548E;
     --sb-category-5: #88763F;
     --sb-category-6: #975C78;
+    --sb-person-1: #907E00;
+    --sb-person-2: #0086E1;
+    --sb-person-3: #D2458F;
+    --sb-person-4: #9F5C54;
+    --sb-person-5: #8F75AF;
+    --sb-person-6: #A647BB;
+    --sb-person-7: #4671A2;
+    --sb-person-8: #D73E41;
+    --sb-person-9: #00939E;
+    --sb-person-10: #3D7E58;
+    --sb-person-11: #8966E9;
+    --sb-person-12: #008B09;
     --sb-mark: #FFF198;
     --sb-mark-edge: #8D894E;
     --sb-type-display-family: var(--sb-font-family-display);
