@@ -11,7 +11,7 @@ import { PickerControls, PresenceRail, PresentStatus } from "./PresenceRail.js";
 const anna: Participant = {
   id: "a".repeat(32),
   name: "Anna",
-  color: "#E8590C",
+  tone: 1,
   role: "facilitator",
   online: true,
 };
@@ -19,7 +19,7 @@ const anna: Participant = {
 const ben: Participant = {
   id: "b".repeat(32),
   name: "Ben",
-  color: "#1971C2",
+  tone: 2,
   role: "member",
   online: true,
 };

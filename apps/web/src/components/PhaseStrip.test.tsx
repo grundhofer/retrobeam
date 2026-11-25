@@ -55,7 +55,7 @@ afterEach(() => useBoardStore.getState().reset());
 const person = (id: string, online = true): Participant => ({
   id,
   name: id,
-  color: "#000000",
+  tone: 1,
   role: "member",
   online,
 });

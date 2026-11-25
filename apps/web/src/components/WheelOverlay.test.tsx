@@ -25,14 +25,14 @@ import { toneIndex, WheelOverlay, wheelLabel } from "./WheelOverlay.js";
 const anna: Participant = {
   id: "a".repeat(32),
   name: "Anna",
-  color: "#E8590C",
+  tone: 1,
   role: "facilitator",
   online: true,
 };
 const ben: Participant = {
   id: "b".repeat(32),
   name: "Ben",
-  color: "#1971C2",
+  tone: 2,
   role: "member",
   online: true,
 };
@@ -133,8 +133,8 @@ test("the wheel is sebaro's wheel in a modal dialog, in sebaro's tones, not the 
     .filter((value): value is string => value !== null && value !== "");
   expect(new Set(painted)).toEqual(new Set(["currentcolor", "none"]));
   const markup = document.querySelector("[data-testid=wheel]")!.outerHTML;
-  for (const colour of [anna.color, ben.color])
-    expect(markup.toLowerCase()).not.toContain(colour.toLowerCase());
+  // No person tone paints a wedge either.
+  expect(markup).not.toContain("--sb-person");
   expect(document.querySelector("canvas")).toBeNull(); // no confetti layer
 });
 

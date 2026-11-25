@@ -18,7 +18,7 @@ import { Dialog } from "./Dialog.js";
 import { GifPickerButton } from "./GifPicker.js";
 import { Icon } from "./Icon.js";
 import { Menu, type MenuItem } from "./Menu.js";
-import { PersonRing } from "./PersonAvatar.js";
+import { PersonName } from "./PersonAvatar.js";
 
 const NOTE_DRAG_MIME = "application/x-retrobeam-note";
 
@@ -542,16 +542,17 @@ export function NoteCard({
                 }`}
                 style={{ flexWrap: "nowrap" }}
               >
-                <PersonRing participant={author} />
-                <span
-                  className={
-                    arrangeScale === null
-                      ? "min-w-0 wrap-break-word"
-                      : "min-w-0 truncate"
-                  }
-                >
-                  {author.name}
-                </span>
+                <PersonName participant={author} className="min-w-0">
+                  <span
+                    className={
+                      arrangeScale === null
+                        ? "min-w-0 wrap-break-word"
+                        : "min-w-0 truncate"
+                    }
+                  >
+                    {author.name}
+                  </span>
+                </PersonName>
               </p>
             ) : (
               <span className="flex-1" />

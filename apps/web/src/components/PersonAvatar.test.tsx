@@ -3,44 +3,50 @@
 
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
-import {
-  PARTICIPANT_COLORS,
-  type Note,
-  type Participant,
-} from "@retrobeam/shared";
+import type { Note, Participant } from "@retrobeam/shared";
 import "../i18n.js";
 import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
 import { NoteCard } from "./NoteCard.js";
-import { PersonAvatar, PersonRing } from "./PersonAvatar.js";
+import { PersonAvatar, PersonName } from "./PersonAvatar.js";
 
-// A person's colour as a ring, the same tone everywhere (owner, 2026-11-20).
+// A person's tone as a ring, the same everywhere (owner, 2026-11-20; sebaro
+// FAR-16): sebaro's --sb-person-<tone>, never a colour of our own.
 const anna: Participant = {
   id: "a".repeat(32),
   name: "Anna",
-  // An old stored value: drawn as the new tone at its place.
-  color: "#E8590C",
+  tone: 3,
   role: "member",
   online: true,
 };
 
-const rgb = (hex: string) =>
-  `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
+// The colour sebaro gives a tone, resolved the way the browser draws it.
+function toneColour(tone: number): string {
+  const probe = document.createElement("span");
+  probe.style.color = `var(--sb-person-${tone})`;
+  document.body.append(probe);
+  const colour = getComputedStyle(probe).color;
+  probe.remove();
+  return colour;
+}
 
 test("the avatar's ring and the small ring carry the person's tone", async () => {
   const screen = await render(
     <div>
       <PersonAvatar participant={anna} />
-      <PersonRing participant={anna} />
+      <PersonName participant={anna}>Anna</PersonName>
     </div>,
   );
-  const ring = screen.getByTestId("person-ring");
-  await expect.element(ring).toBeInTheDocument();
-  const avatar = ring.element().previousElementSibling as HTMLElement;
-  const tone = rgb(PARTICIPANT_COLORS[0]);
+  const name = screen.getByTestId("person-name");
+  await expect.element(name).toBeInTheDocument();
+  const avatar = name.element().previousElementSibling as HTMLElement;
+  const tone = toneColour(3);
+  expect(tone).not.toBe(toneColour(1));
   expect(getComputedStyle(avatar).borderTopColor).toBe(tone);
-  expect(getComputedStyle(ring.element()).borderTopColor).toBe(tone);
-  expect(getComputedStyle(ring.element()).borderTopWidth).toBe("2px");
+  expect(getComputedStyle(avatar).borderTopWidth).toBe("2px");
+  const ring = getComputedStyle(name.element(), "::before");
+  expect(ring.borderTopColor).toBe(tone);
+  expect(ring.borderTopWidth).toBe("2px");
 });
 
 const note: Note = {
@@ -80,9 +86,9 @@ function card() {
 
 test("a card carries its author's ring beside the name", async () => {
   const screen = await render(card());
-  const ring = screen.getByTestId("note-card").getByTestId("person-ring");
-  await expect.element(ring).toBeVisible();
-  expect(getComputedStyle(ring.element()).borderTopColor).toBe(
-    rgb(PARTICIPANT_COLORS[0]),
+  const name = screen.getByTestId("note-card").getByTestId("person-name");
+  await expect.element(name).toBeVisible();
+  expect(getComputedStyle(name.element(), "::before").borderTopColor).toBe(
+    toneColour(3),
   );
 });

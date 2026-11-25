@@ -22,7 +22,7 @@ import { KudosWall } from "./KudosWall.js";
 const anna: Participant = {
   id: "a".repeat(32),
   name: "Anna",
-  color: "#000000",
+  tone: 1,
   role: "facilitator",
   online: true,
 };
