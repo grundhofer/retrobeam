@@ -14,7 +14,7 @@
   "tiles": {
     "file": "product/tiles.json",
     "system": "sebaro",
-    "sha256": "2bca87769097cba6090b7abab7ce9f1189cddcd8d78bda28b6215b7af01aabea"
+    "sha256": "d8c8d5b0f5864397fe2d98e241abe2b0c37bfac22e1ae21aeef95c9ca85ccdf9"
   },
   "files": {
     "NOTICE.md": "624b66cc53c5aae546148b7af4eea9e74742b23118d87d88b2bb160185bafbe8",
@@ -34,7 +34,7 @@
     "web/icon.svg": "a40af7cc8ff7c376b5c82e86c3ffc173acd41f0d6187188ba5e46d4b5f78ccfa",
     "web/manifest.snippet.json": "56487e4e41ff9a4204bedbef72a96f6d3c751202efda7f67b31e08d3c96e447c",
     "web/manifest.webmanifest": "59bb5710d9fe25436f72d1178e3946e161e3b6e33c6e7bea4098b21f3fc66f39",
-    "web/theme-color.json": "cce39ba33688a8f743abe211fb65986e2f94a46390e162898464439176bb7fea"
+    "web/theme-color.json": "7761f3ce444a7640eabb2fdcdce30a4e253e01d426b058a9c720935318ddc5ca"
   },
   "raster": {
     "renderer": "product/render.mjs",
