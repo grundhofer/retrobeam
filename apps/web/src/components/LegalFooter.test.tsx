@@ -50,6 +50,7 @@ test("links in sebaro's order, the fonts' licences last", async () => {
     LEGAL_PATHS.imprint[lang],
     LEGAL_PATHS.privacy[lang],
     LEGAL_PATHS.accessibility[lang],
+    `https://rueckmeldung.sebaro-ventures.de/f/retrobeam?platform=web&locale=${lang}`,
     "https://github.com/grundhofer/retrobeam",
     "/fonts/sebaro-sans-OFL.txt",
     "/fonts/sebaro-mono-OFL.txt",
