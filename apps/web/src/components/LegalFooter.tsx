@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { REPO_URL } from "../content/operator.js";
 import { LEGAL_PATHS } from "../lib/legalPaths.js";
-import { FEEDBACK_ID } from "./AppFeedback.js";
+import { FEEDBACK_ID, FEEDBACK_SERVICE } from "./AppFeedback.js";
 import { Icon } from "./Icon.js";
 
 // sebaro's website footer (spec/02 §5, WEB-03) as a web app without a window
@@ -62,6 +62,19 @@ export function LegalFooter({
             {t("legal.accessibility")}
           </Link>
         </li>
+        {/* „Rückmeldung geben“ on every screen (sebaro NAV-12: on a website
+            in the footer). sb-feedback.js opens the dialog of AppFeedback
+            here; without the script the link leads to the service's own
+            form. */}
+        <li>
+          <a
+            href={`${FEEDBACK_SERVICE}/f/retrobeam?platform=web&locale=${lang}`}
+            data-sb-feedback-open={FEEDBACK_ID}
+            data-testid="footer-feedback"
+          >
+            {t("feedback.label")}
+          </a>
+        </li>
         <li>
           <a
             href={sourceUrl}
@@ -72,18 +85,6 @@ export function LegalFooter({
             GitHub
             <Icon name="external-link" size={16} />
           </a>
-        </li>
-        {/* „Rückmeldung geben“ on every screen (sebaro NAV-12: on a website
-            in the footer); sb-feedback.js opens the dialog of AppFeedback. */}
-        <li>
-          <button
-            type="button"
-            className="sb-text-action"
-            data-sb-feedback-open={FEEDBACK_ID}
-            data-testid="footer-feedback"
-          >
-            {t("feedback.label")}
-          </button>
         </li>
         <li>
           {t("legal.fonts")}{" "}
