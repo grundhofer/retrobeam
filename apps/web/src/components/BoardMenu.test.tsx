@@ -14,6 +14,8 @@ import {
 import i18n from "../i18n.js";
 import "../index.css";
 import { ConnectionProvider } from "../lib/connection.js";
+import "../sebaro/js/sb-feedback.js";
+import { AppFeedback } from "./AppFeedback.js";
 import { BoardMenu } from "./BoardMenu.js";
 
 // The export scope only exists in the URL the menu builds. A mistyped query
@@ -245,12 +247,14 @@ test("„Mehr“ opens its submenus by keyboard, and a choice applies and closes
       ? "separator"
       : li.firstElementChild?.getAttribute("data-testid"),
   );
-  expect(order.slice(-7)).toEqual([
+  expect(order.slice(-9)).toEqual([
     "menu-theme",
     "menu-tone",
     "menu-language",
     "separator",
     "menu-settings",
+    "separator",
+    "menu-feedback",
     "separator",
     "delete-board",
   ]);
@@ -347,4 +351,29 @@ test("on a phone a submenu takes the menu's place, and its back row goes back", 
   await back.click();
   await expect.element(screen.getByTestId("menu-language")).toHaveFocus();
   expect(parent.hasAttribute("data-sb-replaced")).toBe(false);
+});
+
+// „Rückmeldung geben“ opens sebaro's feedback dialog. The view that goes
+// along is the board's data-sb-view, never the page's path: a board's path is
+// its capability and the issue is public.
+test("„Rückmeldung geben“ opens the feedback dialog and names the view, not the path", async () => {
+  const screen = await render(
+    <>
+      <div data-sb-view="board">{view()}</div>
+      <AppFeedback />
+    </>,
+  );
+  const trigger = screen.getByTestId("board-menu");
+  await expect.element(trigger).toBeVisible();
+  await trigger.click();
+  await screen.getByTestId("menu-feedback").click();
+  const dialog = document.getElementById("app-feedback") as HTMLDialogElement;
+  await expect.poll(() => dialog.open).toBe(true);
+  expect(dialog.getAttribute("data-sb-feedback-product")).toBe("retrobeam");
+  expect(
+    dialog.querySelector('[data-sb-feedback-context="view"]')?.textContent,
+  ).toBe("board");
+  await userEvent.keyboard("{Escape}");
+  await expect.poll(() => dialog.open).toBe(false);
+  await expect.element(trigger).toHaveFocus();
 });

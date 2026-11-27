@@ -7,6 +7,7 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 import "./index.css";
 import sprite from "./sebaro/icons/sprite.svg?raw";
 import "./i18n.js";
+import { AppFeedback } from "./components/AppFeedback.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { NoIndex } from "./components/NoIndex.js";
 import { SkipLink } from "./components/SkipLink.js";
@@ -107,5 +108,6 @@ createRoot(root).render(
   <StrictMode>
     <SkipLink />
     <RouterProvider router={router} />
+    <AppFeedback />
   </StrictMode>,
 );

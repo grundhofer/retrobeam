@@ -25,6 +25,7 @@ import { useBoardExport } from "../lib/useBoardExport.js";
 import { AdminLink } from "./AdminLink.js";
 import { Dialog } from "./Dialog.js";
 import { Icon } from "./Icon.js";
+import { openAppFeedback } from "./AppFeedback.js";
 import { Menu, type MenuItem } from "./Menu.js";
 
 // sebaro's menu „Mehr“ (spec/02 §4.10) in the board's head, the one menu of
@@ -179,6 +180,17 @@ export function BoardMenu({
       separatorBefore: true,
       testId: "menu-settings",
       onSelect: () => void navigate(settingsPath),
+    },
+    // „Rückmeldung geben“ (sebaro NAV-12): the second last block, before
+    // deleting. The menu has handed focus back to its button when a row
+    // acts, so that button is where focus returns after the dialog.
+    {
+      key: "feedback",
+      label: t("feedback.label"),
+      icon: "chat",
+      separatorBefore: true,
+      testId: "menu-feedback",
+      onSelect: () => openAppFeedback(document.activeElement),
     },
   );
   // Deleting comes last, after a hairline, for the facilitator alone.
