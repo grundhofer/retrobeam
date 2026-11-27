@@ -41,7 +41,7 @@ export function CarriedActions({ actions }: { actions: Action[] }) {
                 <Icon name="success--filled-16" size={16} />
               </span>
               <div className="sb-list-row__main">
-                <p className="sb-list-row__title">
+                <p className="sb-list-row__title" data-sb-private="">
                   <span className="sb-visually-hidden">
                     {t("lobby.carried.done")}:{" "}
                   </span>
@@ -56,7 +56,9 @@ export function CarriedActions({ actions }: { actions: Action[] }) {
               className="sb-list-row"
             >
               <div className="sb-list-row__main">
-                <p className="sb-list-row__title">{action.text}</p>
+                <p className="sb-list-row__title" data-sb-private="">
+                  {action.text}
+                </p>
               </div>
             </li>
           ),

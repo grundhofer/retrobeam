@@ -437,7 +437,7 @@ function VotesChart({
           return (
             <li key={topic.targetId} className="sb-chart__row">
               <span className="sb-chart__name">
-                {short} <b>{counts[index]}</b>
+                <span data-sb-private="">{short}</span> <b>{counts[index]}</b>
               </span>
               <svg
                 viewBox="0 0 100 12"

@@ -154,7 +154,9 @@ export function PresenterFocus({
       ) : (
         zones.map((zone) => (
           <section key={zone.column.id} className="sb-stack">
-            <h3 className="sb-field__label m-0">{zone.column.name}</h3>
+            <h3 className="sb-field__label m-0" data-sb-private="">
+              {zone.column.name}
+            </h3>
             {zone.cards.map((note, cardIndex) => (
               <NoteCard
                 key={note.id}
@@ -228,7 +230,9 @@ function StagedCard({
       aria-live="polite"
       aria-atomic="true"
     >
-      <h3 className="sb-field__label m-0">{columnName}</h3>
+      <h3 className="sb-field__label m-0" data-sb-private="">
+        {columnName}
+      </h3>
       <div>
         <NoteCard
           note={note}

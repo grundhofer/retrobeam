@@ -452,10 +452,12 @@ function CardReveal({
                   className="sb-avatar sb-avatar--32"
                   // The winner's ring in their tone, as in the header.
                   data-sb-person={winner?.tone}
+                  data-sb-private=""
                 >
                   {nameMonogram(winner?.name ?? "?")}
                 </span>
                 <span
+                  data-sb-private=""
                   className={`max-w-full ${PICKED_NAME} ${
                     nameGraphemes(winner?.name ?? "?").length > LONG_NAME
                       ? "[font:var(--sb-type-caption)]"
@@ -728,6 +730,7 @@ function Wheel({
             return (
               <g key={participantId} transform={`rotate(${midAngle})`}>
                 <text
+                  data-sb-private=""
                   transform={
                     flipped ? `rotate(180 ${LABEL_OUTER} 0)` : undefined
                   }
@@ -900,6 +903,7 @@ function Reel({
                 style={{ background: toneFill(tone) }}
               >
                 <span
+                  data-sb-private=""
                   className={`max-w-full px-2 ${PICKED_NAME} ${
                     nameGraphemes(name).length > LONG_NAME
                       ? "[font:var(--sb-type-caption)]"

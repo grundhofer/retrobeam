@@ -773,9 +773,13 @@ function Room({
             </span>
           </Link>
           {inSettings ? (
-            <p style={APP_HEAD_TITLE}>{state.board?.name ?? board.name}</p>
+            <p style={APP_HEAD_TITLE} data-sb-private="">
+              {state.board?.name ?? board.name}
+            </p>
           ) : (
-            <h1 style={APP_HEAD_TITLE}>{state.board?.name ?? board.name}</h1>
+            <h1 style={APP_HEAD_TITLE} data-sb-private="">
+              {state.board?.name ?? board.name}
+            </h1>
           )}
           {/* People, „Einladen“ and „Mehr“ at the head's end; they wrap as
               one group. Inline, as sebaro.css's cluster rule beats ms-auto. */}

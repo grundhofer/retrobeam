@@ -507,7 +507,7 @@ function PresenceRow({
         <PersonAvatar participant={participant} />
       </span>
       <div className="sb-list-row__main">
-        <p className="sb-list-row__title">
+        <p className="sb-list-row__title" data-sb-private="">
           {participant.name}
           {isYou ? ` ${t("roster.you")}` : null}
         </p>

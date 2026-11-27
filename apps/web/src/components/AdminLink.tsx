@@ -64,6 +64,7 @@ export function AdminLink({
             ref={inputRef}
             id={inputId}
             data-testid="admin-link-input"
+            data-sb-private=""
             readOnly
             value={revealed ? url : masked}
             onFocus={(event) => {

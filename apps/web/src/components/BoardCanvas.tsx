@@ -1369,7 +1369,10 @@ export function BoardCanvas({
                     isAdmin ? "cursor-move" : ""
                   }`}
                 >
-                  <h2 className="sb-canvas__group-name static flex-1 truncate">
+                  <h2
+                    className="sb-canvas__group-name static flex-1 truncate"
+                    data-sb-private=""
+                  >
                     {column.name}
                     {column.hidden ? (
                       <span
@@ -1598,6 +1601,7 @@ export function BoardCanvas({
                     <span
                       className="sb-pointer__name sb-person"
                       data-sb-person={p.tone}
+                      data-sb-private=""
                     >
                       {p.name}
                     </span>
@@ -1678,6 +1682,7 @@ function CanvasComposer({
         <div className="sb-field__control bg-bg">
           <textarea
             id={fieldId}
+            data-sb-private=""
             ref={textareaRef}
             autoFocus
             value={text}

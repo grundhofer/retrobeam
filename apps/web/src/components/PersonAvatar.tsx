@@ -20,6 +20,7 @@ export function PersonAvatar({ participant }: { participant: Participant }) {
       aria-hidden="true"
       className="sb-avatar sb-avatar--32"
       data-sb-person={participant.tone}
+      data-sb-private=""
       data-sb-presence={participant.online ? undefined : "offline"}
     >
       {nameInitials(participant.name)}
@@ -49,6 +50,7 @@ export function PersonName({
         className === undefined ? "sb-person" : `sb-person ${className}`
       }
       data-sb-person={participant.tone}
+      data-sb-private=""
     >
       {children}
     </span>
