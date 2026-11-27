@@ -50,7 +50,8 @@ function sbControlLevels(view) {
 // signed diff line (D85), the category tones in .sb-category (D91 C1b), the mark in mark / .sb-mark
 // (C2a), the categorical, sequential and diverging chart colours in charts and scale cells (D91 G6a) and
 // the code colours in code (D67). The person tones count only as a line of an .sb-avatar or .sb-person with
-// data-sb-person (FAR-16: a ring, never a fill or text). The line names only the core jobs.
+// data-sb-person (FAR-16: a ring, never a fill or text), the subtle fills and their ink only as the kind circles of
+// feedback (.sb-feedback__kind-icon, FAR-02). The line names only the core jobs.
 // Known gaps (as in the sketch): pseudo-element paints (checkbox marks, chip frames, slider handles) and focus outlines
 // are not read.
 function sbColourCount(view) {
@@ -75,6 +76,8 @@ function sbColourCount(view) {
       "--sb-syntax-number", "--sb-syntax-function"], "pre, code, .sb-code, .sb-diff"]
   ];
   var PERSONS = series("--sb-person-", 12);
+  // the kind circles of feedback (FAR-02's second exception): a subtle fill and its ink behind an icon, never text
+  var KIND = ["danger", "success", "accent"].reduce(function (a, s) { return a.concat(["--sb-color-" + s + "-subtle", "--sb-color-text-on-" + s + "-subtle"]); }, []);
   var map = {}, local = {}, person = {}, probe = document.createElement("span");
   view.appendChild(probe);                                   // resolves every role in the view's own mode
   Object.keys(ROLES).forEach(function (group) {
@@ -92,6 +95,11 @@ function sbColourCount(view) {
       var c = getComputedStyle(probe).color;
       if (!(c in map)) (local[c] = local[c] || []).push(job[1]);
     });
+  });
+  var kind = {};
+  KIND.forEach(function (prop) {
+    probe.style.color = "var(" + prop + ")";
+    kind[getComputedStyle(probe).color] = true;
   });
   PERSONS.forEach(function (prop) {
     if (!defined.getPropertyValue(prop).trim()) return;
@@ -182,6 +190,7 @@ function sbColourCount(view) {
       var group = map[p[1]];
       if (e.closest(".sb-product-area") && local[p[1]] && local[p[1]].includes(".sb-product-area")) return;
       if (!group && local[p[1]] && local[p[1]].some(function (sel) { return e.closest(sel); })) return;
+      if (kind[p[1]] && p[0] !== "text" && e.closest(".sb-feedback__kind-icon")) return;
       if (!group && person[p[1]] && p[0] === "line" && e.closest(".sb-avatar[data-sb-person], .sb-person[data-sb-person]")) return;
       if (!group || group === "unused") { n.unknown[p[1]] = 1; return; }
       if (group === "primary" && p[0] === "fill") n.primary++;

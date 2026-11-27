@@ -3701,6 +3701,144 @@ div.sb-side-nav__head { display: flex; align-items: center; gap: var(--sb-space-
 .sb-stale-notice { margin: 0; font: var(--sb-type-caption); letter-spacing: var(--sb-type-caption-tracking); color: var(--sb-color-text); }
 .sb-stale-notice .sb-icon { color: var(--sb-color-warning); }
 
+/* feedback (Blueprint parts/feedback, NAV-12, EIN-07): a bug, a wish or a question, sent without an account as a
+   public issue of the product. One <dialog class="sb-feedback">: from 40em (640 px at 100 %) a panel at the bottom end
+   that leaves the page usable (no scrim), below a modal sheet in two steps (data-sb-step="1": the kind, "2": the text).
+   The kind is optional on the panel; only the text is required. Behaviour, picture and sending: sb-feedback.js */
+.sb-feedback {
+  box-sizing: border-box; margin: 0; padding: var(--sb-space-4) var(--sb-spacing-gutter) var(--sb-space-6);
+  border: var(--sb-elevation-overlay-border-width) solid var(--sb-elevation-overlay-border-color);
+  background: var(--sb-elevation-overlay-surface); color: var(--sb-color-text); box-shadow: var(--sb-elevation-overlay-shadow);
+  border-radius: var(--sb-radius-container); overflow-wrap: break-word; overflow-y: auto;
+}
+.sb-feedback[open] { display: flex; flex-direction: column; gap: var(--sb-space-4); }
+.sb-feedback::backdrop { background: var(--sb-color-scrim); }
+.sb-feedback form { display: flex; flex-direction: column; gap: var(--sb-space-4); margin: 0; }
+/* phone: a sheet from below, at most 90 % of the window */
+@media (max-width: 39.99em) {
+  dialog.sb-feedback {
+    position: fixed; inset: auto 0 0; inline-size: 100%; max-inline-size: 100%; max-block-size: 90dvh;
+    border-width: var(--sb-elevation-overlay-border-width) 0 0; border-radius: var(--sb-radius-sheet) var(--sb-radius-sheet) 0 0;
+  }
+  .sb-feedback[data-sb-step="1"] .sb-feedback__write { display: none; }
+  .sb-feedback[data-sb-step="2"] .sb-feedback__kinds { display: none; }
+}
+/* desktop: a panel at the bottom end, the page beside it stays usable */
+@media (min-width: 40em) {
+  dialog.sb-feedback {
+    position: fixed; inset: auto var(--sb-spacing-gutter) var(--sb-spacing-gutter) auto;
+    inline-size: min(25rem, calc(100vw - 2 * var(--sb-spacing-gutter))); max-block-size: calc(100dvh - 2 * var(--sb-spacing-gutter));
+    padding: var(--sb-space-5); border-radius: var(--sb-radius-container); z-index: 10;
+  }
+  .sb-feedback__step, .sb-feedback__back, .sb-feedback__kind-hint, .sb-feedback__kind-go { display: none; }
+}
+.sb-feedback__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sb-space-2); }
+.sb-feedback__head > :first-child { flex: 1 1 auto; min-inline-size: 0; }   /* a long title wraps, the close button stays */
+.sb-feedback__head > .sb-icon-button { margin: calc(-1 * var(--sb-space-2)) calc(-1 * var(--sb-space-2)) 0 0; flex: none; }
+.sb-feedback__step { margin: 0; font: var(--sb-type-caption); letter-spacing: var(--sb-type-caption-tracking); color: var(--sb-color-text-muted); }
+.sb-feedback__title { margin: 0; font: var(--sb-type-mobile-title); letter-spacing: var(--sb-type-mobile-title-tracking); }
+.sb-feedback__write { display: flex; flex-direction: column; gap: var(--sb-space-4); }
+.sb-feedback__back { align-self: flex-start; }
+/* the kind: three choices with the same icons everywhere, each in its circle (bug on danger-subtle, bulb on
+   success-subtle, question mark on accent-subtle); the radio stays in the markup for the keyboard and the reader */
+.sb-feedback__kinds { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sb-space-2); margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+.sb-feedback__legend { padding: 0; margin-block-end: var(--sb-space-2); font: var(--sb-type-label); letter-spacing: var(--sb-type-label-tracking); }
+.sb-feedback__optional { font-weight: var(--sb-type-body-weight); color: var(--sb-color-text-muted); }
+.sb-feedback__kind {
+  position: relative; display: inline-flex; align-items: center; gap: var(--sb-space-2); box-sizing: border-box;
+  max-inline-size: 100%; min-inline-size: 0; min-block-size: var(--sb-size-target-touch); padding: 0 var(--sb-space-3) 0 var(--sb-space-2); cursor: pointer;
+  border: var(--sb-border-width-control) solid var(--sb-color-border-strong); border-radius: var(--sb-radius-pill);
+  font: var(--sb-type-body); letter-spacing: var(--sb-type-body-tracking);
+}
+.sb-feedback__kind > input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.sb-feedback__kind:hover, .sb-feedback__kind.is-hover { background: var(--sb-color-hover-fill); }
+.sb-feedback__kind:has(> input:checked) {
+  border-color: var(--sb-color-text); box-shadow: inset 0 0 0 1px var(--sb-color-text); font-weight: var(--sb-type-title-weight);
+}
+.sb-feedback__kind:has(> input:focus-visible), .sb-feedback__kind.is-focus { outline: var(--sb-focus-ring); outline-offset: var(--sb-focus-offset); }
+.sb-feedback__kind-icon {
+  display: inline-grid; place-items: center; flex: none; inline-size: 32px; block-size: 32px; border-radius: var(--sb-radius-pill);
+}
+.sb-feedback__kind--fehler .sb-feedback__kind-icon { background: var(--sb-color-danger-subtle); color: var(--sb-color-text-on-danger-subtle); }
+.sb-feedback__kind--wunsch .sb-feedback__kind-icon { background: var(--sb-color-success-subtle); color: var(--sb-color-text-on-success-subtle); }
+.sb-feedback__kind--frage .sb-feedback__kind-icon { background: var(--sb-color-accent-subtle); color: var(--sb-color-text-on-accent-subtle); }
+.sb-feedback__kind-text { display: flex; flex-direction: column; min-inline-size: 0; }
+.sb-feedback__kind-hint { font: var(--sb-type-caption); letter-spacing: var(--sb-type-caption-tracking); color: var(--sb-color-text-muted); font-weight: var(--sb-type-body-weight); }
+/* phone, step 1: three rows of 72, the circle 40, a hint under the word and a chevron at the end */
+@media (max-width: 39.99em) {
+  .sb-feedback__kinds { flex-direction: column; align-items: stretch; }
+  .sb-feedback__kind {
+    min-block-size: 72px; padding: var(--sb-space-3); gap: var(--sb-space-3); border-radius: var(--sb-radius-container);
+    font: var(--sb-type-body-strong); letter-spacing: var(--sb-type-body-strong-tracking);
+  }
+  .sb-feedback__kind .sb-feedback__kind-icon { inline-size: 40px; block-size: 40px; }
+  .sb-feedback__kind-text { flex: 1 1 auto; }
+  .sb-feedback__kind-go { flex: none; color: var(--sb-color-text-muted); }
+}
+/* the picture: the own view when the form opened, private elements already black. It goes along only after a look
+   (data-sb-state="seen"); until then the caption says so. Never more than three */
+.sb-feedback__pictures:empty { display: none; }
+.sb-feedback__pictures { display: flex; flex-direction: column; gap: var(--sb-space-2); margin: 0; padding: 0; list-style: none; }
+.sb-feedback__picture {
+  margin: 0; overflow: hidden; border: var(--sb-border-width-hairline) solid var(--sb-color-border-strong); border-radius: var(--sb-radius-control);
+}
+.sb-feedback__picture > img { display: block; inline-size: 100%; block-size: auto; max-block-size: 10rem; object-fit: contain; object-position: top; background: var(--sb-color-surface-sunken); }
+.sb-feedback__picture > figcaption {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--sb-space-3);
+  padding: 0 var(--sb-space-3); border-block-start: var(--sb-border-width-hairline) solid var(--sb-color-border);
+  font: var(--sb-type-caption); letter-spacing: var(--sb-type-caption-tracking); color: var(--sb-color-text-muted);
+}
+.sb-feedback__picture-actions { display: flex; flex-wrap: wrap; gap: 0 var(--sb-space-3); }
+.sb-feedback__picture:not([data-sb-state="seen"]) [data-sb-feedback-says-seen],
+.sb-feedback__picture[data-sb-state="seen"] [data-sb-feedback-says-unseen] { display: none; }
+.sb-feedback__add { align-self: flex-start; }
+/* what goes along by itself: open to read before sending */
+.sb-feedback__context > summary { cursor: pointer; font: var(--sb-type-body); letter-spacing: var(--sb-type-body-tracking); min-block-size: var(--sb-size-target-touch); display: flex; align-items: center; }
+.sb-feedback__context dl {
+  display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--sb-space-1) var(--sb-space-3); margin: 0 0 var(--sb-space-2);
+  font: var(--sb-type-caption); letter-spacing: var(--sb-type-caption-tracking);
+}
+.sb-feedback__context dt { color: var(--sb-color-text-muted); }
+.sb-feedback__context dd { margin: 0; font-family: var(--sb-font-family-mono); overflow-wrap: anywhere; }
+.sb-feedback__context [hidden] { display: none; }
+.sb-feedback__note {
+  display: flex; align-items: flex-start; gap: var(--sb-space-2); margin: 0; padding-block-start: var(--sb-space-3);
+  border-block-start: var(--sb-border-width-hairline) solid var(--sb-color-border);
+  font: var(--sb-type-caption); letter-spacing: var(--sb-type-caption-tracking); color: var(--sb-color-text-muted);
+}
+.sb-feedback__note > .sb-icon { flex: none; margin-block-start: calc((1lh - 16px) / 2); }
+.sb-feedback__message { display: flex; align-items: flex-start; gap: var(--sb-space-1); margin: 0; font: var(--sb-type-body); letter-spacing: var(--sb-type-body-tracking); }
+.sb-feedback__message:empty { display: none; }
+.sb-feedback__says { display: none; }
+.sb-feedback__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--sb-space-3); }
+/* sent: the sentence and the link to the issue; the form is gone */
+.sb-feedback__done { display: flex; flex-direction: column; gap: var(--sb-space-3); }
+.sb-feedback__done[hidden], .sb-feedback form[hidden] { display: none; }
+.sb-feedback__done > p { margin: 0; font: var(--sb-type-body); letter-spacing: var(--sb-type-body-tracking); }
+.sb-feedback__done-title { margin: 0; font: var(--sb-type-mobile-title); letter-spacing: var(--sb-type-mobile-title-tracking); }
+.sb-feedback__done-title:focus { outline: 0; }
+
+/* the picture editor: a modal dialog over everything. „Schwärzen“ draws an opaque black box, „Markieren“ a 3 px frame in
+   warning; „Rückgängig“ takes the last one back; „Übernehmen“ marks the picture as seen, „Weglassen“ drops it */
+.sb-feedback-editor {
+  box-sizing: border-box; inline-size: calc(100vw - 2 * var(--sb-spacing-gutter)); max-inline-size: 72rem;
+  block-size: calc(100dvh - 2 * var(--sb-spacing-gutter)); max-block-size: none; margin: auto; padding: var(--sb-space-4);
+  border: var(--sb-elevation-overlay-border-width) solid var(--sb-elevation-overlay-border-color); border-radius: var(--sb-radius-container);
+  background: var(--sb-elevation-overlay-surface); color: var(--sb-color-text); box-shadow: var(--sb-elevation-overlay-shadow);
+}
+.sb-feedback-editor[open] { display: flex; flex-direction: column; gap: var(--sb-space-3); }
+.sb-feedback-editor::backdrop { background: var(--sb-color-scrim); }
+.sb-feedback-editor__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sb-space-2) var(--sb-space-4); }
+.sb-feedback-editor__title { margin: 0; font: var(--sb-type-title); letter-spacing: var(--sb-type-title-tracking); }
+.sb-feedback-editor__hint { margin: 0; font: var(--sb-type-caption); letter-spacing: var(--sb-type-caption-tracking); color: var(--sb-color-text-muted); }
+.sb-feedback-editor__tools { display: flex; flex-wrap: wrap; gap: var(--sb-space-2); }
+.sb-feedback-editor__stage {
+  flex: 1 1 auto; min-block-size: 0; overflow: auto; display: grid; place-items: start center;
+  border: var(--sb-border-width-hairline) solid var(--sb-color-border-strong); border-radius: var(--sb-radius-control); background: var(--sb-color-surface-sunken);
+}
+.sb-feedback-editor__stage > canvas { display: block; max-inline-size: 100%; block-size: auto; touch-action: none; cursor: crosshair; }
+.sb-feedback-editor__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sb-space-3); }
+
 /* ===================================================================== 9 forced colours and print */
 
 @media (forced-colors: active) {

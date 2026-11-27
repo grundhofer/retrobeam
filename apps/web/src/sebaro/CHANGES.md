@@ -5,6 +5,40 @@ hand for someone who builds a product; the newest release stands first. Every pr
 release publishes it beside the copies, and `checks/update-copy.mjs` prints the sections between the release a copy
 had and the one it fetched. The headings are the release tags.
 
+## v3.1.3
+
+**A web app, a desktop app or a website that takes feedback**
+
+- New pack `feedback` (Blueprint parts/feedback, NAV-12, EIN-07): `dialog.sb-feedback` with `sb-feedback.js`. From
+  640 px a panel at the bottom end, below a sheet in two steps; the kinds „Fehler“, „Wunsch“, „Frage“ with the new
+  icons `bug` and `lightbulb` (and `help`) in their circles; only the text is required. The script takes a picture of
+  the view as it was when the form opened; every element with `data-sb-private` is black in it. A picture goes along
+  only after the person has looked at it in the editor (`dialog.sb-feedback-editor`), always as a new PNG without
+  metadata. Sending goes to the feedback service: `data-sb-feedback-product`, `data-sb-feedback-endpoint`, optional
+  `data-sb-feedback-version` and `-commit`; `data-sb-feedback-pictures="off"` for a product with sensitive data. The
+  markup to copy is the specimen „Rückmeldung“ on the components page.
+- Mark everything private before you offer feedback: names, contents a person wrote, anything from TEC-12. The
+  picture shows only what the view shows, and what is not marked is public once it is sent.
+- The entry „Rückmeldung geben“ (`[data-sb-feedback-open="<id>"]`) stands in the „Mehr“ menu of every view, in the
+  second last block before „Hilfe“; on a website in the footer. The service accepts a product only once it knows the
+  product's origin and repository.
+- The kind circles are FAR-02's second exception: `checks/lint-web.sh` (L2) and `checks/sb-colour-count.js` allow the
+  subtle fills behind `.sb-feedback__kind-icon`, never behind text.
+
+**An Android app**
+
+- `gradle/verification-metadata.sh` no longer sets longer waits between tries or two workers. The v3.1.2 notes said
+  it waits longer after an HTTP 429; on a real 429 it failed after under two minutes all the same, so the waits did
+  not take effect. What helped stays: a failed run is completed from the dependency cache, and the head comment says
+  what to check then. An app that took the script of v3.1.2 takes this one; the checksums do not change.
+- Blueprint TEC-14: as few permissions as possible, INTERNET only where the app's purpose gains from it. Such an app
+  names INTERNET in `release-permissions.txt` (the checks of `ci.yml` and `release.yml` are unchanged) and states
+  in its facts where it connects to. The starter's plan says so instead of „The network is the owner's decision“.
+- The starter's Gradle wrapper names the SHA-256 of its distribution (`distributionSha256Sum` in
+  `gradle/wrapper/gradle-wrapper.properties`, the value of services.gradle.org for gradle-9.9.2-bin.zip): the wrapper
+  refuses a downloaded distribution with another checksum. An app on Gradle 9.9.2 adds the same line; on another
+  version it takes the value from `https://services.gradle.org/distributions/gradle-<version>-bin.zip.sha256`.
+
 ## v3.1.2
 
 **Every product**

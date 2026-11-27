@@ -12,7 +12,7 @@ bad=0; n=$#
 for CSS in "$@"; do
   n=$((n - 1)); [ "$n" -gt 0 ] || break
   awk '/\{/ {sel=$0} /var\(--sb-color-(on-)?primary-action/ && sel !~ /\.sb-primary-action/ {print "L1 " FILENAME ":" FNR ": " $0; bad=1} END {exit bad}' "$CSS" || bad=1   # L1
-  awk '/\{/ {sel=$0} /--sb-color-(accent|success|warning|danger|info)-subtle|--sb-color-text-on-/ && sel !~ /\.sb-diff__line--(add|del)/ {print "L2 " FILENAME ":" FNR ": " $0; bad=1} END {exit bad}' "$CSS" || bad=1   # L2
+  awk '/\{/ {sel=$0} /--sb-color-(accent|success|warning|danger|info)-subtle|--sb-color-text-on-/ && sel !~ /\.sb-diff__line--(add|del)|\.sb-feedback__kind/ {print "L2 " FILENAME ":" FNR ": " $0; bad=1} END {exit bad}' "$CSS" || bad=1   # L2
   hits L3 "$CSS" "$(grep -nE 'data-product' "$CSS")"   # L3
   awk '/\{/ {sel=$0} /background(-color)?:[^;]*var\(--sb-color-(accent|link|success|warning|danger|info)\)/ && sel !~ /\.sb-(switch|radio|range)/ {print "L4 " FILENAME ":" FNR ": " $0; bad=1} END {exit bad}' "$CSS" || bad=1   # L4
   hits L5 "$CSS" "$(grep -nE '#[0-9A-Fa-f]{3,8}\b|rgba?\(|hsla?\(' "$CSS")"   # L5
