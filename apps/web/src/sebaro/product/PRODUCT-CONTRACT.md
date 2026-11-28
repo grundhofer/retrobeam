@@ -51,8 +51,7 @@ command, `tiles` (section 9); a copy's kit does not offer it (kit 1.3.1).
   `product/sign_geometry.py`, `product/render.mjs`, `product/tiles.json`, `product/product.schema.json` and this
   text as `product/PRODUCT-CONTRACT.md`. The first three, the schema and the text are the workshop's files byte for
   byte; `tiles.json` is generated at the export. They are listed in the copy's `sebaro-export.json` like every other
-  file, so the copy's `checks/verify-export.mjs --strict` and the workshop's `--verify` cover them. A `--target`
-  export has no `product/`.
+  file, so the copy's `checks/verify-export.mjs --strict` and the workshop's `--verify` cover them.
 - **In a product's CI, without the workshop**, three commands at most: `check` above, `node
   <copy>/checks/verify-export.mjs <copy> --strict` (the copy is unchanged) and the copy's lint script.
 

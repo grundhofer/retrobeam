@@ -76,12 +76,12 @@ export function InviteDialog({
       {open ? (
         <>
           <p className="sb-dialog__text">{t("invite.hint")}</p>
-          <span className="sb-dialog__qr" data-theme="light">
+          <span className="sb-dialog__qr" data-theme="light" data-sb-private="">
             <QrCode value={url} label={t("invite.qrLabel")} />
           </span>
           <p className="sb-dialog__text" data-testid="share-link-text">
             {t("invite.linkSentence")}{" "}
-            <code className="sb-file-name">
+            <code className="sb-file-name" data-sb-private="">
               {shown.split(/(?<=[./])/).map((part, index) => (
                 <Fragment key={index}>
                   {index > 0 ? <wbr /> : null}

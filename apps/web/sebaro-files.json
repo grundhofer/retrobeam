@@ -6,6 +6,7 @@
   "sebaro/js/sb-sheet.js": "src/sebaro/js/sb-sheet.js",
   "sebaro/js/theme-button.js": "src/sebaro/js/theme-button.js",
   "sebaro/js/sb-tone.js": "src/sebaro/js/sb-tone.js",
+  "sebaro/js/sb-feedback.js": "src/sebaro/js/sb-feedback.js",
   "fonts/sebaro-sans-OFL.txt": "src/sebaro/fonts/web/sebaro-sans-OFL.txt",
   "fonts/sebaro-mono-OFL.txt": "src/sebaro/fonts/web/sebaro-mono-OFL.txt",
   "favicon.ico": "../../sebaro-product/web/favicon.ico",

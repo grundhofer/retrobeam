@@ -5,6 +5,82 @@ hand for someone who builds a product; the newest release stands first. Every pr
 release publishes it beside the copies, and `checks/update-copy.mjs` prints the sections between the release a copy
 had and the one it fetched. The headings are the release tags.
 
+## v3.1.4
+
+**Every product with feedback on the web**
+
+- `sb-feedback.js` works under a strict Content-Security-Policy (`style-src 'self'`): it builds its picture in a
+  document of its own, sets styles only through the CSSOM and leaves the page's CSP meta out of the picture, which
+  had blocked its styles there. The page's CSP needs `img-src 'self' data:` (the picture) and the service in
+  `connect-src`. It also finds the picture template where a framework renders a `<template>`'s markup as its
+  children (React).
+- The panel (from 40em) lies on the layer `--sb-layer-overlay`, above the bottom action zone and menus: before, a
+  bottom action zone covered the panel's lower part and took the clicks on „Senden“.
+- The web app starter has „Rückmeldung geben“ in its „Mehr“ menu, and what a person wrote carries `data-sb-private`.
+- The desktop starter has „Rückmeldung geben …“ as the first block of its menu „Hilfe“ (pack `feedback`). Its CSP
+  allows the picture (`img-src data:`) and the service in `connect-src`. On macOS the window is WebKit, which may refuse
+  to read the drawn picture: then there is no picture, and „Bild hinzufügen“ stays.
+- The website starter has „Rückmeldung geben“ in its footer (`src/components/Feedback.astro`, pack `feedback`): with
+  the script the panel opens; without it the link leads to the service's own form. `CSP` in `src/site.ts` allows the
+  picture and the service, and `scripts/check-build.mjs` knows `sb-feedback.js`.
+
+**A web app or a desktop app in React that takes feedback**
+
+- New in the pack `feedback`: `react/Feedback.tsx`, the markup of the panel or sheet and of the picture editor with
+  the app's words (`FeedbackWords`), and `openFeedback(id, opener)` for the menu item „Rückmeldung geben“. The
+  behaviour stays `sb-feedback.js`: load it once at the end of the body.
+
+**An Android app that takes feedback**
+
+- The Android starter has „Rückmeldung geben“ in its settings, before „Über“ (it has no „Mehr“ menu). It has no
+  INTERNET, so the row opens the service's form in the browser, with what goes along and without a picture.
+- New pack `feedback` (Blueprint parts/feedback, NAV-12, EIN-07, TEC-14): `SbFeedback`, a sheet in two steps (the
+  kind with its icon in its circle, optional; then the text, required). Take the picture with
+  `rememberSbFeedbackCapture()` (or `sbCaptureWindow(view)`) before the sheet opens; every `Modifier.sbPrivate()` is
+  black in it, and a FLAG_SECURE window gives none. A picture goes along only after a look in the editor, as a new
+  PNG. `SbFeedback` hands the report to `onSend`: an app with INTERNET sends it with `SbFeedbackClient(endpoint,
+  product).send(report)`; an app without INTERNET opens the service's form in the browser instead
+  (`sbOpenFeedbackForm(context, sbFeedbackFormUri(endpoint, product, rememberSbFeedbackContext(view, version)))`),
+  without a picture and without the sheet. `SbShakeToFeedback(enabled, onShake)` only behind the person's own switch,
+  off by default.
+- Mark everything private with `Modifier.sbPrivate()` before you offer a picture: names, what a person wrote,
+  anything from TEC-12. An app with sensitive data passes no picture.
+- `checks/lint-android.sh` (A5) allows the subtle fills of the kind circles in `SbFeedback.kt` only (FAR-02).
+
+## v3.1.3
+
+**A web app, a desktop app or a website that takes feedback**
+
+- New pack `feedback` (Blueprint parts/feedback, NAV-12, EIN-07): `dialog.sb-feedback` with `sb-feedback.js`. From
+  640 px a panel at the bottom end, below a sheet in two steps; the kinds „Fehler“, „Wunsch“, „Frage“ with the new
+  icons `bug` and `lightbulb` (and `help`) in their circles; only the text is required. The script takes a picture of
+  the view as it was when the form opened; every element with `data-sb-private` is black in it. A picture goes along
+  only after the person has looked at it in the editor (`dialog.sb-feedback-editor`), always as a new PNG without
+  metadata. Sending goes to the feedback service: `data-sb-feedback-product`, `data-sb-feedback-endpoint`, optional
+  `data-sb-feedback-version` and `-commit`; `data-sb-feedback-pictures="off"` for a product with sensitive data. The
+  markup to copy is the specimen „Rückmeldung“ on the components page.
+- Mark everything private before you offer feedback: names, contents a person wrote, anything from TEC-12. The
+  picture shows only what the view shows, and what is not marked is public once it is sent.
+- The entry „Rückmeldung geben“ (`[data-sb-feedback-open="<id>"]`) stands in the „Mehr“ menu of every view, in the
+  second last block before „Hilfe“; on a website in the footer. The service accepts a product only once it knows the
+  product's origin and repository.
+- The kind circles are FAR-02's second exception: `checks/lint-web.sh` (L2) and `checks/sb-colour-count.js` allow the
+  subtle fills behind `.sb-feedback__kind-icon`, never behind text.
+
+**An Android app**
+
+- `gradle/verification-metadata.sh` no longer sets longer waits between tries or two workers. The v3.1.2 notes said
+  it waits longer after an HTTP 429; on a real 429 it failed after under two minutes all the same, so the waits did
+  not take effect. What helped stays: a failed run is completed from the dependency cache, and the head comment says
+  what to check then. An app that took the script of v3.1.2 takes this one; the checksums do not change.
+- Blueprint TEC-14: as few permissions as possible, INTERNET only where the app's purpose gains from it. Such an app
+  names INTERNET in `release-permissions.txt` (the checks of `ci.yml` and `release.yml` are unchanged) and states
+  in its facts where it connects to. The starter's plan says so instead of „The network is the owner's decision“.
+- The starter's Gradle wrapper names the SHA-256 of its distribution (`distributionSha256Sum` in
+  `gradle/wrapper/gradle-wrapper.properties`, the value of services.gradle.org for gradle-9.9.2-bin.zip): the wrapper
+  refuses a downloaded distribution with another checksum. An app on Gradle 9.9.2 adds the same line; on another
+  version it takes the value from `https://services.gradle.org/distributions/gradle-<version>-bin.zip.sha256`.
+
 ## v3.1.2
 
 **Every product**

@@ -93,7 +93,7 @@ export function RoundStatus({
               {open.map((p) => (
                 <li key={p.id} className="sb-tag">
                   <Icon name="pending" size={16} />
-                  {nameOf(p)}
+                  <span data-sb-private="">{nameOf(p)}</span>
                 </li>
               ))}
             </ul>
@@ -126,7 +126,9 @@ export function RoundStatus({
           return (
             <li key={p.id} data-testid="round-person" className="sb-list-row">
               <div className="sb-list-row__main">
-                <p className="sb-list-row__title">{nameOf(p)}</p>
+                <p className="sb-list-row__title" data-sb-private="">
+                  {nameOf(p)}
+                </p>
                 <p className="sb-list-row__meta">
                   {ready ? (
                     <span className="text-success">{t("rail.ready")}</span>

@@ -535,7 +535,7 @@ export function PrivacyDe() {
       <p>
         Diese Einträge bleiben bestehen, bis Sie sie löschen
         (Browser-Einstellungen: Website-Daten für die verwendete Adresse
-        löschen, in der Regel retrobeam.de; siehe Abschnitt 9 zu weiteren
+        löschen, in der Regel retrobeam.de; siehe Abschnitt 10 zu weiteren
         Adressen). Es werden keine Einträge zu Analyse-, Werbe- oder
         Tracking-Zwecken abgelegt. Der Browser hängt keinen dieser Einträge von
         sich aus an Anfragen an (anders als bei Cookies). Die Anwendung
@@ -639,7 +639,69 @@ export function PrivacyDe() {
         nur geladen, wenn Sie selbst eine Suche eingeben.
       </p>
 
-      <h2>6. Was es nicht gibt</h2>
+      <h2>6. Rückmeldungen (Fehler, Wünsche, Fragen)</h2>
+
+      <p>
+        Über „Rückmeldung geben“ im Menü können Sie einen Fehler, einen Wunsch
+        oder eine Frage an den Betreiber senden. Das ist freiwillig; ohne Ihr
+        Absenden wird nichts übertragen.
+      </p>
+
+      <ul>
+        <li>
+          <strong>Was übertragen wird:</strong> Ihr Text, die gewählte Art und
+          technische Angaben, die Sie vor dem Senden einsehen können:
+          App-Version, Ansicht bzw. Phase, Browser und Betriebssystem,
+          Fenstergröße, Farbschema, Sprache. Freiwillig dazu bis zu drei Bilder
+          der aktuellen Ansicht, die Sie vorher angesehen haben. In diesen
+          Bildern sind Namen, Kartentexte, Board- und Spaltennamen, Eingaben
+          sowie Einladungs- und Moderationslink automatisch geschwärzt; weitere
+          Stellen können Sie selbst schwärzen. Bilder werden vor dem Senden neu
+          erzeugt und enthalten keine Metadaten. Board-Kennung, Ihr Name und
+          Ihre Sitzungsdaten werden nicht mitgeschickt.
+        </li>
+        <li>
+          <strong>Wohin:</strong> an den Dienst „sebaro Rückmeldung“ des
+          Betreibers unter <code>rueckmeldung.sebaro-ventures.de</code>, der bei
+          Cloudflare läuft (Auftragsverarbeiter, Abschnitt 2). Er legt daraus
+          ein <strong>öffentliches</strong> Issue im GitHub-Repository von
+          RetroBeam an (
+          <a
+            href="https://github.com/grundhofer/retrobeam/issues"
+            target="_blank"
+            rel="noreferrer"
+          >
+            github.com/grundhofer/retrobeam/issues
+          </a>
+          ), ohne Ihren Namen. Das Issue kann jeder lesen; schreiben Sie deshalb
+          keine personenbezogenen Daten hinein.
+        </li>
+        <li>
+          <strong>Bilder</strong> speichert der Dienst bei Cloudflare in der EU
+          (R2) und liefert sie für das Issue aus; nach 180 Tagen werden sie
+          automatisch gelöscht.
+        </li>
+        <li>
+          <strong>Ihre IP-Adresse</strong> nutzt der Dienst nur, um zu viele
+          Meldungen von einer Stelle zu begrenzen: als Prüfwert mit täglich
+          wechselndem Schlüssel, nur im Arbeitsspeicher, nicht gespeichert.
+          Gegen automatisierte Meldungen löst Ihr Gerät vor dem Senden eine
+          kleine Rechenaufgabe; dabei wird kein fremder Dienst gefragt.
+        </li>
+        <li>
+          <strong>Löschen:</strong> Ein Issue samt Bildern entfernt der
+          Betreiber auf Anfrage (Kontakt in Abschnitt 1); nennen Sie dazu die
+          Issue-Nummer oder die Referenz am Ende des Issues.
+        </li>
+      </ul>
+
+      <p>
+        Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse,
+        Fehler zu beheben und Wünsche aufzunehmen); die Funktion nutzen Sie nur,
+        wenn Sie selbst etwas senden.
+      </p>
+
+      <h2>7. Was es nicht gibt</h2>
 
       <ul>
         <li>keine Web-Analyse, keine Zählpixel, kein Fingerprinting;</li>
@@ -672,7 +734,7 @@ export function PrivacyDe() {
         die Board-Adresse nicht als Referer übermittelt.
       </p>
 
-      <h2>7. Empfänger und Übermittlung in Drittländer</h2>
+      <h2>8. Empfänger und Übermittlung in Drittländer</h2>
 
       <div
         className="sb-table-wrap"
@@ -713,6 +775,15 @@ export function PrivacyDe() {
                 GIFs abschaltbar
               </td>
             </tr>
+            <tr>
+              <td>GitHub, Inc. (USA)</td>
+              <td>
+                Nur wenn Sie eine Rückmeldung senden: Text, Art, technische
+                Angaben und Bildadressen als öffentliches Issue (Abschnitt 6),
+                ohne Ihre IP-Adresse
+              </td>
+              <td>EU-US Data Privacy Framework; das Issue ist öffentlich</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -723,7 +794,7 @@ export function PrivacyDe() {
         dazu verpflichtet ist.
       </p>
 
-      <h2>8. Ihre Rechte</h2>
+      <h2>9. Ihre Rechte</h2>
 
       <p>
         Sie haben nach der DSGVO das Recht auf Auskunft (Art. 15), Berichtigung
@@ -793,7 +864,7 @@ export function PrivacyDe() {
         Richten Sie Anfragen an <OperatorEmail />.
       </p>
 
-      <h2>9. Sonstiges</h2>
+      <h2>10. Sonstiges</h2>
 
       <p>
         <strong>Kinder.</strong> Das Angebot richtet sich an Teams im Arbeits-

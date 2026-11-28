@@ -7,9 +7,8 @@
 //   node <sebaro>/brand/og/render.mjs --pages pages.json --html-only DIR [--check]     # the filled templates only
 //   node <sebaro>/brand/og/render.mjs --version
 //
-// <sebaro> is a copy with the pack share-images (this file is brand/og/render.mjs in it), the site export
-// (`export_system.py --target web`) or, in the maintainers' repository (sebaro-foundry), systems/sebaro staged beside
-// the samples' tiles (gate 5d).
+// <sebaro> is a copy with the pack share-images (this file is brand/og/render.mjs in it) or, in the maintainers'
+// repository (sebaro-foundry), systems/sebaro staged beside the samples' tiles (gate 5d).
 // Everything is found relative to this file: tokens.css (dist/tokens.css in the workshop), fonts/fonts.css with
 // fonts/web/*.woff2, icons/sprite.svg + sprite.css (icons/dist/ in the workshop), brand/inline/tile-<id>.svg,
 // brand/og/template.html, brand/og/pages.schema.json. A copy holds no product's tile: a product runs this file through
@@ -119,7 +118,7 @@ export function wordsOf(doc) {
 // ------------------------------------------------------------------------- files of the export (or the workshop)
 function locate(...candidates) {
   for (const c of candidates) if (existsSync(path.join(ROOT, c))) return path.join(ROOT, c);
-  throw new UsageError(`missing in ${ROOT}: ${candidates.join(" or ")} (export with export_system.py --target web)`);
+  throw new UsageError(`missing in ${ROOT}: ${candidates.join(" or ")} (a copy with the pack share-images has them)`);
 }
 
 function layout() {

@@ -45,6 +45,7 @@ export function ShareLink({ boardId }: { boardId: string }) {
             ref={inputRef}
             id={inputId}
             data-testid="share-link-input"
+            data-sb-private=""
             readOnly
             value={url}
             onFocus={(event) => event.currentTarget.select()}

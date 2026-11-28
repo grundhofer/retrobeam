@@ -65,7 +65,9 @@ export function AvatarRow({ participants, youId, isAdmin }: AvatarRowProps) {
             className={`sb-avatar sb-avatar--32 ${isAdmin ? "cursor-pointer" : ""}`}
             data-sb-person={participant.tone}
           >
-            <span aria-hidden="true">{nameInitials(participant.name)}</span>
+            <span aria-hidden="true" data-sb-private="">
+              {nameInitials(participant.name)}
+            </span>
             {participant.role === "facilitator" ? (
               <Icon name="shield" size={16} className="sb-avatar__role" />
             ) : null}

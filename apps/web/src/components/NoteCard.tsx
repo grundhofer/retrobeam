@@ -445,6 +445,7 @@ export function NoteCard({
             <div className="sb-field__control">
               <textarea
                 id={`${arrangeId}-edit`}
+                data-sb-private=""
                 autoFocus
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -505,7 +506,9 @@ export function NoteCard({
               cannot push its track wider — an unbroken 200-character word
               would simply paint outside it and drag the whole page sideways.
               The old horizontal scroller clipped that; nothing does now. */}
-          <p className="sb-card__title whitespace-pre-wrap">{note.text}</p>
+          <p className="sb-card__title whitespace-pre-wrap" data-sb-private="">
+            {note.text}
+          </p>
           {note.gifUrl !== null ? (
             <img
               src={note.gifUrl}
@@ -788,6 +791,7 @@ export function NoteCard({
                         type="button"
                         data-testid="note-stack-option"
                         title={other.text}
+                        data-sb-private=""
                         onClick={() => {
                           setArranging(false);
                           onDropNote(note.id, other);

@@ -76,7 +76,9 @@ export function DiscussBar({
             className="sb-chip"
           >
             <Icon name="check" size={16} />
-            {`${index + 1}. ${excerptFor(targetId)} · `}
+            {`${index + 1}. `}
+            <span data-sb-private="">{excerptFor(targetId)}</span>
+            {" · "}
             <span className="tabular-nums">
               {t("discuss.votes", { count })}
             </span>

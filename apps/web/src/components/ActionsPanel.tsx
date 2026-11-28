@@ -125,6 +125,7 @@ export function ActionsPanel({
               <input
                 {...textField.fieldProps}
                 value={text}
+                data-sb-private=""
                 data-testid="action-input"
                 onChange={(event) => {
                   setText(event.target.value);
@@ -150,6 +151,7 @@ export function ActionsPanel({
             <div className="sb-field__control sb-select">
               <select
                 id={`${id}-owner`}
+                data-sb-private=""
                 value={ownerId}
                 data-testid="action-owner"
                 onChange={(event) => setOwnerId(event.target.value)}
@@ -209,7 +211,10 @@ export function ActionsPanel({
                   </label>
                 </span>
                 <div className="sb-list-row__main">
-                  <p className="sb-list-row__title break-words">
+                  <p
+                    className="sb-list-row__title break-words"
+                    data-sb-private=""
+                  >
                     {done ? (
                       <span className="sb-visually-hidden">
                         {t("lobby.carried.done")}:{" "}
@@ -218,7 +223,9 @@ export function ActionsPanel({
                     {action.text}
                   </p>
                   {owner ? (
-                    <p className="sb-list-row__meta">{owner.name}</p>
+                    <p className="sb-list-row__meta" data-sb-private="">
+                      {owner.name}
+                    </p>
                   ) : null}
                   {/* Carried in by a follow-up retro: the previous board's
                       name, so the room can tell last time's promises from
@@ -227,6 +234,7 @@ export function ActionsPanel({
                     <p
                       data-testid="action-carried"
                       className="sb-list-row__meta"
+                      data-sb-private=""
                     >
                       {t("action.carriedFrom", { name: action.carriedFrom })}
                     </p>

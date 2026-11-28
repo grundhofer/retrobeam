@@ -506,14 +506,14 @@ export function PrivacyEn() {
 
       <p>
         These entries persist until you delete them (browser settings: clear
-        site data for the address you used, normally retrobeam.de; see section 9
-        on further addresses). No entries are stored for analytics, advertising
-        or tracking purposes. The browser never attaches any of these entries to
-        requests on its own (unlike cookies). The application transmits them in
-        exactly these cases: when joining a board — and on every automatic
-        reconnect, for example after a network interruption — it sends the
-        display name, the session key and, if present, the admin key of that
-        board to the respective board; the admin key is also sent when
+        site data for the address you used, normally retrobeam.de; see section
+        10 on further addresses). No entries are stored for analytics,
+        advertising or tracking purposes. The browser never attaches any of
+        these entries to requests on its own (unlike cookies). The application
+        transmits them in exactly these cases: when joining a board — and on
+        every automatic reconnect, for example after a network interruption — it
+        sends the display name, the session key and, if present, the admin key
+        of that board to the respective board; the admin key is also sent when
         duplicating a board; the chosen language is sent when creating a board
         so that the default columns are named in that language, and with every
         GIF search to the RetroBeam server (section 5). If local storage is
@@ -604,7 +604,68 @@ export function PrivacyEn() {
         feature; thumbnails are only loaded when you yourself type a search.
       </p>
 
-      <h2>6. What does not exist</h2>
+      <h2>6. Feedback (bugs, wishes, questions)</h2>
+
+      <p>
+        Through „Send feedback“ in the menu you can send a bug, a wish or a
+        question to the operator. This is voluntary; nothing is transmitted
+        unless you send it.
+      </p>
+
+      <ul>
+        <li>
+          <strong>What is transmitted:</strong> your text, the chosen kind and
+          technical details you can read before sending: app version, view or
+          phase, browser and operating system, window size, colour scheme,
+          language. Optionally up to three pictures of the current view that you
+          have looked at first. In these pictures names, card texts, board and
+          column names, inputs and the invite and facilitator links are blacked
+          out automatically; you can black out more yourself. Pictures are
+          created anew before sending and carry no metadata. The board id, your
+          name and your session data are not sent.
+        </li>
+        <li>
+          <strong>Where to:</strong> to the operator&apos;s service „sebaro
+          Rückmeldung“ at <code>rueckmeldung.sebaro-ventures.de</code>, which
+          runs at Cloudflare (processor, section 2). It turns your feedback into
+          a <strong>public</strong> issue in RetroBeam&apos;s GitHub repository
+          (
+          <a
+            href="https://github.com/grundhofer/retrobeam/issues"
+            target="_blank"
+            rel="noreferrer"
+          >
+            github.com/grundhofer/retrobeam/issues
+          </a>
+          ), without your name. Anyone can read the issue, so please write no
+          personal data into it.
+        </li>
+        <li>
+          <strong>Pictures</strong> are stored by the service at Cloudflare in
+          the EU (R2) and served for the issue; they are deleted automatically
+          after 180 days.
+        </li>
+        <li>
+          <strong>Your IP address</strong> is used only to limit too many
+          submissions from one place: as a check value with a key that changes
+          daily, in memory only, never stored. Against automated submissions
+          your device solves a small computation before sending; no third-party
+          service is asked.
+        </li>
+        <li>
+          <strong>Deletion:</strong> the operator removes an issue and its
+          pictures on request (contact in section 1); please give the issue
+          number or the reference at the end of the issue.
+        </li>
+      </ul>
+
+      <p>
+        Legal basis: Art. 6(1)(f) GDPR (legitimate interest in fixing bugs and
+        taking up wishes); the feature is used only when you send something
+        yourself.
+      </p>
+
+      <h2>7. What does not exist</h2>
 
       <ul>
         <li>no web analytics, no tracking pixels, no fingerprinting;</li>
@@ -637,7 +698,7 @@ export function PrivacyEn() {
         sent as a referrer.
       </p>
 
-      <h2>7. Recipients and transfers to third countries</h2>
+      <h2>8. Recipients and transfers to third countries</h2>
 
       <div
         className="sb-table-wrap"
@@ -678,6 +739,15 @@ export function PrivacyEn() {
                 for new GIFs
               </td>
             </tr>
+            <tr>
+              <td>GitHub, Inc. (USA)</td>
+              <td>
+                Only when you send feedback: text, kind, technical details and
+                picture addresses as a public issue (section 6), without your IP
+                address
+              </td>
+              <td>EU-US Data Privacy Framework; the issue is public</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -687,7 +757,7 @@ export function PrivacyEn() {
         nothing, and hands over board content only when legally obliged to.
       </p>
 
-      <h2>8. Your rights</h2>
+      <h2>9. Your rights</h2>
 
       <p>
         Under the GDPR you have the right of access (Art. 15), rectification
@@ -753,7 +823,7 @@ export function PrivacyEn() {
         Send requests to <OperatorEmail />.
       </p>
 
-      <h2>9. Miscellaneous</h2>
+      <h2>10. Miscellaneous</h2>
 
       <p>
         <strong>Children.</strong> The service is aimed at teams in a work and

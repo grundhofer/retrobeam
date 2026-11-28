@@ -42,7 +42,7 @@ export function Roster({ participants, youId, isAdmin = false }: RosterProps) {
                 <PersonAvatar participant={participant} />
               </span>
               <div className="sb-list-row__main">
-                <p className="sb-list-row__title">
+                <p className="sb-list-row__title" data-sb-private="">
                   {participant.name}
                   {participant.id === youId ? ` (${t("board.you")})` : null}
                 </p>

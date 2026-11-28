@@ -571,6 +571,7 @@ function BoardColumn({
               <div className="sb-field__control">
                 <input
                   id={`${titleId}-rename`}
+                  data-sb-private=""
                   autoFocus
                   value={renameValue}
                   onChange={(event) => setRenameValue(event.target.value)}
@@ -584,7 +585,9 @@ function BoardColumn({
           // h3 in "done": there the board sits under the results page's "All
           // cards" h2, and an h2 per column read as top-level sections.
           <ColumnTitle id={titleId} className="sb-board__title">
-            <span className="sb-board__name">{column.name}</span>
+            <span className="sb-board__name" data-sb-private="">
+              {column.name}
+            </span>
             {column.hidden ? (
               <>
                 {" "}
@@ -835,7 +838,9 @@ function DiscussStage({
                 single ? undefined : { gridRow: `span ${isAdmin ? 4 : 3}` }
               }
             >
-              <h3 className="sb-field__label m-0">{columnName}</h3>
+              <h3 className="sb-field__label m-0" data-sb-private="">
+                {columnName}
+              </h3>
               <TargetFrame
                 layout={single ? "stack" : "rows"}
                 targetId={targetId}
@@ -1187,6 +1192,7 @@ function NoteComposer({
         <div className="sb-field__control">
           <textarea
             id={fieldId}
+            data-sb-private=""
             value={text}
             data-testid={`composer-${columnId}`}
             onChange={(event) => setText(event.target.value)}

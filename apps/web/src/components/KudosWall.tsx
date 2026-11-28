@@ -96,7 +96,9 @@ export function KudosWall({
                   })}
                 </p>
                 {kudo.text.trim() !== "" ? (
-                  <p className="whitespace-pre-wrap">{kudo.text}</p>
+                  <p className="whitespace-pre-wrap" data-sb-private="">
+                    {kudo.text}
+                  </p>
                 ) : null}
                 {kudo.gifUrl !== null ? (
                   <img
@@ -268,6 +270,7 @@ function KudoComposer({
         <div className="sb-field__control sb-select">
           <select
             id={`${id}-to`}
+            data-sb-private=""
             value={toId}
             data-testid="kudo-recipient"
             onChange={(event) => setToId(event.target.value)}
@@ -297,6 +300,7 @@ function KudoComposer({
         <div className="sb-field__control">
           <textarea
             id={`${id}-reason`}
+            data-sb-private=""
             value={text}
             data-testid="kudo-text"
             onChange={(event) => setText(event.target.value)}
