@@ -70,7 +70,7 @@ A copy holds the core of its profile and the packs named when it was written, no
 | `media` | audio row and video | CSS media; `js/sb-media.js` | — | 2,845 |
 | `diff` | diff view | CSS diff | — | 1,956 |
 | `notes` | footnotes: the digits, the list of notes and the popover below 1024 px | CSS notes; `js/sb-notes.js`; `react/Notes.tsx` | — | 4,265 |
-| `feedback` | feedback from inside the product: a bug, a wish or a question as a public issue, with a picture whose private parts are black (Blueprint parts/feedback) | CSS feedback; `js/sb-feedback.js` | — | 9,160 |
+| `feedback` | feedback from inside the product: a bug, a wish or a question as a public issue, with a picture whose private parts are black (Blueprint parts/feedback) | CSS feedback; `js/sb-feedback.js`; `react/Feedback.tsx` | — | 9,181 |
 | `facts` | product facts: claim rows, check list and facts line, rendered from JSON data blocks; and facts/, the rules of the data: the contract, its schema and its checker for the product's CI | CSS facts; `js/sb-facts.js`; `react/ClaimRow.tsx`; `facts/` | `notes` | 6,199 |
 | `menu` | menu button behaviour, with check items, groups and submenus (the More menu) | CSS menu; `js/sb-menu.js`; `react/Menu.tsx` | — | 1,387 |
 | `tooltip` | tooltip behaviour | `js/sb-tooltip.js` | — | — |
@@ -139,7 +139,7 @@ node <this folder>/checks/update-copy.mjs --packs <pack>,<pack>
 | `editor/` | packs `editor-shiki`, `editor-codemirror`: the code looks as files (section *Editor*) |
 | `CHANGES.md` | what changed for a product, release by release, and what to do after an update (section *Keep in sync*) |
 
-**Sizes, for a page budget**, in bytes as shipped and minified (without comments and white space; a bundler's minifier gets a little less): `tokens.css` 46,736 and 39,507; `css/sebaro.css` of the core alone 197,556 and 122,252, with every pack 384,558 and 233,452; the pack table has what each pack adds. `icons/sprite.svg`, inlined in every page: 60,571. The sizes of this copy's two files, also gzip'ed, are in `sebaro-export.json` under `cssSizes`.
+**Sizes, for a page budget**, in bytes as shipped and minified (without comments and white space; a bundler's minifier gets a little less): `tokens.css` 46,736 and 39,507; `css/sebaro.css` of the core alone 197,556 and 122,252, with every pack 384,664 and 233,473; the pack table has what each pack adds. `icons/sprite.svg`, inlined in every page: 60,571. The sizes of this copy's two files, also gzip'ed, are in `sebaro-export.json` under `cssSizes`.
 
 ## Plain HTML
 
@@ -230,6 +230,7 @@ The table has every file of the profile; one of a pack is in this copy with that
 | `react/Dialog.tsx` | core | a modal dialog that asks before something is lost |
 | `react/Divider.tsx` | pack `window` | the line between a side pane and the content, the handle of the pane's width |
 | `react/DocTabs.tsx` | pack `window` | the tabs of the open documents |
+| `react/Feedback.tsx` | pack `feedback` | the markup of feedback (panel, sheet, picture editor) with the app's words; its behaviour is sb-feedback.js |
 | `react/Field.tsx` | core | a field: label, control, error and help |
 | `react/Heatmap.tsx` | pack `charts` | a heatmap as a grid with one tab stop and its read-out |
 | `react/Icon.tsx` | core | an icon of the sprite the page holds inline |

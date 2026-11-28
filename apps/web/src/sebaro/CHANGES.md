@@ -5,6 +5,48 @@ hand for someone who builds a product; the newest release stands first. Every pr
 release publishes it beside the copies, and `checks/update-copy.mjs` prints the sections between the release a copy
 had and the one it fetched. The headings are the release tags.
 
+## v3.1.4
+
+**Every product with feedback on the web**
+
+- `sb-feedback.js` works under a strict Content-Security-Policy (`style-src 'self'`): it builds its picture in a
+  document of its own, sets styles only through the CSSOM and leaves the page's CSP meta out of the picture, which
+  had blocked its styles there. The page's CSP needs `img-src 'self' data:` (the picture) and the service in
+  `connect-src`. It also finds the picture template where a framework renders a `<template>`'s markup as its
+  children (React).
+- The panel (from 40em) lies on the layer `--sb-layer-overlay`, above the bottom action zone and menus: before, a
+  bottom action zone covered the panel's lower part and took the clicks on „Senden“.
+- The web app starter has „Rückmeldung geben“ in its „Mehr“ menu, and what a person wrote carries `data-sb-private`.
+- The desktop starter has „Rückmeldung geben …“ as the first block of its menu „Hilfe“ (pack `feedback`). Its CSP
+  allows the picture (`img-src data:`) and the service in `connect-src`. On macOS the window is WebKit, which may refuse
+  to read the drawn picture: then there is no picture, and „Bild hinzufügen“ stays.
+- The website starter has „Rückmeldung geben“ in its footer (`src/components/Feedback.astro`, pack `feedback`): with
+  the script the panel opens; without it the link leads to the service's own form. `CSP` in `src/site.ts` allows the
+  picture and the service, and `scripts/check-build.mjs` knows `sb-feedback.js`.
+
+**A web app or a desktop app in React that takes feedback**
+
+- New in the pack `feedback`: `react/Feedback.tsx`, the markup of the panel or sheet and of the picture editor with
+  the app's words (`FeedbackWords`), and `openFeedback(id, opener)` for the menu item „Rückmeldung geben“. The
+  behaviour stays `sb-feedback.js`: load it once at the end of the body.
+
+**An Android app that takes feedback**
+
+- The Android starter has „Rückmeldung geben“ in its settings, before „Über“ (it has no „Mehr“ menu). It has no
+  INTERNET, so the row opens the service's form in the browser, with what goes along and without a picture.
+- New pack `feedback` (Blueprint parts/feedback, NAV-12, EIN-07, TEC-14): `SbFeedback`, a sheet in two steps (the
+  kind with its icon in its circle, optional; then the text, required). Take the picture with
+  `rememberSbFeedbackCapture()` (or `sbCaptureWindow(view)`) before the sheet opens; every `Modifier.sbPrivate()` is
+  black in it, and a FLAG_SECURE window gives none. A picture goes along only after a look in the editor, as a new
+  PNG. `SbFeedback` hands the report to `onSend`: an app with INTERNET sends it with `SbFeedbackClient(endpoint,
+  product).send(report)`; an app without INTERNET opens the service's form in the browser instead
+  (`sbOpenFeedbackForm(context, sbFeedbackFormUri(endpoint, product, rememberSbFeedbackContext(view, version)))`),
+  without a picture and without the sheet. `SbShakeToFeedback(enabled, onShake)` only behind the person's own switch,
+  off by default.
+- Mark everything private with `Modifier.sbPrivate()` before you offer a picture: names, what a person wrote,
+  anything from TEC-12. An app with sensitive data passes no picture.
+- `checks/lint-android.sh` (A5) allows the subtle fills of the kind circles in `SbFeedback.kt` only (FAR-02).
+
 ## v3.1.3
 
 **A web app, a desktop app or a website that takes feedback**

@@ -3728,7 +3728,7 @@ div.sb-side-nav__head { display: flex; align-items: center; gap: var(--sb-space-
   dialog.sb-feedback {
     position: fixed; inset: auto var(--sb-spacing-gutter) var(--sb-spacing-gutter) auto;
     inline-size: min(25rem, calc(100vw - 2 * var(--sb-spacing-gutter))); max-block-size: calc(100dvh - 2 * var(--sb-spacing-gutter));
-    padding: var(--sb-space-5); border-radius: var(--sb-radius-container); z-index: 10;
+    padding: var(--sb-space-5); border-radius: var(--sb-radius-container); z-index: var(--sb-layer-overlay);   /* above the bottom action zone (sticky) and menus, below modal, popover, toast */
   }
   .sb-feedback__step, .sb-feedback__back, .sb-feedback__kind-hint, .sb-feedback__kind-go { display: none; }
 }

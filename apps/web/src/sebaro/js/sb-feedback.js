@@ -186,11 +186,16 @@
     var w = window.innerWidth, h = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
     var boxes = privateBoxes(), sx = window.scrollX, sy = window.scrollY;   // now, before anything can scroll
     var root = document.documentElement;
-    var copy = root.cloneNode(true);
+    // the copy lives in a document of its own and gets its styles through the CSSOM: a page with style-src 'self'
+    // refuses (and logs) a style attribute's text
+    var doc = document.implementation.createHTMLDocument("");
+    var copy = doc.importNode(root, true);
     // the clone has the same elements in the same order: pair them before anything in the copy changes
     var live = root.querySelectorAll("*"), mirror = copy.querySelectorAll("*"), swaps = [];
     var probe = document.createElement("div");
-    probe.style.cssText = "position:absolute;top:-999px;inline-size:100px;block-size:100px;overflow:scroll";
+    // through the CSSOM, one property at a time: a page with style-src 'self' refuses a style attribute's text
+    [["position", "absolute"], ["top", "-999px"], ["inline-size", "100px"], ["block-size", "100px"], ["overflow", "scroll"]]
+      .forEach(function (d) { probe.style.setProperty(d[0], d[1]); });
     document.body.appendChild(probe);
     var overlayBars = probe.offsetWidth - probe.clientWidth === 0;   // the page's scroll boxes take no room
     probe.remove();
@@ -199,10 +204,11 @@
       if (!c) return;
       var tag = el.tagName;
       if (tag === "CANVAS") {                 // its pixels as an image of the same box
-        var img = document.createElement("img"), r0 = el.getBoundingClientRect();
+        var img = doc.createElement("img"), r0 = el.getBoundingClientRect();
         try { img.src = el.toDataURL(); } catch (e) { /* a tainted canvas stays empty */ }
         img.className = el.getAttribute("class") || "";
-        img.setAttribute("style", "width:" + r0.width + "px !important;height:" + r0.height + "px !important");
+        img.style.setProperty("width", r0.width + "px", "important");    // the CSSOM: style-src 'self' allows it
+        img.style.setProperty("height", r0.height + "px", "important");
         swaps.push([c, img]);
         return;
       }
@@ -218,7 +224,11 @@
         c.removeAttribute("loading");
         c.style.setProperty("width", r.width + "px", "important");
         c.style.setProperty("height", r.height + "px", "important");
-        if (tag !== "IMG") { var box = document.createElement("div"); box.setAttribute("style", c.getAttribute("style")); swaps.push([c, box]); }
+        if (tag !== "IMG") {
+          var box = doc.createElement("div");
+          Array.prototype.forEach.call(c.style, function (name) { box.style.setProperty(name, c.style.getPropertyValue(name), c.style.getPropertyPriority(name)); });
+          swaps.push([c, box]);
+        }
       }
       var cs = getComputedStyle(el), pos = cs.position;
       // every block keeps the size it has now: the copy's text may break a little differently, and without this a
@@ -258,7 +268,8 @@
       }
     });
     swaps.forEach(function (s) { s[0].replaceWith(s[1]); });
-    copy.querySelectorAll("script, dialog.sb-feedback, dialog.sb-feedback-editor, [data-sb-feedback-skip], noscript").forEach(function (el) { el.remove(); });
+    // a CSP meta of the page would hold inside the picture too and refuse its <style>
+    copy.querySelectorAll("script, meta[http-equiv], dialog.sb-feedback, dialog.sb-feedback-editor, [data-sb-feedback-skip], noscript").forEach(function (el) { el.remove(); });
     copy.querySelectorAll("[data-sb-private]").forEach(function (el) { el.style.setProperty("visibility", "hidden", "important"); });
     var images = Array.prototype.filter.call(copy.querySelectorAll("img[src]"), function (img) { return !/^data:/.test(img.getAttribute("src")); });
     var jobs = images.map(function (img) {
@@ -270,10 +281,10 @@
     return Promise.all(jobs).then(styles).then(function (css) {
       var head = copy.querySelector("head");
       if (head) head.querySelectorAll("link, style").forEach(function (el) { el.remove(); });
-      var style = document.createElement("style");
+      var style = doc.createElement("style");
       style.textContent = css + (overlayBars ? "\n* { scrollbar-width: none !important; }" : "");
       (head || copy).appendChild(style);
-      copy.setAttribute("style", "transform: translate(" + (-sx) + "px, " + (-sy) + "px)");
+      copy.style.setProperty("transform", "translate(" + (-sx) + "px, " + (-sy) + "px)");
       var attrs = Array.prototype.map.call(root.attributes, function (a) {
         return a.name === "style" || a.name === "xmlns" ? "" : " " + a.name + '="' + a.value.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '"';
       }).join("");
@@ -423,7 +434,10 @@
   function addPicture(dialog, canvas) {
     var list = pictureList(dialog), tpl = dialog.querySelector("template[data-sb-feedback-picture]");
     if (!list || !tpl || pictures(dialog).length >= MAX_PICTURES) return null;
-    var item = tpl.content.firstElementChild.cloneNode(true);
+    // a framework may render the template's markup as its children instead of into its content (React does)
+    var source = (tpl.content && tpl.content.firstElementChild) || tpl.firstElementChild;
+    if (!source) return null;
+    var item = source.cloneNode(true);
     item._sbBase = canvas;
     item.removeAttribute("data-sb-state");
     var img = item.querySelector("img");
